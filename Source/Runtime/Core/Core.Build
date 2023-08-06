@@ -1,0 +1,5 @@
+set(ModuleName Core)
+set(LinkMode SHARED)
+
+set(PublicDependencyModuleList
+)

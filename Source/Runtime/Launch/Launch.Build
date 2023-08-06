@@ -1,0 +1,8 @@
+set(ModuleName Launch)
+set(LinkMode SHARED)
+set(PublicDependencyModuleList
+	Core
+    RHI
+    D3D11RHI
+	D3D12RHI
+)

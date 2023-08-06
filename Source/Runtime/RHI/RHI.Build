@@ -1,0 +1,6 @@
+set(ModuleName RHI)
+set(LinkMode SHARED)
+set(PublicDependencyModuleList
+    Core
+    Shader
+)

@@ -1,0 +1,6 @@
+set(ModuleName Shader)
+set(LinkMode SHARED)
+
+set(PublicDependencyModuleList
+    Core
+)

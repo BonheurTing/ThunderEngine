@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.24.0)
 
 # project name, dll or exe
-project(RomanticEditor VERSION 1.0)
+project(ThunderEditor VERSION 1.0)
 
 # specify the C++ standard
 set(CMAKE_C_STANDARD 11)

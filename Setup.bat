@@ -1,6 +1,7 @@
+rmdir /s /q ".\Intermediate\Build"
+mkdir ".\Intermediate\Build"
 cd ./Intermediate/Build
-cmake --clean
-cmake ../..
+cmake -A x64 ../..
 echo Config finished...
 pause
 cmake --build .

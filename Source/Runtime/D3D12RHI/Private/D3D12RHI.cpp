@@ -24,7 +24,7 @@ RHIDeviceRef D3D12DynamicRHI::RHICreateDevice()
 
     if(hardwareAdapter == nullptr)
     {
-        RMT_LOG("Fail to get valid adapter");
+        LOG("Fail to get valid adapter");
         return nullptr;
     }
 
@@ -41,7 +41,7 @@ RHIDeviceRef D3D12DynamicRHI::RHICreateDevice()
     }
     else
     {
-        RMT_LOG("Fail to create device");
+        LOG("Fail to create device");
         return nullptr;
     }
 }
@@ -116,7 +116,7 @@ RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(const RHIResourceDescr
     }
     else
     {
-        RMT_LOG("Fail to Create VertexBuffer (dx12)");
+        LOG("Fail to Create VertexBuffer (dx12)");
         return nullptr;
     }
 }
@@ -156,7 +156,7 @@ RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(const RHIResourceDescrip
     }
     else
     {
-        RMT_LOG("Fail to Create IndexBuffer (dx12)");
+        LOG("Fail to Create IndexBuffer (dx12)");
         return nullptr;
     }
 }
@@ -194,7 +194,7 @@ RHIStructuredBufferRef D3D12DynamicRHI::RHICreateStructuredBuffer(const RHIResou
     }
     else
     {
-        RMT_LOG("Fail to Create Structured Buffer (dx12)");
+        LOG("Fail to Create Structured Buffer (dx12)");
         return nullptr;
     }
 }
@@ -232,7 +232,7 @@ RHIConstantBufferRef D3D12DynamicRHI::RHICreateConstantBuffer(const RHIResourceD
     }
     else
     {
-        RMT_LOG("Fail to Create Constant Buffer (dx12)");
+        LOG("Fail to Create Constant Buffer (dx12)");
         return nullptr;
     }
 }
@@ -269,7 +269,7 @@ RHITexture1DRef D3D12DynamicRHI::RHICreateTexture1D(const RHIResourceDescriptor&
     }
     else
     {
-        RMT_LOG("Fail to Create Texture1D (dx12)");
+        LOG("Fail to Create Texture1D (dx12)");
         return nullptr;
     }
 }
@@ -305,7 +305,7 @@ RHITexture2DRef D3D12DynamicRHI::RHICreateTexture2D(const RHIResourceDescriptor&
     }
     else
     {
-        RMT_LOG("Fail to Create Texture2D (dx12)");
+        LOG("Fail to Create Texture2D (dx12)");
         return nullptr;
     }
 }
@@ -340,7 +340,7 @@ RHITexture2DArrayRef D3D12DynamicRHI::RHICreateTexture2DArray(const RHIResourceD
     }
     else
     {
-        RMT_LOG("Fail to Create Texture2DArray (dx12)");
+        LOG("Fail to Create Texture2DArray (dx12)");
         return nullptr;
     }
 }
@@ -375,7 +375,7 @@ RHITexture3DRef D3D12DynamicRHI::RHICreateTexture3D(const RHIResourceDescriptor&
     }
     else
     {
-        RMT_LOG("Fail to Create Texture3D (dx12)");
+        LOG("Fail to Create Texture3D (dx12)");
         return nullptr;
     }
 }

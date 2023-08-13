@@ -11,10 +11,6 @@
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
 
 # Fortran module files
 *.mod
@@ -30,6 +26,7 @@
 *.exe
 *.out
 *.app
+*.ipa
 *.sln
 
 .idea/
@@ -41,3 +38,5 @@ Intermediate/
 Source/Programs/
 Source/ThirdParty/EASTL
 Source/ThirdParty/llvm8
+Saved/
+x64/

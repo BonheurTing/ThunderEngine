@@ -1,20 +1,33 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
+#include "dxcapi.h"
 
-class Shader_API ICompiler
+class SHADER_API ICompiler
 {
 public:
-	virtual void Compile(const String& inSource, BinaryData& outByteCode) = 0;
+	virtual ~ICompiler() = default;
+	virtual void Compile(const String& inSource, SIZE_T srcDataSize, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) = 0;
 };
 
-class Shader_API IDx11Compiler : public ICompiler
+class SHADER_API FXCCompiler : public ICompiler
 {
 public:
-	void Compile(const String& inSource, BinaryData& outByteCode) override;
+	void Compile(const String& inSource, SIZE_T srcDataSize, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) override;
 };
 
-class Shader_API IDx12Compiler : public ICompiler
+class SHADER_API DXCCompiler : public ICompiler
 {
 public:
-	void Compile(const String& inSource, BinaryData& outByteCode) override;
+	DXCCompiler();
+	void Compile(const String& inSource, SIZE_T srcDataSize, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) override;
+private:
+	ComPtr<IDxcUtils> ShaderUtils;
+	ComPtr<IDxcCompiler> ShaderCompiler;
 };
+
+extern SHADER_API ICompiler* GShaderCompiler;
+
+FORCEINLINE void Compile(const String& inSource, SIZE_T srcDataSize, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+{
+	GShaderCompiler->Compile(inSource, srcDataSize, pEntryPoint, pTarget, outByteCode);
+}

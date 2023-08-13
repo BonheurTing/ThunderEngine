@@ -20,7 +20,7 @@ using ScopeLock = std::lock_guard<std::mutex>;
 #define FORCEINLINE __forceinline									/* Force code to be inline */
 
 #define Assert(...) 
-#define RMT_LOG(...) printf(__VA_ARGS__)
+#define LOG(...) printf(__VA_ARGS__)
 
 //todo: user-defined end
 

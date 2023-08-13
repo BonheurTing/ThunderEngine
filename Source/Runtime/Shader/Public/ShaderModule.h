@@ -1,5 +1,4 @@
 #pragma once
-
 #include "CoreMinimal.h"
 
 enum class EShaderStage : uint8
@@ -20,25 +19,34 @@ struct ShaderMeta
 
 struct ShaderEntry
 {
-	uint64 VariantMask;
 	BinaryData ByteCode;
 	ShaderMeta MetaInfo;
 };
 
 struct ShaderCombination
 {
-	Map<EShaderStage, ShaderEntry> Shaders;
+	HashMap<EShaderStage, ShaderEntry> Shaders;
 };
 
 struct Pass
 {
-	Map<uint64, ShaderCombination> Variants; //uint64: VariantMask 
+
+	
+	HashMap<uint64, ShaderCombination> Variants;
 };
 
 class ShaderArchive
 {
 public:
 private:
-	Map<NameHandle, Pass> Passes; //todo:NameHandle
+	HashMap<NameHandle, Pass> Passes;
 };
 
+class SHADER_API ShaderModule
+{
+public:
+	static bool ParseShaderFile();
+	
+private:
+	static HashMap<NameHandle, ShaderArchive> ShaderCache;
+};

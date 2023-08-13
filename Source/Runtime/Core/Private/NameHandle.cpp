@@ -104,9 +104,9 @@ const char* NamePool::AddNameToPool(const char *name, uint32 hash)
 #else
 	memcpy(list->mString, name, strLength);
 #endif
-	Assert(list->mString[strLength - 1] == 0);
+	assert(list->StringPtr[strLength - 1] == 0);
 	CurrentStringOffset += strLength + strOverhead + strPadding;
-	Assert(CurrentStringOffset % sizeof(void*) == 0);
+	assert(CurrentStringOffset % sizeof(void*) == 0);
 	StringList[hashIndex] = list;
 	StringList[hashIndex]->Next = next;
 

@@ -6,7 +6,7 @@ set(PublicDependencyModuleList
 )
 
 set(PublicThirdPartyIncludeList
-    #ThirdParty/Windows/DXCompiler/include
+    ThirdParty/rapidjson/include
 )
 
 set(PrivateThirdPartyPathList

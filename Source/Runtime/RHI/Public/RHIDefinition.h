@@ -13,6 +13,7 @@ enum class ERHIResourceType : uint32
     Buffer,
     Texture1D,
     Texture2D,
+    Texture2DArray,
     Texture3D
 };
 

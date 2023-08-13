@@ -1,8 +1,10 @@
 #pragma once
+#include <map>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+#include <cassert>
 
 //todo: user-defined 
 using String = std::string;
@@ -11,7 +13,10 @@ template<typename InElementType, typename InAllocatorType = std::allocator<InEle
 using Array = std::vector<InElementType, InAllocatorType>;
 
 template<typename InKeyType, typename InValueType>
-using Map = std::unordered_map<InKeyType, InValueType>;
+using HashMap = std::unordered_map<InKeyType, InValueType>;
+
+template<typename InKeyType, typename InValueType>
+using Map = std::map<InKeyType, InValueType>;
 
 using Mutex = std::mutex;
 using ScopeLock = std::lock_guard<std::mutex>;
@@ -19,7 +24,6 @@ using ScopeLock = std::lock_guard<std::mutex>;
 ////// Function type macros.
 #define FORCEINLINE __forceinline									/* Force code to be inline */
 
-#define Assert(...) 
 #define LOG(...) printf(__VA_ARGS__)
 
 //todo: user-defined end

@@ -1,8 +1,6 @@
 ﻿#pragma once
 #include "Platform.h"
 
-
-
 class CORE_API NameHandle
 {
 public:

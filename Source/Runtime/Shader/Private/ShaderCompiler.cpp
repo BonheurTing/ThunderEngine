@@ -1,11 +1,20 @@
 ﻿#include "ShaderCompiler.h"
+#include "Assertion.h"
 #include "d3dcompiler.h"
 
+ICompiler* GShaderCompiler = nullptr;
+HashMap<EShaderStageType, String> GShaderModuleTarget = {};
 
+FXCCompiler::FXCCompiler()
+{
+	GShaderModuleTarget = {
+		{EShaderStageType::Vertex, "vs_5_0"},
+		{EShaderStageType::Pixel, "ps_5_0"},
+		{EShaderStageType::Compute, "cs_5_0"}
+	};
+}
 
-ICompiler* GShaderCompiler = NULL;
-
-void FXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+void FXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
 {
 #if defined(SHAHER_DEBUG)
 	// Enable better shader debugging with the graphics debugging tools.
@@ -14,7 +23,16 @@ void FXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, const Stri
 	UINT compileFlags = 0;
 #endif
 	ComPtr<ID3DBlob> pResult, errorMessages;
-	const HRESULT hr = D3DCompile(inSource.c_str(), srcDataSize,nullptr, nullptr, nullptr, pEntryPoint.c_str(), pTarget.c_str(), compileFlags, 0, &pResult, &errorMessages);
+
+	D3D_SHADER_MACRO pDefines[64] = {};
+	int i = 0;
+	for (auto def : marco)
+	{
+		pDefines[i] = {def.first.c_str(), def.second ? "1" : "0"};
+		i++;
+	}
+	
+	const HRESULT hr = D3DCompile(inSource.c_str(), srcDataSize,nullptr, pDefines, nullptr, pEntryPoint.c_str(), pTarget.c_str(), compileFlags, 0, &pResult, &errorMessages);
 	//const HRESULT hr = D3DCompileFromFile(L"D:/ThunderEngine/Shader/shaders.hlsl",nullptr, nullptr, pEntryPoint.c_str(), pTarget.c_str(), 0, 0, &pResult, &errorMessages);
 	
 	if (SUCCEEDED(hr))
@@ -24,17 +42,19 @@ void FXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, const Stri
 	}
 	else
 	{
-		if (errorMessages)
-		{
-			wprintf(L"Compilation failed with errors: %hs\n",
-				static_cast<const char*>(errorMessages->GetBufferPointer()));
-		}
+		TAssertf(!errorMessages, "Compilation failed with errors: %s\n",static_cast<const char*>(errorMessages->GetBufferPointer()));
 		LOG("Fail to Compile Shader/n");
 	}
 }
 
 DXCCompiler::DXCCompiler()
 {
+	GShaderModuleTarget = {
+		{EShaderStageType::Vertex, "vs_6_0"},
+		{EShaderStageType::Pixel, "ps_6_0"},
+		{EShaderStageType::Compute, "cs_6_0"}
+	};
+	
 	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&ShaderUtils));
 	if (FAILED(hr))
 	{
@@ -48,7 +68,7 @@ DXCCompiler::DXCCompiler()
 	}
 }
 
-void DXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+void DXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
 {
 	if (ShaderCompiler == nullptr || ShaderUtils == nullptr)
 	{

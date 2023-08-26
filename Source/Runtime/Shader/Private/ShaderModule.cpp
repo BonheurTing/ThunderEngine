@@ -3,7 +3,12 @@
 #include "Assertion.h"
 #include "CommonUtilities.h"
 #include "FileHelper.h"
+#include "ShaderCompiler.h"
 #include "rapidjson/document.h"
+
+//////////////////////////////////////////////////////////////////////////////////////////
+/// Parse Shader File
+//////////////////////////////////////////////////////////////////////////////////////////
 
 using namespace rapidjson;
 
@@ -58,7 +63,9 @@ namespace
 	{
 		TAssertf(object.IsObject(), "Property node is not an object.");
 		bool result = true;
-		result = result && TryGetString(object, "Name", outProperty.Name);
+		String name;
+		result = result && TryGetString(object, "Name", name);
+		outProperty.Name = name;
 		result = result && TryGetString(object, "DisplayName", outProperty.DisplayName, false, outProperty.Name.c_str());
 		result = result && TryGetString(object, "Type", outProperty.Type);
 		result = result && TryGetString(object, "Default", outProperty.Default, false);
@@ -70,9 +77,11 @@ namespace
 	{
 		TAssertf(object.IsObject(), "Parameter node is not an object.");
 		bool result = true;
-		result = result && TryGetString(object, "Name", outParameter.Name);
+		String name;
+		result = result && TryGetString(object, "Name", name);
 		result = result && TryGetString(object, "Type", outParameter.Type);
 		result = result && TryGetString(object, "Default", outParameter.Default, false);
+		outParameter.Name = name;
 		return result;
 	}
 	
@@ -80,10 +89,10 @@ namespace
 	{
 		TAssertf(object.IsObject(), "RenderState node is not an object.");
 		bool result = true;
-		result = result && TryGetString(object, "Blend", outRenderState.Blend, false, "Opaque");
-		result = result && TryGetString(object, "Cull", outRenderState.Cull, false, "Front");
 		String lod;
 		result = result && TryGetString(object, "LOD", lod);
+		result = result && TryGetString(object, "Blend", outRenderState.Blend, false, "Opaque");
+		result = result && TryGetString(object, "Cull", outRenderState.Cull, false, "Front");
 		outRenderState.LOD = CommonUtilities::StringToInteger(lod, 1);
 		return result;
 	}
@@ -92,17 +101,22 @@ namespace
 	{
 		TAssertf(object.IsObject(), "Variant node is not an object.");
 		bool result = true;
-		result = result && TryGetString(object, "Name", outVariant.Name);
-		result = result && TryGetString(object, "Texture", outVariant.Texture, false, "");
-		String defaultValue, fallback, visible;
+		String name, defaultValue, fallback, visible, texture;
+		result = result && TryGetString(object, "Name", name);
+		result = result && TryGetString(object, "Texture", texture, false, "");
 		result = result && TryGetString(object, "Default", defaultValue, false);
+		outVariant = {name, defaultValue, fallback, visible, texture};
 		return result;
 	}
 
 	bool ParseStageNode(GenericValue<UTF8<>> const& object, StageMeta& outStageMata, Array<VariantMeta>& outStageVariantMeta)
 	{
+		TAssertf(object.IsObject(), "Shader meta parse error : Stage node is not an object\n");
+
 		bool result = true;
-		result = result && TryGetString(object, "EntryPoint", outStageMata.EntryPoint, true);
+		String entryPoint;
+		result = result && TryGetString(object, "EntryPoint", entryPoint, true);
+		outStageMata.EntryPoint = entryPoint;
 		// EntryVariants
 		auto stageNode = object.GetObject();
 		if (stageNode.HasMember("StageVariants") && !stageNode["StageVariants"].IsNull())
@@ -120,35 +134,88 @@ namespace
 	}
 }
 
-
-uint64 Pass::VariantNameToMask(Array<NameHandle>& definitionTable, Array<NameHandle>& variantName)
+uint64 Pass::VariantNameToMask(const Array<VariantMeta>& variantName) const
 {
-	return 1;
-}
-
-void Pass::VariantIdToVariantName(uint64 VariantId, Array<NameHandle>& definitionTable, Array<NameHandle>& variantName)
-{
-}
-
-void Pass::GenerateVariantDefinitionTable()
-{
-	Set<NameHandle> variantDefinition;
-	for (const auto& meta : PassVariantConfig)
+	if (!variantName.empty())
 	{
-		variantDefinition.emplace(meta.Name);
+		uint64 mask = 0;
+		const int totalVariantType = static_cast<int>(VariantDefinitionTable.size());
+		for (auto meta : variantName)
+		{
+			int i = 0;
+			for (; i < totalVariantType; i++)
+			{
+				if (meta.Name == VariantDefinitionTable[i].Name)
+				{
+					mask = mask | 1 << i;
+					break;
+				}
+			}
+			TAssertf(i < totalVariantType, "Couldn't find variant %s", meta.Name);
+		}
+		return mask;
 	}
-	for (auto [fst, snd] : StageVariantConfig)
+	return 0;
+}
+
+void Pass::VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, HashMap<NameHandle, bool>& shaderMarco) const
+{
+	const int totalVariantType = static_cast<int>(VariantDefinitionTable.size());
+	TAssertf(variantId >> totalVariantType == 0, "Error input VariantId");
+	for (int i = 0; i < totalVariantType; i++)
+	{
+		if (variantMask & 1 << i)
+		{
+			shaderMarco[VariantDefinitionTable[i].Name] = (variantId & 1 << i) > 0;
+		}
+	}
+}
+
+void Pass::GenerateVariantDefinitionTable(const Array<VariantMeta>& passVariantMeta, const HashMap<EShaderStageType, Array<VariantMeta>>& stageVariantMeta)
+{
+	// gen VariantDefinitionTable
+	HashSet<NameHandle> variantDefinition;
+	for (auto meta : passVariantMeta)
+	{
+		TAssertf(!variantDefinition.contains(meta.Name), "Duplicate variant definitions: %s", meta.Name);
+		variantDefinition.insert(meta.Name);
+		VariantDefinitionTable.push_back(meta);
+	}
+
+	for (auto [fst, snd] : stageVariantMeta)
 	{
 		for (const auto& meta : snd)
 		{
-			variantDefinition.emplace(meta.Name);
+			TAssertf(!variantDefinition.contains(meta.Name), "Duplicate variant definitions: %s", meta.Name);
+			variantDefinition.insert(meta.Name);
+			VariantDefinitionTable.push_back(meta);
 		}
 	}
-	VariantDefinitionTable.assign(variantDefinition.begin(), variantDefinition.end());
-	//todo: gen PassVariantMask and StageVariantMask
+	TAssertf(variantDefinition.size() == VariantDefinitionTable.size(), "Invalid variant definitions");
+	
+	// gen PassVariantMask and StageVariantMask
 	PassVariantMask = 0;
-	//todo: gen default mask and default combination
+	for (int i = 0; i < static_cast<int>(VariantDefinitionTable.size()); i++)
+	{
+		PassVariantMask = PassVariantMask << 1 | 1;
+	}
+	const uint64 sharedStageMask = VariantNameToMask(passVariantMeta);
+	for (auto meta:  StageMetas)
+	{
+		meta.second.VariantMask = sharedStageMask;
+		if (stageVariantMeta.contains(meta.first))
+		{
+			meta.second.VariantMask = meta.second.VariantMask | VariantNameToMask( stageVariantMeta.at(meta.first) );
+		}
+	}
 }
+
+void Pass::CacheDefaultShaderCache()
+{
+	//todo: gen default mask and default combination
+	//todo: compile default
+}
+
 
 bool ShaderModule::ParseShaderFile()
 {
@@ -201,7 +268,6 @@ bool ShaderModule::ParseShaderFile()
 
 		if (document.HasMember("RenderState") && !document["RenderState"].IsNull())
 		{
-			TAssertf(document["RenderState"].IsObject(), "Shader meta parse error : RenderState node is not an object\nFile name : %s.", metaFileName.c_str());
 			RenderStateMeta meta{};
 			ParseRenderStateNode(document["RenderState"], meta);
 			currentShader->SetRenderState(meta);
@@ -217,51 +283,62 @@ bool ShaderModule::ParseShaderFile()
 				auto shaderPass = shaderPasses[passName.c_str()].GetObject();
 				Pass* currentPass = new Pass(passName);
 				// PassVariants
+				Array<VariantMeta> passVariantMeta;
 				if (shaderPass.HasMember("PassVariants") && !shaderPass["PassVariants"].IsNull())
 				{
 					TAssertf(shaderPass["PassVariants"].IsArray(), "Shader meta parse error : %s PassVariants node is not an array\nFile name : %s.", passName, metaFileName.c_str());
 					auto const& passVariantsNode = shaderPass["PassVariants"].GetArray();
-					Array<VariantMeta> PassVariantMeta;
 					for (auto itr = passVariantsNode.Begin(); itr != passVariantsNode.End(); ++itr)
 					{
 						VariantMeta meta{};
 						ParseVariantNode(*itr, meta);
-						PassVariantMeta.push_back(meta);
+						passVariantMeta.push_back(meta);
 					}
-					currentPass->SetPassVariantMeta(PassVariantMeta);
 				}
+				HashMap<EShaderStageType, Array<VariantMeta>> stageVariantConfig;
 				// Vertex
 				if (shaderPass.HasMember("Vertex") && !shaderPass["Vertex"].IsNull())
 				{
-					TAssertf(shaderPass["Vertex"].IsObject(), "Shader meta parse error : %s Vertex node is not an object\nFile name : %s.", passName, metaFileName.c_str());
 					StageMeta sMeta{};
 					Array<VariantMeta> StageVariantMeta;
 					ParseStageNode(shaderPass["Vertex"], sMeta, StageVariantMeta);
 					currentPass->AddStageMeta(EShaderStageType::Vertex, sMeta);
 					if (!StageVariantMeta.empty())
 					{
-						currentPass->AddStageVariantMeta(EShaderStageType::Vertex, StageVariantMeta);
+						stageVariantConfig[EShaderStageType::Vertex] = StageVariantMeta;
 					}
 				}
 				// Pixel
 				if (shaderPass.HasMember("Pixel") && !shaderPass["Pixel"].IsNull())
 				{
-					TAssertf(shaderPass["Pixel"].IsObject(), "Shader meta parse error : %s Pixel node is not an object\nFile name : %s.", passName, metaFileName.c_str());
 					StageMeta sMeta{};
 					Array<VariantMeta> StageVariantMeta;
 					ParseStageNode(shaderPass["Pixel"], sMeta, StageVariantMeta);
 					currentPass->AddStageMeta(EShaderStageType::Pixel, sMeta);
 					if (!StageVariantMeta.empty())
 					{
-						currentPass->AddStageVariantMeta(EShaderStageType::Pixel, StageVariantMeta);
+						stageVariantConfig[EShaderStageType::Pixel] = StageVariantMeta;
 					}
 				}
-				currentPass->GenerateVariantDefinitionTable();
+				// Compute
+				if (shaderPass.HasMember("Compute") && !shaderPass["Compute"].IsNull())
+				{
+					StageMeta sMeta{};
+					Array<VariantMeta> StageVariantMeta;
+					ParseStageNode(shaderPass["Compute"], sMeta, StageVariantMeta);
+					currentPass->AddStageMeta(EShaderStageType::Compute, sMeta);
+					if (!StageVariantMeta.empty())
+					{
+						stageVariantConfig[EShaderStageType::Compute] = StageVariantMeta;
+					}
+				}
+				currentPass->GenerateVariantDefinitionTable(passVariantMeta, stageVariantConfig);
+				currentPass->CacheDefaultShaderCache();
 				currentShader->AddPass(passName, currentPass);
 			}
 		}
 
-		ShaderCache.emplace(shaderArchiveName, currentShader);
+		ShaderCache[shaderArchiveName] = currentShader;
 		LOG("Succeed to Parse %s\n", metaFileName.c_str());
 	}
 	if(!shaderNameList.empty())
@@ -269,4 +346,72 @@ bool ShaderModule::ParseShaderFile()
 		return true;
 	}
 	return false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+/// Compile Shader
+//////////////////////////////////////////////////////////////////////////////////////////
+bool Pass::CompileShader(const String& shaderSource, uint64 variantId)
+{
+	TAssertf((PassVariantMask & variantId) == variantId, "Compile Shader: Invalid variantId");
+	// Stage
+	ShaderCombination newVariant{};
+	for (auto meta : StageMetas)
+	{
+		// Variant Marco
+		TAssertf((meta.second.VariantMask & PassVariantMask) == meta.second.VariantMask, "Compile Shader: Invalid stage variantId");
+		const uint64 stageVariantId = variantId & meta.second.VariantMask;
+		HashMap<NameHandle, bool> shaderMarco{};
+		VariantIdToShaderMarco(stageVariantId, meta.second.VariantMask, shaderMarco);
+		//todo: include file
+		ShaderStage newStageVariant{};
+		Compile(shaderSource, shaderMarco, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
+
+		if(newStageVariant.ByteCode.Size == 0)
+		{
+			TAssertf(false, "Compile Shader: Output an empty ByteCode");
+			return false;
+		}
+		newVariant.Shaders[meta.first] = newStageVariant;
+	}
+	UpdateOrAddVariants(variantId, newVariant);
+	return true;
+}
+
+Pass* ShaderArchive::GetPass(NameHandle name)
+{
+	if (Passes.contains(name))
+	{
+		return Passes[name].get();
+	}
+	TAssertf(false, "Get null pass");
+	return nullptr;
+}
+
+bool ShaderArchive::CompileShaderPass(NameHandle passName, uint64 variantId, bool force)
+{
+	Pass* targetPass = GetPass(passName);
+	if (!force && targetPass && targetPass->CheckCache(variantId))
+	{
+		return true;
+	}
+	// SourcePath
+	const String fileName = FileHelper::GetEngineRoot() + "\\Shader\\" + SourcePath;
+	String shaderSource;
+	FileHelper::LoadFileToString(fileName, shaderSource);
+	return targetPass->CompileShader(shaderSource, variantId);
+}
+
+bool ShaderModule::CompileShaderCollection(NameHandle shaderType, NameHandle passName, const HashMap<NameHandle, bool>& variantParameters, bool force)
+{
+	return false;
+}
+
+bool ShaderModule::CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 VariantId, bool force)
+{
+	if (!ShaderCache.contains(shaderType))
+	{
+		return false;
+	}
+	return ShaderCache[shaderType]->CompileShaderPass(passName, VariantId);
 }

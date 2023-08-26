@@ -10,7 +10,7 @@ bool EngineMain::RHIInit(ERHIType type)
         case ERHIType::D3D12:
         {
             GDynamicRHI = new D3D12DynamicRHI();
-            GShaderCompiler = new DXCCompiler();
+            GShaderCompiler = new FXCCompiler();
             return GDynamicRHI != nullptr ? true : false;
         }
         case ERHIType::D3D11:

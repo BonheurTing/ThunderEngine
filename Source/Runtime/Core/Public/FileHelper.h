@@ -10,6 +10,7 @@ struct CORE_API FileHelper
 	// project path
 	static String GetProjectRoot();
 	static String GetEngineRoot();
+	static String GetEngineShaderRoot();
 };
 
 int TMessageBox(void* handle, const char* text, const char* caption, uint32 type);

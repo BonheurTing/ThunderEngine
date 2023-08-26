@@ -1,5 +1,4 @@
 ﻿#include "CommonUtilities.h"
-
 #include "Assertion.h"
 
 int CommonUtilities::StringToInteger(const String& str, int fallback)
@@ -13,14 +12,14 @@ int CommonUtilities::StringToInteger(const String& str, int fallback)
 
 bool CommonUtilities::StringToBool(const String& str, bool fallback)
 {
-	if (str.compare("True") == 0 || str.compare("true") == 0)
+	if (str == "True"  || str =="true")
 	{
 		return true;
 	}
-	if (str.compare("False") == 0 || str.compare("false") == 0)
+	if (str == "False" || str == "false")
 	{
 		return false;
 	}
-	TAssertf(false, "CommonUtilities::StringToBool: Invaild input %s", str);
+	TAssertf(str.empty(), "CommonUtilities::StringToBool: Invaild input %s", str);
 	return fallback;
 }

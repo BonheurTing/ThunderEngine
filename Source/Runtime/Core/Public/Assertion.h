@@ -31,4 +31,4 @@ namespace Thunder
 }
 
 #define TAssert(expr) assert(expr)
-#define TAssertf(expr, ...)  if(!expr) Thunder::Core::ProcessAssertion(#expr, __FILE__, __LINE__, __VA_ARGS__)
+#define TAssertf(expr, ...)  if(!(expr)) Thunder::Core::ProcessAssertion(#expr, __FILE__, __LINE__, __VA_ARGS__)

@@ -60,6 +60,11 @@ String FileHelper::GetEngineRoot()
 	return "D:\\ThunderEngine";
 }
 
+String FileHelper::GetEngineShaderRoot()
+{
+	return "D:\\ThunderEngine\\Shader";
+}
+
 int TMessageBox(void* handle, const char* text, const char* caption, uint32 type)
 {
 #if _WIN64

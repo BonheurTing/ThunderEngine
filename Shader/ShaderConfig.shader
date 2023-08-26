@@ -14,7 +14,7 @@
             "DisplayName": "Emissive Intensity",
             "Type": "Integer",
             "Range": "0, 10",
-            "Default": 1
+            "Default": "1"
         },
         {
             "Name": "EmissiveColor",
@@ -34,38 +34,47 @@
     "RenderState":
     {
         "Blend": "Opaque",
-        "LOD": 100,
+        "LOD": "100",
         "Cull": "Front"
     },
-	"Passes":
+    "Passes":
     {
         "GBuffer":
         {
             "PassVariants":
             [
+                {
+                    "Name": "EnableLumen",
+                    "Default": "True",
+                    "Fallback": "False"
+                }
             ],
             "Vertex":
             {
                 "EntryPoint": "VSMain",
-                "EntryVariants":
+                "StageVariants":
                 [
-                ],
-            }
+                    {
+                        "Name": "EnableVertexAnimation",
+                        "Default": "True",
+                        "Fallback": "False"
+                    }
+                ]
+            },
             "Pixel":
             {
                 "EntryPoint": "PSMain",
-                "EntryVariants":
+                "StageVariants":
                 [
-                ],
+                    {
+                        "Name": "EnableIBL",
+                        "Default": "True",
+                        "Fallback": "False",
+                        "Texture": "SkylightCubemap",
+                        "Visible": "False"
+                    }
+                ]
             }
-            "PassParameters":
-            [
-                {
-                    "Name": "StepLength",
-                    "Type": "Float",
-                    "Default": "1"
-                }
-            ]
         },
         "Lighting":
         {

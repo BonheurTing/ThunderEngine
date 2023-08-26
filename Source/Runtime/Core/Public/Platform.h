@@ -5,12 +5,20 @@
 #include <unordered_map>
 #include <vector>
 #include <cassert>
+#include <set>
+#include <unordered_set>
 
 //todo: user-defined 
 using String = std::string;
 
 template<typename InElementType, typename InAllocatorType = std::allocator<InElementType>>
 using Array = std::vector<InElementType, InAllocatorType>;
+
+template<typename InElementType>
+using HashSet = std::unordered_set<InElementType>;
+
+template<typename InElementType>
+using Set = std::set<InElementType>;
 
 template<typename InKeyType, typename InValueType>
 using HashMap = std::unordered_map<InKeyType, InValueType>;
@@ -25,6 +33,7 @@ using ScopeLock = std::lock_guard<std::mutex>;
 #define FORCEINLINE __forceinline									/* Force code to be inline */
 
 #define LOG(...) printf(__VA_ARGS__)
+
 
 //todo: user-defined end
 

@@ -8,5 +8,8 @@ struct CORE_API FileHelper
 	static int TraverseFileFromFolderWithFormat(const String& folderPath,  Array<String>& outFileNames, const String& fileFormat);
 
 	// project path
-	static String GetProjectPath();
+	static String GetProjectRoot();
+	static String GetEngineRoot();
 };
+
+int TMessageBox(void* handle, const char* text, const char* caption, uint32 type);

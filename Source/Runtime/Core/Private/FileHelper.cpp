@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <direct.h>
 
+#include "CoreMinimal.h"
+
 using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
 
 bool FileHelper::LoadFileToString(const String& fileName, String& outString)
@@ -46,9 +48,25 @@ int FileHelper::TraverseFileFromFolderWithFormat(const String& folderPath, Array
 	return static_cast<int>(outFileNames.size());
 }
 
-String FileHelper::GetProjectPath()
+String FileHelper::GetProjectRoot()
 {
 	char buffer[64];
 	_getcwd(buffer, 64);
 	return buffer;
+}
+
+String FileHelper::GetEngineRoot()
+{
+	return "D:\\ThunderEngine";
+}
+
+int TMessageBox(void* handle, const char* text, const char* caption, uint32 type)
+{
+#if _WIN64
+	const int result = ::MessageBoxA(static_cast<HWND>(handle), text, caption, type);
+	return result;
+#else
+	assert(false);
+	return 1;
+#endif
 }

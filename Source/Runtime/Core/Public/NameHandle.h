@@ -5,7 +5,7 @@ class CORE_API NameHandle
 {
 public:
 	NameHandle(const char* name = nullptr);
-
+	NameHandle(const String& name); 
 	NameHandle& operator =(const char* name);
 	NameHandle& operator =(const String& name);
 	bool operator ==(const NameHandle &rhs) const;
@@ -20,9 +20,6 @@ public:
 	[[nodiscard]] const char* c_str() const { return StringAddress; }
 
 	const char* operator*() const { return StringAddress; }
-
-protected:
-	NameHandle(const String& name); 
 
 public:
 	static NameHandle Empty;

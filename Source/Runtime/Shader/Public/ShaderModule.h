@@ -17,7 +17,7 @@ public:
 		return Variants.contains(variantId);
 	}
 	void UpdateOrAddVariants(uint64 variantId, ShaderCombination& variant) {Variants[variantId] = std::move(variant);}
-	bool CompileShader(const String& shaderSource, uint64 variantId);
+	bool CompileShader(NameHandle archiveName, const String& shaderSource, const String& includeStr, uint64 variantId);
 private:
 	NameHandle Name;
 	uint64 PassVariantMask;
@@ -30,7 +30,7 @@ class ShaderArchive
 {
 public:
 	ShaderArchive() = delete;
-	ShaderArchive(String inShaderSource) : SourcePath(std::move(inShaderSource)) {}
+	ShaderArchive(String inShaderSource, NameHandle name) : Name(name), SourcePath(std::move(inShaderSource)) {}
 
 	void AddPass(NameHandle name, Pass* inPass)
 	{
@@ -47,9 +47,11 @@ public:
 	void SetRenderState(const RenderStateMeta& meta) {renderState = meta;}
 
 	Pass* GetPass(NameHandle name);
-
+	String GetShaderSourceDir() const;
+	void GenerateIncludeString(String& outFile);
 	bool CompileShaderPass(NameHandle passName, uint64 variantId, bool force = false);
 private:
+	NameHandle Name;
 	String SourcePath;
 	Array<ShaderPropertyMeta> PropertyMeta;
 	Array<ShaderParameterMeta> ParameterMeta;
@@ -66,10 +68,13 @@ public:
 		return inst;
 	}
 	bool ParseShaderFile();
+	ShaderArchive* GetShaderArchive(NameHandle name);
 	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, const HashMap<NameHandle, bool>& variantParameters, bool force = false);
 	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 variantId, bool force = false);
 	
 private:
 	ShaderModule() = default;
-	HashMap<NameHandle, ShaderArchive*> ShaderCache;
+	HashMap<NameHandle, ShaderArchive*> ShaderMap;
 };
+
+extern SHADER_API HashMap<EShaderStageType, String> GShaderModuleTarget;

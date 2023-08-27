@@ -5,6 +5,7 @@
 #include <cstdio>
 #include "CoreMinimal.h"
 #include "FileHelper.h"
+#include <cassert>
 
 namespace Thunder
 {

@@ -16,7 +16,7 @@ enum class EShaderStageType : uint8
 struct StageMeta
 {
 	NameHandle EntryPoint;
-	uint64 VariantMask;
+	uint64 VariantMask = 0;
 };
 
 struct ShaderStage
@@ -85,6 +85,7 @@ struct ShaderPropertyMeta
 	NameHandle Name;
 	String DisplayName;
 	String Type;
+	String Format;
 	String Default;
 	String Range;
 };
@@ -93,6 +94,7 @@ struct ShaderParameterMeta
 {
 	NameHandle Name;
 	String Type;
+	String Format;
 	String Default;
 };
 

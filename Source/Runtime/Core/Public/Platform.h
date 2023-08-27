@@ -4,7 +4,7 @@
 #include <mutex>
 #include <unordered_map>
 #include <vector>
-#include <cassert>
+#include <deque>
 #include <set>
 #include <unordered_set>
 
@@ -25,6 +25,9 @@ using HashMap = std::unordered_map<InKeyType, InValueType>;
 
 template<typename InKeyType, typename InValueType>
 using Map = std::map<InKeyType, InValueType>;
+
+template<typename InElementType>
+using Deque = std::deque<InElementType>;
 
 using Mutex = std::mutex;
 using ScopeLock = std::lock_guard<std::mutex>;

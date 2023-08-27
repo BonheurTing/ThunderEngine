@@ -1,4 +1,5 @@
 ﻿#include "NameHandle.h"
+#include "Assertion.h"
 
 NameHandle NameHandle::Empty(String(""));
 
@@ -104,9 +105,9 @@ const char* NamePool::AddNameToPool(const char *name, uint32 hash)
 #else
 	memcpy(list->mString, name, strLength);
 #endif
-	assert(list->StringPtr[strLength - 1] == 0);
+	TAssert(list->StringPtr[strLength - 1] == 0);
 	CurrentStringOffset += strLength + strOverhead + strPadding;
-	assert(CurrentStringOffset % sizeof(void*) == 0);
+	TAssert(CurrentStringOffset % sizeof(void*) == 0);
 	StringList[hashIndex] = list;
 	StringList[hashIndex]->Next = next;
 

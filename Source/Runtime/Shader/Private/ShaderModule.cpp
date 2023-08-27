@@ -1,30 +1,51 @@
 #include "ShaderModule.h"
 #pragma optimize("",off)
+#include <algorithm>
+#include <sstream>
 #include "Assertion.h"
 #include "CommonUtilities.h"
 #include "FileHelper.h"
 #include "ShaderCompiler.h"
 #include "rapidjson/document.h"
 
+
+#include<algorithm>
+
 //////////////////////////////////////////////////////////////////////////////////////////
 /// Parse Shader File
 //////////////////////////////////////////////////////////////////////////////////////////
+HashMap<EShaderStageType, String> GShaderModuleTarget = {};
+HashMap<String, String> GShaderParameterType = {
+	{"Integer", "int"},
+	{"Float", "float"},
+	{"Float4", "float4"},
+	{"Float4x4", "float4x4"},
+	{"Color", "float4"},
+	{"Texture2D", "Texture2D"}
+};
+HashMap<String, int> GShaderParameterSize = {
+	{"Integer", 4},
+	{"Float", 4},
+	{"Float4", 16},
+	{"Float4x4", 64},
+	{"Color", 16}
+};
+
+struct CBParamBinding
+{
+	String GenCode;
+	int Size; // 16-byte alignment
+
+	static bool cmp(const CBParamBinding& x, const CBParamBinding& y)
+	{
+		return x.Size > y.Size;
+	}
+};
 
 using namespace rapidjson;
 
 namespace
 {
-	bool TryGetArray(Document& document, const char* arrayName, GenericArray<false, GenericValue<UTF8<>>> outArrayNode, const char* documentName, bool force = false)
-	{
-		if (document.HasMember(arrayName) && !document[arrayName].IsNull())
-		{
-			TAssertf(document[arrayName].IsArray(), "Shader meta parse error : Properties node is not an array\nFile name : %s.", documentName);
-			outArrayNode = document[arrayName].GetArray();
-			return true;
-		}
-		return false;
-	}
-	
 	bool TryGetString(GenericValue<UTF8<>> const& object, const char* memberName, String& outValue, bool force = true, const char* defaultValue = "")
 	{
 		TAssertf(object.IsObject(), "Node is not an object.");
@@ -68,6 +89,7 @@ namespace
 		outProperty.Name = name;
 		result = result && TryGetString(object, "DisplayName", outProperty.DisplayName, false, outProperty.Name.c_str());
 		result = result && TryGetString(object, "Type", outProperty.Type);
+		result = result && TryGetString(object, "Format", outProperty.Format, strstr(outProperty.Type.c_str(), "Texture"));
 		result = result && TryGetString(object, "Default", outProperty.Default, false);
 		result = result && TryGetString(object, "Range", outProperty.Range, false);
 		return result;
@@ -80,6 +102,7 @@ namespace
 		String name;
 		result = result && TryGetString(object, "Name", name);
 		result = result && TryGetString(object, "Type", outParameter.Type);
+		result = result && TryGetString(object, "Format", outParameter.Format, strstr(outParameter.Type.c_str(), "Texture"));
 		result = result && TryGetString(object, "Default", outParameter.Default, false);
 		outParameter.Name = name;
 		return result;
@@ -132,6 +155,74 @@ namespace
 		}
 		return result;
 	}
+
+	template<typename InElementType>
+	void GenerateParameterCode(const InElementType& param, String& outCode)
+	{
+		const bool isTypeValid = !param.Name.IsEmpty() && !param.Type.empty() &&  GShaderParameterType.contains(param.Type);
+		TAssertf(isTypeValid, "Invalid input Parameter");
+		if (!isTypeValid)
+		{
+			outCode = "";
+			return;
+		}
+		String paramType = GShaderParameterType[param.Type];
+		std::stringstream code;
+		if (strstr(paramType.c_str(), "Texture"))
+		{
+			const bool isFormatValid = param.Format.empty() || GShaderParameterType.contains(param.Format);
+			TAssertf(isFormatValid, "Invalid input Parameter texture format");
+			if (!isFormatValid)
+			{
+				return;
+			}
+			const String format = param.Format.empty() ? "float4" : GShaderParameterType[param.Format];
+			code << paramType << "<" << format << "> " << param.Name.c_str();
+		}
+		else
+		{
+			const bool extendDefaultCode = strstr(paramType.c_str(), "float") && paramType.size() > 5;
+			if (param.Default.empty())
+			{
+				code << "\t" << paramType << " " << param.Name.c_str() << ";\n";
+			}
+			else
+			{
+				code << "\t" << paramType << " " << param.Name.c_str() << " = "
+				<< (extendDefaultCode ? paramType : "") << param.Default << ";\n";
+			}
+		}
+		
+		outCode = code.str();
+	}
+
+	template<typename InElementType>
+	void GenerateParameterCodeArray(const Array<InElementType>& param, Array<CBParamBinding>& outCbCode, Array<String>& outSbCode)
+	{
+		for (auto& meta : param)
+		{
+			if (strstr(meta.Type.c_str(), "Texture"))
+			{
+				String sbCode;
+				GenerateParameterCode<InElementType>(meta, sbCode);
+				if (!sbCode.empty())
+				{
+					outSbCode.push_back(sbCode);
+				}
+			}
+			else
+			{
+				CBParamBinding cbCode{};
+				GenerateParameterCode<InElementType>(meta, cbCode.GenCode);
+				if (!cbCode.GenCode.empty())
+				{
+					// GenCode is not empty == invalid type, so GShaderParameterSize can be used directly
+					cbCode.Size = GShaderParameterSize[meta.Type];
+					outCbCode.push_back(cbCode);
+				}
+			}
+		}
+	}
 }
 
 uint64 Pass::VariantNameToMask(const Array<VariantMeta>& variantName) const
@@ -140,7 +231,7 @@ uint64 Pass::VariantNameToMask(const Array<VariantMeta>& variantName) const
 	{
 		uint64 mask = 0;
 		const int totalVariantType = static_cast<int>(VariantDefinitionTable.size());
-		for (auto meta : variantName)
+		for (auto& meta : variantName)
 		{
 			int i = 0;
 			for (; i < totalVariantType; i++)
@@ -175,7 +266,7 @@ void Pass::GenerateVariantDefinitionTable(const Array<VariantMeta>& passVariantM
 {
 	// gen VariantDefinitionTable
 	HashSet<NameHandle> variantDefinition;
-	for (auto meta : passVariantMeta)
+	for (auto& meta : passVariantMeta)
 	{
 		TAssertf(!variantDefinition.contains(meta.Name), "Duplicate variant definitions: %s", meta.Name);
 		variantDefinition.insert(meta.Name);
@@ -200,7 +291,7 @@ void Pass::GenerateVariantDefinitionTable(const Array<VariantMeta>& passVariantM
 		PassVariantMask = PassVariantMask << 1 | 1;
 	}
 	const uint64 sharedStageMask = VariantNameToMask(passVariantMeta);
-	for (auto meta:  StageMetas)
+	for (auto& meta:  StageMetas)
 	{
 		meta.second.VariantMask = sharedStageMask;
 		if (stageVariantMeta.contains(meta.first))
@@ -216,6 +307,95 @@ void Pass::CacheDefaultShaderCache()
 	//todo: compile default
 }
 
+void ShaderArchive::GenerateIncludeString(String& outFile)
+{
+	//check duplicate names
+	HashSet<NameHandle> uniqueNames;
+	for (auto& meta : PropertyMeta)
+	{
+		uniqueNames.insert(meta.Name);
+	}
+	for (auto& meta : ParameterMeta)
+	{
+		uniqueNames.insert(meta.Name);
+	}
+	const bool hasDuplicateNames = uniqueNames.size() != PropertyMeta.size() + ParameterMeta.size();
+	TAssertf(!hasDuplicateNames, "The parameters of the shader defines repeat");
+	if (hasDuplicateNames)
+	{
+		return;
+	}
+	// preprocess param
+	Array<CBParamBinding> cbGeneratedCode;
+	Array<String> sbGeneratedCode;
+	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode);
+	GenerateParameterCodeArray<ShaderParameterMeta>(ParameterMeta, cbGeneratedCode, sbGeneratedCode);
+	const bool hasInvalidParam = uniqueNames.size() != cbGeneratedCode.size() + sbGeneratedCode.size();
+	TAssertf(!hasInvalidParam, "The shader has invalid parameter definitions");
+	if (hasInvalidParam)
+	{
+		return;
+	}
+
+	std::stringstream codeStream;
+	// cb
+	if (!cbGeneratedCode.empty())
+	{
+		codeStream << "cbuffer GeneratedConstantBuffer : register(b0)\n{\n";
+	
+		std::sort(cbGeneratedCode.begin(), cbGeneratedCode.end(), CBParamBinding::cmp);
+		Deque<CBParamBinding> cbQueue;
+		cbQueue.assign(cbGeneratedCode.begin(), cbGeneratedCode.end());
+
+		//todo: this is temporary algorithm to be optimized
+		int paddingNum = 0;
+		while (!cbQueue.empty())
+		{
+			CBParamBinding& cur = cbQueue.front();
+			codeStream << cur.GenCode;
+			cbQueue.pop_front();
+			int sizeToAlign = cur.Size;
+			while (sizeToAlign % 16 != 0)
+			{
+				const int lackSize = 16 - sizeToAlign % 16;
+				if (!cbQueue.empty())
+				{
+					CBParamBinding& pad = cbQueue.back();
+					if (pad.Size <= lackSize)
+					{
+						codeStream << pad.GenCode;
+						cbQueue.pop_back();
+						sizeToAlign += pad.Size;
+						continue;
+					}
+				}
+				codeStream << "\tfloat" << lackSize / 4 << " padding" << paddingNum << ";\n";
+				paddingNum++;
+				break;
+			}
+		}
+		codeStream << "}\n";
+	}
+	// sb & texture
+	int registerIndex = 0;
+	for (String& code : sbGeneratedCode)
+	{
+		codeStream << code << " : register(t" << registerIndex << ");\n";
+		registerIndex++;
+	}
+	// sampler
+	if (!sbGeneratedCode.empty())
+	{
+		codeStream << "SamplerState GPointClampSampler : register(s0);\n";
+		codeStream << "SamplerState GPointWrapSampler : register(s1);\n";
+		codeStream << "SamplerState GLinearClampSampler : register(s2);\n";
+		codeStream << "SamplerState GLinearWrapSampler : register(s3);\n";
+		codeStream << "SamplerState GAnisotropicClampSampler : register(s4);\n";
+		codeStream << "SamplerState GAnisotropicWrapSampler : register(s5);\n";
+	}
+	
+	outFile =  codeStream.str();
+}
 
 bool ShaderModule::ParseShaderFile()
 {
@@ -240,7 +420,7 @@ bool ShaderModule::ParseShaderFile()
 		TAssertf(document.HasMember("ShaderSource"), "Shader source path not found in %s", metaFileName.c_str());
 		const String shaderArchiveSource = document["ShaderSource"].GetString();
 
-		auto currentShader = new ShaderArchive(shaderArchiveSource);
+		auto currentShader = new ShaderArchive(shaderArchiveSource, shaderArchiveName);
 		
 		if (document.HasMember("Properties") && !document["Properties"].IsNull())
 		{
@@ -338,7 +518,7 @@ bool ShaderModule::ParseShaderFile()
 			}
 		}
 
-		ShaderCache[shaderArchiveName] = currentShader;
+		ShaderMap[shaderArchiveName] = currentShader;
 		LOG("Succeed to Parse %s\n", metaFileName.c_str());
 	}
 	if(!shaderNameList.empty())
@@ -351,12 +531,12 @@ bool ShaderModule::ParseShaderFile()
 //////////////////////////////////////////////////////////////////////////////////////////
 /// Compile Shader
 //////////////////////////////////////////////////////////////////////////////////////////
-bool Pass::CompileShader(const String& shaderSource, uint64 variantId)
+bool Pass::CompileShader(NameHandle archiveName, const String& shaderSource, const String& includeStr, uint64 variantId)
 {
 	TAssertf((PassVariantMask & variantId) == variantId, "Compile Shader: Invalid variantId");
 	// Stage
 	ShaderCombination newVariant{};
-	for (auto meta : StageMetas)
+	for (auto& meta : StageMetas)
 	{
 		// Variant Marco
 		TAssertf((meta.second.VariantMask & PassVariantMask) == meta.second.VariantMask, "Compile Shader: Invalid stage variantId");
@@ -365,7 +545,7 @@ bool Pass::CompileShader(const String& shaderSource, uint64 variantId)
 		VariantIdToShaderMarco(stageVariantId, meta.second.VariantMask, shaderMarco);
 		//todo: include file
 		ShaderStage newStageVariant{};
-		Compile(shaderSource, shaderMarco, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
+		Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
 
 		if(newStageVariant.ByteCode.Size == 0)
 		{
@@ -384,7 +564,40 @@ Pass* ShaderArchive::GetPass(NameHandle name)
 	{
 		return Passes[name].get();
 	}
-	TAssertf(false, "Get null pass");
+	TAssertf(false, "Pass not exist");
+	return nullptr;
+}
+
+String ShaderArchive::GetShaderSourceDir() const
+{
+	String fullPath = FileHelper::GetEngineShaderRoot();
+	constexpr size_t invalidPosition = 0xffffffff;
+	size_t lastSlashPosition = invalidPosition;
+	if (SourcePath.find_last_of("\\") != std::string::npos)
+	{
+		lastSlashPosition = SourcePath.find_last_of("\\");
+	}
+	if (SourcePath.find_last_of('/') != std::string::npos)
+	{
+		lastSlashPosition =  std::max(lastSlashPosition, SourcePath.find_last_of('/'));
+	}
+	if (lastSlashPosition == invalidPosition)
+	{
+		return fullPath;
+	}
+	else
+	{
+		return fullPath + "\\" + SourcePath.substr(0, lastSlashPosition-1);
+	}
+}
+
+ShaderArchive* ShaderModule::GetShaderArchive(NameHandle name)
+{
+	if (ShaderMap.contains(name))
+	{
+		return ShaderMap[name];
+	}
+	TAssertf(false, "ShaderArchive not exist");
 	return nullptr;
 }
 
@@ -399,7 +612,14 @@ bool ShaderArchive::CompileShaderPass(NameHandle passName, uint64 variantId, boo
 	const String fileName = FileHelper::GetEngineRoot() + "\\Shader\\" + SourcePath;
 	String shaderSource;
 	FileHelper::LoadFileToString(fileName, shaderSource);
-	return targetPass->CompileShader(shaderSource, variantId);
+	// include file
+	String shaderIncludeStr;
+	GenerateIncludeString(shaderIncludeStr);
+	if (shaderIncludeStr.empty())
+	{
+		return false;
+	}
+	return targetPass->CompileShader(Name, shaderSource, shaderIncludeStr, variantId);
 }
 
 bool ShaderModule::CompileShaderCollection(NameHandle shaderType, NameHandle passName, const HashMap<NameHandle, bool>& variantParameters, bool force)
@@ -409,9 +629,9 @@ bool ShaderModule::CompileShaderCollection(NameHandle shaderType, NameHandle pas
 
 bool ShaderModule::CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 VariantId, bool force)
 {
-	if (!ShaderCache.contains(shaderType))
+	if (!ShaderMap.contains(shaderType))
 	{
 		return false;
 	}
-	return ShaderCache[shaderType]->CompileShaderPass(passName, VariantId);
+	return ShaderMap[shaderType]->CompileShaderPass(passName, VariantId);
 }

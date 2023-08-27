@@ -1,0 +1,1 @@
+SamplerState TestSampler : register(s6);

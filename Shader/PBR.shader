@@ -7,6 +7,7 @@
             "Name": "EmissiveTexture",
             "DisplayName": "Emissive",
             "Type": "Texture2D",
+			"Format": "Float4",
             "Default": "White"
         },
         {

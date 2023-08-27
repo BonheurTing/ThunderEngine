@@ -1,9 +1,55 @@
 ﻿#include "ShaderCompiler.h"
 #include "Assertion.h"
 #include "d3dcompiler.h"
+#include "ShaderModule.h"
+
+class ThunderID3DInclude : public ID3DInclude
+{
+public:
+	ThunderID3DInclude(const String& src, NameHandle name) : IncludeCode(src), ShaderName(name) {}
+	ThunderID3DInclude() = delete;
+	HRESULT Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override
+	{
+		auto includedFilename = std::string(pFileName);
+		if (IncludeCode.empty())
+		{
+			return S_OK;
+		}
+		if (includedFilename == "Generated.tsh")
+		{
+			*ppData = IncludeCode.c_str();
+			*pBytes = static_cast<UINT>(IncludeCode.size());
+			return S_OK;
+		}
+		else
+		{
+			ShaderModule* shaderModule = ShaderModule::GetInstance();
+			const ShaderArchive* archive = shaderModule->GetShaderArchive(ShaderName);
+			const String fullPath = archive->GetShaderSourceDir() + "\\" + includedFilename;
+
+			const size_t pos = IncludeSourceList.size();
+			IncludeSourceList.push_back("");
+			auto& IncludeSource = IncludeSourceList[pos];
+			if (FileHelper::LoadFileToString(fullPath, IncludeSource))
+			{
+				*ppData = IncludeSource.c_str();
+				*pBytes = static_cast<UINT>(IncludeSource.size());
+				return S_OK;
+			}
+			else
+			{
+				return S_FALSE;
+			}
+		}
+	}
+	HRESULT Close(LPCVOID pData) override { return S_OK; }
+private:
+	const String IncludeCode;
+	NameHandle ShaderName;
+	Array<String> IncludeSourceList;
+};
 
 ICompiler* GShaderCompiler = nullptr;
-HashMap<EShaderStageType, String> GShaderModuleTarget = {};
 
 FXCCompiler::FXCCompiler()
 {
@@ -14,7 +60,7 @@ FXCCompiler::FXCCompiler()
 	};
 }
 
-void FXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+void FXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
 {
 #if defined(SHAHER_DEBUG)
 	// Enable better shader debugging with the graphics debugging tools.
@@ -31,8 +77,9 @@ void FXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, const Hash
 		pDefines[i] = {def.first.c_str(), def.second ? "1" : "0"};
 		i++;
 	}
-	
-	const HRESULT hr = D3DCompile(inSource.c_str(), srcDataSize,nullptr, pDefines, nullptr, pEntryPoint.c_str(), pTarget.c_str(), compileFlags, 0, &pResult, &errorMessages);
+
+	ThunderID3DInclude pInclude(includeStr, archiveName);
+	const HRESULT hr = D3DCompile(inSource.c_str(), srcDataSize,nullptr, pDefines, &pInclude, pEntryPoint.c_str(), pTarget.c_str(), compileFlags, 0, &pResult, &errorMessages);
 	//const HRESULT hr = D3DCompileFromFile(L"D:/ThunderEngine/Shader/shaders.hlsl",nullptr, nullptr, pEntryPoint.c_str(), pTarget.c_str(), 0, 0, &pResult, &errorMessages);
 	
 	if (SUCCEEDED(hr))
@@ -68,7 +115,7 @@ DXCCompiler::DXCCompiler()
 	}
 }
 
-void DXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+void DXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
 {
 	if (ShaderCompiler == nullptr || ShaderUtils == nullptr)
 	{

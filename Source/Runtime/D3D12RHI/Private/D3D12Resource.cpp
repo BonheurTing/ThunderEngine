@@ -1,6 +1,10 @@
 #include "D3D12Resource.h"
 
-void* D3D12RHIVertexBuffer::GetShaderResourceView()
+namespace Thunder
 {
-	return nullptr;
+	void* D3D12RHIVertexBuffer::GetShaderResourceView()
+    {
+    	return nullptr;
+    }
+
 }

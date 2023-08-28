@@ -2,10 +2,14 @@
 #include "CoreMinimal.h"
 #include "Launch.export.h"
 
-class LAUNCH_API EngineMain
+namespace Thunder
 {
-public:
-	EngineMain(){}
-	
-	bool RHIInit(ERHIType type);
-};
+	class LAUNCH_API EngineMain
+    {
+    public:
+    	EngineMain(){}
+    	
+    	bool RHIInit(ERHIType type);
+    };
+}
+

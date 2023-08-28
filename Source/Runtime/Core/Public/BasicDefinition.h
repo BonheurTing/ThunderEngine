@@ -1,10 +1,13 @@
 ﻿#pragma once
 
-/* Unsafe Binary Data*/
-struct BinaryData
+namespace Thunder
 {
-	void* Data;
-	size_t Size;
-};
+	/* Unsafe Binary Data*/
+	struct BinaryData
+	{
+		void* Data;
+		size_t Size;
+	};
 
-/* todo: Safe Binary Data*/
+	/* todo: Safe Binary Data*/
+}

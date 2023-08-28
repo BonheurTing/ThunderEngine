@@ -5,6 +5,6 @@
 #include "RefCount.h"
 #include "NameHandle.h"
 #include "BasicDefinition.h"
-
 #include <wrl.h>
+
 using namespace Microsoft::WRL;

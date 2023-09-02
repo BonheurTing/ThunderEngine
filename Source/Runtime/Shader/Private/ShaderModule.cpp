@@ -13,6 +13,7 @@ namespace Thunder
 	using namespace rapidjson;
 	namespace
 	{
+		
     	bool TryGetString(GenericValue<UTF8<>> const& object, const char* memberName, String& outValue, bool force = true, const char* defaultValue = "")
     	{
     		TAssertf(object.IsObject(), "Node is not an object.");

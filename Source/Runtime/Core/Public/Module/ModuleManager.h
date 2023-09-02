@@ -4,18 +4,34 @@
 #include "NameHandle.h"
 #include "RefCount.h"
 
-#define DECLARE_MODULE(ModuleName, ModuleType) \
+#define DECLARE_MODULE_CTOR(ModuleName, ModuleType) \
 	public: \
-		ModuleType() : IModule(#ModuleName) {} \
+		ModuleType() : IModule(#ModuleName) {}
+
+#define DECLARE_MODULE_CTOR_SUPER(ModuleName, ModuleType, SuperType) \
+	public: \
+		ModuleType() : SuperType(#ModuleName) {}
+
+#define DECLARE_MODULE_COMMON(ModuleName, ModuleType) \
+	public: \
 		static NameHandle GetStaticName() { return StaticName; } \
 	private: \
 		static NameHandle StaticName; \
 		static ModuleRegistry<ModuleType> ModuleName##Registry;
 
+#define DECLARE_MODULE(ModuleName, ModuleType) \
+	DECLARE_MODULE_CTOR(ModuleName, ModuleType) \
+	DECLARE_MODULE_COMMON(ModuleName, ModuleType)
+
+#define DECLARE_MODULE_WITH_SUPER(ModuleName, ModuleType, SuperType) \
+	DECLARE_MODULE_CTOR_SUPER(ModuleName, ModuleType, SuperType) \
+	DECLARE_MODULE_COMMON(ModuleName, ModuleType)
+
 #define IMPLEMENT_MODULE(ModuleName, ModuleType) \
 	NameHandle ModuleType::StaticName = #ModuleName; \
 	Function ModuleName##RegisterFunction = ModuleFactory<ModuleType>{}; \
 	ModuleRegistry<ModuleType> ModuleType::ModuleName##Registry{#ModuleName, ModuleName##RegisterFunction};
+
 
 namespace Thunder
 {

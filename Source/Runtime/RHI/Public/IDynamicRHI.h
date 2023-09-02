@@ -4,10 +4,10 @@
 
 namespace Thunder
 {
-    class RHI_API DynamicRHI
+    class RHI_API IDynamicRHI
     {
     public:
-        virtual ~DynamicRHI() {}
+        virtual ~IDynamicRHI() {}
         
     /////// RHI Methods
         virtual RHIDeviceRef RHICreateDevice();
@@ -44,7 +44,7 @@ namespace Thunder
     
     };
     
-    extern RHI_API DynamicRHI* GDynamicRHI;
+    extern RHI_API IDynamicRHI* GDynamicRHI;
     
     FORCEINLINE RHIDeviceRef RHICreateDevice()
     {

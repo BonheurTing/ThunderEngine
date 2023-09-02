@@ -87,10 +87,10 @@ namespace Thunder
     RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(const RHIResourceDescriptor& desc)
     {
         ID3D12Resource* vertexBuffer;
-        TAssert(desc.Type == ERHIResourceType::Buffer, "Resource type should be buffer.");
-        TAssert(desc.Height == 1, "Height should be 1 for Vertex buffer.");
-        TAssert(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Vertex buffer.");
-        TAssert(desc.MipLevels == 1, "Mip level count should be 1 for Vertex buffer.");
+        TAssertf(desc.Type == ERHIResourceType::Buffer, "Resource type should be buffer.");
+        TAssertf(desc.Height == 1, "Height should be 1 for Vertex buffer.");
+        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Vertex buffer.");
+        TAssertf(desc.MipLevels == 1, "Mip level count should be 1 for Vertex buffer.");
         constexpr D3D12_HEAP_PROPERTIES heapType = {
             D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
@@ -127,10 +127,10 @@ namespace Thunder
     RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(const RHIResourceDescriptor& desc)
     {
         ID3D12Resource* indexBuffer;
-        TAssert(desc.Type == ERHIResourceType::Buffer, "Resource type should be IndexBuffer.");
-        TAssert(desc.Height == 1, "Height should be 1 for IndexBuffer.");
-        TAssert(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for IndexBuffer.");
-        TAssert(desc.MipLevels == 1, "Mip level count should be 1 for IndexBuffer.");
+        TAssertf(desc.Type == ERHIResourceType::Buffer, "Resource type should be IndexBuffer.");
+        TAssertf(desc.Height == 1, "Height should be 1 for IndexBuffer.");
+        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for IndexBuffer.");
+        TAssertf(desc.MipLevels == 1, "Mip level count should be 1 for IndexBuffer.");
         constexpr D3D12_HEAP_PROPERTIES heapType = {
             D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
@@ -167,10 +167,10 @@ namespace Thunder
     RHIStructuredBufferRef D3D12DynamicRHI::RHICreateStructuredBuffer(const RHIResourceDescriptor& desc)
     {
         ID3D12Resource* structuredBuffer;
-        TAssert(desc.Type == ERHIResourceType::Buffer, "Resource type should be structured buffer.");
-        TAssert(desc.Height == 1, "Height should be 1 for structured Buffer.");
-        TAssert(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for structured Buffer.");
-        TAssert(desc.MipLevels == 1, "Mip level count should be 1 for structured buffer.");
+        TAssertf(desc.Type == ERHIResourceType::Buffer, "Resource type should be structured buffer.");
+        TAssertf(desc.Height == 1, "Height should be 1 for structured Buffer.");
+        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for structured Buffer.");
+        TAssertf(desc.MipLevels == 1, "Mip level count should be 1 for structured buffer.");
         constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         const D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_BUFFER,
@@ -205,10 +205,10 @@ namespace Thunder
     RHIConstantBufferRef D3D12DynamicRHI::RHICreateConstantBuffer(const RHIResourceDescriptor& desc)
     {
         ID3D12Resource* constantBuffer;
-        TAssert(desc.Type == ERHIResourceType::Buffer, "Resource type should be constant buffer.");
-        TAssert(desc.Height == 1, "Height should be 1 for constant Buffer.");
-        TAssert(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for constant Buffer.");
-        TAssert(desc.MipLevels == 1, "Mip level count should be 1 for constant buffer.");
+        TAssertf(desc.Type == ERHIResourceType::Buffer, "Resource type should be constant buffer.");
+        TAssertf(desc.Height == 1, "Height should be 1 for constant Buffer.");
+        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for constant Buffer.");
+        TAssertf(desc.MipLevels == 1, "Mip level count should be 1 for constant buffer.");
         constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         const D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_BUFFER,
@@ -243,9 +243,9 @@ namespace Thunder
     RHITexture1DRef D3D12DynamicRHI::RHICreateTexture1D(const RHIResourceDescriptor& desc)
     {
         ID3D12Resource* texture;
-        TAssert(desc.Type == ERHIResourceType::Texture1D, "Type should be Texture1D.");
-        TAssert(desc.Height == 1, "Height should be 1 for Texture1D.");
-        TAssert(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture1D.");
+        TAssertf(desc.Type == ERHIResourceType::Texture1D, "Type should be Texture1D.");
+        TAssertf(desc.Height == 1, "Height should be 1 for Texture1D.");
+        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture1D.");
         constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         const D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_TEXTURE1D,
@@ -280,8 +280,8 @@ namespace Thunder
     RHITexture2DRef D3D12DynamicRHI::RHICreateTexture2D(const RHIResourceDescriptor& desc)
     {
         ID3D12Resource* texture;
-        TAssert(desc.Type == ERHIResourceType::Texture2D, "Type should be Texture2D.");
-        TAssert(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture12D.");
+        TAssertf(desc.Type == ERHIResourceType::Texture2D, "Type should be Texture2D.");
+        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture12D.");
         constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         const D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_TEXTURE2D,
@@ -316,7 +316,7 @@ namespace Thunder
     RHITexture2DArrayRef D3D12DynamicRHI::RHICreateTexture2DArray(const RHIResourceDescriptor& desc)
     {
         ID3D12Resource* texture;
-        TAssert(desc.Type == ERHIResourceType::Texture2DArray, "Type should be Texture2DArray.");
+        TAssertf(desc.Type == ERHIResourceType::Texture2DArray, "Type should be Texture2DArray.");
         D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_TEXTURE3D,
@@ -351,7 +351,7 @@ namespace Thunder
     RHITexture3DRef D3D12DynamicRHI::RHICreateTexture3D(const RHIResourceDescriptor& desc)
     {
         ID3D12Resource* texture;
-        TAssert(desc.Type == ERHIResourceType::Texture3D, "Type should be Texture3D.");
+        TAssertf(desc.Type == ERHIResourceType::Texture3D, "Type should be Texture3D.");
         constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         const D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_TEXTURE2D,

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "DynamicRHI.h"
+#include "IDynamicRHI.h"
 #include "d3d12.h"
 
 namespace Thunder
 {
-    class D3D12RHI_API D3D12DynamicRHI : public DynamicRHI
+    class D3D12RHI_API D3D12DynamicRHI : public IDynamicRHI
     {
     public:
         D3D12DynamicRHI();

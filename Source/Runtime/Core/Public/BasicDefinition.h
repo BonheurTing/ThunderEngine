@@ -1,5 +1,9 @@
 ﻿#pragma once
 
+#pragma warning(error:4834)
+
+#define _NODISCARD_ [[nodiscard]]
+
 namespace Thunder
 {
 	/* Unsafe Binary Data*/

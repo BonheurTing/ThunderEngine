@@ -1,6 +1,7 @@
 ﻿#include "ShaderCompiler.h"
 #include "Assertion.h"
 #include "d3dcompiler.h"
+#include "ShaderArchive.h"
 #include "ShaderModule.h"
 
 namespace Thunder
@@ -8,7 +9,8 @@ namespace Thunder
 	class ThunderID3DInclude : public ID3DInclude
     {
     public:
-    	ThunderID3DInclude(const String& src, NameHandle name) : IncludeCode(src), ShaderName(name) {}
+	    virtual ~ThunderID3DInclude() = default;
+	    ThunderID3DInclude(const String& src, NameHandle name) : IncludeCode(src), ShaderName(name) {}
     	ThunderID3DInclude() = delete;
     	HRESULT Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override
     	{
@@ -51,8 +53,6 @@ namespace Thunder
     	Array<String> IncludeSourceList;
     };
     
-    ICompiler* GShaderCompiler = nullptr;
-    
     FXCCompiler::FXCCompiler()
     {
     	GShaderModuleTarget = {
@@ -92,7 +92,7 @@ namespace Thunder
     	else
     	{
     		TAssertf(!errorMessages, "Compilation failed with errors: %s\n",static_cast<const char*>(errorMessages->GetBufferPointer()));
-    		LOG("Fail to Compile Shader/n");
+    		LOG("Fail to Compile Shader");
     	}
     }
     
@@ -107,13 +107,13 @@ namespace Thunder
     	HRESULT hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&ShaderUtils));
     	if (FAILED(hr))
     	{
-    		LOG("Fail to Creat DXCLibrary/n");
+    		LOG("Fail to Creat DXCLibrary");
     	}
     
     	hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&ShaderCompiler));
     	if (FAILED(hr))
     	{
-    		LOG("Fail to Creat DXCCompiler/n");
+    		LOG("Fail to Creat DXCCompiler");
     	}
     }
     
@@ -121,7 +121,7 @@ namespace Thunder
     {
     	if (ShaderCompiler == nullptr || ShaderUtils == nullptr)
     	{
-    		LOG("ShaderCompiler or ShaderUtils is NULL\n");
+    		LOG("ShaderCompiler or ShaderUtils is NULL");
     		return;
     	}
     
@@ -150,7 +150,7 @@ namespace Thunder
     		HRESULT hr = ShaderUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
     		if (FAILED(hr))
     		{
-    			LOG("Fail to CreateDefaultIncludeHandler./n");
+    			LOG("Fail to CreateDefaultIncludeHandler.");
     			return;
     		}
     	
@@ -175,7 +175,7 @@ namespace Thunder
     		}
     		else
     		{
-    			LOG("Fail to Compile Shader/n");
+    			LOG("Fail to Compile Shader");
     			return;
     		}
     
@@ -189,7 +189,7 @@ namespace Thunder
     		}
     		else
     		{
-    			LOG("Compile Empty Shader/n");
+    			LOG("Compile Empty Shader");
     		}
     	}
     	else
@@ -200,7 +200,7 @@ namespace Thunder
     		HRESULT hr = ShaderUtils->CreateBlob(wSource.c_str(), inSource.size(), 0, &pBlobEncoding);
     		if (FAILED(hr))
     		{
-    			LOG("Fail to CreateBlob./n");
+    			LOG("Fail to CreateBlob.");
     			return;
     		}
     		
@@ -227,7 +227,7 @@ namespace Thunder
     			hr = pResult->GetErrorBuffer(&errorsBlob);
     			if (SUCCEEDED(hr) && errorsBlob != nullptr)
     				wprintf(L"Warnings and Errors: %hs\n",static_cast<const char*>(errorsBlob->GetBufferPointer()));
-    			LOG("Fail to Compile Shader/n");
+    			LOG("Fail to Compile Shader");
     		}
     	}
     }

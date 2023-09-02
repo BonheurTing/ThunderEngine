@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <sstream>
 #include "Assertion.h"
-#include "ShaderCompiler.h"
+#include "ShaderModule.h"
 
 namespace Thunder
 {
@@ -299,7 +299,7 @@ namespace Thunder
     		VariantIdToShaderMarco(stageVariantId, meta.second.VariantMask, shaderMarco);
     		//todo: include file
     		ShaderStage newStageVariant{};
-    		Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
+    		ShaderModule::GetInstance()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
     
     		if(newStageVariant.ByteCode.Size == 0)
     		{

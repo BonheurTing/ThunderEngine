@@ -2,7 +2,9 @@
 #include "Assertion.h"
 #include "FileHelper.h"
 //#pragma optimize("",off)
+#include "ShaderCompiler.h"
 #include "rapidjson/document.h"
+#include "ShaderArchive.h"
 
 namespace Thunder
 {
@@ -130,7 +132,7 @@ namespace Thunder
     	for (const String& metaFileName: shaderNameList)
     	{
     		String metaContent;
-    		LOG("%s\n", metaFileName.c_str());
+    		LOG("%s", metaFileName.c_str());
     		if (!FileHelper::LoadFileToString(metaFileName, metaContent))
     		{
     			continue;
@@ -244,7 +246,7 @@ namespace Thunder
     		}
     
     		ShaderMap[shaderArchiveName] = currentShader;
-    		LOG("Succeed to Parse %s\n", metaFileName.c_str());
+    		LOG("Succeed to Parse %s", metaFileName.c_str());
     	}
     	if(!shaderNameList.empty())
     	{
@@ -261,6 +263,30 @@ namespace Thunder
 		}
 		TAssertf(false, "ShaderArchive not exist");
 		return nullptr;
+	}
+	
+	void ShaderModule::InitShaderCompiler(EGfxApiType type)
+	{
+		switch (type)
+		{
+		case EGfxApiType::D3D12:
+		{
+			ShaderCompiler = MakeRefCount<FXCCompiler>();
+			break;
+		}
+		case EGfxApiType::D3D11:
+		{
+			ShaderCompiler = MakeRefCount<FXCCompiler>();
+			break;
+		}
+		case EGfxApiType::Invalid: break;
+		}
+	}
+	
+	void ShaderModule::Compile(NameHandle archiveName, const String& inSource, const HashMap<NameHandle, bool>& marco,
+		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+	{
+		ShaderCompiler->Compile(archiveName, inSource, inSource.size(), marco, includeStr, pEntryPoint, pTarget, outByteCode);
 	}
 	
     bool ShaderModule::CompileShaderCollection(NameHandle shaderType, NameHandle passName, const HashMap<NameHandle, bool>& variantParameters, bool force)

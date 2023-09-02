@@ -40,7 +40,7 @@ namespace Thunder
     
         if(SUCCEEDED(hr))
         {
-            return RefCountPtr<D3D12Device>{ new D3D12Device{Device.Get()} };
+            return MakeRefCount<D3D12Device>(Device.Get());
         }
         else
         {
@@ -115,7 +115,7 @@ namespace Thunder
     
         if (SUCCEEDED(hr))
         {
-            return RefCountPtr<D3D12RHIVertexBuffer>{new D3D12RHIVertexBuffer(desc, vertexBuffer)};
+            return MakeRefCount<D3D12RHIVertexBuffer>(desc, vertexBuffer);
         }
         else
         {
@@ -155,7 +155,7 @@ namespace Thunder
     
         if (SUCCEEDED(hr))
         {
-            return RefCountPtr<D3D12RHIIndexBuffer>{new D3D12RHIIndexBuffer(desc, indexBuffer)};
+            return MakeRefCount<D3D12RHIIndexBuffer>(desc, indexBuffer);
         }
         else
         {
@@ -193,7 +193,7 @@ namespace Thunder
     
         if (SUCCEEDED(hr))
         {
-            return RefCountPtr<D3D12RHIStructuredBuffer>{new D3D12RHIStructuredBuffer(desc, structuredBuffer)};
+            return MakeRefCount<D3D12RHIStructuredBuffer>(desc, structuredBuffer);
         }
         else
         {
@@ -231,7 +231,7 @@ namespace Thunder
     
         if (SUCCEEDED(hr))
         {
-            return RefCountPtr<D3D12RHIConstantBuffer>{new D3D12RHIConstantBuffer(desc, constantBuffer)};
+            return MakeRefCount<D3D12RHIConstantBuffer>(desc, constantBuffer);
         }
         else
         {
@@ -268,7 +268,7 @@ namespace Thunder
     
         if(SUCCEEDED(hr))
         {
-            return RefCountPtr<D3D12RHITexture1D>{new D3D12RHITexture1D(desc, texture)};
+            return MakeRefCount<D3D12RHITexture1D>(desc, texture);
         }
         else
         {
@@ -304,7 +304,7 @@ namespace Thunder
     
         if(SUCCEEDED(hr))
         {
-            return RefCountPtr<D3D12RHITexture2D>{new D3D12RHITexture2D(desc, texture)};
+            return MakeRefCount<D3D12RHITexture2D>(desc, texture);
         }
         else
         {
@@ -339,7 +339,7 @@ namespace Thunder
     
         if(SUCCEEDED(hr))
         {
-            return RefCountPtr<D3D12RHITexture2DArray>{new D3D12RHITexture2DArray(desc, texture)};
+            return MakeRefCount<D3D12RHITexture2DArray>(desc, texture);
         }
         else
         {
@@ -374,7 +374,7 @@ namespace Thunder
     
         if(SUCCEEDED(hr))
         {
-            return RefCountPtr<D3D12RHITexture3D>{new D3D12RHITexture3D(desc, texture)};
+            return MakeRefCount<D3D12RHITexture3D>(desc, texture);
         }
         else
         {

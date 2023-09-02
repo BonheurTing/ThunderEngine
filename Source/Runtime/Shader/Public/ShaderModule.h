@@ -1,27 +1,31 @@
 #pragma once
-#include "ShaderArchive.h"
+#include "ShaderDefinition.h"
 #include "Module/ModuleManager.h"
 
 namespace Thunder
 {
+	class ICompiler;
+	class ShaderArchive;
     class SHADER_API ShaderModule : public IModule
     {
-		static ModuleRegistry<ShaderModule> ShaderRegistry;
-    	//DEFINE_MODULE(Shader, ShaderModule)
+    	DECLARE_MODULE(Shader, ShaderModule)
     public:
     	static ShaderModule* GetInstance()
-    	{
-    		static auto inst = new ShaderModule();
-    		return inst;
+    	{ 
+	        const auto inst = ModuleManager::GetInstance()->GetModuleByName(GetStaticName());
+    		return dynamic_cast<ShaderModule*>(inst);
     	}
     	bool ParseShaderFile();
     	ShaderArchive* GetShaderArchive(NameHandle name);
+    	void InitShaderCompiler(EGfxApiType type);
+    	void Compile(NameHandle archiveName, const String& inSource, const HashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode);
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, const HashMap<NameHandle, bool>& variantParameters, bool force = false);
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 variantId, bool force = false);
     	
+    	
     private:
-    	ShaderModule() = default;
     	HashMap<NameHandle, ShaderArchive*> ShaderMap;
+    	RefCountPtr<ICompiler> ShaderCompiler;
     };
     
     extern SHADER_API HashMap<EShaderStageType, String> GShaderModuleTarget;

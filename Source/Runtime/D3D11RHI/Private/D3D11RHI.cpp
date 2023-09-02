@@ -32,7 +32,7 @@ namespace Thunder
 			std::cout << "Succeed to Create D3DDevice (11)" << std::endl;
 		}
 		
-		return RefCountPtr<D3D11Device>{ new D3D11Device{ Device.Get() } };
+		return MakeRefCount<D3D11Device>(Device.Get());
 	}
 
 	RHIRasterizerStateRef D3D11DynamicRHI::RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer)

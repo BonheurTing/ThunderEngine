@@ -1,25 +1,45 @@
 #include "Module/ModuleManager.h"
-
 #include <memory>
-
 #include "Assertion.h"
 
 namespace Thunder
 {
-	void ModuleManager::RegisterModule(NameHandle name, IModule* module)
+	
+	
+	void ModuleManager::RegisterModule(NameHandle name, Function<IModule*()>& registerFunc)
 	{
-		TAssertf(!ModuleMap.contains(name), "Module %s already registerd", name.c_str());
-		ModuleMap[name] = RefCountPtr<IModule>(module);
-		LOG("Module registered : \"%s\"\n", name.c_str());
+		TAssertf(!ModuleRegisterMap.contains(name), "Module \"%s\" already registerd", name.c_str());
+		ModuleRegisterMap[name] = std::move(registerFunc);
+		LOG("Module registered : \"%s\"", name.c_str());
+	}
+
+	IModule* ModuleManager::GetModuleByName(NameHandle name)
+	{
+		if (ModuleMap.contains(name))
+		{
+			return ModuleMap[name].get();
+		}
+		TAssertf(false, "Module \"%s\" doesn't exist.", name.c_str());
+		return nullptr;
 	}
 
 	void ModuleManager::LoadModuleByName(NameHandle name)
 	{
 		if (ModuleMap.contains(name))
 		{
-			ModuleMap[name]->StartUp();
+			TAssertf(false, "Module \"%s\" already exists.", name.c_str());
 		}
-		TAssertf(false, "Module %s doesn't exist", name.c_str());
+		else if (ModuleRegisterMap.contains(name))
+		{
+			auto const moduleInst = ModuleRegisterMap[name].operator()();
+			ModuleMap[name] = RefCountPtr<IModule>(moduleInst);
+			moduleInst->StartUp();
+			LOG("Module \"%s\" loaded.", name.c_str());
+		}
+		else
+		{
+			TAssertf(false, "Module \"%s\" hasn't been registered yet.", name.c_str());
+		}
 	}
 
 	void ModuleManager::UnloadModuleByName(NameHandle name)
@@ -28,6 +48,6 @@ namespace Thunder
 		{
 			ModuleMap[name]->ShutDown();
 		}
-		TAssertf(false, "Module %s doesn't exist", name.c_str());
+		TAssertf(false, "Module \"%s\" doesn't exist", name.c_str());
 	}
 }

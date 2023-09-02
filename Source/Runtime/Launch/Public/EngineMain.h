@@ -9,7 +9,7 @@ namespace Thunder
     public:
     	EngineMain(){}
     	
-    	bool RHIInit(ERHIType type);
+    	bool RHIInit(EGfxApiType type);
     };
 }
 

@@ -4,8 +4,6 @@
 
 namespace Thunder
 {
-	
-	
 	void ModuleManager::RegisterModule(NameHandle name, Function<IModule*()>& registerFunc)
 	{
 		TAssertf(!ModuleRegisterMap.contains(name), "Module \"%s\" already registerd", name.c_str());

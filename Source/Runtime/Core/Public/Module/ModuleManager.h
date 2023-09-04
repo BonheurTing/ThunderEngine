@@ -40,8 +40,8 @@ namespace Thunder
 	public:
 		IModule(NameHandle name) : Name(name) {}
 		virtual ~IModule() = default;
-		virtual void StartUp() {}
-		virtual void ShutDown() {}
+		virtual void StartUp() = 0;
+		virtual void ShutDown() = 0;
 		_NODISCARD_ NameHandle GetName() const { return Name; }
 	
 	protected:

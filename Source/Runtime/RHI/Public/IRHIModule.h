@@ -9,7 +9,8 @@ namespace Thunder
 	public:
 		IRHIModule(NameHandle name) : IModule(name) {}
 		virtual ~IRHIModule() = default;
-		virtual void CreatRHI() = 0;
+		//IDynamicRHI* GetDynamicRHI() { return DynamicRHI; }
+
 	protected:
 		IDynamicRHI* DynamicRHI = nullptr;
 	};

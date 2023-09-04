@@ -1,8 +1,9 @@
 #include "EngineMain.h"
-#include "D3D12RHI.h"
-#include "D3D11RHI.h"
+#include "D3D12RHIModule.h"
+#include "D3D11RHIModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
+#include "Module/ModuleManager.h"
 
 namespace Thunder
 {
@@ -13,17 +14,20 @@ namespace Thunder
         {
             case EGfxApiType::D3D12:
             {
-                GDynamicRHI = new D3D12DynamicRHI();
-                return GDynamicRHI != nullptr ? true : false;
+                TD3D12RHIModule::EnsureLoad();
+                ModuleManager::GetInstance()->LoadModuleByName("D3D12RHI");
+                break;
             }
             case EGfxApiType::D3D11:
             {
-                GDynamicRHI = new D3D11DynamicRHI();
-                return GDynamicRHI != nullptr ? true : false;
+                TD3D11RHIModule::EnsureLoad();
+                ModuleManager::GetInstance()->LoadModuleByName("D3D11RHI");
+                break;
             }
             case EGfxApiType::Invalid: return false;
         }
-        return false;
+        
+        return true;
     }
 }
 

@@ -4,8 +4,10 @@
 namespace Thunder
 {
 	IMPLEMENT_MODULE(D3D12RHI, TD3D12RHIModule)
-	void TD3D12RHIModule::CreatRHI()
+
+	void TD3D12RHIModule::StartUp()
 	{
 		DynamicRHI = new D3D12DynamicRHI();
+		GDynamicRHI = DynamicRHI;
 	}
 }

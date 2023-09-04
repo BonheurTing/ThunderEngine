@@ -15,6 +15,8 @@ namespace Thunder
 	        const auto inst = ModuleManager::GetInstance()->GetModuleByName(GetStaticName());
     		return dynamic_cast<ShaderModule*>(inst);
     	}
+    	void StartUp() override {};
+    	void ShutDown() override {};
     	bool ParseShaderFile();
     	ShaderArchive* GetShaderArchive(NameHandle name);
     	void InitShaderCompiler(EGfxApiType type);

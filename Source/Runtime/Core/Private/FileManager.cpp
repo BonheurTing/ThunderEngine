@@ -4,7 +4,6 @@
 #include <sstream>
 #include <string>
 #include <filesystem>
-#include <direct.h>
 #include "CoreMinimal.h"
 
 namespace Thunder
@@ -49,31 +48,26 @@ namespace Thunder
     	return static_cast<int>(outFileNames.size());
     }
     
-    String FileManager::GetProjectRoot()
+    String FileManager::GetProjectRoot() const
     {
-    	char buffer[64];
-    	_getcwd(buffer, 64);
-    	return buffer;
+	    return "";
     }
     
-    String FileManager::GetEngineRoot()
+    String FileManager::GetEngineRoot() const
     {
-    	return "D:\\ThunderEngine";
+    	const String filePathBuffer = ".\\..\\..\\";
+    	char outPath[1024]="";
+#if _WIN32 || _WIN64
+    	_fullpath(outPath, filePathBuffer.c_str(), 1024);
+#else
+    	realpath(filePathBufffer, dir);
+#endif
+
+    	return outPath;
     }
     
-    String FileManager::GetEngineShaderRoot()
+    String FileManager::GetEngineShaderRoot() const
     {
-    	return "D:\\ThunderEngine\\Shader";
-    }
-    
-    int TMessageBox(void* handle, const char* text, const char* caption, uint32 type)
-    {
-    #if _WIN64
-    	const int result = ::MessageBoxA(static_cast<HWND>(handle), text, caption, type);
-    	return result;
-    #else
-    	assert(false);
-    	return 1;
-    #endif
+    	return GetEngineRoot() + "\\Shader";
     }
 }

@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "Container.h"
-#include "Platform.h"
 
 namespace Thunder
 {
@@ -11,10 +10,8 @@ namespace Thunder
 		int TraverseFileFromFolderWithFormat(const String& folderPath,  Array<String>& outFileNames, const String& fileFormat);
 
 		// project path
-		String GetProjectRoot();
-		String GetEngineRoot();
-		String GetEngineShaderRoot();
+		String GetProjectRoot() const;
+		String GetEngineRoot() const;
+		String GetEngineShaderRoot() const;
 	};
-
-	int TMessageBox(void* handle, const char* text, const char* caption, uint32 type);
 }

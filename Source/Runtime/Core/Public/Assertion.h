@@ -4,7 +4,6 @@
 #define check(expr)					{ CA_ASSUME(expr); }
 #include <cstdio>
 #include "CoreMinimal.h"
-#include "FileManager.h"
 #include <cassert>
 
 namespace Thunder

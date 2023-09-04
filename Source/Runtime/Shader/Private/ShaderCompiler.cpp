@@ -2,6 +2,7 @@
 #include "Assertion.h"
 #include "CoreModule.h"
 #include "d3dcompiler.h"
+#include "FileManager.h"
 #include "ShaderArchive.h"
 #include "ShaderModule.h"
 

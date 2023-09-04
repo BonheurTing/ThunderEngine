@@ -2,6 +2,7 @@
 #include "Assertion.h"
 #include "CoreModule.h"
 //#pragma optimize("",off)
+#include "FileManager.h"
 #include "ShaderCompiler.h"
 #include "rapidjson/document.h"
 #include "ShaderArchive.h"

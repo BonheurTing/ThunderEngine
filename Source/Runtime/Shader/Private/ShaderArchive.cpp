@@ -3,6 +3,7 @@
 #include <sstream>
 #include "Assertion.h"
 #include "CoreModule.h"
+#include "FileManager.h"
 #include "ShaderModule.h"
 
 namespace Thunder

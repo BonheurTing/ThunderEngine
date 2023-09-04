@@ -101,6 +101,7 @@ namespace Thunder
 		D3D12
 	};
 
+	int TMessageBox(void* handle, const char* text, const char* caption, uint32 type);
 	
 }
 

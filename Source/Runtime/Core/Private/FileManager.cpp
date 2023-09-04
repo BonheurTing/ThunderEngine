@@ -1,4 +1,4 @@
-﻿#include "FileHelper.h"
+﻿#include "FileManager.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -11,7 +11,7 @@ namespace Thunder
 {
 	using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
     
-    bool FileHelper::LoadFileToString(const String& fileName, String& outString)
+    bool FileManager::LoadFileToString(const String& fileName, String& outString)
     {
     	std::ifstream fin;
     	fin.open(fileName, std::ios::in);
@@ -31,12 +31,12 @@ namespace Thunder
     	return true;
     }
     
-    int FileHelper::TraverseFileFromFolder(const String& folderPath, Array<String>& outFileNames)
+    int FileManager::TraverseFileFromFolder(const String& folderPath, Array<String>& outFileNames)
     {
     	return TraverseFileFromFolderWithFormat(folderPath, outFileNames, "");
     }
     
-    int FileHelper::TraverseFileFromFolderWithFormat(const String& folderPath, Array<String>& outFileNames, const String& fileFormat)
+    int FileManager::TraverseFileFromFolderWithFormat(const String& folderPath, Array<String>& outFileNames, const String& fileFormat)
     {
     	for (const auto& dirEntry : recursive_directory_iterator(folderPath))
     	{
@@ -49,19 +49,19 @@ namespace Thunder
     	return static_cast<int>(outFileNames.size());
     }
     
-    String FileHelper::GetProjectRoot()
+    String FileManager::GetProjectRoot()
     {
     	char buffer[64];
     	_getcwd(buffer, 64);
     	return buffer;
     }
     
-    String FileHelper::GetEngineRoot()
+    String FileManager::GetEngineRoot()
     {
     	return "D:\\ThunderEngine";
     }
     
-    String FileHelper::GetEngineShaderRoot()
+    String FileManager::GetEngineShaderRoot()
     {
     	return "D:\\ThunderEngine\\Shader";
     }

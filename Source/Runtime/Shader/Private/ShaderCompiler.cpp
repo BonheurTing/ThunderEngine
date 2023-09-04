@@ -1,5 +1,6 @@
 ﻿#include "ShaderCompiler.h"
 #include "Assertion.h"
+#include "CoreModule.h"
 #include "d3dcompiler.h"
 #include "ShaderArchive.h"
 #include "ShaderModule.h"
@@ -34,7 +35,7 @@ namespace Thunder
     			const size_t pos = IncludeSourceList.size();
     			IncludeSourceList.push_back("");
     			auto& IncludeSource = IncludeSourceList[pos];
-    			if (FileHelper::LoadFileToString(fullPath, IncludeSource))
+    			if (GFileManager->LoadFileToString(fullPath, IncludeSource))
     			{
     				*ppData = IncludeSource.c_str();
     				*pBytes = static_cast<UINT>(IncludeSource.size());

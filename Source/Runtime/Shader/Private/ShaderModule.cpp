@@ -1,6 +1,6 @@
 #include "ShaderModule.h"
 #include "Assertion.h"
-#include "FileHelper.h"
+#include "CoreModule.h"
 //#pragma optimize("",off)
 #include "ShaderCompiler.h"
 #include "rapidjson/document.h"
@@ -128,13 +128,13 @@ namespace Thunder
 	bool ShaderModule::ParseShaderFile()
     {
     	Array<String> shaderNameList;
-    	FileHelper::TraverseFileFromFolderWithFormat(FileHelper::GetEngineRoot() + "\\Shader", shaderNameList, "shader");
+    	GFileManager->TraverseFileFromFolderWithFormat(GFileManager->GetEngineRoot() + "\\Shader", shaderNameList, "shader");
     	
     	for (const String& metaFileName: shaderNameList)
     	{
     		String metaContent;
     		LOG("%s", metaFileName.c_str());
-    		if (!FileHelper::LoadFileToString(metaFileName, metaContent))
+    		if (!GFileManager->LoadFileToString(metaFileName, metaContent))
     		{
     			continue;
     		}

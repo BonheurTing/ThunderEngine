@@ -22,3 +22,22 @@ namespace Thunder
 	extern CORE_API FileManager* GFileManager;
 }
 
+namespace Thunder
+{
+
+	class CORE_API TestModule : public IModule
+	{
+	public:
+		TestModule(NameHandle name) : IModule(name) {}
+	};
+
+	class CORE_API TestModule1 : public TestModule
+	{
+		DECLARE_MODULE_WITH_SUPER(Test1, TestModule1, TestModule)
+	public:
+		void StartUp() override {}
+		void ShutDown() override {}
+	};
+
+	
+}

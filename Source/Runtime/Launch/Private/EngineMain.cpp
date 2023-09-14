@@ -14,17 +14,16 @@ namespace Thunder
         {
             case EGfxApiType::D3D12:
             {
-                TD3D12RHIModule::EnsureLoad();
-                ModuleManager::GetInstance()->LoadModuleByName("D3D12RHI");
+                ModuleManager::GetInstance()->LoadModule<TD3D12RHIModule>();
                 break;
             }
             case EGfxApiType::D3D11:
             {
-                TD3D11RHIModule::EnsureLoad();
-                ModuleManager::GetInstance()->LoadModuleByName("D3D11RHI");
+                ModuleManager::GetInstance()->LoadModule<TD3D11RHIModule>();
                 break;
             }
-            case EGfxApiType::Invalid: return false;
+            case EGfxApiType::Invalid:
+                return false;
         }
         
         return true;

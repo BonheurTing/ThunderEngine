@@ -14,3 +14,7 @@ namespace Thunder
 	}
 }
 
+namespace Thunder
+{
+	IMPLEMENT_MODULE(Test1, TestModule1)
+}

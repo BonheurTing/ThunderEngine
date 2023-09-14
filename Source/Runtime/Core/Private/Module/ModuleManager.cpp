@@ -11,6 +11,11 @@ namespace Thunder
 		LOG("Module registered : \"%s\"", name.c_str());
 	}
 
+	bool ModuleManager::IsModuleRegistered(NameHandle name) const
+	{
+		return ModuleRegisterMap.contains(name);
+	}
+
 	IModule* ModuleManager::GetModuleByName(NameHandle name)
 	{
 		if (ModuleMap.contains(name))

@@ -30,7 +30,7 @@
 #define IMPLEMENT_MODULE(ModuleName, ModuleType) \
 	NameHandle ModuleType::StaticName = #ModuleName; \
 	Function ModuleName##RegisterFunction = ModuleFactory<ModuleType>{}; \
-	ModuleRegistry<ModuleType> ModuleType::ModuleName##Registry{#ModuleName, ModuleName##RegisterFunction};
+	ModuleRegistry<ModuleType> ModuleType::ModuleName##Registry{#ModuleName, ModuleName##RegisterFunction}; \
 
 
 namespace Thunder
@@ -67,9 +67,16 @@ namespace Thunder
 		}
 
 		void RegisterModule(NameHandle name, Function<IModule*(void)>& registerFunc);
+		bool IsModuleRegistered(NameHandle name) const;
 		_NODISCARD_ IModule* GetModuleByName(NameHandle name);
 		void LoadModuleByName(NameHandle name);
 		void UnloadModuleByName(NameHandle name);
+
+		template<typename ModuleType>
+		void LoadModule()
+		{
+			LoadModuleByName(ModuleType::GetStaticName());
+		}
 
 	private:
 		ModuleManager() = default;

@@ -9,6 +9,5 @@ namespace Thunder
 	public:
 		void StartUp() override;
 		void ShutDown() override {}
-		static void EnsureLoad() {}
 	};
 }

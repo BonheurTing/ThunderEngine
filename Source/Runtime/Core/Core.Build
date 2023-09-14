@@ -1,5 +1,17 @@
 set(ModuleName Core)
 set(LinkMode SHARED)
 
-set(PublicDependencyModuleList
+set(PublicThirdPartyIncludeList
+    ThirdParty/Mimalloc/include
+)
+set(PrivateThirdPartyIncludeList
+    #ThirdParty/Mimalloc/src
+)
+
+set(PrivateThirdPartyPathList
+    ThirdParty/Mimalloc/lib
+)
+
+set(PrivateThirdPartyNameList
+    mimalloc-static.lib
 )

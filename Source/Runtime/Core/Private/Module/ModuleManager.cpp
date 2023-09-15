@@ -4,6 +4,8 @@
 
 namespace Thunder
 {
+	Mutex ModuleManager::InstanceMutex{};
+	ModuleManager* ModuleManager::Instance = nullptr;
 	void ModuleManager::RegisterModule(NameHandle name, Function<IModule*()>& registerFunc)
 	{
 		TAssertf(!ModuleRegisterMap.contains(name), "Module \"%s\" already registerd", name.c_str());
@@ -51,6 +53,9 @@ namespace Thunder
 		{
 			ModuleMap[name]->ShutDown();
 		}
-		TAssertf(false, "Module \"%s\" doesn't exist", name.c_str());
+		else
+		{
+			TAssertf(false, "Module \"%s\" doesn't exist", name.c_str());
+		}
 	}
 }

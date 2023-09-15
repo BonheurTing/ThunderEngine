@@ -62,8 +62,27 @@ namespace Thunder
 	public:
 		static ModuleManager* GetInstance()
 		{
-			static auto instance = new ModuleManager;
-			return instance;
+			if (Instance == nullptr)
+			{
+				ScopeLock lock(InstanceMutex);
+				if (Instance == nullptr)
+				{
+					Instance = new ModuleManager();
+				}
+			}
+			return Instance;
+		}
+		static void DestroyInstance()
+		{
+			if (Instance)
+			{
+				ScopeLock lock(InstanceMutex);
+				if (Instance)
+				{
+					delete Instance;
+					Instance = nullptr;
+				}
+			}
 		}
 
 		void RegisterModule(NameHandle name, Function<IModule*(void)>& registerFunc);
@@ -78,8 +97,16 @@ namespace Thunder
 			LoadModuleByName(ModuleType::GetStaticName());
 		}
 
+		template<typename ModuleType>
+		void UnloadModule()
+		{
+			UnloadModuleByName(ModuleType::GetStaticName());
+		}
+
 	private:
 		ModuleManager() = default;
+		static Mutex InstanceMutex;
+		static ModuleManager* Instance;
 		HashMap<NameHandle, RefCountPtr<IModule>> ModuleMap;
 		HashMap<NameHandle, Function<IModule*()>> ModuleRegisterMap;
 	};

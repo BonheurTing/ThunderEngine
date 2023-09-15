@@ -1,6 +1,6 @@
 ﻿#include "CoreModule.h"
-
 #include "FileManager.h"
+#include "Memory/MallocMinmalloc.h"
 
 namespace Thunder
 {
@@ -11,6 +11,9 @@ namespace Thunder
 	{
 		FileManagerInstance = MakeRefCount<FileManager>();
 		GFileManager = FileManagerInstance.get();
+
+		MemoryAllocator = MakeRefCount<TMallocMinmalloc>();
+		GMalloc = MemoryAllocator.get();
 	}
 }
 

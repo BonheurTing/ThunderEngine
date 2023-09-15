@@ -3,7 +3,7 @@
 
 namespace Thunder
 {
-	class CORE_API TMallocMinmalloc : public IMalloc
+	class TMallocAnsi : public IMalloc
 	{
 	public:
 		void* Malloc(size_t count, uint32 alignment) override;
@@ -11,7 +11,6 @@ namespace Thunder
 		bool GetAllocationSize(void* ptr, size_t& sizeOut) override;
 		void Free( void* original ) override;
 	private:
+	
 	};
 }
-
-

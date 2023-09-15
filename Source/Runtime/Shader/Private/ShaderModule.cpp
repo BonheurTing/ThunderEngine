@@ -6,6 +6,7 @@
 #include "ShaderCompiler.h"
 #include "rapidjson/document.h"
 #include "ShaderArchive.h"
+#include "Memory/MemoryBase.h"
 
 namespace Thunder
 {
@@ -125,7 +126,22 @@ namespace Thunder
     		return result;
     	}
 	}
-	
+
+	ShaderModule::~ShaderModule()
+	{
+	}
+
+	void ShaderModule::ShutDown()
+	{
+		for (auto pair : ShaderMap)
+		{
+			if (pair.second)
+			{
+				TMemory::Destroy(pair.second);
+			}
+		}
+	}
+
 	bool ShaderModule::ParseShaderFile()
     {
     	Array<String> shaderNameList;
@@ -149,7 +165,7 @@ namespace Thunder
     		TAssertf(document.HasMember("ShaderSource"), "Shader source path not found in %s", metaFileName.c_str());
     		const String shaderArchiveSource = document["ShaderSource"].GetString();
     
-    		auto currentShader = new ShaderArchive(shaderArchiveSource, shaderArchiveName);
+    		auto currentShader = new (TMemory::Malloc<ShaderArchive>()) ShaderArchive {shaderArchiveSource, shaderArchiveName};
     		
     		if (document.HasMember("Properties") && !document["Properties"].IsNull())
     		{

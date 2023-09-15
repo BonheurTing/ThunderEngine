@@ -4,6 +4,7 @@
 namespace Thunder
 {
 	class FileManager;
+	class IMalloc;
 	
 	class CORE_API CoreModule : public IModule
 	{
@@ -16,6 +17,7 @@ namespace Thunder
 
 	private:
 		RefCountPtr<FileManager> FileManagerInstance;
+		RefCountPtr<IMalloc> MemoryAllocator;
 		
 	};
 

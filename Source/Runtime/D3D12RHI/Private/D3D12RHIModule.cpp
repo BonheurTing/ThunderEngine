@@ -7,7 +7,7 @@ namespace Thunder
 
 	void TD3D12RHIModule::StartUp()
 	{
-		DynamicRHI = new D3D12DynamicRHI();
-		GDynamicRHI = DynamicRHI;
+		DynamicRHI = MakeRefCount<D3D12DynamicRHI>();
+		GDynamicRHI = DynamicRHI.get();
 	}
 }

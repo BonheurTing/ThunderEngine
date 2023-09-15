@@ -2,7 +2,7 @@
 
 namespace Thunder
 {
-	IDynamicRHI* GDynamicRHI = NULL;
+	IDynamicRHI* GDynamicRHI = nullptr;
     
     RHIDeviceRef IDynamicRHI::RHICreateDevice()
     {

@@ -1,5 +1,6 @@
 set(ModuleName D3D12RHI)
 set(LinkMode SHARED)
+
 set(PublicDependencyModuleList
     RHI
 )

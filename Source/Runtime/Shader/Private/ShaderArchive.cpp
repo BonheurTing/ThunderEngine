@@ -83,7 +83,7 @@ namespace Thunder
     	}
     
     	template<typename InElementType>
-    	void GenerateParameterCodeArray(const Array<InElementType>& param, Array<CBParamBinding>& outCbCode, Array<String>& outSbCode)
+    	void GenerateParameterCodeArray(const Array<InElementType>& param, Array<CBParamBinding>& outCbCode, Array<String>& outSbCode, uint8& outUAVNum)
     	{
     		for (auto& meta : param)
     		{
@@ -94,6 +94,11 @@ namespace Thunder
     				if (!sbCode.empty())
     				{
     					outSbCode.push_back(sbCode);
+    				}
+
+    				if (strstr(meta.Type.c_str(), "RWTexture"))
+    				{
+    					outUAVNum++;
     				}
     			}
     			else
@@ -186,15 +191,16 @@ namespace Thunder
     		}
     	}
     }
-    
+
     void ShaderPass::CacheDefaultShaderCache()
     {
     	//todo: gen default mask and default combination
     	//todo: compile default
     }
     
-    void ShaderArchive::GenerateIncludeString(String& outFile)
+    void ShaderArchive::GenerateIncludeString(NameHandle passName, String& outFile)
     {
+    	const bool hasPassParameters = PasseParameterMeta.contains(passName);
     	//check duplicate names
     	HashSet<NameHandle> uniqueNames;
     	for (auto& meta : PropertyMeta)
@@ -205,7 +211,15 @@ namespace Thunder
     	{
     		uniqueNames.insert(meta.Name);
     	}
-    	const bool hasDuplicateNames = uniqueNames.size() != PropertyMeta.size() + ParameterMeta.size();
+    	if (hasPassParameters)
+    	{
+    		for (auto& meta : PasseParameterMeta[passName])
+    		{
+    			uniqueNames.insert(meta.Name);
+    		}
+    	}
+    	const bool hasDuplicateNames = uniqueNames.size() != PropertyMeta.size() + ParameterMeta.size()
+    		+ (hasPassParameters ? PasseParameterMeta[passName].size() : 0);
     	TAssertf(!hasDuplicateNames, "The parameters of the shader defines repeat");
     	if (hasDuplicateNames)
     	{
@@ -214,8 +228,13 @@ namespace Thunder
     	// preprocess param
     	Array<CBParamBinding> cbGeneratedCode;
     	Array<String> sbGeneratedCode;
-    	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode);
-    	GenerateParameterCodeArray<ShaderParameterMeta>(ParameterMeta, cbGeneratedCode, sbGeneratedCode);
+    	uint8 dummy = 0;
+    	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode, dummy);
+    	GenerateParameterCodeArray<ShaderParameterMeta>(ParameterMeta, cbGeneratedCode, sbGeneratedCode, dummy);
+    	if (hasPassParameters)
+    	{
+    		GenerateParameterCodeArray<ShaderParameterMeta>(PasseParameterMeta[passName], cbGeneratedCode, sbGeneratedCode, dummy);
+    	}
     	const bool hasInvalidParam = uniqueNames.size() != cbGeneratedCode.size() + sbGeneratedCode.size();
     	TAssertf(!hasInvalidParam, "The shader has invalid parameter definitions");
     	if (hasInvalidParam)
@@ -283,7 +302,23 @@ namespace Thunder
     	outFile =  codeStream.str();
     }
     
-   
+	void ShaderArchive::CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount)
+    {
+    	outCount.SamplerCount = 6;
+    	outCount.ConstantBufferCount = 1;
+
+    	Array<CBParamBinding> cbGeneratedCode;
+    	Array<String> sbGeneratedCode;
+    	outCount.UnorderedAccessCount = 0;
+    	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
+    	GenerateParameterCodeArray<ShaderParameterMeta>(ParameterMeta, cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
+    	if (PasseParameterMeta.contains(passName))
+    	{
+    		GenerateParameterCodeArray<ShaderParameterMeta>(PasseParameterMeta[passName], cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
+    	}
+    	outCount.ShaderResourceCount = static_cast<uint8>(sbGeneratedCode.size()) - outCount.UnorderedAccessCount;
+    }
+	
     //////////////////////////////////////////////////////////////////////////////////////////
     /// Compile Shader
     //////////////////////////////////////////////////////////////////////////////////////////
@@ -308,6 +343,7 @@ namespace Thunder
     			TAssertf(false, "Compile Shader: Output an empty ByteCode");
     			return false;
     		}
+    		newStageVariant.VariantId = stageVariantId;
     		newVariant.Shaders[meta.first] = newStageVariant;
     	}
     	UpdateOrAddVariants(variantId, newVariant);
@@ -360,7 +396,7 @@ namespace Thunder
     	GFileManager->LoadFileToString(fileName, shaderSource);
     	// include file
     	String shaderIncludeStr;
-    	GenerateIncludeString(shaderIncludeStr);
+    	GenerateIncludeString(passName, shaderIncludeStr);
     	if (shaderIncludeStr.empty())
     	{
     		return false;

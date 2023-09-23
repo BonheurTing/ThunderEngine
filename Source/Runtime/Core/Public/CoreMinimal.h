@@ -9,3 +9,6 @@
 #include <wrl.h>
 
 using namespace Microsoft::WRL;
+
+#include "Windows/WindowsPlatform.h"
+#include "Memory/MemoryBase.h"

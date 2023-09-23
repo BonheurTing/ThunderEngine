@@ -41,7 +41,38 @@ namespace Thunder
         virtual RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc) { return nullptr; }
     
         virtual RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc) { return nullptr; }
-    
+
+        //todo IDynamicRHI 要全部变成纯虚函数
+        /// CreateCommandQueue
+        /// CreateCommandAllocator
+        /// CreateGraphicsPipelineState
+        /// CreateComputePipelineState
+        /// CreateCommandList
+        /// CreateDescriptorHeap GetDescriptorHandleIncrementSize(12)
+        /// CreateRootSignature
+        /// CreateConstantBufferView
+        /// CreateShaderResourceView
+        /// CreateUnorderedAccessView
+        /// CreateRenderTargetView
+        /// CreateDepthStencilView
+        /// CreateSampler
+        /// CreateFence
+
+        /*virtual RHICommandQueueRef RHICreateCommandQueue() { return nullptr; }
+        virtual RHICommandAllocatorRef RHICreateCommandAllocator() { return nullptr; }
+        virtual RHICommandListRef RHICreateCommandList() { return nullptr; }
+        virtual RHIGraphicsPipelineStateRef RHICreateGraphicsPipelineState() { return nullptr; }
+        virtual RHIComputePipelineStateRef RHICreateComputePipelineState() { return nullptr; }
+        virtual RHIDescriptorHeapRef RHICreateDescriptorHeap() { return nullptr; }
+        virtual RHIRootSignatureRef RHICreateRootSignature() { return nullptr; }
+        virtual RHIConstantBufferViewRef RHICreateConstantBufferView() { return nullptr; }
+        virtual RHIShaderResourceViewRef RHICreateShaderResourceView() { return nullptr; }
+        virtual RHIUnorderedAccessViewRef RHICreateUnorderedAccessView() { return nullptr; }
+        virtual RHIRenderTargetViewRef RHICreateRenderTargetView() { return nullptr; }
+        virtual RHIDepthStencilViewRef RHICreateDepthStencilView() { return nullptr; }
+        virtual RHISamplerRef RHICreateSampler() { return nullptr; }
+        virtual RHIFenceRef RHICreateFence() { return nullptr; }*/
+        
     };
     
     extern RHI_API IDynamicRHI* GDynamicRHI;

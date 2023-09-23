@@ -178,12 +178,12 @@ namespace Thunder
     				currentShader->AddPropertyMeta(meta);
     			}
     		}
-    
-    		if (document.HasMember("ShaderParameters") && !document["ShaderParameters"].IsNull())
+
+    		if (document.HasMember("Parameters") && !document["Parameters"].IsNull())
     		{
-    			TAssertf(document["ShaderParameters"].IsArray(), "Shader meta parse error : ShaderParameters node is not an array\nFile name : %s.", metaFileName.c_str());
-    			auto const& shaderParametersNode = document["ShaderParameters"].GetArray();
-    			for (auto itr = shaderParametersNode.Begin(); itr != shaderParametersNode.End(); ++itr)
+    			TAssertf(document["Parameters"].IsArray(), "Shader meta parse error : Parameters node is not an array\nFile name : %s.", metaFileName.c_str());
+    			auto const& parametersNode = document["Parameters"].GetArray();
+    			for (auto itr = parametersNode.Begin(); itr != parametersNode.End(); ++itr)
     			{
     				ShaderParameterMeta meta{};
     				ParseParameterNode(*itr, meta);
@@ -219,6 +219,20 @@ namespace Thunder
     						ParseVariantNode(*itr, meta);
     						passVariantMeta.push_back(meta);
     					}
+    				}
+    				// PassParameters
+    				if (shaderPass.HasMember("PassParameters") && !shaderPass["PassParameters"].IsNull())
+    				{
+    					Array<ShaderParameterMeta> passParameterMeta;
+    					TAssertf(shaderPass["PassParameters"].IsArray(), "Shader meta parse error : %s PassParameters node is not an array\nFile name : %s.", passName, metaFileName.c_str());
+    					auto const& parametersNode = shaderPass["PassParameters"].GetArray();
+    					for (auto itr = parametersNode.Begin(); itr != parametersNode.End(); ++itr)
+    					{
+    						ShaderParameterMeta meta{};
+    						ParseParameterNode(*itr, meta);
+    						passParameterMeta.push_back(meta);
+    					}
+    					currentShader->AddPassParameterMeta(passName, passParameterMeta);
     				}
     				HashMap<EShaderStageType, Array<VariantMeta>> stageVariantConfig;
     				// Vertex
@@ -258,6 +272,9 @@ namespace Thunder
     					}
     				}
     				currentPass->GenerateVariantDefinitionTable(passVariantMeta, stageVariantConfig);
+    				TShaderRegisterCounts counts{};
+    				currentShader->CalcRegisterCounts(passName, counts);
+    				currentPass->SetShaderRegisterCounts(counts);
     				currentPass->CacheDefaultShaderCache();
     				currentShader->AddPass(passName, currentPass);
     			}

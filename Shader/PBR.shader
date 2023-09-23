@@ -24,7 +24,7 @@
             "Default": "(1,1,1,1)"
         }
     ],
-    "ShaderParameters":
+    "Parameters":
     [
         {
             "Name": "TintColor",
@@ -48,6 +48,14 @@
                     "Name": "EnableLumen",
                     "Default": "True",
                     "Fallback": "False"
+                }
+            ],
+            "PassParameters":
+            [
+                {
+                    "Name": "BlueNoise",
+                    "Type": "Texture2D",
+			        "Format": "Float4"
                 }
             ],
             "Vertex":

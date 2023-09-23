@@ -43,6 +43,11 @@ namespace Thunder
         RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc) override;
     
         RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc) override;
+
+
+    private:
+    /////// DX12 Methods
+        void CreateRootSignature() {}
         
     private:
         ComPtr<ID3D12Device> Device;

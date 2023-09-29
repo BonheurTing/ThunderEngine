@@ -1,12 +1,16 @@
 #include "D3D12RHI.h"
 #include "D3D12Resource.h"
+#include "D3D12DescriptorHeap.h"
 #include "RHIHelper.h"
 #include "Assertion.h"
 #include <dxgi1_4.h>
+#include "d3dx12.h"
 
 namespace Thunder
 {
-    D3D12DynamicRHI::D3D12DynamicRHI() {}
+    D3D12DynamicRHI::D3D12DynamicRHI()
+    {
+    }
     
     RHIDeviceRef D3D12DynamicRHI::RHICreateDevice()
     {
@@ -37,7 +41,12 @@ namespace Thunder
             D3D_FEATURE_LEVEL_11_0,
             IID_PPV_ARGS(&Device)
             );
-    
+        
+        CommonDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CommonDescriptorHeapSize);
+        RTVDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, RTVDescriptorHeapSize);
+        DSVDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, DSVDescriptorHeapSize);
+        SamplerDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, SamplerDescriptorHeapSize);
+        
         if(SUCCEEDED(hr))
         {
             return MakeRefCount<D3D12Device>(Device.Get());
@@ -47,6 +56,7 @@ namespace Thunder
             LOG("Fail to create device");
             return nullptr;
         }
+        
     }
     
     RHIRasterizerStateRef D3D12DynamicRHI::RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer)
@@ -73,13 +83,61 @@ namespace Thunder
     {
         return nullptr;
     }
-    
-    RHIPixelShaderRef D3D12DynamicRHI::RHICreatePixelShader()
+
+    RHIConstantBufferViewRef D3D12DynamicRHI::RHICreateConstantBufferView(const RHIViewDescriptor& desc)
     {
         return nullptr;
     }
-    
-    RHIVertexShaderRef D3D12DynamicRHI::RHICreateVertexShader()
+
+    void D3D12DynamicRHI::RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc)
+    {
+        TAssert(Device != nullptr);
+        uint32 srvOffset;
+        const D3D12_CPU_DESCRIPTOR_HANDLE srvHandle{ CommonDescriptorHeap->AllocateDescriptorHeap(srvOffset) };
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC dx12Desc{};
+        dx12Desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        dx12Desc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
+        dx12Desc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(desc.Type);
+        auto resourceDesc = resource.GetResourceDescriptor();
+        switch (resourceDesc->Type)
+        {
+        case ERHIResourceType::Buffer:
+            dx12Desc.Buffer.NumElements = static_cast<UINT>(resourceDesc->Width);
+            break;
+        case ERHIResourceType::Texture1D:
+            dx12Desc.Texture1D.MipLevels = resourceDesc->MipLevels;
+            break;
+        case ERHIResourceType::Texture2D:
+            dx12Desc.Texture2D.MipLevels = resourceDesc->MipLevels;
+            break;
+        case ERHIResourceType::Texture2DArray:
+            dx12Desc.Texture2DArray.MipLevels = resourceDesc->MipLevels;
+            dx12Desc.Texture2DArray.ArraySize = resourceDesc->DepthOrArraySize;
+            break;
+        case ERHIResourceType::Texture3D:
+            dx12Desc.Texture3D.MipLevels = resourceDesc->MipLevels;
+            break;
+        case ERHIResourceType::Unknown: break;
+        }
+        const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
+        Device->CreateShaderResourceView(inst, &dx12Desc, srvHandle);
+
+        const D3D12RHIShaderResourceView view{desc, CommonDescriptorHeap.get(), srvOffset};
+        resource.SetSRV(view);
+    }
+
+    RHIUnorderedAccessViewRef D3D12DynamicRHI::RHICreateUnorderedAccessView(const RHIViewDescriptor& desc)
+    {
+        return nullptr;
+    }
+
+    RHIRenderTargetViewRef D3D12DynamicRHI::RHICreateRenderTargetView(const RHIViewDescriptor& desc)
+    {
+        return nullptr;
+    }
+
+    RHIDepthStencilViewRef D3D12DynamicRHI::RHICreateDepthStencilView(const RHIViewDescriptor& desc)
     {
         return nullptr;
     }

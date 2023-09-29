@@ -7,9 +7,9 @@ namespace Thunder
     class RHI_API IDynamicRHI
     {
     public:
-        virtual ~IDynamicRHI() {}
-        
-    /////// RHI Methods
+        virtual ~IDynamicRHI() = default;
+
+        /////// RHI Methods
         virtual RHIDeviceRef RHICreateDevice();
         
         virtual RHIRasterizerStateRef RHICreateRasterizerState(const RasterizerStateInitializerRHI& initializer) { return nullptr; }
@@ -19,12 +19,18 @@ namespace Thunder
         virtual RHIBlendStateRef RHICreateBlendState(const BlendStateInitializerRHI& initializer) { return nullptr; }
     
         virtual RHIInputLayoutRef RHICreateInputLayout(const RHIInputLayoutDescriptor& initializer) { return nullptr; }
-    
+        
         virtual RHIVertexDeclarationRef RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& elements) { return nullptr; }
-    
-        virtual RHIPixelShaderRef RHICreatePixelShader() { return nullptr; }
-    
-        virtual RHIVertexShaderRef RHICreateVertexShader() { return nullptr; }
+
+        virtual RHIConstantBufferViewRef RHICreateConstantBufferView(const RHIViewDescriptor& desc) = 0;
+        
+        virtual void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) = 0;
+        
+        virtual RHIUnorderedAccessViewRef RHICreateUnorderedAccessView(const RHIViewDescriptor& desc) = 0;
+        
+        virtual RHIRenderTargetViewRef RHICreateRenderTargetView(const RHIViewDescriptor& desc) = 0;
+        
+        virtual RHIDepthStencilViewRef RHICreateDepthStencilView(const RHIViewDescriptor& desc) = 0;
     
         virtual RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc) { return nullptr; }
     
@@ -49,7 +55,6 @@ namespace Thunder
         /// CreateComputePipelineState
         /// CreateCommandList
         /// CreateDescriptorHeap GetDescriptorHandleIncrementSize(12)
-        /// CreateRootSignature
         /// CreateConstantBufferView
         /// CreateShaderResourceView
         /// CreateUnorderedAccessView
@@ -58,18 +63,14 @@ namespace Thunder
         /// CreateSampler
         /// CreateFence
 
+       
+        
         /*virtual RHICommandQueueRef RHICreateCommandQueue() { return nullptr; }
         virtual RHICommandAllocatorRef RHICreateCommandAllocator() { return nullptr; }
         virtual RHICommandListRef RHICreateCommandList() { return nullptr; }
         virtual RHIGraphicsPipelineStateRef RHICreateGraphicsPipelineState() { return nullptr; }
         virtual RHIComputePipelineStateRef RHICreateComputePipelineState() { return nullptr; }
-        virtual RHIDescriptorHeapRef RHICreateDescriptorHeap() { return nullptr; }
-        virtual RHIRootSignatureRef RHICreateRootSignature() { return nullptr; }
-        virtual RHIConstantBufferViewRef RHICreateConstantBufferView() { return nullptr; }
-        virtual RHIShaderResourceViewRef RHICreateShaderResourceView() { return nullptr; }
-        virtual RHIUnorderedAccessViewRef RHICreateUnorderedAccessView() { return nullptr; }
-        virtual RHIRenderTargetViewRef RHICreateRenderTargetView() { return nullptr; }
-        virtual RHIDepthStencilViewRef RHICreateDepthStencilView() { return nullptr; }
+        
         virtual RHISamplerRef RHICreateSampler() { return nullptr; }
         virtual RHIFenceRef RHICreateFence() { return nullptr; }*/
         
@@ -85,6 +86,31 @@ namespace Thunder
     FORCEINLINE RHIInputLayoutRef RHICreateInputLayout(const RHIInputLayoutDescriptor& initializer)
     {
         return GDynamicRHI->RHICreateInputLayout(initializer);
+    }
+
+    FORCEINLINE RHIConstantBufferViewRef RHICreateConstantBufferView(const RHIViewDescriptor& desc)
+    {
+        return GDynamicRHI->RHICreateConstantBufferView(desc);
+    }
+    
+    FORCEINLINE void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc)
+    {
+        GDynamicRHI->RHICreateShaderResourceView(resource, desc);
+    }
+    
+    FORCEINLINE RHIUnorderedAccessViewRef RHICreateUnorderedAccessView(const RHIViewDescriptor& desc)
+    {
+        return GDynamicRHI->RHICreateUnorderedAccessView(desc);
+    }
+    
+    FORCEINLINE RHIRenderTargetViewRef RHICreateRenderTargetView(const RHIViewDescriptor& desc)
+    {
+        return GDynamicRHI->RHICreateRenderTargetView(desc);
+    }
+    
+    FORCEINLINE RHIDepthStencilViewRef RHICreateDepthStencilView(const RHIViewDescriptor& desc)
+    {
+        return GDynamicRHI->RHICreateDepthStencilView(desc);
     }
     
     FORCEINLINE RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc)

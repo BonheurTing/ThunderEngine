@@ -7,13 +7,13 @@ namespace Thunder
 	class D3D11RHI_API D3D11DynamicRHI : public IDynamicRHI
 	{
 	public:
-		D3D11DynamicRHI();
+		D3D11DynamicRHI() {}
 		virtual ~D3D11DynamicRHI() = default;
 	    
 		/////// RHI Methods
 		RHIDeviceRef RHICreateDevice() override;
 
-		RHIRasterizerStateRef RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer) override;
+		/*RHIRasterizerStateRef RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer) override;
 
 		RHIDepthStencilStateRef RHICreateDepthStencilState(const DepthStencilStateInitializerRHI& Initializer) override;
 
@@ -23,10 +23,16 @@ namespace Thunder
 
 		RHIVertexDeclarationRef RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& Elements) override;
 
-		RHIPixelShaderRef RHICreatePixelShader() override;
+		RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc) override;*/
 
-		RHIVertexShaderRef RHICreateVertexShader() override;
-
-		RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc) override;
+		RHIConstantBufferViewRef RHICreateConstantBufferView(const RHIViewDescriptor& desc) override {return nullptr;}
+        
+		void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) override {}
+        
+		RHIUnorderedAccessViewRef RHICreateUnorderedAccessView(const RHIViewDescriptor& desc) override {return nullptr;}
+        
+		RHIRenderTargetViewRef RHICreateRenderTargetView(const RHIViewDescriptor& desc) override {return nullptr;}
+        
+		RHIDepthStencilViewRef RHICreateDepthStencilView(const RHIViewDescriptor& desc) override {return nullptr;}
 	};
 }

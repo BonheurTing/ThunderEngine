@@ -4,24 +4,27 @@
 
 namespace Thunder
 {
+    class TD3D12DescriptorHeap;
     class D3D12Device : public RHIDevice
     {
     public:
         D3D12Device() = delete;
-        ~D3D12Device() = default;
         D3D12Device(ID3D12Device * InDevice): Device(InDevice) {}
     
     private:
         ComPtr<ID3D12Device> Device;
     };
+
+    
+    //class D3D12Desc : public 
     
     class D3D12RHIVertexBuffer : public RHIVertexBuffer
     {
     public:
         D3D12RHIVertexBuffer() = delete;
         D3D12RHIVertexBuffer(RHIResourceDescriptor const& desc, ID3D12Resource* vb) : RHIVertexBuffer(desc), VertexBuffer(vb) {}
-        void* GetShaderResourceView() override;
-    
+
+        void * GetResource() const override { return VertexBuffer.Get(); }
     private:
         ComPtr<ID3D12Resource> VertexBuffer;
     };
@@ -32,6 +35,7 @@ namespace Thunder
         D3D12RHIIndexBuffer() = delete;
         D3D12RHIIndexBuffer(RHIResourceDescriptor const& desc, ID3D12Resource* vb) : RHIIndexBuffer(desc), IndexBuffer(vb) {}
     
+        void * GetResource() const override { return IndexBuffer.Get(); }
     private:
         ComPtr<ID3D12Resource> IndexBuffer;
     };
@@ -42,6 +46,7 @@ namespace Thunder
         D3D12RHIStructuredBuffer() = delete;
         D3D12RHIStructuredBuffer(RHIResourceDescriptor const& desc, ID3D12Resource* sb) : RHIStructuredBuffer(desc), StructuredBuffer(sb) {}
     
+        void * GetResource() const override { return StructuredBuffer.Get(); }
     private:
         ComPtr<ID3D12Resource> StructuredBuffer;
     };
@@ -52,6 +57,7 @@ namespace Thunder
         D3D12RHIConstantBuffer() = delete;
         D3D12RHIConstantBuffer(RHIResourceDescriptor const& desc, ID3D12Resource* cb) : RHIConstantBuffer(desc), ConstantBuffer(cb) {}
     
+        void * GetResource() const override { return ConstantBuffer.Get(); }
     private:
         ComPtr<ID3D12Resource> ConstantBuffer;
     };
@@ -62,6 +68,7 @@ namespace Thunder
         D3D12RHITexture1D() = delete;
         D3D12RHITexture1D(RHIResourceDescriptor const& desc, ID3D12Resource* texture) : RHITexture1D(desc), Texture1D(texture) {}
     
+        void * GetResource() const override { return Texture1D.Get(); }
     private:
         ComPtr<ID3D12Resource> Texture1D;
     };
@@ -72,6 +79,7 @@ namespace Thunder
         D3D12RHITexture2D() = delete;
         D3D12RHITexture2D(RHIResourceDescriptor const& desc, ID3D12Resource* texture) : RHITexture2D(desc), Texture2D(texture) {}
     
+        void * GetResource() const override { return Texture2D.Get(); }
     private:
         ComPtr<ID3D12Resource> Texture2D;
     };
@@ -82,6 +90,7 @@ namespace Thunder
         D3D12RHITexture2DArray() = delete;
         D3D12RHITexture2DArray(RHIResourceDescriptor const& desc, ID3D12Resource* texture) : RHITexture2DArray(desc), Texture2DArray(texture) {}
     
+        void * GetResource() const override { return Texture2DArray.Get(); }
     private:
         ComPtr<ID3D12Resource> Texture2DArray;
     };
@@ -92,6 +101,7 @@ namespace Thunder
         D3D12RHITexture3D() = delete;
         D3D12RHITexture3D(RHIResourceDescriptor const& desc, ID3D12Resource* texture) : RHITexture3D(desc), Texture3D(texture) {}
     
+        void * GetResource() const override { return Texture3D.Get(); }
     private:
         ComPtr<ID3D12Resource> Texture3D;
     };

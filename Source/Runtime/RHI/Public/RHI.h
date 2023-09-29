@@ -22,6 +22,12 @@ namespace Thunder
     	UINT Count;
     	UINT Quality;
     };
+	
+	struct RHIViewDescriptor
+	{
+		RHIFormat Format;
+		ERHIViewDimension Type;
+	};
     
     struct RHIResourceFlags
     {
@@ -48,6 +54,7 @@ namespace Thunder
     		UINT sampleQuality,
     		ERHITextureLayout layout,
     		RHIResourceFlags flags ) noexcept
+    		: SampleDesc{}, Flags{}
     	{
     		Type = dimension;
     		Alignment = alignment;
@@ -82,7 +89,7 @@ namespace Thunder
     	ERHITextureLayout Layout;
     	RHIResourceFlags Flags;
     };
-    
+	
     struct VertexDeclarationInitializerRHI
     {
         
@@ -102,4 +109,43 @@ namespace Thunder
     {
         
     };
+
+	/**
+ * \brief Descriptor View
+ */
+	class RHI_API RHIDescriptorView
+	{
+	public:
+		RHIDescriptorView(RHIViewDescriptor const& desc) : Desc(desc) {}
+		virtual ~RHIDescriptorView() = default;
+        
+	protected:
+		RHIViewDescriptor Desc = {};
+	};
+    
+	class RHIConstantBufferView : public RHIDescriptorView
+	{
+	public:
+		RHIConstantBufferView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+	};
+	class RHIShaderResourceView : public RHIDescriptorView
+	{
+	public:
+		RHIShaderResourceView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+	};
+	class RHIUnorderedAccessView : public RHIDescriptorView
+	{
+	public:
+		RHIUnorderedAccessView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+	};
+	class RHIRenderTargetView : public RHIDescriptorView
+	{
+	public:
+		RHIRenderTargetView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+	};
+	class RHIDepthStencilView : public RHIDescriptorView
+	{
+	public:
+		RHIDepthStencilView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+	};
 }

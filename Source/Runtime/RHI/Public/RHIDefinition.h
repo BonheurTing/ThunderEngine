@@ -157,5 +157,21 @@ namespace Thunder
     
         FORCE_UINT                  = 0xffffffff
     };
+
+    enum class ERHIViewDimension : uint32
+    {
+        Unknown	= 0,
+        Buffer,
+        Texture1D,
+        Texture1DArray,
+        Texture2D,
+        Texture2DArray,
+        Texture2DMS,
+        Texture2DMSArray,
+        Texture3D,
+        TextureCube,
+        TextureCubeArray,
+        Bufferex
+    };
 }
 

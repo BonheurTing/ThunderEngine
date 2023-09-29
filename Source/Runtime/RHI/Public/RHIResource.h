@@ -6,25 +6,49 @@
 
 namespace Thunder
 {
+
+    
+    typedef RefCountPtr<RHIConstantBufferView> RHIConstantBufferViewRef;
+    typedef RefCountPtr<RHIShaderResourceView> RHIShaderResourceViewRef;
+    typedef RefCountPtr<RHIUnorderedAccessView> RHIUnorderedAccessViewRef;
+    typedef RefCountPtr<RHIRenderTargetView> RHIRenderTargetViewRef;
+    typedef RefCountPtr<RHIDepthStencilView> RHIDepthStencilViewRef;
+
+    
     class RHI_API RHIResource
     {
     public:
         RHIResource(RHIResourceDescriptor const& desc) : Desc(desc) {}
-        virtual void* GetShaderResourceView() { return nullptr; }
-        virtual void* GetUnorderedAccessView() { return nullptr; }
-        virtual void* GetRenderTargetView() { return nullptr; }
-        virtual void* GetDepthStencilView() { return nullptr; }
-        virtual void* GetResource() { return nullptr; }
+        virtual ~RHIResource() = default;
+        
+        virtual void* GetResource() const = 0;
+        [[nodiscard]] const RHIResourceDescriptor* GetResourceDescriptor() const { return &Desc; }
+        void SetSRV(const RHIShaderResourceView& view)
+        {
+            SRV = MakeRefCount<RHIShaderResourceView>(view);
+        }
+        void SetUAV(const RHIUnorderedAccessView& view)
+        {
+            UAV = MakeRefCount<RHIUnorderedAccessView>(view);
+        }
+
+        [[nodiscard]] RHIShaderResourceViewRef GetSRV() const { return SRV; }
+        [[nodiscard]] RHIUnorderedAccessViewRef GetUAV() const { return UAV; }
+
     protected:
         RHIResourceDescriptor Desc = {};
+        RHIShaderResourceViewRef SRV;
+        RHIUnorderedAccessViewRef UAV;
     };
-    
     
     class RHIBuffer : public RHIResource
     {
     public:
         RHIBuffer(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
         
+        virtual RHIConstantBufferViewRef GetCBV() { return nullptr; }
+    protected:
+        RHIConstantBufferViewRef CBV;
     };
     
     /**
@@ -35,6 +59,12 @@ namespace Thunder
     {
     public:
         RHITexture(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
+        
+        virtual RHIRenderTargetViewRef GetRTV() { return nullptr; }
+        virtual RHIDepthStencilViewRef GetDSV() { return nullptr; }
+    protected:
+        RHIRenderTargetViewRef RTV;
+        RHIDepthStencilViewRef DSV;
     };
     
     class RHITexture1D : public RHITexture
@@ -103,11 +133,8 @@ namespace Thunder
     public:
         virtual bool GetInitializer(class VertexDeclarationInitializerRHI& init) { return false; }
     };
-    
-    class RHIRootSignature : public RHIResource
-    {
-        
-    };
+
+
     
     
     //

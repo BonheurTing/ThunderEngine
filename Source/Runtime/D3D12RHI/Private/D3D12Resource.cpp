@@ -2,9 +2,6 @@
 
 namespace Thunder
 {
-	void* D3D12RHIVertexBuffer::GetShaderResourceView()
-    {
-    	return nullptr;
-    }
+
 
 }

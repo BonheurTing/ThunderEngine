@@ -5,7 +5,6 @@
 
 namespace Thunder
 {
-	D3D11DynamicRHI::D3D11DynamicRHI() {}
 
 	RHIDeviceRef D3D11DynamicRHI::RHICreateDevice()
 	{
@@ -35,7 +34,7 @@ namespace Thunder
 		return MakeRefCount<D3D11Device>(Device.Get());
 	}
 
-	RHIRasterizerStateRef D3D11DynamicRHI::RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer)
+	/*RHIRasterizerStateRef D3D11DynamicRHI::RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer)
 	{
 		return nullptr;
 	}
@@ -60,18 +59,11 @@ namespace Thunder
 		return nullptr;
 	}
 
-	RHIPixelShaderRef D3D11DynamicRHI::RHICreatePixelShader()
-	{
-		return nullptr;
-	}
-
-	RHIVertexShaderRef D3D11DynamicRHI::RHICreateVertexShader()
-	{
-		return nullptr;
-	}
-
 	RHIVertexBufferRef D3D11DynamicRHI::RHICreateVertexBuffer(const RHIResourceDescriptor& desc)
 	{
 		return nullptr;
-	}
+	}*/
+
+
+	
 }

@@ -5,11 +5,12 @@
 
 namespace Thunder
 {
+    class TD3D12DescriptorHeap;
+    
     class D3D12RHI_API D3D12DynamicRHI : public IDynamicRHI
     {
     public:
         D3D12DynamicRHI();
-        virtual ~D3D12DynamicRHI() = default;
         
     /////// RHI Methods
         RHIDeviceRef RHICreateDevice() override;
@@ -23,10 +24,16 @@ namespace Thunder
         RHIInputLayoutRef RHICreateInputLayout(const RHIInputLayoutDescriptor& initializer) override;
     
         RHIVertexDeclarationRef RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& Elements) override;
-    
-        RHIPixelShaderRef RHICreatePixelShader() override;
-    
-        RHIVertexShaderRef RHICreateVertexShader() override;
+
+        RHIConstantBufferViewRef RHICreateConstantBufferView(const RHIViewDescriptor& desc) override;
+        
+        void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) override;
+        
+        RHIUnorderedAccessViewRef RHICreateUnorderedAccessView(const RHIViewDescriptor& desc) override;
+        
+        RHIRenderTargetViewRef RHICreateRenderTargetView(const RHIViewDescriptor& desc) override;
+        
+        RHIDepthStencilViewRef RHICreateDepthStencilView(const RHIViewDescriptor& desc) override;
     
         RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc) override;
         
@@ -43,13 +50,14 @@ namespace Thunder
         RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc) override;
     
         RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc) override;
-
-
-    private:
-    /////// DX12 Methods
-        void CreateRootSignature() {}
-        
+    
     private:
         ComPtr<ID3D12Device> Device;
+
+        // descriptor heap
+        RefCountPtr<TD3D12DescriptorHeap> CommonDescriptorHeap; //cbv srv uav
+        RefCountPtr<TD3D12DescriptorHeap> RTVDescriptorHeap;
+        RefCountPtr<TD3D12DescriptorHeap> DSVDescriptorHeap;
+        RefCountPtr<TD3D12DescriptorHeap> SamplerDescriptorHeap;
     };
 }

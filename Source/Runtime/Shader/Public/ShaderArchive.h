@@ -8,10 +8,7 @@ namespace Thunder
     public:
     	ShaderPass() = delete;
     	ShaderPass(NameHandle name) : Name(name), PassVariantMask(0) {}
-		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts)
-    	{
-    		RegisterCounts = MakeRefCount<TShaderRegisterCounts>(counts);
-    	}
+		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
     	uint64 VariantNameToMask(const Array<VariantMeta>& variantName) const;
     	void VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, HashMap<NameHandle, bool>& shaderMarco) const;
     	//void SetPassVariantMeta(const Array<VariantMeta>& meta) {VariantDefinitionTable = meta;}
@@ -32,7 +29,7 @@ namespace Thunder
     private:
     	NameHandle Name;
     	uint64 PassVariantMask;
-		RefCountPtr<TShaderRegisterCounts> RegisterCounts;
+		TShaderRegisterCounts RegisterCounts{};
     	Array<VariantMeta> VariantDefinitionTable; // 改了之后相关递归mask都要改
     	HashMap<EShaderStageType, StageMeta> StageMetas;
     	HashMap<uint64, ShaderCombination> Variants;

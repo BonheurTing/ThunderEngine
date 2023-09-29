@@ -17,6 +17,9 @@ namespace Thunder
 	using Array = std::vector<InElementType, InAllocatorType>;
 
 	template<typename InElementType>
+	using List = std::list<InElementType>;
+	
+	template<typename InElementType>
 	using HashSet = std::unordered_set<InElementType>;
 
 	template<typename InElementType>

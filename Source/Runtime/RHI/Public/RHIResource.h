@@ -207,4 +207,6 @@ namespace Thunder
     typedef RefCountPtr<RHITexture2D> RHITexture2DRef;
     typedef RefCountPtr<RHITexture2DArray> RHITexture2DArrayRef;
     typedef RefCountPtr<RHITexture3D> RHITexture3DRef;
+
+    
 }

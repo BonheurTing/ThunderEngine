@@ -32,21 +32,21 @@ namespace Thunder
         
         virtual void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) = 0;
     
-        virtual RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc) { return nullptr; }
+        virtual RHIVertexBufferRef RHICreateVertexBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
     
-        virtual RHIIndexBufferRef RHICreateIndexBuffer(const RHIResourceDescriptor& desc) { return nullptr; }
+        virtual RHIIndexBufferRef RHICreateIndexBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
     
-        virtual RHIStructuredBufferRef RHICreateStructuredBuffer(const RHIResourceDescriptor& desc) { return nullptr; }
+        virtual RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
         
-        virtual RHIConstantBufferRef RHICreateConstantBuffer(const RHIResourceDescriptor& desc) { return nullptr; }
+        virtual RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
     
-        virtual RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc) { return nullptr; }
+        virtual RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
     
-        virtual RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc) { return nullptr; }
+        virtual RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
     
-        virtual RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc) { return nullptr; }
+        virtual RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
     
-        virtual RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc) { return nullptr; }
+        virtual RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
 
         //todo IDynamicRHI 要全部变成纯虚函数
         /// CreateCommandQueue
@@ -112,42 +112,42 @@ namespace Thunder
         return GDynamicRHI->RHICreateDepthStencilView(resource, desc);
     }
     
-    FORCEINLINE RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc)
+    FORCEINLINE RHIVertexBufferRef RHICreateVertexBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateVertexBuffer(desc);
+        return GDynamicRHI->RHICreateVertexBuffer(size, usage, resourceData);
     }
     
-    FORCEINLINE RHIIndexBufferRef RHICreateIndexBuffer(const RHIResourceDescriptor& desc)
+    FORCEINLINE RHIIndexBufferRef RHICreateIndexBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateIndexBuffer(desc);
+        return GDynamicRHI->RHICreateIndexBuffer(size, usage, resourceData);
     }
     
-    FORCEINLINE RHIStructuredBufferRef RHICreateStructuredBuffer(const RHIResourceDescriptor& desc)
+    FORCEINLINE RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateStructuredBuffer(desc);
+        return GDynamicRHI->RHICreateStructuredBuffer(size, usage, resourceData);
     }
     
-    FORCEINLINE RHIConstantBufferRef RHICreateConstantBuffer(const RHIResourceDescriptor& desc)
+    FORCEINLINE RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateConstantBuffer(desc);
+        return GDynamicRHI->RHICreateConstantBuffer(size, usage, resourceData);
     }
     
-    FORCEINLINE RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc)
+    FORCEINLINE RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateTexture1D(desc);
+        return GDynamicRHI->RHICreateTexture1D(desc, usage, resourceData);
     }
     
-    FORCEINLINE RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc)
+    FORCEINLINE RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateTexture2D(desc);
+        return GDynamicRHI->RHICreateTexture2D(desc, usage, resourceData);
     }
-    FORCEINLINE RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc)
+    FORCEINLINE RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateTexture2DArray(desc);
+        return GDynamicRHI->RHICreateTexture2DArray(desc, usage, resourceData);
     }
-    FORCEINLINE RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc)
+    FORCEINLINE RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateTexture3D(desc);
+        return GDynamicRHI->RHICreateTexture3D(desc, usage, resourceData);
     }
 }
 

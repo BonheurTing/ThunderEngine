@@ -1,7 +1,5 @@
 ﻿#include "D3D12DescriptorHeap.h"
-
 #include "Assertion.h"
-#include "RHIHelper.h"
 
 namespace Thunder
 {
@@ -10,7 +8,7 @@ namespace Thunder
 		, Desc(CreateDescriptor(type, numDescriptorsPerHeap))
 	{
 		const auto hr = ParentDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&RootHeap));
-		ThrowIfFailed(hr);
+		TAssert(SUCCEEDED(hr));
 		DescriptorSize = ParentDevice->GetDescriptorHandleIncrementSize(Desc.Type);
 		CPUBase = RootHeap->GetCPUDescriptorHandleForHeapStart();
 		if (type != D3D12_DESCRIPTOR_HEAP_TYPE_RTV && type != D3D12_DESCRIPTOR_HEAP_TYPE_DSV)

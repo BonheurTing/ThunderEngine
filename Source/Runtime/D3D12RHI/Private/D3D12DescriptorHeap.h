@@ -81,10 +81,10 @@ namespace Thunder
 			: RHIRenderTargetView(desc), D3D12DescriptorViewEntry(heap, index) {}
 	};
 
-	class D3D12RHIRHIDepthStencilView : public RHIDepthStencilView, public D3D12DescriptorViewEntry
+	class D3D12RHIDepthStencilView : public RHIDepthStencilView, public D3D12DescriptorViewEntry
 	{
 	public:
-		D3D12RHIRHIDepthStencilView(RHIViewDescriptor const& desc, TD3D12DescriptorHeap* heap, uint32 index)
+		D3D12RHIDepthStencilView(RHIViewDescriptor const& desc, TD3D12DescriptorHeap* heap, uint32 index)
 			: RHIDepthStencilView(desc), D3D12DescriptorViewEntry(heap, index) {}
 	};
 

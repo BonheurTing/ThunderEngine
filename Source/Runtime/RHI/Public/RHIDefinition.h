@@ -173,5 +173,19 @@ namespace Thunder
         TextureCubeArray,
         Bufferex
     };
+
+    enum class EResourceUsageFlags : uint32
+    {
+        None                    = 0,
+        /** The buffer will be written to once. */
+        Static                  = 1 << 0,
+        /** The buffer will be written to occasionally, GPU read only, CPU write only.  The data lifetime is until the next update, or the buffer is destroyed. */
+        Dynamic                 = 1 << 1,
+        /** The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame. */
+        Volatile                = 1 << 2,
+
+        // Helper bit-masks
+        AnyDynamic = (Dynamic | Volatile)
+    };
 }
 

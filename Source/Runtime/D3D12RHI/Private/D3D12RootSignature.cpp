@@ -1,6 +1,5 @@
 ﻿#include "D3D12RootSignature.h"
 #include "d3dx12.h"
-#include "RHIHelper.h"
 
 namespace Thunder
 {
@@ -11,8 +10,8 @@ namespace Thunder
 
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
-		ThrowIfFailed(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
-		ThrowIfFailed(ParentDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&RootSignature)));
+		TAssert(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
+		TAssert(ParentDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&RootSignature)));
 	}
 
 	void TD3D12RootSignatureManager::Destroy()

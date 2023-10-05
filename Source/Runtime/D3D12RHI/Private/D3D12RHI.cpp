@@ -91,11 +91,11 @@ namespace Thunder
         const D3D12_CPU_DESCRIPTOR_HANDLE cbvHandle{ CommonDescriptorHeap->AllocateDescriptorHeap(cbvOffset) };
 
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        D3D12_CONSTANT_BUFFER_VIEW_DESC dx12Desc{};
+        D3D12_CONSTANT_BUFFER_VIEW_DESC dx12Desc;
         dx12Desc.BufferLocation = inst->GetGPUVirtualAddress();
         dx12Desc.SizeInBytes = 256;//bufferSize + 256 - bufferSize % 256;
         Device->CreateConstantBufferView(&dx12Desc, cbvHandle);
-        HRESULT hr = Device->GetDeviceRemovedReason();
+        const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
         {
@@ -104,7 +104,7 @@ namespace Thunder
         }
         else
         {
-            LOG("Fail to create constant buffer view");
+            TAssertf(false, "Fail to create constant buffer view");
         }
     }
 
@@ -147,9 +147,17 @@ namespace Thunder
         
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
         Device->CreateShaderResourceView(inst, &dx12Desc, srvHandle);
+        const HRESULT hr = Device->GetDeviceRemovedReason();
 
-        const D3D12RHIShaderResourceView view{desc, CommonDescriptorHeap.get(), srvOffset};
-        resource.SetSRV(view);
+        if(SUCCEEDED(hr))
+        {
+            const D3D12RHIShaderResourceView view{desc, CommonDescriptorHeap.get(), srvOffset};
+            resource.SetSRV(view);
+        }
+        else
+        {
+            TAssertf(false, "Fail to create shader resource view");
+        }
     }
 
     void D3D12DynamicRHI::RHICreateUnorderedAccessView(RHIResource& resource, const RHIViewDescriptor& desc)
@@ -189,9 +197,17 @@ namespace Thunder
         dx12Desc.ViewDimension = static_cast<D3D12_UAV_DIMENSION>(desc.Type);
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
         Device->CreateUnorderedAccessView(inst, nullptr, &dx12Desc, uavHandle);
+        const HRESULT hr = Device->GetDeviceRemovedReason();
 
-        const D3D12RHIUnorderedAccessView view{desc, CommonDescriptorHeap.get(), uavOffset};
-        resource.SetUAV(view);
+        if(SUCCEEDED(hr))
+        {
+            const D3D12RHIUnorderedAccessView view{desc, CommonDescriptorHeap.get(), uavOffset};
+            resource.SetUAV(view);
+        }
+        else
+        {
+            TAssertf(false, "Fail to create unordered access view");
+        }
     }
 
     void D3D12DynamicRHI::RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc)
@@ -230,9 +246,17 @@ namespace Thunder
         
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
         Device->CreateRenderTargetView(inst, &dx12Desc, rtvHandle);
+        const HRESULT hr = Device->GetDeviceRemovedReason();
 
-        const D3D12RHIRenderTargetView view{desc, RTVDescriptorHeap.get(), rtvOffset};
-        resource.SetRTV(view);
+        if(SUCCEEDED(hr))
+        {
+            const D3D12RHIRenderTargetView view{desc, RTVDescriptorHeap.get(), rtvOffset};
+            resource.SetRTV(view);
+        }
+        else
+        {
+            TAssertf(false, "Fail to create render target view");
+        }
     }
 
     void D3D12DynamicRHI::RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc)
@@ -266,168 +290,124 @@ namespace Thunder
         
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
         Device->CreateDepthStencilView(inst, &dx12Desc, dsvHandle);
+        const HRESULT hr = Device->GetDeviceRemovedReason();
 
-        const D3D12RHIRenderTargetView view{desc, DSVDescriptorHeap.get(), dsvOffset};
-        resource.SetRTV(view);
+        if(SUCCEEDED(hr))
+        {
+            const D3D12RHIDepthStencilView view{desc, DSVDescriptorHeap.get(), dsvOffset};
+            resource.SetDSV(view);
+        }
+        else
+        {
+            TAssertf(false, "Fail to create depth stencil view");
+        }
     }
     
-    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(const RHIResourceDescriptor& desc)
+    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* vertexBuffer;
-        TAssertf(desc.Type == ERHIResourceType::Buffer, "Resource type should be buffer.");
-        TAssertf(desc.Height == 1, "Height should be 1 for Vertex buffer.");
-        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Vertex buffer.");
-        TAssertf(desc.MipLevels == 1, "Mip level count should be 1 for Vertex buffer.");
-        constexpr D3D12_HEAP_PROPERTIES heapType = {
-            D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
+        const D3D12_HEAP_PROPERTIES heapType = {
+            (EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT),
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
-        const D3D12_RESOURCE_DESC d3d12Desc = {
-            D3D12_RESOURCE_DIMENSION_BUFFER,
-            desc.Alignment,
-            desc.Width,
-            1,
-            1,
-            1,
-            ConvertRHIFormatToD3DFormat(desc.Format),
-            {1, 0},
-            D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-            GetRHIResourceFlags(desc.Flags)
-        };
+
+        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                            D3D12_HEAP_FLAG_NONE,
-                                                           &d3d12Desc,
+                                                           &desc,
                                                            D3D12_RESOURCE_STATE_GENERIC_READ,
                                                            nullptr,
                                                            IID_PPV_ARGS(&vertexBuffer));
     
         if (SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHIVertexBuffer>(desc, vertexBuffer);
+            return MakeRefCount<D3D12RHIVertexBuffer>(RHIResourceDescriptor::Buffer(size), vertexBuffer);
         }
         else
         {
-            LOG("Fail to Create VertexBuffer (dx12)");
+            TAssertf(false, "Fail to create vertex buffer");
             return nullptr;
         }
     }
     
-    RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(const RHIResourceDescriptor& desc)
+    RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* indexBuffer;
-        TAssertf(desc.Type == ERHIResourceType::Buffer, "Resource type should be IndexBuffer.");
-        TAssertf(desc.Height == 1, "Height should be 1 for IndexBuffer.");
-        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for IndexBuffer.");
-        TAssertf(desc.MipLevels == 1, "Mip level count should be 1 for IndexBuffer.");
-        constexpr D3D12_HEAP_PROPERTIES heapType = {
-            D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
+        const D3D12_HEAP_PROPERTIES heapType = {
+            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
-        const D3D12_RESOURCE_DESC d3d12Desc = {
-            D3D12_RESOURCE_DIMENSION_BUFFER,
-            desc.Alignment,
-            desc.Width,
-            1,
-            1,
-            1,
-            ConvertRHIFormatToD3DFormat(desc.Format),
-            {1, 0},
-            D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-            GetRHIResourceFlags(desc.Flags)
-        };
+        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                            D3D12_HEAP_FLAG_NONE,
-                                                           &d3d12Desc,
+                                                           &desc,
                                                            D3D12_RESOURCE_STATE_GENERIC_READ,
                                                            nullptr,
                                                            IID_PPV_ARGS(&indexBuffer));
     
         if (SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHIIndexBuffer>(desc, indexBuffer);
+            return MakeRefCount<D3D12RHIIndexBuffer>(RHIResourceDescriptor::Buffer(size), indexBuffer);
         }
         else
         {
-            LOG("Fail to Create IndexBuffer (dx12)");
+            TAssertf(false, "Fail to create index buffer");
             return nullptr;
         }
     }
     
-    RHIStructuredBufferRef D3D12DynamicRHI::RHICreateStructuredBuffer(const RHIResourceDescriptor& desc)
+    RHIStructuredBufferRef D3D12DynamicRHI::RHICreateStructuredBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* structuredBuffer;
-        TAssertf(desc.Type == ERHIResourceType::Buffer, "Resource type should be structured buffer.");
-        TAssertf(desc.Height == 1, "Height should be 1 for structured Buffer.");
-        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for structured Buffer.");
-        TAssertf(desc.MipLevels == 1, "Mip level count should be 1 for structured buffer.");
-        constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
-        const D3D12_RESOURCE_DESC d3d12Desc = {
-            D3D12_RESOURCE_DIMENSION_BUFFER,
-            desc.Alignment,
-            desc.Width,
-            desc.Height,
-            desc.DepthOrArraySize,
-            1,
-            ConvertRHIFormatToD3DFormat(desc.Format),
-            {1,0},
-            D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-            GetRHIResourceFlags(desc.Flags)
+        const D3D12_HEAP_PROPERTIES heapType = {
+            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
+        
+        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                             D3D12_HEAP_FLAG_NONE,
-                                                            &d3d12Desc,
+                                                            &desc,
                                                             D3D12_RESOURCE_STATE_GENERIC_READ,
                                                             nullptr,
                                                             IID_PPV_ARGS(&structuredBuffer));
     
         if (SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHIStructuredBuffer>(desc, structuredBuffer);
+            return MakeRefCount<D3D12RHIStructuredBuffer>(RHIResourceDescriptor::Buffer(size), structuredBuffer);
         }
         else
         {
-            LOG("Fail to Create Structured Buffer (dx12)");
+            TAssertf(false, "Fail to create structured buffer");
             return nullptr;
         }
     }
     
-    RHIConstantBufferRef D3D12DynamicRHI::RHICreateConstantBuffer(const RHIResourceDescriptor& desc)
+    RHIConstantBufferRef D3D12DynamicRHI::RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* constantBuffer;
-        TAssertf(desc.Type == ERHIResourceType::Buffer, "Resource type should be constant buffer.");
-        TAssertf(desc.Height == 1, "Height should be 1 for constant Buffer.");
-        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for constant Buffer.");
-        TAssertf(desc.MipLevels == 1, "Mip level count should be 1 for constant buffer.");
         constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
-        const D3D12_RESOURCE_DESC d3d12Desc = {
-            D3D12_RESOURCE_DIMENSION_BUFFER,
-            desc.Alignment,
-            desc.Width,
-            1,
-            1,
-            1,
-            ConvertRHIFormatToD3DFormat(desc.Format),
-            {1,0},
-            D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
-            GetRHIResourceFlags(desc.Flags)
-        };
+
+        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                             D3D12_HEAP_FLAG_NONE,
-                                                            &d3d12Desc, //todo: D3D12_HEAP_FLAG_NONE
+                                                            &desc, //todo: D3D12_HEAP_FLAG_NONE
                                                             D3D12_RESOURCE_STATE_GENERIC_READ,
                                                             nullptr,
                                                             IID_PPV_ARGS(&constantBuffer));
     
         if (SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHIConstantBuffer>(desc, constantBuffer);
+            return MakeRefCount<D3D12RHIConstantBuffer>(RHIResourceDescriptor::Buffer(size), constantBuffer);
         }
         else
         {
-            LOG("Fail to Create Constant Buffer (dx12)");
+            TAssertf(false, "Fail to create constant buffer");
             return nullptr;
         }
     }
     
-    RHITexture1DRef D3D12DynamicRHI::RHICreateTexture1D(const RHIResourceDescriptor& desc)
+    RHITexture1DRef D3D12DynamicRHI::RHICreateTexture1D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* texture;
         TAssertf(desc.Type == ERHIResourceType::Texture1D, "Type should be Texture1D.");
@@ -459,12 +439,12 @@ namespace Thunder
         }
         else
         {
-            LOG("Fail to Create Texture1D (dx12)");
+            TAssertf(false, "Fail to create texture1d");
             return nullptr;
         }
     }
     
-    RHITexture2DRef D3D12DynamicRHI::RHICreateTexture2D(const RHIResourceDescriptor& desc)
+    RHITexture2DRef D3D12DynamicRHI::RHICreateTexture2D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* texture;
         TAssertf(desc.Type == ERHIResourceType::Texture2D, "Type should be Texture2D.");
@@ -495,12 +475,12 @@ namespace Thunder
         }
         else
         {
-            LOG("Fail to Create Texture2D (dx12)");
+            TAssertf(false, "Fail to create texture2d");
             return nullptr;
         }
     }
     
-    RHITexture2DArrayRef D3D12DynamicRHI::RHICreateTexture2DArray(const RHIResourceDescriptor& desc)
+    RHITexture2DArrayRef D3D12DynamicRHI::RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* texture;
         TAssertf(desc.Type == ERHIResourceType::Texture2DArray, "Type should be Texture2DArray.");
@@ -530,12 +510,12 @@ namespace Thunder
         }
         else
         {
-            LOG("Fail to Create Texture2DArray (dx12)");
+            TAssertf(false, "Fail to create texture2DArray");
             return nullptr;
         }
     }
     
-    RHITexture3DRef D3D12DynamicRHI::RHICreateTexture3D(const RHIResourceDescriptor& desc)
+    RHITexture3DRef D3D12DynamicRHI::RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* texture;
         TAssertf(desc.Type == ERHIResourceType::Texture3D, "Type should be Texture3D.");
@@ -565,7 +545,7 @@ namespace Thunder
         }
         else
         {
-            LOG("Fail to Create Texture3D (dx12)");
+            TAssertf(false, "Fail to create texture3d");
             return nullptr;
         }
     }

@@ -124,6 +124,4 @@ namespace Thunder
     }
     
     DXGI_FORMAT ConvertRHIFormatToD3DFormat(RHIFormat type);
-    
-    D3D12_RESOURCE_FLAGS GetRHIResourceFlags(RHIResourceFlags flags);
 }

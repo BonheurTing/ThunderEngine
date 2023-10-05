@@ -35,21 +35,21 @@ namespace Thunder
         
         void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) override;
     
-        RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc) override;
+        RHIVertexBufferRef RHICreateVertexBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
         
-        RHIIndexBufferRef RHICreateIndexBuffer(const RHIResourceDescriptor& desc) override;
+        RHIIndexBufferRef RHICreateIndexBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
     
-        RHIStructuredBufferRef RHICreateStructuredBuffer(const RHIResourceDescriptor& desc) override;
+        RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
     
-        RHIConstantBufferRef RHICreateConstantBuffer(const RHIResourceDescriptor& desc) override;
+        RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
     
-        RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc) override;
+        RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
     
-        RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc) override;
+        RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
     
-        RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc) override;
+        RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
     
-        RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc) override;
+        RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
     
     private:
         ComPtr<ID3D12Device> Device;

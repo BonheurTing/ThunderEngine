@@ -31,6 +31,12 @@ namespace Thunder
 			return 0 == memcmp(this, &rhs, sizeof(rhs));
 		}
 	};
+
+	template<typename Enum>
+	constexpr bool EnumHasAnyFlags(Enum Flags, Enum Contains)
+	{
+		return ( static_cast<__underlying_type(Enum)>(Flags) & static_cast<__underlying_type(Enum)>(Contains) ) != 0;
+	}
 }
 
 namespace std

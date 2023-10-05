@@ -31,7 +31,7 @@ namespace Thunder
     
     struct RHIResourceFlags
     {
-    	uint8 NeedSRV : 1;
+    	uint8 DenySRV : 1;
     	uint8 NeedCBV : 1;
     	uint8 NeedUAV : 1;
     	uint8 NeedRTV : 1;
@@ -71,7 +71,7 @@ namespace Thunder
     
     	static inline RHIResourceDescriptor Buffer(
     		UINT64 width,
-    		RHIResourceFlags flags = {0},
+    		RHIResourceFlags flags = {},
     		UINT64 alignment = 0) noexcept
     	{
     		return RHIResourceDescriptor( ERHIResourceType::Buffer, alignment, width, 1, 1, 1,

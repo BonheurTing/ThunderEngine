@@ -20,8 +20,8 @@ namespace Thunder
     public:
         RHIResource(RHIResourceDescriptor const& desc) : Desc(desc) {}
         virtual ~RHIResource() = default;
-        
-        virtual void* GetResource() const = 0;
+
+        [[nodiscard]] virtual void* GetResource() const = 0;
         [[nodiscard]] const RHIResourceDescriptor* GetResourceDescriptor() const { return &Desc; }
         void SetSRV(const RHIShaderResourceView& view)
         {
@@ -46,7 +46,12 @@ namespace Thunder
     public:
         RHIBuffer(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
         
-        virtual RHIConstantBufferViewRef GetCBV() { return nullptr; }
+        void SetCBV(const RHIConstantBufferView& view)
+        {
+            CBV = MakeRefCount<RHIConstantBufferView>(view);
+        }
+        
+        [[nodiscard]] virtual RHIConstantBufferViewRef GetCBV() const { return CBV; }
     protected:
         RHIConstantBufferViewRef CBV;
     };
@@ -59,9 +64,18 @@ namespace Thunder
     {
     public:
         RHITexture(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
+
+        void SetRTV(const RHIRenderTargetView& view)
+        {
+            RTV = MakeRefCount<RHIRenderTargetView>(view);
+        }
+        void SetDSV(const RHIDepthStencilView& view)
+        {
+            DSV = MakeRefCount<RHIDepthStencilView>(view);
+        }
         
-        virtual RHIRenderTargetViewRef GetRTV() { return nullptr; }
-        virtual RHIDepthStencilViewRef GetDSV() { return nullptr; }
+        [[nodiscard]] virtual RHIRenderTargetViewRef GetRTV() const { return RTV; }
+        [[nodiscard]] virtual RHIDepthStencilViewRef GetDSV() const { return DSV; }
     protected:
         RHIRenderTargetViewRef RTV;
         RHIDepthStencilViewRef DSV;

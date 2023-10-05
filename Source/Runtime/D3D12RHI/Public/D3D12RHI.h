@@ -25,15 +25,15 @@ namespace Thunder
     
         RHIVertexDeclarationRef RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& Elements) override;
 
-        RHIConstantBufferViewRef RHICreateConstantBufferView(const RHIViewDescriptor& desc) override;
+       void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) override;
         
         void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) override;
         
-        RHIUnorderedAccessViewRef RHICreateUnorderedAccessView(const RHIViewDescriptor& desc) override;
+        void RHICreateUnorderedAccessView(RHIResource& resource, const RHIViewDescriptor& desc) override;
         
-        RHIRenderTargetViewRef RHICreateRenderTargetView(const RHIViewDescriptor& desc) override;
+        void RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc) override;
         
-        RHIDepthStencilViewRef RHICreateDepthStencilView(const RHIViewDescriptor& desc) override;
+        void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) override;
     
         RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc) override;
         

@@ -3,6 +3,7 @@
 #include "D3D12RHICommon.h"
 #include "d3dx12.h"
 #include "RHI.h"
+#include "RHIResource.h"
 
 namespace Thunder
 {
@@ -23,7 +24,8 @@ namespace Thunder
 			D3D12_DESCRIPTOR_HEAP_DESC Desc = {};
 			Desc.Type = type;
 			Desc.NumDescriptors = numDescriptorsPerHeap;
-			Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			Desc.Flags = (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV) ?
+				D3D12_DESCRIPTOR_HEAP_FLAG_NONE : D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 			return Desc;
 		}
 
@@ -63,5 +65,33 @@ namespace Thunder
 	public:
 		D3D12RHIShaderResourceView(RHIViewDescriptor const& desc, TD3D12DescriptorHeap* heap, uint32 index)
 			: RHIShaderResourceView(desc), D3D12DescriptorViewEntry(heap, index) {}
+	};
+
+	class D3D12RHIUnorderedAccessView : public RHIUnorderedAccessView, public D3D12DescriptorViewEntry
+	{
+	public:
+		D3D12RHIUnorderedAccessView(RHIViewDescriptor const& desc, TD3D12DescriptorHeap* heap, uint32 index)
+			: RHIUnorderedAccessView(desc), D3D12DescriptorViewEntry(heap, index) {}
+	};
+
+	class D3D12RHIRenderTargetView : public RHIRenderTargetView, public D3D12DescriptorViewEntry
+	{
+	public:
+		D3D12RHIRenderTargetView(RHIViewDescriptor const& desc, TD3D12DescriptorHeap* heap, uint32 index)
+			: RHIRenderTargetView(desc), D3D12DescriptorViewEntry(heap, index) {}
+	};
+
+	class D3D12RHIRHIDepthStencilView : public RHIDepthStencilView, public D3D12DescriptorViewEntry
+	{
+	public:
+		D3D12RHIRHIDepthStencilView(RHIViewDescriptor const& desc, TD3D12DescriptorHeap* heap, uint32 index)
+			: RHIDepthStencilView(desc), D3D12DescriptorViewEntry(heap, index) {}
+	};
+
+	class D3D12RHIConstantBufferView : public RHIConstantBufferView, public D3D12DescriptorViewEntry
+	{
+	public:
+		D3D12RHIConstantBufferView(TD3D12DescriptorHeap* heap, uint32 index)
+			: RHIConstantBufferView({}), D3D12DescriptorViewEntry(heap, index) {}
 	};
 }

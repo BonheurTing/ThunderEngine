@@ -11,7 +11,7 @@ namespace Thunder
     D3D12_RESOURCE_FLAGS GetRHIResourceFlags(RHIResourceFlags flags)
     {
     	D3D12_RESOURCE_FLAGS outFlags = D3D12_RESOURCE_FLAG_NONE;
-    	if(!flags.NeedSRV)
+    	if(flags.DenySRV)
     	{
     		outFlags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
     	}

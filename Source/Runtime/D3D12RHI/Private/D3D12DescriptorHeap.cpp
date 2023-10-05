@@ -9,10 +9,14 @@ namespace Thunder
 		uint32 numDescriptorsPerHeap) : TD3D12DeviceChild(device)
 		, Desc(CreateDescriptor(type, numDescriptorsPerHeap))
 	{
-		ThrowIfFailed(ParentDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&RootHeap)));
+		const auto hr = ParentDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&RootHeap));
+		ThrowIfFailed(hr);
 		DescriptorSize = ParentDevice->GetDescriptorHandleIncrementSize(Desc.Type);
 		CPUBase = RootHeap->GetCPUDescriptorHandleForHeapStart();
-		GPUBase = RootHeap->GetGPUDescriptorHandleForHeapStart();
+		if (type != D3D12_DESCRIPTOR_HEAP_TYPE_RTV && type != D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+		{
+			GPUBase = RootHeap->GetGPUDescriptorHandleForHeapStart();
+		}
 
 		for (uint32 i = 0; i < numDescriptorsPerHeap; i++)
 		{

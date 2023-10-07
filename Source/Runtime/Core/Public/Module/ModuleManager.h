@@ -13,9 +13,12 @@
 		ModuleType() : SuperType(#ModuleName) {}
 
 #define DECLARE_MODULE_COMMON(ModuleName, ModuleType) \
+		friend ModuleManager; \
 	public: \
 		static NameHandle GetStaticName() { return StaticName; } \
+		static ModuleType* GetModule() { return static_cast<ModuleType*>(ModuleInstance); } \
 	private: \
+		static ModuleType* ModuleInstance; \
 		static NameHandle StaticName; \
 		static ModuleRegistry<ModuleType> ModuleName##Registry;
 
@@ -29,6 +32,7 @@
 
 #define IMPLEMENT_MODULE(ModuleName, ModuleType) \
 	NameHandle ModuleType::StaticName = #ModuleName; \
+	ModuleType* ModuleType::ModuleInstance = nullptr; \
 	Function ModuleName##RegisterFunction = ModuleFactory<ModuleType>{}; \
 	ModuleRegistry<ModuleType> ModuleType::ModuleName##Registry{#ModuleName, ModuleName##RegisterFunction}; \
 
@@ -37,13 +41,16 @@ namespace Thunder
 {
 	class CORE_API IModule
 	{
+		friend class ModuleManager;
+
 	public:
 		IModule(NameHandle name) : Name(name) {}
 		virtual ~IModule() = default;
 		virtual void StartUp() = 0;
 		virtual void ShutDown() = 0;
+		//virtual IModule* GetModule() = 0;
 		_NODISCARD_ NameHandle GetName() const { return Name; }
-	
+
 	protected:
 		NameHandle Name;
 	};
@@ -88,20 +95,23 @@ namespace Thunder
 		void RegisterModule(NameHandle name, Function<IModule*(void)>& registerFunc);
 		bool IsModuleRegistered(NameHandle name) const;
 		_NODISCARD_ IModule* GetModuleByName(NameHandle name);
-		void LoadModuleByName(NameHandle name);
-		void UnloadModuleByName(NameHandle name);
 
 		template<typename ModuleType>
 		void LoadModule()
 		{
-			LoadModuleByName(ModuleType::GetStaticName());
+			InternalLoadModuleByName(ModuleType::GetStaticName());
+			ModuleType::ModuleInstance = static_cast<ModuleType*>(ModuleMap[ModuleType::GetStaticName()].get());
 		}
 
 		template<typename ModuleType>
 		void UnloadModule()
 		{
-			UnloadModuleByName(ModuleType::GetStaticName());
+			InternalUnloadModuleByName(ModuleType::GetStaticName());
 		}
+
+	private:
+		void InternalLoadModuleByName(NameHandle name);
+		void InternalUnloadModuleByName(NameHandle name);
 
 	private:
 		ModuleManager() = default;

@@ -10,12 +10,6 @@ namespace Thunder
     {
     	DECLARE_MODULE(Shader, ShaderModule)
     public:
-    	static ShaderModule* GetInstance()
-    	{ 
-	        const auto inst = ModuleManager::GetInstance()->GetModuleByName(GetStaticName());
-    		return dynamic_cast<ShaderModule*>(inst);
-    	}
-    	~ShaderModule() override;
     	void StartUp() override {}
     	void ShutDown() override;
     	bool ParseShaderFile();

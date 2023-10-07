@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BasicDefinition.h"
 #include "Container.h"
 
 namespace Thunder
@@ -18,8 +19,8 @@ namespace Thunder
 		bool operator !=(const String& rhs) const;
 		bool operator <(const NameHandle &rhs) const;
 
-		[[nodiscard]] bool IsEmpty() const { return StringAddress == Empty.StringAddress; }
-		[[nodiscard]] const char* c_str() const { return StringAddress; }
+		_NODISCARD_ bool IsEmpty() const { return StringAddress == Empty.StringAddress; }
+		_NODISCARD_ const char* c_str() const { return StringAddress; }
 
 		const char* operator*() const { return StringAddress; }
 

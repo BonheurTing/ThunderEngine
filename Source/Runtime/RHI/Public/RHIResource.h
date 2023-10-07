@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RHI.h"
+#include "RHIContext.h"
 #include "CoreMinimal.h"
 #include "RHI.export.h"
 
@@ -21,8 +22,8 @@ namespace Thunder
         RHIResource(RHIResourceDescriptor const& desc) : Desc(desc) {}
         virtual ~RHIResource() = default;
 
-        [[nodiscard]] virtual void* GetResource() const = 0;
-        [[nodiscard]] const RHIResourceDescriptor* GetResourceDescriptor() const { return &Desc; }
+        _NODISCARD_ virtual void* GetResource() const = 0;
+        _NODISCARD_ const RHIResourceDescriptor* GetResourceDescriptor() const { return &Desc; }
         void SetSRV(const RHIShaderResourceView& view)
         {
             SRV = MakeRefCount<RHIShaderResourceView>(view);
@@ -32,8 +33,8 @@ namespace Thunder
             UAV = MakeRefCount<RHIUnorderedAccessView>(view);
         }
 
-        [[nodiscard]] RHIShaderResourceViewRef GetSRV() const { return SRV; }
-        [[nodiscard]] RHIUnorderedAccessViewRef GetUAV() const { return UAV; }
+        _NODISCARD_ RHIShaderResourceViewRef GetSRV() const { return SRV; }
+        _NODISCARD_ RHIUnorderedAccessViewRef GetUAV() const { return UAV; }
 
     protected:
         RHIResourceDescriptor Desc = {};
@@ -51,7 +52,7 @@ namespace Thunder
             CBV = MakeRefCount<RHIConstantBufferView>(view);
         }
         
-        [[nodiscard]] virtual RHIConstantBufferViewRef GetCBV() const { return CBV; }
+        _NODISCARD_ virtual RHIConstantBufferViewRef GetCBV() const { return CBV; }
     protected:
         RHIConstantBufferViewRef CBV;
     };
@@ -74,8 +75,8 @@ namespace Thunder
             DSV = MakeRefCount<RHIDepthStencilView>(view);
         }
         
-        [[nodiscard]] virtual RHIRenderTargetViewRef GetRTV() const { return RTV; }
-        [[nodiscard]] virtual RHIDepthStencilViewRef GetDSV() const { return DSV; }
+        _NODISCARD_ virtual RHIRenderTargetViewRef GetRTV() const { return RTV; }
+        _NODISCARD_ virtual RHIDepthStencilViewRef GetDSV() const { return DSV; }
     protected:
         RHIRenderTargetViewRef RTV;
         RHIDepthStencilViewRef DSV;
@@ -182,6 +183,12 @@ namespace Thunder
         RHIDevice(){}
         
     };
+
+    class RHIViewPort
+    {
+    public:
+        RHIViewPort(){}
+    };
     
     
     typedef int RHIVertexShader;
@@ -192,6 +199,7 @@ namespace Thunder
     
     ////// REF
     typedef RefCountPtr<RHIDevice> RHIDeviceRef;
+    typedef RefCountPtr<RHICommandContext> RHICommandContextRef;
     typedef RefCountPtr<RHIRasterizerState> RHIRasterizerStateRef;
     typedef RefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
     typedef RefCountPtr<RHIBlendState> RHIBlendStateRef;

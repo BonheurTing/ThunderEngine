@@ -14,6 +14,8 @@ namespace Thunder
         
     /////// RHI Methods
         RHIDeviceRef RHICreateDevice() override;
+
+        RHICommandContextRef RHICreateCommandContext() override;
     
         RHIRasterizerStateRef RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer) override;
     

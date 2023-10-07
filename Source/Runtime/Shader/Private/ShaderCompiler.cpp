@@ -29,7 +29,7 @@ namespace Thunder
     		}
     		else
     		{
-    			ShaderModule* shaderModule = ShaderModule::GetInstance();
+    			ShaderModule* shaderModule = ShaderModule::GetModule();
     			const ShaderArchive* archive = shaderModule->GetShaderArchive(ShaderName);
     			const String fullPath = archive->GetShaderSourceDir() + "\\" + includedFilename;
     

@@ -127,10 +127,6 @@ namespace Thunder
     	}
 	}
 
-	ShaderModule::~ShaderModule()
-	{
-	}
-
 	void ShaderModule::ShutDown()
 	{
 		for (auto pair : ShaderMap)

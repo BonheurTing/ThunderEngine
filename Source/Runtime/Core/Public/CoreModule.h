@@ -9,6 +9,7 @@ namespace Thunder
 	class CORE_API CoreModule : public IModule
 	{
 		DECLARE_MODULE(Core, CoreModule)
+		
 	public:
 		virtual ~CoreModule() = default;
 		void StartUp() override;
@@ -18,7 +19,6 @@ namespace Thunder
 	private:
 		RefCountPtr<FileManager> FileManagerInstance;
 		RefCountPtr<IMalloc> MemoryAllocator;
-		
 	};
 
 	extern CORE_API FileManager* GFileManager;
@@ -26,7 +26,7 @@ namespace Thunder
 
 namespace Thunder
 {
-
+/*
 	class CORE_API TestModule : public IModule
 	{
 	public:
@@ -40,6 +40,6 @@ namespace Thunder
 		void StartUp() override {}
 		void ShutDown() override {}
 	};
-
+*/
 	
 }

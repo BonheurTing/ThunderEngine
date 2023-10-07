@@ -2,6 +2,7 @@
 #include "D3D11Resource.h"
 #include "RHIHelper.h"
 #include "D3D11RHIPrivate.h"
+#include "D3D11CommandContext.h"
 #include "Assertion.h"
 
 namespace Thunder
@@ -15,7 +16,7 @@ namespace Thunder
 		D3D_FEATURE_LEVEL  FeatureLevelsRequested = D3D_FEATURE_LEVEL_11_0;
 		UINT               numLevelsRequested = 1;
 		D3D_FEATURE_LEVEL  FeatureLevelsSupported;
-		ComPtr<ID3D11DeviceContext> context;
+		ComPtr<ID3D11DeviceContext> immediateContext;
 		if (SUCCEEDED( D3D11CreateDevice(
 			nullptr,
 			D3D_DRIVER_TYPE_HARDWARE,
@@ -26,12 +27,25 @@ namespace Thunder
 			D3D11_SDK_VERSION, 
 			&Device,
 			&FeatureLevelsSupported,
-			&context )))
+			&immediateContext )))
 		{
 			std::cout << "Succeed to Create D3DDevice (11)" << std::endl;
 		}
-		
+
 		return MakeRefCount<D3D11Device>(Device.Get());
+	}
+
+	RHICommandContextRef D3D11DynamicRHI::RHICreateCommandContext()
+	{
+
+		ID3D11DeviceContext* deferredContext;
+		HRESULT hr = Device->CreateDeferredContext(0, &deferredContext);
+		
+		if (SUCCEEDED(hr))
+		{
+			return MakeRefCount<D3D11CommandContext>(deferredContext);
+		}
+		return nullptr;
 	}
 
 	void D3D11DynamicRHI::RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize)

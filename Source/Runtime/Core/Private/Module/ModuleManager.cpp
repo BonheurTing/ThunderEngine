@@ -28,7 +28,7 @@ namespace Thunder
 		return nullptr;
 	}
 
-	void ModuleManager::LoadModuleByName(NameHandle name)
+	void ModuleManager::InternalLoadModuleByName(NameHandle name)
 	{
 		if (ModuleMap.contains(name))
 		{
@@ -47,7 +47,7 @@ namespace Thunder
 		}
 	}
 
-	void ModuleManager::UnloadModuleByName(NameHandle name)
+	void ModuleManager::InternalUnloadModuleByName(NameHandle name)
 	{
 		if (ModuleMap.contains(name))
 		{

@@ -24,7 +24,7 @@ namespace Thunder
         D3D11RHIVertexBuffer() = delete;
         D3D11RHIVertexBuffer(RHIResourceDescriptor const& desc, ID3D11Resource* vb) : RHIVertexBuffer(desc), VertexBuffer(vb) {}
 
-        [[nodiscard]] void * GetResource() const override { return VertexBuffer.Get(); }
+        _NODISCARD_ void * GetResource() const override { return VertexBuffer.Get(); }
     private:
         ComPtr<ID3D11Resource> VertexBuffer;
     };
@@ -35,7 +35,7 @@ namespace Thunder
         D3D11RHIIndexBuffer() = delete;
         D3D11RHIIndexBuffer(RHIResourceDescriptor const& desc, ID3D11Resource* vb) : RHIIndexBuffer(desc), IndexBuffer(vb) {}
     
-        [[nodiscard]] void * GetResource() const override { return IndexBuffer.Get(); }
+        _NODISCARD_ void * GetResource() const override { return IndexBuffer.Get(); }
     private:
         ComPtr<ID3D11Resource> IndexBuffer;
     };
@@ -46,7 +46,7 @@ namespace Thunder
         D3D11RHIStructuredBuffer() = delete;
         D3D11RHIStructuredBuffer(RHIResourceDescriptor const& desc, ID3D11Resource* sb) : RHIStructuredBuffer(desc), StructuredBuffer(sb) {}
     
-        [[nodiscard]] void * GetResource() const override { return StructuredBuffer.Get(); }
+        _NODISCARD_ void * GetResource() const override { return StructuredBuffer.Get(); }
     private:
         ComPtr<ID3D11Resource> StructuredBuffer;
     };
@@ -57,7 +57,7 @@ namespace Thunder
         D3D11RHIConstantBuffer() = delete;
         D3D11RHIConstantBuffer(RHIResourceDescriptor const& desc, ID3D11Resource* cb) : RHIConstantBuffer(desc), ConstantBuffer(cb) {}
     
-        [[nodiscard]] void * GetResource() const override { return ConstantBuffer.Get(); }
+        _NODISCARD_ void * GetResource() const override { return ConstantBuffer.Get(); }
     private:
         ComPtr<ID3D11Resource> ConstantBuffer;
     };
@@ -68,7 +68,7 @@ namespace Thunder
         D3D11RHITexture1D() = delete;
         D3D11RHITexture1D(RHIResourceDescriptor const& desc, ID3D11Texture1D* texture) : RHITexture1D(desc), Texture1D(texture) {}
     
-        [[nodiscard]] void * GetResource() const override { return Texture1D.Get(); }
+        _NODISCARD_ void * GetResource() const override { return Texture1D.Get(); }
     private:
         ComPtr<ID3D11Texture1D> Texture1D;
     };
@@ -79,7 +79,7 @@ namespace Thunder
         D3D11RHITexture2D() = delete;
         D3D11RHITexture2D(RHIResourceDescriptor const& desc, ID3D11Texture2D* texture) : RHITexture2D(desc), Texture2D(texture) {}
     
-        [[nodiscard]] void * GetResource() const override { return Texture2D.Get(); }
+        _NODISCARD_ void * GetResource() const override { return Texture2D.Get(); }
     private:
         ComPtr<ID3D11Texture2D> Texture2D;
     };
@@ -90,7 +90,7 @@ namespace Thunder
         D3D11RHITexture2DArray() = delete;
         D3D11RHITexture2DArray(RHIResourceDescriptor const& desc, ID3D11Texture2D* texture) : RHITexture2DArray(desc), Texture2DArray(texture) {}
     
-        [[nodiscard]] void * GetResource() const override { return Texture2DArray.Get(); }
+        _NODISCARD_ void * GetResource() const override { return Texture2DArray.Get(); }
     private:
         ComPtr<ID3D11Texture2D> Texture2DArray;
     };
@@ -101,7 +101,7 @@ namespace Thunder
         D3D11RHITexture3D() = delete;
         D3D11RHITexture3D(RHIResourceDescriptor const& desc, ID3D11Texture3D* texture) : RHITexture3D(desc), Texture3D(texture) {}
     
-        [[nodiscard]] void * GetResource() const override { return Texture3D.Get(); }
+        _NODISCARD_ void * GetResource() const override { return Texture3D.Get(); }
     private:
         ComPtr<ID3D11Texture3D> Texture3D;
     };

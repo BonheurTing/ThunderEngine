@@ -336,7 +336,7 @@ namespace Thunder
     		VariantIdToShaderMarco(stageVariantId, meta.second.VariantMask, shaderMarco);
     		//todo: include file
     		ShaderStage newStageVariant{};
-    		ShaderModule::GetInstance()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
+    		ShaderModule::GetModule()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
     
     		if(newStageVariant.ByteCode.Size == 0)
     		{

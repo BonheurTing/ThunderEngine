@@ -13,6 +13,8 @@ namespace Thunder
 		/////// RHI Methods
 		RHIDeviceRef RHICreateDevice() override;
 
+		RHICommandContextRef RHICreateCommandContext() override;
+
 		void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) override;
         
 		void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) override;

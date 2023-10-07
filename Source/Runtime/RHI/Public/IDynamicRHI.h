@@ -10,7 +10,9 @@ namespace Thunder
         virtual ~IDynamicRHI() = default;
 
         /////// RHI Methods
-        virtual RHIDeviceRef RHICreateDevice();
+        virtual RHIDeviceRef RHICreateDevice() = 0;
+
+        virtual RHICommandContextRef RHICreateCommandContext() = 0;
         
         virtual RHIRasterizerStateRef RHICreateRasterizerState(const RasterizerStateInitializerRHI& initializer) { return nullptr; }
     
@@ -51,15 +53,10 @@ namespace Thunder
         //todo IDynamicRHI 要全部变成纯虚函数
         /// CreateCommandQueue
         /// CreateCommandAllocator
+        /// createCommand
         /// CreateGraphicsPipelineState
         /// CreateComputePipelineState
         /// CreateCommandList
-        /// CreateDescriptorHeap GetDescriptorHandleIncrementSize(12)
-        /// CreateConstantBufferView
-        /// CreateShaderResourceView
-        /// CreateUnorderedAccessView
-        /// CreateRenderTargetView
-        /// CreateDepthStencilView
         /// CreateSampler
         /// CreateFence
 
@@ -80,6 +77,11 @@ namespace Thunder
     FORCEINLINE RHIDeviceRef RHICreateDevice()
     {
         return GDynamicRHI->RHICreateDevice();
+    }
+
+    FORCEINLINE RHICommandContextRef RHICreateCommandContext()
+    {
+        return GDynamicRHI->RHICreateCommandContext();
     }
     
     FORCEINLINE RHIInputLayoutRef RHICreateInputLayout(const RHIInputLayoutDescriptor& initializer)

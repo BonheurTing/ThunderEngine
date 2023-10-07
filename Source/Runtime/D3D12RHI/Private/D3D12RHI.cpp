@@ -1,6 +1,7 @@
 #include "D3D12RHI.h"
 #include "D3D12Resource.h"
 #include "D3D12DescriptorHeap.h"
+#include "D3D12CommandContext.h"
 #include "RHIHelper.h"
 #include "Assertion.h"
 #include <dxgi1_4.h>
@@ -56,9 +57,32 @@ namespace Thunder
             LOG("Fail to create device");
             return nullptr;
         }
-        
     }
-    
+
+    RHICommandContextRef D3D12DynamicRHI::RHICreateCommandContext()
+    {
+        ComPtr<ID3D12CommandQueue> CommandQueue;
+        ComPtr<ID3D12CommandAllocator> CommandAllocator;
+        ComPtr<ID3D12GraphicsCommandList> CommandList;
+        
+        D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+        HRESULT hr = Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&CommandQueue));
+        hr = hr && Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
+        hr = hr && Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&CommandList));
+
+        if (SUCCEEDED(hr))
+        {
+            return MakeRefCount<D3D12CommandContext>(CommandQueue.Get(), CommandAllocator.Get(), CommandList.Get());
+        }
+        else
+        {
+            TAssertf(false, "Fail to Create Command Context");
+            return nullptr;
+        }
+    }
+
     RHIRasterizerStateRef D3D12DynamicRHI::RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer)
     {
         return nullptr;

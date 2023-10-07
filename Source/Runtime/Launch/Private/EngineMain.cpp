@@ -9,7 +9,7 @@ namespace Thunder
 {
     bool EngineMain::RHIInit(EGfxApiType type)
     {
-        ShaderModule::GetInstance()->InitShaderCompiler(type);
+        ShaderModule::GetModule()->InitShaderCompiler(type);
         switch (type)
         {
             case EGfxApiType::D3D12:

@@ -207,6 +207,8 @@ namespace Thunder
     typedef RefCountPtr<RHIVertexDeclaration> RHIVertexDeclarationRef;
     typedef RefCountPtr<RHIVertexShader> RHIVertexShaderRef;
     typedef RefCountPtr<RHIPixelShader> RHIPixelShaderRef;
+    typedef RefCountPtr<RHISampler> RHISamplerRef;
+    typedef RefCountPtr<RHIFence> RHIFenceRef;
     typedef RefCountPtr<RHIVertexBuffer> RHIVertexBufferRef;
     typedef RefCountPtr<RHIIndexBuffer> RHIIndexBufferRef;
     typedef RefCountPtr<RHIStructuredBuffer> RHIStructuredBufferRef;

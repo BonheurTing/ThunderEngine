@@ -187,5 +187,74 @@ namespace Thunder
         // Helper bit-masks
         AnyDynamic = (Dynamic | Volatile)
     };
+
+    enum class ERHIFilter : uint32
+    {
+        MinMagMipPoint = 0,
+        MinMagPointMipLinear = 0x1,
+        MinPointMagLinearMipPoint = 0x4,
+        MinPointMagMipLinear = 0x5,
+        MinLinearMagMipPoint = 0x10,
+        MinLinearMagPointMipLinear = 0x11,
+        MinMagLinearMipPoint = 0x14,
+        MinMagMipLinear = 0x15,
+        Anisotropic = 0x55,
+        ComparisonMinMagMipPoint = 0x80,
+        ComparisonMinMagPointMipLinear = 0x81,
+        ComparisonPointMagLinearMipPoint = 0x84,
+        ComparisonMinPointMagMipLinear = 0x85,
+        ComparisonMinLinearMagMipPoint = 0x90,
+        ComparisonMinLinearMagPointMipLinear = 0x91,
+        ComparisonMinMagLinearMipPoint = 0x94,
+        ComparisonMinMagMipLinear = 0x95,
+        ComparisonAnisotropic = 0xd5,
+        MinimumMinMagMipPoint = 0x100,
+        MinimumMinMagPointMipLinear = 0x101,
+        MinimumMinPointMagLinearMipPoint = 0x104,
+        MinimumMinPointMagMipLinear = 0x105,
+        MinimumMinLinearMagMipPoint = 0x110,
+        MinimumMinLinearMagPointMipLinear = 0x111,
+        MinimumMinMagLinearMipPoint = 0x114,
+        MinimumMinMagMipLinear = 0x115,
+        MinimumAnisotropic = 0x155,
+        MaximumMinMagMipPoint = 0x180,
+        MaximumMinMagPointMipLinear = 0x181,
+        MaximumMinPointMagLinearMipPoint = 0x184,
+        MaximumMinPointMagMipLinear = 0x185,
+        MaximumMinLinearMagMipPoint = 0x190,
+        MaximumMinLinearMagPointMipLinear = 0x191,
+        MaximumMinMagLinearMipPoint = 0x194,
+        MaximumMinMagMipLinear = 0x195,
+        MaximumAnisotropic = 0x1d5
+    };
+
+    enum class ERHITextureAddressMode : uint32
+    {
+        Wrap = 1,
+        Mirror = 2,
+        Clamp = 3,
+        Border = 4,
+        MirrorOnce = 5
+    };
+
+    enum class ERHICompareFunction : uint32
+    {
+        Never = 1,
+        Less = 2,
+        Equal = 3,
+        LessEqual = 4,
+        Greater = 5,
+        NotEqual = 6,
+        GreaterEqual = 7,
+        Always = 8
+    };
+
+    enum class ERHIFenceFlags : uint32
+    {
+        None = 0,
+        Shared = 0x1,
+        SharedCrossAdapter = 0x2,
+        NonMonitored = 0x4
+    };
 }
 

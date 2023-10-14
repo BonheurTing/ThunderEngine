@@ -94,4 +94,14 @@ namespace Thunder
 		D3D12RHIConstantBufferView(TD3D12DescriptorHeap* heap, uint32 index)
 			: RHIConstantBufferView({}), D3D12DescriptorViewEntry(heap, index) {}
 	};
+
+	class D3D12RHISampler : public RHISampler
+	{
+	public:
+		D3D12RHISampler(RHISamplerDescriptor const& desc, int offset)
+			: RHISampler(desc), DescripterHeapOffset(offset) {}
+		
+	private:
+		int DescripterHeapOffset;
+	};
 }

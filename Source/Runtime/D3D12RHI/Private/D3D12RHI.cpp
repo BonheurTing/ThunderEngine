@@ -2,6 +2,7 @@
 #include "D3D12Resource.h"
 #include "D3D12DescriptorHeap.h"
 #include "D3D12CommandContext.h"
+#include "D3D12RHIPrivate.h"
 #include "RHIHelper.h"
 #include "Assertion.h"
 #include <dxgi1_4.h>
@@ -115,10 +116,10 @@ namespace Thunder
         const D3D12_CPU_DESCRIPTOR_HANDLE cbvHandle{ CommonDescriptorHeap->AllocateDescriptorHeap(cbvOffset) };
 
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        D3D12_CONSTANT_BUFFER_VIEW_DESC dx12Desc;
-        dx12Desc.BufferLocation = inst->GetGPUVirtualAddress();
-        dx12Desc.SizeInBytes = 256;//bufferSize + 256 - bufferSize % 256;
-        Device->CreateConstantBufferView(&dx12Desc, cbvHandle);
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+        cbvDesc.BufferLocation = inst->GetGPUVirtualAddress();
+        cbvDesc.SizeInBytes = 256;//bufferSize + 256 - bufferSize % 256;
+        Device->CreateConstantBufferView(&cbvDesc, cbvHandle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
@@ -138,39 +139,39 @@ namespace Thunder
         uint32 srvOffset;
         const D3D12_CPU_DESCRIPTOR_HANDLE srvHandle{ CommonDescriptorHeap->AllocateDescriptorHeap(srvOffset) };
 
-        D3D12_SHADER_RESOURCE_VIEW_DESC dx12Desc{};
-        dx12Desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        dx12Desc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
-        dx12Desc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(desc.Type);
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srvDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
+        srvDesc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(desc.Type);
         const auto resourceDesc = resource.GetResourceDescriptor();
         switch (resourceDesc->Type)
         {
         case ERHIResourceType::Buffer:
-            dx12Desc.Buffer.NumElements = static_cast<UINT>(resourceDesc->Width);
+            srvDesc.Buffer.NumElements = static_cast<UINT>(resourceDesc->Width);
             break;
         case ERHIResourceType::Texture1D:
-            dx12Desc.Texture1D.MipLevels = resourceDesc->MipLevels;
+            srvDesc.Texture1D.MipLevels = resourceDesc->MipLevels;
             break;
         case ERHIResourceType::Texture2D:
-            dx12Desc.Texture2D.MostDetailedMip = 0;
-            dx12Desc.Texture2D.MipLevels = resourceDesc->MipLevels;
+            srvDesc.Texture2D.MostDetailedMip = 0;
+            srvDesc.Texture2D.MipLevels = resourceDesc->MipLevels;
             break;
         case ERHIResourceType::Texture2DArray:
             //todo: detail desc
-            dx12Desc.Texture2DArray.MostDetailedMip = 0;
-            dx12Desc.Texture2DArray.MipLevels = resourceDesc->MipLevels;
-            dx12Desc.Texture2DArray.FirstArraySlice = 0;
-            dx12Desc.Texture2DArray.ArraySize = resourceDesc->DepthOrArraySize;
+            srvDesc.Texture2DArray.MostDetailedMip = 0;
+            srvDesc.Texture2DArray.MipLevels = resourceDesc->MipLevels;
+            srvDesc.Texture2DArray.FirstArraySlice = 0;
+            srvDesc.Texture2DArray.ArraySize = resourceDesc->DepthOrArraySize;
             break;
         case ERHIResourceType::Texture3D:
-            dx12Desc.Texture3D.MostDetailedMip = 0;
-            dx12Desc.Texture3D.MipLevels = resourceDesc->MipLevels;
+            srvDesc.Texture3D.MostDetailedMip = 0;
+            srvDesc.Texture3D.MipLevels = resourceDesc->MipLevels;
             break;
         case ERHIResourceType::Unknown: break;
         }
         
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        Device->CreateShaderResourceView(inst, &dx12Desc, srvHandle);
+        Device->CreateShaderResourceView(inst, &srvDesc, srvHandle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
@@ -190,37 +191,37 @@ namespace Thunder
         uint32 uavOffset;
         const D3D12_CPU_DESCRIPTOR_HANDLE uavHandle{ CommonDescriptorHeap->AllocateDescriptorHeap(uavOffset) };
 
-        D3D12_UNORDERED_ACCESS_VIEW_DESC dx12Desc{};
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
         const auto resourceDesc = resource.GetResourceDescriptor();
         switch (resourceDesc->Type)
         {
         case ERHIResourceType::Buffer:
-            dx12Desc.Buffer.NumElements = static_cast<UINT>(resourceDesc->Width);
+            uavDesc.Buffer.NumElements = static_cast<UINT>(resourceDesc->Width);
             break;
         case ERHIResourceType::Texture1D:
-            dx12Desc.Texture1D.MipSlice = 0;
+            uavDesc.Texture1D.MipSlice = 0;
             break;
         case ERHIResourceType::Texture2D:
-            dx12Desc.Texture2D.MipSlice = 0;
+            uavDesc.Texture2D.MipSlice = 0;
             break;
         case ERHIResourceType::Texture2DArray:
-            dx12Desc.Texture2DArray.MipSlice = 0;
-            dx12Desc.Texture2DArray.FirstArraySlice = 0;
-            dx12Desc.Texture2DArray.ArraySize = resourceDesc->DepthOrArraySize;
-            dx12Desc.Texture2DArray.PlaneSlice = 0;
+            uavDesc.Texture2DArray.MipSlice = 0;
+            uavDesc.Texture2DArray.FirstArraySlice = 0;
+            uavDesc.Texture2DArray.ArraySize = resourceDesc->DepthOrArraySize;
+            uavDesc.Texture2DArray.PlaneSlice = 0;
             break;
         case ERHIResourceType::Texture3D:
-            dx12Desc.Texture3D.MipSlice = 0;
-            dx12Desc.Texture3D.FirstWSlice = 0;
-            dx12Desc.Texture3D.WSize = resourceDesc->DepthOrArraySize;
+            uavDesc.Texture3D.MipSlice = 0;
+            uavDesc.Texture3D.FirstWSlice = 0;
+            uavDesc.Texture3D.WSize = resourceDesc->DepthOrArraySize;
             break;
         case ERHIResourceType::Unknown: break;
         }
         
-        dx12Desc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
-        dx12Desc.ViewDimension = static_cast<D3D12_UAV_DIMENSION>(desc.Type);
+        uavDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
+        uavDesc.ViewDimension = static_cast<D3D12_UAV_DIMENSION>(desc.Type);
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        Device->CreateUnorderedAccessView(inst, nullptr, &dx12Desc, uavHandle);
+        Device->CreateUnorderedAccessView(inst, nullptr, &uavDesc, uavHandle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
@@ -240,36 +241,36 @@ namespace Thunder
         uint32 rtvOffset;
         const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle{ RTVDescriptorHeap->AllocateDescriptorHeap(rtvOffset) };
 
-        D3D12_RENDER_TARGET_VIEW_DESC dx12Desc{};
-        dx12Desc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
-        dx12Desc.ViewDimension = static_cast<D3D12_RTV_DIMENSION>(desc.Type);
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+        rtvDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
+        rtvDesc.ViewDimension = static_cast<D3D12_RTV_DIMENSION>(desc.Type);
         const auto resourceDesc = resource.GetResourceDescriptor();
         switch (resourceDesc->Type)
         {
         case ERHIResourceType::Buffer:
-            dx12Desc.Buffer.NumElements = static_cast<UINT>(resourceDesc->Width);
+            rtvDesc.Buffer.NumElements = static_cast<UINT>(resourceDesc->Width);
             break;
         case ERHIResourceType::Texture1D:
-            dx12Desc.Texture1D.MipSlice = 0;
+            rtvDesc.Texture1D.MipSlice = 0;
             break;
         case ERHIResourceType::Texture2D:
-            dx12Desc.Texture2D.MipSlice = 0;
+            rtvDesc.Texture2D.MipSlice = 0;
             break;
         case ERHIResourceType::Texture2DArray:
-            dx12Desc.Texture2DArray.MipSlice = 0;
-            dx12Desc.Texture2DArray.FirstArraySlice = 0;
-            dx12Desc.Texture2DArray.ArraySize = resourceDesc->DepthOrArraySize;
+            rtvDesc.Texture2DArray.MipSlice = 0;
+            rtvDesc.Texture2DArray.FirstArraySlice = 0;
+            rtvDesc.Texture2DArray.ArraySize = resourceDesc->DepthOrArraySize;
             break;
         case ERHIResourceType::Texture3D:
-            dx12Desc.Texture3D.MipSlice = 0;
-            dx12Desc.Texture3D.FirstWSlice = 0;
-            dx12Desc.Texture3D.WSize = resourceDesc->DepthOrArraySize;
+            rtvDesc.Texture3D.MipSlice = 0;
+            rtvDesc.Texture3D.FirstWSlice = 0;
+            rtvDesc.Texture3D.WSize = resourceDesc->DepthOrArraySize;
             break;
         case ERHIResourceType::Unknown: break;
         }
         
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        Device->CreateRenderTargetView(inst, &dx12Desc, rtvHandle);
+        Device->CreateRenderTargetView(inst, &rtvDesc, rtvHandle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
@@ -289,31 +290,31 @@ namespace Thunder
         uint32 dsvOffset;
         const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle{ DSVDescriptorHeap->AllocateDescriptorHeap(dsvOffset) };
 
-        D3D12_DEPTH_STENCIL_VIEW_DESC dx12Desc{};
-        dx12Desc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
-        dx12Desc.ViewDimension = static_cast<D3D12_DSV_DIMENSION>(desc.Type);
+        D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+        dsvDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
+        dsvDesc.ViewDimension = static_cast<D3D12_DSV_DIMENSION>(desc.Type);
         const auto resourceDesc = resource.GetResourceDescriptor();
         switch (resourceDesc->Type)
         {
         case ERHIResourceType::Buffer:
             break;
         case ERHIResourceType::Texture1D:
-            dx12Desc.Texture1D.MipSlice = 0;
+            dsvDesc.Texture1D.MipSlice = 0;
             break;
         case ERHIResourceType::Texture2D:
-            dx12Desc.Texture2D.MipSlice = 0;
+            dsvDesc.Texture2D.MipSlice = 0;
             break;
         case ERHIResourceType::Texture2DArray:
-            dx12Desc.Texture2DArray.MipSlice = 0;
-            dx12Desc.Texture2DArray.FirstArraySlice = 0;
-            dx12Desc.Texture2DArray.ArraySize = resourceDesc->DepthOrArraySize;
+            dsvDesc.Texture2DArray.MipSlice = 0;
+            dsvDesc.Texture2DArray.FirstArraySlice = 0;
+            dsvDesc.Texture2DArray.ArraySize = resourceDesc->DepthOrArraySize;
             break;
         case ERHIResourceType::Texture3D:
         case ERHIResourceType::Unknown: break;
         }
         
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        Device->CreateDepthStencilView(inst, &dx12Desc, dsvHandle);
+        Device->CreateDepthStencilView(inst, &dsvDesc, dsvHandle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
@@ -326,7 +327,59 @@ namespace Thunder
             TAssertf(false, "Fail to create depth stencil view");
         }
     }
-    
+
+    RHISamplerRef D3D12DynamicRHI::RHICreateSampler(const RHISamplerDescriptor& desc)
+    {
+        TAssert(Device != nullptr);
+        uint32 samplerOffset;
+        const D3D12_CPU_DESCRIPTOR_HANDLE samplerHandle{ SamplerDescriptorHeap->AllocateDescriptorHeap(samplerOffset) };
+
+        D3D12_SAMPLER_DESC samplerDesc;
+        samplerDesc.Filter = static_cast<D3D12_FILTER>(desc.Filter);
+        samplerDesc.AddressU = static_cast<D3D12_TEXTURE_ADDRESS_MODE>(desc.AddressU);
+        samplerDesc.AddressV = static_cast<D3D12_TEXTURE_ADDRESS_MODE>(desc.AddressV);
+        samplerDesc.AddressW = static_cast<D3D12_TEXTURE_ADDRESS_MODE>(desc.AddressW);
+        samplerDesc.MipLODBias = desc.MipLODBias;
+        samplerDesc.MaxAnisotropy = desc.MaxAnisotropy;
+        samplerDesc.ComparisonFunc = static_cast<D3D12_COMPARISON_FUNC>(desc.ComparisonFunc);
+        samplerDesc.BorderColor[0] = desc.BorderColor[0];
+        samplerDesc.BorderColor[1] = desc.BorderColor[1];
+        samplerDesc.BorderColor[2] = desc.BorderColor[2];
+        samplerDesc.BorderColor[3] = desc.BorderColor[3];
+        samplerDesc.MinLOD = desc.MinLOD;
+        samplerDesc.MaxLOD = desc.MaxLOD;        
+
+        Device->CreateSampler(&samplerDesc, samplerHandle);
+        const HRESULT hr = Device->GetDeviceRemovedReason();
+
+        if(SUCCEEDED(hr))
+        {
+            return MakeRefCount<D3D12RHISampler>(desc, samplerOffset);
+        }
+        else
+        {
+            TAssertf(false, "Fail to create sampler");
+            return nullptr;
+        }
+    }
+
+    RHIFenceRef D3D12DynamicRHI::RHICreateFence(uint64 initValue, uint32 fenceFlags)
+    {
+        TAssert(Device != nullptr);
+        ComPtr<ID3D12Fence> fence;
+        const HRESULT hr = Device->CreateFence(initValue, static_cast<D3D12_FENCE_FLAGS>(fenceFlags), IID_PPV_ARGS(&fence));
+
+        if(SUCCEEDED(hr))
+        {
+            return MakeRefCount<D3D12RHIFence>(initValue, fence);
+        }
+        else
+        {
+            TAssertf(false, "Fail to create fence");
+            return nullptr;
+        }
+    }
+
     RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* vertexBuffer;

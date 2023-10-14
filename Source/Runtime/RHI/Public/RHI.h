@@ -16,17 +16,25 @@ namespace Thunder
     	UINT                       InstanceDataStepRate;
     	// custom
     };
-    
-    struct RHISampleDescriptor
-    {
-    	UINT Count;
-    	UINT Quality;
-    };
 	
 	struct RHIViewDescriptor
 	{
 		RHIFormat Format;
 		ERHIViewDimension Type;
+	};
+
+	struct RHISamplerDescriptor
+	{
+		ERHIFilter Filter;
+		ERHITextureAddressMode AddressU;
+		ERHITextureAddressMode AddressV;
+		ERHITextureAddressMode AddressW;
+		float MipLODBias;
+		UINT MaxAnisotropy;
+		ERHICompareFunction ComparisonFunc;
+		float BorderColor[4];
+		float MinLOD;
+		float MaxLOD;
 	};
     
     struct RHIResourceFlags
@@ -38,6 +46,12 @@ namespace Thunder
     	uint8 NeedDSV : 1;
     };
     
+	struct RHIResourceSampleDescriptor
+	{
+		UINT Count;
+		UINT Quality;
+	};
+	
     struct RHIResourceDescriptor
     {
     	RHIResourceDescriptor() = default;
@@ -85,7 +99,7 @@ namespace Thunder
     	UINT16 DepthOrArraySize;
     	UINT16 MipLevels;
     	RHIFormat Format;
-    	RHISampleDescriptor SampleDesc;
+    	RHIResourceSampleDescriptor SampleDesc;
     	ERHITextureLayout Layout;
     	RHIResourceFlags Flags;
     };
@@ -147,5 +161,22 @@ namespace Thunder
 	{
 	public:
 		RHIDepthStencilView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+	};
+
+	class RHI_API RHISampler
+	{
+	public:
+		RHISampler(RHISamplerDescriptor const& desc) : Desc(desc) {}
+
+	protected:
+		RHISamplerDescriptor Desc = {};
+	};
+
+	class RHI_API RHIFence
+	{
+	public:
+		RHIFence(uint64 initValue) : Value(initValue) {}
+	private:
+		uint64 Value;
 	};
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "RHI.h"
 #include "d3d11.h"
+#include "d3d11_3.h"
 
 namespace Thunder
 {
@@ -40,12 +41,23 @@ namespace Thunder
 		ComPtr<ID3D11DepthStencilView> DepthStencilView;
 	};
 
-	/*class D3D11RHIConstantBufferView : public RHIConstantBufferView
+	class D3D11RHISampler : public RHISampler
 	{
 	public:
-		D3D11RHIConstantBufferView(RHIViewDescriptor const& desc, ID3D11ConstantBufferView* view)
-			: RHIConstantBufferView(desc), ConstantBufferView(view) {}
+		D3D11RHISampler(RHISamplerDescriptor const& desc,  ID3D11SamplerState* sampler)
+			: RHISampler(desc), SamplerState(sampler) {}
+
 	private:
-		ComPtr<ID3D11ConstantBufferView> ConstantBufferView;
-	};*/
+		ComPtr<ID3D11SamplerState> SamplerState;
+	};
+
+	class D3D11RHIFence : public RHIFence
+	{
+	public:
+		D3D11RHIFence(uint64 initValue, ComPtr<ID3D11Fence> const& inFence)
+			: RHIFence(initValue), Fence(inFence) {}
+		
+	private:
+		ComPtr<ID3D11Fence> Fence;
+	};
 }

@@ -33,6 +33,10 @@ namespace Thunder
         virtual void RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc) = 0;
         
         virtual void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) = 0;
+
+        virtual RHISamplerRef RHICreateSampler(const RHISamplerDescriptor& desc) = 0;
+
+        virtual RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) = 0;
     
         virtual RHIVertexBufferRef RHICreateVertexBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
     
@@ -50,25 +54,18 @@ namespace Thunder
     
         virtual RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
 
+        
+
         //todo IDynamicRHI 要全部变成纯虚函数
-        /// CreateCommandQueue
-        /// CreateCommandAllocator
-        /// createCommand
+
         /// CreateGraphicsPipelineState
         /// CreateComputePipelineState
-        /// CreateCommandList
-        /// CreateSampler
-        /// CreateFence
 
-       
         
-        /*virtual RHICommandQueueRef RHICreateCommandQueue() { return nullptr; }
-        virtual RHICommandAllocatorRef RHICreateCommandAllocator() { return nullptr; }
-        virtual RHICommandListRef RHICreateCommandList() { return nullptr; }
+        /*
         virtual RHIGraphicsPipelineStateRef RHICreateGraphicsPipelineState() { return nullptr; }
         virtual RHIComputePipelineStateRef RHICreateComputePipelineState() { return nullptr; }
-        virtual RHISamplerRef RHICreateSampler() { return nullptr; }
-        virtual RHIFenceRef RHICreateFence() { return nullptr; }*/
+        */
         
     };
     
@@ -112,6 +109,16 @@ namespace Thunder
     FORCEINLINE void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc)
     {
         return GDynamicRHI->RHICreateDepthStencilView(resource, desc);
+    }
+
+    FORCEINLINE RHISamplerRef RHICreateSampler(const RHISamplerDescriptor& desc)
+    {
+        return GDynamicRHI->RHICreateSampler(desc);
+    }
+
+    FORCEINLINE RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags)
+    {
+        return GDynamicRHI->RHICreateFence(initValue, fenceFlags);
     }
     
     FORCEINLINE RHIVertexBufferRef RHICreateVertexBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr)

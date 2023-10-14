@@ -4,6 +4,7 @@
 #include "D3D11RHIPrivate.h"
 #include "D3D11CommandContext.h"
 #include "Assertion.h"
+#include "D3d11_4.h"
 
 namespace Thunder
 {
@@ -243,6 +244,72 @@ namespace Thunder
 		else
 		{
 			TAssertf(false, "Fail to create render target view");
+		}
+	}
+
+	RHISamplerRef D3D11DynamicRHI::RHICreateSampler(const RHISamplerDescriptor& desc)
+	{
+		D3D11_SAMPLER_DESC samplerDesc;
+		samplerDesc.Filter = static_cast<D3D11_FILTER>(desc.Filter);
+		samplerDesc.AddressU = static_cast<D3D11_TEXTURE_ADDRESS_MODE>(desc.AddressU);
+		samplerDesc.AddressV = static_cast<D3D11_TEXTURE_ADDRESS_MODE>(desc.AddressV);
+		samplerDesc.AddressW = static_cast<D3D11_TEXTURE_ADDRESS_MODE>(desc.AddressW);
+		samplerDesc.MipLODBias = desc.MipLODBias;
+		samplerDesc.MaxAnisotropy = desc.MaxAnisotropy;
+		samplerDesc.ComparisonFunc = static_cast<D3D11_COMPARISON_FUNC>(desc.ComparisonFunc);
+		samplerDesc.BorderColor[0] = desc.BorderColor[0];
+		samplerDesc.BorderColor[1] = desc.BorderColor[1];
+		samplerDesc.BorderColor[2] = desc.BorderColor[2];
+		samplerDesc.BorderColor[3] = desc.BorderColor[3];
+		samplerDesc.MinLOD = desc.MinLOD;
+		samplerDesc.MaxLOD = desc.MaxLOD;
+
+		ID3D11SamplerState *sampler;
+		const HRESULT hr = Device->CreateSamplerState(&samplerDesc,  &sampler);
+		if(SUCCEEDED(hr))
+		{
+			return MakeRefCount<D3D11RHISampler>(desc, sampler);
+		}
+		else
+		{
+			TAssertf(false, "Fail to create sampler");
+			return nullptr;
+		}
+	}
+	
+	RHIFenceRef D3D11DynamicRHI::RHICreateFence(uint64 initValue, uint32 fenceFlags)
+	{
+		TAssert(Device != nullptr);
+		ComPtr<ID3D11Fence> fence;
+		ID3D11Device5* device5;
+		HRESULT hr = Device->QueryInterface<ID3D11Device5>(&device5);
+		if (SUCCEEDED(hr))
+		{
+			D3D11_FENCE_FLAG dx11Flags = D3D11_FENCE_FLAG_NONE;
+			if (fenceFlags & static_cast<uint64>(ERHIFenceFlags::Shared))
+			{
+				dx11Flags |= D3D11_FENCE_FLAG_SHARED;
+			}
+			if (fenceFlags & static_cast<uint64>(ERHIFenceFlags::SharedCrossAdapter))
+			{
+				dx11Flags |= D3D11_FENCE_FLAG_SHARED_CROSS_ADAPTER;
+			}
+			if (fenceFlags & static_cast<uint64>(ERHIFenceFlags::NonMonitored))
+			{
+				dx11Flags |= D3D11_FENCE_FLAG_NON_MONITORED;
+			}
+			
+			hr = device5->CreateFence(initValue, dx11Flags, IID_PPV_ARGS(&fence));
+		}
+
+		if(SUCCEEDED(hr))
+		{
+			return MakeRefCount<D3D11RHIFence>(initValue, fence);
+		}
+		else
+		{
+			TAssertf(false, "Fail to create fence");
+			return nullptr;
 		}
 	}
 

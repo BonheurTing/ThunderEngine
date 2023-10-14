@@ -36,6 +36,10 @@ namespace Thunder
         void RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc) override;
         
         void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) override;
+
+        RHISamplerRef RHICreateSampler(const RHISamplerDescriptor& desc) override;
+
+        RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) override;
     
         RHIVertexBufferRef RHICreateVertexBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
         

@@ -11,6 +11,8 @@ namespace Thunder
 	{
 	public:
 		TD3D12RootSignature(ID3D12Device* InParent, const TShaderRegisterCounts& shaderRC);
+		ID3D12RootSignature* GetRootSignature() const { return RootSignature.Get(); }
+		
 	private:
 		ComPtr<ID3D12RootSignature> RootSignature;
 	};

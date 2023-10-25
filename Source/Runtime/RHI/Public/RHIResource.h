@@ -7,7 +7,7 @@
 
 namespace Thunder
 {
-
+    class ShaderCombination;
     
     typedef RefCountPtr<RHIConstantBufferView> RHIConstantBufferViewRef;
     typedef RefCountPtr<RHIShaderResourceView> RHIShaderResourceViewRef;
@@ -132,50 +132,51 @@ namespace Thunder
     public:
         RHIConstantBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
     };
-    
+
     //
-    // Shader bindings
+    // Pipeline stat
     //
     
-    class RHIInputLayout : public RHIResource
+    struct TRHIGraphicsPipelineState
     {
-    public:
-        virtual bool GetInitializer(class InputLayoutInitializerRHI& init) { return false; }
-    };
-    
-    class RHIVertexDeclaration : public RHIResource
-    {
-    public:
-        virtual bool GetInitializer(class VertexDeclarationInitializerRHI& init) { return false; }
+        TRHIGraphicsPipelineState() = default;
     };
 
+    struct TGraphicsPipelineStateInitializer
+    {
+        RHIVertexDeclaration*			VertexDeclaration;
+        ShaderCombination*				ShaderCombination;
+        RHIBlendState*					BlendState;
+        RHIRasterizerState*			    RasterizerState;
+        RHIDepthStencilState*			DepthStencilState;
+        ERHIPrimitiveType				PrimitiveType;
+        uint32							RenderTargetsEnabled;
+        Array<RHIFormat>			    RenderTargetFormats;
+        RHIFormat                       DepthStencilFormat;
+        uint16							NumSamples;
 
-    
+        bool operator==(const TGraphicsPipelineStateInitializer& rhs) const
+        {
+            if (VertexDeclaration != rhs.VertexDeclaration ||
+                ShaderCombination != rhs.ShaderCombination ||
+                BlendState != rhs.BlendState ||
+                RasterizerState != rhs.RasterizerState ||
+                DepthStencilState != rhs.DepthStencilState ||
+                PrimitiveType != rhs.PrimitiveType ||
+                RenderTargetsEnabled != rhs.RenderTargetsEnabled ||
+                RenderTargetFormats != rhs.RenderTargetFormats || 
+                DepthStencilFormat != rhs.DepthStencilFormat || 
+                NumSamples != rhs.NumSamples)
+            {
+                return false;
+            }
+            return true;
+        }
+    };
     
     //
     // State blocks npv_
     //
-    
-    class RHIRasterizerState
-    {
-    public:
-        RHIRasterizerState(){}
-        virtual bool GetInitializer(struct RasterizerStateInitializerRHI& init) { return false; }
-    };
-    
-    class RHIDepthStencilState
-    {
-    public:
-        RHIDepthStencilState(){}
-        virtual bool GetInitializer(struct DepthStencilStateInitializerRHI& init) { return false; }
-    };
-    
-    class RHIBlendState
-    {
-    public:
-        RHIBlendState(){}
-        virtual bool GetInitializer(class BlendStateInitializerRHI& init) { return false; }
-    };
     
     class RHIDevice
     {
@@ -190,23 +191,19 @@ namespace Thunder
         RHIViewPort(){}
     };
     
-    
-    typedef int RHIVertexShader;
-    typedef int RHIPixelShader;
+
     
     
     
     
     ////// REF
     typedef RefCountPtr<RHIDevice> RHIDeviceRef;
-    typedef RefCountPtr<RHICommandContext> RHICommandContextRef;
+    typedef RefCountPtr<RHIBlendState> RHIBlendStateRef;
     typedef RefCountPtr<RHIRasterizerState> RHIRasterizerStateRef;
     typedef RefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
-    typedef RefCountPtr<RHIBlendState> RHIBlendStateRef;
-    typedef RefCountPtr<RHIInputLayout> RHIInputLayoutRef;
     typedef RefCountPtr<RHIVertexDeclaration> RHIVertexDeclarationRef;
-    typedef RefCountPtr<RHIVertexShader> RHIVertexShaderRef;
-    typedef RefCountPtr<RHIPixelShader> RHIPixelShaderRef;
+    typedef RefCountPtr<RHICommandContext> RHICommandContextRef;
+    typedef RefCountPtr<TRHIGraphicsPipelineState> RHGraphicsPipelineStateIRef;    
     typedef RefCountPtr<RHISampler> RHISamplerRef;
     typedef RefCountPtr<RHIFence> RHIFenceRef;
     typedef RefCountPtr<RHIVertexBuffer> RHIVertexBufferRef;
@@ -218,5 +215,9 @@ namespace Thunder
     typedef RefCountPtr<RHITexture2DArray> RHITexture2DArrayRef;
     typedef RefCountPtr<RHITexture3D> RHITexture3DRef;
 
+
+    
+
+   
     
 }

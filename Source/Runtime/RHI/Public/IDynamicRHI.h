@@ -14,15 +14,18 @@ namespace Thunder
 
         virtual RHICommandContextRef RHICreateCommandContext() = 0;
         
+        /*
+        virtual RHIVertexDeclarationRef RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& elements) { return nullptr; }
+        
+        virtual RHIBlendStateRef RHICreateBlendState(const BlendStateInitializerRHI& initializer) { return nullptr; }
+        
         virtual RHIRasterizerStateRef RHICreateRasterizerState(const RasterizerStateInitializerRHI& initializer) { return nullptr; }
     
-        virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const DepthStencilStateInitializerRHI& initializer) { return nullptr; }
-    
-        virtual RHIBlendStateRef RHICreateBlendState(const BlendStateInitializerRHI& initializer) { return nullptr; }
-    
-        virtual RHIInputLayoutRef RHICreateInputLayout(const RHIInputLayoutDescriptor& initializer) { return nullptr; }
+        virtual RHIDepthStencilStateRef RHICreateDepthStencilState(const DepthStencilStateInitializerRHI& initializer) { return nullptr; }*/
         
-        virtual RHIVertexDeclarationRef RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& elements) { return nullptr; }
+        virtual RHGraphicsPipelineStateIRef RHICreateGraphicsPipelineState(TGraphicsPipelineStateInitializer& initializer) = 0;
+        
+        virtual void RHICreateComputePipelineState() = 0;
 
         virtual void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) = 0;
         
@@ -53,20 +56,6 @@ namespace Thunder
         virtual RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
     
         virtual RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) = 0;
-
-        
-
-        //todo IDynamicRHI 要全部变成纯虚函数
-
-        /// CreateGraphicsPipelineState
-        /// CreateComputePipelineState
-
-        
-        /*
-        virtual RHIGraphicsPipelineStateRef RHICreateGraphicsPipelineState() { return nullptr; }
-        virtual RHIComputePipelineStateRef RHICreateComputePipelineState() { return nullptr; }
-        */
-        
     };
     
     extern RHI_API IDynamicRHI* GDynamicRHI;
@@ -80,10 +69,15 @@ namespace Thunder
     {
         return GDynamicRHI->RHICreateCommandContext();
     }
-    
-    FORCEINLINE RHIInputLayoutRef RHICreateInputLayout(const RHIInputLayoutDescriptor& initializer)
+
+    FORCEINLINE RHGraphicsPipelineStateIRef RHICreateGraphicsPipelineState(TGraphicsPipelineStateInitializer& initializer)
     {
-        return GDynamicRHI->RHICreateInputLayout(initializer);
+        return GDynamicRHI->RHICreateGraphicsPipelineState(initializer);
+    }
+        
+    FORCEINLINE void RHICreateComputePipelineState()
+    {
+        return GDynamicRHI->RHICreateComputePipelineState();
     }
 
     FORCEINLINE void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize)

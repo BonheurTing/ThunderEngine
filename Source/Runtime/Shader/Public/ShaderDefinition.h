@@ -12,6 +12,7 @@ namespace Thunder
     	Domain,
     	Pixel,
     	Compute,
+		Geometry,
     	Mesh
     };
     
@@ -30,6 +31,8 @@ namespace Thunder
     struct ShaderCombination
     {
     	ShaderCombination() = default;
+		ShaderCombination(const ShaderCombination& rhs) = default;
+		ShaderCombination& operator=(const ShaderCombination& rhs) = default;
     	ShaderCombination& operator=(ShaderCombination&& rhs) noexcept
     	{
     		Shaders = std::move(rhs.Shaders);

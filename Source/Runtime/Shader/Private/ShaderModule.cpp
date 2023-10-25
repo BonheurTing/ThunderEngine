@@ -295,7 +295,27 @@ namespace Thunder
 		TAssertf(false, "ShaderArchive not exist");
 		return nullptr;
 	}
-	
+
+	bool ShaderModule::GetShaderCombination(NameHandle shaderName, NameHandle passName, uint64 variantId,
+		ShaderCombination& outShaderCombination)
+	{
+		if (!ShaderMap.contains(shaderName))
+		{
+			TAssertf(false, "ShaderArchive not exist");
+			return false;
+		}
+		if (auto pass = ShaderMap[shaderName]->GetPass(passName))
+		{
+			if (pass->CheckCache(variantId))
+			{
+				outShaderCombination = *pass->GetShaderCombination(variantId);
+				return true;
+			}
+		}
+		TAssertf(false, "ShaderPass not exist");
+		return false;
+	}
+
 	void ShaderModule::InitShaderCompiler(EGfxApiType type)
 	{
 		switch (type)

@@ -15,6 +15,10 @@ namespace Thunder
 
 		RHICommandContextRef RHICreateCommandContext() override;
 
+		RHGraphicsPipelineStateIRef RHICreateGraphicsPipelineState(TGraphicsPipelineStateInitializer& initializer) override {return nullptr;}
+        
+		void RHICreateComputePipelineState() override {}
+
 		void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) override;
         
 		void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) override;

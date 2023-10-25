@@ -14,4 +14,8 @@ namespace Thunder
         ComPtr<ID3D12Fence> Fence;
 	};
 	
+	struct D3D12RHIVertexDeclaration : public RHIVertexDeclaration
+	{
+		Array<D3D12_INPUT_ELEMENT_DESC> VertexElements;
+	};
 }

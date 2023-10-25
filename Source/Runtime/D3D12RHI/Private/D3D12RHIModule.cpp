@@ -12,4 +12,9 @@ namespace Thunder
 		DynamicRHI = MakeRefCount<D3D12DynamicRHI>();
 		GDynamicRHI = DynamicRHI.get();
 	}
+
+	void TD3D12RHIModule::InitPipelineStateTable(ID3D12Device* InDevice)
+	{
+		//PipelineStateTable = MakeRefCount<TD3D12PipelineStateCache>( InDevice);
+	}
 }

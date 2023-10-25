@@ -3,9 +3,12 @@
 #include "D3D12DescriptorHeap.h"
 #include "D3D12CommandContext.h"
 #include "D3D12RHIPrivate.h"
+#include "D3D12PipelineState.h"
 #include "RHIHelper.h"
 #include "Assertion.h"
 #include <dxgi1_4.h>
+
+#include "D3D12RHIModule.h"
 #include "d3dx12.h"
 
 namespace Thunder
@@ -48,6 +51,8 @@ namespace Thunder
         RTVDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, RTVDescriptorHeapSize);
         DSVDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, DSVDescriptorHeapSize);
         SamplerDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, SamplerDescriptorHeapSize);
+
+        TD3D12RHIModule::GetModule()->InitPipelineStateTable(Device.Get());
         
         if(SUCCEEDED(hr))
         {
@@ -84,29 +89,26 @@ namespace Thunder
         }
     }
 
-    RHIRasterizerStateRef D3D12DynamicRHI::RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer)
+    RHGraphicsPipelineStateIRef D3D12DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateInitializer& initializer)
     {
+        TD3D12PipelineStateCache* psoCache = TD3D12RHIModule::GetModule()->GetPipelineStateTable();
+        TD3D12GraphicsPipelineStateDesc pipelineStateDesc{};
+        TD3D12RootSignature* rootSignature{};
+        if(TD3D12GraphicsPipelineState* found = psoCache->FindInLoadedCache(initializer, rootSignature, pipelineStateDesc))
+        {
+            return RHGraphicsPipelineStateIRef(found);
+        }
+        D3D12PipelineState* const PipelineState = psoCache->CreateAndAddToCache(pipelineStateDesc);
+        if (PipelineState && PipelineState->IsValid())
+        {
+            return MakeRefCount<TD3D12GraphicsPipelineState>(initializer, PipelineState);
+        }
         return nullptr;
     }
-    
-    RHIDepthStencilStateRef D3D12DynamicRHI::RHICreateDepthStencilState(const DepthStencilStateInitializerRHI& Initializer)
+
+    void D3D12DynamicRHI::RHICreateComputePipelineState()
     {
-        return nullptr;
-    }
-    
-    RHIBlendStateRef D3D12DynamicRHI::RHICreateBlendState(const BlendStateInitializerRHI& Initializer)
-    {
-        return nullptr;
-    }
-    
-    RHIInputLayoutRef D3D12DynamicRHI::RHICreateInputLayout(const RHIInputLayoutDescriptor& initializer)
-    {
-        return nullptr;
-    }
-    
-    RHIVertexDeclarationRef D3D12DynamicRHI::RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& Elements)
-    {
-        return nullptr;
+        
     }
 
     void D3D12DynamicRHI::RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize)

@@ -19,7 +19,15 @@ namespace Thunder
     	{
     		return Variants.contains(variantId);
     	}
-    	void UpdateOrAddVariants(uint64 variantId, ShaderCombination& variant) {Variants[variantId] = std::move(variant);}
+		ShaderCombination* GetShaderCombination(uint64 variantId)
+    	{
+    		if (CheckCache(variantId))
+    		{
+    			return Variants[variantId].get();
+    		}
+    		return nullptr;
+    	}
+    	void UpdateOrAddVariants(uint64 variantId, ShaderCombination& variant) {Variants[variantId] = MakeRefCount<ShaderCombination>(variant);}
     	bool CompileShader(NameHandle archiveName, const String& shaderSource, const String& includeStr, uint64 variantId);
 		bool RegisterRootSignature()
 		{
@@ -32,7 +40,7 @@ namespace Thunder
 		TShaderRegisterCounts RegisterCounts{};
     	Array<VariantMeta> VariantDefinitionTable; // 改了之后相关递归mask都要改
     	HashMap<EShaderStageType, StageMeta> StageMetas;
-    	HashMap<uint64, ShaderCombination> Variants;
+    	HashMap<uint64, RefCountPtr<ShaderCombination>> Variants;
     };
     
     class ShaderArchive
@@ -64,6 +72,7 @@ namespace Thunder
     	void GenerateIncludeString(NameHandle passName, String& outFile);
 		void CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount);
     	bool CompileShaderPass(NameHandle passName, uint64 variantId, bool force = false);
+    	
     private:
     	NameHandle Name;
     	String SourcePath;

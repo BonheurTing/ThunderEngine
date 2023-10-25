@@ -4,6 +4,8 @@
 
 namespace Thunder
 {
+#define MAX_RENDER_TARGETS 8
+	
 	struct RHIInputLayoutDescriptor
     {
     	// base
@@ -16,6 +18,89 @@ namespace Thunder
     	UINT                       InstanceDataStepRate;
     	// custom
     };
+    
+	struct RHIVertexDeclaration
+	{
+		
+	};
+
+	struct RHIBlendDescriptor
+	{
+		union
+		{
+			uint8 Hash[5];
+			struct
+			{
+				uint8 BlendEnable : 1;
+				uint8 LogicOpEnable : 1;
+				ERHIBlend SrcBlend : 5;
+				ERHIBlend DestBlend : 5;
+				ERHIBlendOp BlendOp : 3;
+				ERHIBlend SrcBlendAlpha : 5;
+				ERHIBlend DestBlendAlpha : 5;
+				ERHIBlendOp BlendOpAlpha : 3;
+				ERHILogicOp LogicOp : 4;
+				uint8 RenderTargetWriteMask : 8;
+			};
+		};
+	};
+
+	struct RHIBlendState
+	{
+		bool AlphaToCoverageEnable;
+		bool IndependentBlendEnable;
+		RHIBlendDescriptor* RenderTarget[MAX_RENDER_TARGETS];
+	};
+
+	struct RHIRasterizerState
+	{
+		ERHIFillMode FillMode;
+		ERHICullMode CullMode;
+		bool FrontCounterClockwise;
+		int32 DepthBias;
+		float DepthBiasClamp;
+		float SlopeScaleDepthBias;
+		bool DepthClipEnable;
+		bool MultisampleEnable;
+		bool AntialiasedLineEnable;
+		uint32 ForcedSampleCount;
+		bool ConservativeRaster;
+
+		RHI_API friend uint32 GetTypeHash(const RHIRasterizerState& initializer);
+		RHI_API friend bool operator== (const RHIRasterizerState& a, const RHIRasterizerState& b);
+	};
+
+	struct RHIDepthStencilState
+	{
+		union
+		{
+			uint8 Hash[6];
+
+			struct
+			{
+				uint8 DepthEnable : 1;
+				uint8 DepthWriteMask : 1;
+				ERHIDepthWriteMask : 1;
+				ERHIComparisonFunc DepthFunc : 3;
+				uint8 StencilEnable : 1;
+				uint8 StencilReadMask : 8;
+				uint8 StencilWriteMask : 8;
+
+				ERHIStencilOp FrontFaceStencilFailOp : 3;
+				ERHIStencilOp FrontFaceStencilDepthFailOp : 3;
+				ERHIStencilOp FrontFaceStencilPassOp : 3;
+				ERHIComparisonFunc FrontFaceStencilFunc : 3;
+				ERHIStencilOp BackFaceStencilFailOp : 3;
+				ERHIStencilOp BackFaceStencilDepthFailOp : 3;
+				ERHIStencilOp BackFaceStencilPassOp : 3;
+				ERHIComparisonFunc BackFaceStencilFunc : 3;
+			};
+		};
+	};
+	
+	/**
+	 * rhi resource
+	 */
 	
 	struct RHIViewDescriptor
 	{
@@ -104,26 +189,6 @@ namespace Thunder
     	RHIResourceFlags Flags;
     };
 	
-    struct VertexDeclarationInitializerRHI
-    {
-        
-    };
-    
-    struct RasterizerStateInitializerRHI
-    {
-        
-    };
-    
-    struct DepthStencilStateInitializerRHI
-    {
-        
-    };
-    
-    struct BlendStateInitializerRHI
-    {
-        
-    };
-
 	/**
  * \brief Descriptor View
  */

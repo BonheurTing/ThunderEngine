@@ -16,16 +16,10 @@ namespace Thunder
         RHIDeviceRef RHICreateDevice() override;
 
         RHICommandContextRef RHICreateCommandContext() override;
-    
-        RHIRasterizerStateRef RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer) override;
-    
-        RHIDepthStencilStateRef RHICreateDepthStencilState(const DepthStencilStateInitializerRHI& Initializer) override;
-    
-        RHIBlendStateRef RHICreateBlendState(const BlendStateInitializerRHI& Initializer) override;
-    
-        RHIInputLayoutRef RHICreateInputLayout(const RHIInputLayoutDescriptor& initializer) override;
-    
-        RHIVertexDeclarationRef RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& Elements) override;
+        
+        RHGraphicsPipelineStateIRef RHICreateGraphicsPipelineState(TGraphicsPipelineStateInitializer& initializer) override;
+        
+        void RHICreateComputePipelineState() override;
 
        void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) override;
         

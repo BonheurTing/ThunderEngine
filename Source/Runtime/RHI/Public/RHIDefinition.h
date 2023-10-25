@@ -228,7 +228,7 @@ namespace Thunder
         MaximumAnisotropic = 0x1d5
     };
 
-    enum class ERHITextureAddressMode : uint32
+    enum class ERHITextureAddressMode : uint8
     {
         Wrap = 1,
         Mirror = 2,
@@ -237,7 +237,7 @@ namespace Thunder
         MirrorOnce = 5
     };
 
-    enum class ERHICompareFunction : uint32
+    enum class ERHICompareFunction : uint8
     {
         Never = 1,
         Less = 2,
@@ -249,12 +249,115 @@ namespace Thunder
         Always = 8
     };
 
-    enum class ERHIFenceFlags : uint32
+    enum class ERHIFenceFlags : uint8
     {
         None = 0,
         Shared = 0x1,
         SharedCrossAdapter = 0x2,
         NonMonitored = 0x4
+    };
+
+    enum class ERHIBlend : uint8
+    {
+        Zero = 1,
+        One	= 2,
+        SrcColor = 3,
+        InvSrcColor = 4,
+        SrcAlpha = 5,
+        InvSrcAlpha = 6,
+        DestAlpha = 7,
+        InvDestAlpha = 8,
+        DestColor = 9,
+        InvDestColor = 10,
+        SrcAlphaSaturate = 11,
+        BlendFactor = 14,
+        InvBlendFactor = 15,
+        Src1Color = 16,
+        InvSrc1Color = 17,
+        Src1Alpha = 18,
+        InvSrc1Alpha = 19,
+        AlphaFactor = 20,
+        InvAlphaFactor = 21
+    };
+
+    enum class ERHIBlendOp : uint8
+    {
+        Add = 1,
+        Subtract = 2,
+        RevSubtract = 3,
+        Min = 4,
+        Max = 5
+    };
+
+    enum class ERHILogicOp : uint8
+    {
+        Clear = 0,
+        Set = 1,
+        Copy = 2,
+        CopyInverted = 3,
+        Noop = 4,
+        Invert = 5,
+        And = 6,
+        Nand = 7,
+        Or = 8,
+        Nor = 9,
+        Xor = 10,
+        Equiv = 11,
+        AndReverse = 12,
+        AndInverted = 13,
+        OrReverse = 14,
+        OrInverted = 15
+    };
+
+    enum class ERHIFillMode : uint8
+    {
+        Wireframe = 2,
+        Solid = 3
+    };
+
+    enum class ERHICullMode : uint8
+    {
+        None = 1,
+        Front = 2,
+        Back = 3
+    };
+
+    enum class ERHIDepthWriteMask : uint8
+    {
+        Zero = 0,
+        All = 1
+    };
+
+    enum class ERHIComparisonFunc : uint8
+    {
+        Never = 1,
+        Less = 2,
+        Equal = 3,
+        LessEqual = 4,
+        Greater = 5,
+        NotEqual = 6,
+        GreaterEqual = 7,
+        Always = 8
+    };
+    enum class ERHIStencilOp : uint8
+    {
+        Keep = 1,
+        Zero = 2,
+        Replace = 3,
+        IncrSat = 4,
+        DecrSat = 5,
+        Invert = 6,
+        Incr = 7,
+        Decr = 8
+    };
+
+    enum class ERHIPrimitiveType : uint8
+    {
+        Undefined = 0,
+        Point = 1,
+        Line = 2,
+        Triangle = 3,
+        Patch = 4
     };
 }
 

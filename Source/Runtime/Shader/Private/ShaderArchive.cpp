@@ -339,7 +339,7 @@ namespace Thunder
     		ShaderStage& newStageVariant = newVariant.Shaders[meta.first];
     		ShaderModule::GetModule()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
     
-    		if (newStageVariant.ByteCode.GetSize() == 0)
+    		if (newStageVariant.ByteCode.Size == 0)
     		{
     			TAssertf(false, "Compile Shader: Output an empty ByteCode");
     			return false;

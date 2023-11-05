@@ -24,16 +24,6 @@ namespace Thunder
     	{
     		if (CheckCache(variantId))
     		{
-    			auto& byteCode = Variants[variantId].get()->Shaders[EShaderStageType::Vertex].ByteCode;
-    			std::cout << " GetShaderCombination Content = [ ";
-    			const auto content = static_cast<const uint8*>(byteCode.GetData());
-    			for (uint32 i = 0; i < byteCode.GetSize(); ++i)
-    			{
-    				auto const converted = static_cast<uint32>(content[i]);
-    				std::cout << std::hex << converted << ", ";
-    			}
-    			std::cout << "]" << std::endl;
-    			
     			return Variants[variantId].get();
     		}
     		return nullptr;

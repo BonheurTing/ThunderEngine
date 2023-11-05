@@ -351,7 +351,7 @@ namespace Thunder
 	}
 	
 	void ShaderModule::Compile(NameHandle archiveName, const String& inSource, const HashMap<NameHandle, bool>& marco,
-		const String& includeStr, const String& pEntryPoint, const String& pTarget, ManagedBinaryData& outByteCode)
+		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
 	{
 		ShaderCompiler->Compile(archiveName, inSource, inSource.size(), marco, includeStr, pEntryPoint, pTarget, outByteCode);
 	}

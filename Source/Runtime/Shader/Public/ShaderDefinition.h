@@ -24,7 +24,7 @@ namespace Thunder
     
     struct ShaderStage
     {
-    	ManagedBinaryData ByteCode;
+    	BinaryData ByteCode;
     	uint64 VariantId;
     };
     
@@ -41,6 +41,16 @@ namespace Thunder
     	ShaderCombination(ShaderCombination&& rhs) noexcept
     	{
     		Shaders = std::move(rhs.Shaders);
+    	}
+    	~ShaderCombination()
+    	{
+    		for (auto pair : Shaders)
+    		{
+    			if (pair.second.ByteCode.Size > 0)
+    			{
+    				TMemory::Destroy(pair.second.ByteCode.Data);
+    			}
+    		}
     	}
     	
     	HashMap<EShaderStageType, ShaderStage> Shaders;

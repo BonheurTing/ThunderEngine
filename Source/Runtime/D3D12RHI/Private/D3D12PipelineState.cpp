@@ -43,7 +43,7 @@ namespace Thunder
 		outDesc.Desc.SampleDesc.Count = initializer.NumSamples;
 		outDesc.Desc.SampleDesc.Quality = 0;
 
-		if (auto InputLayout = static_cast<D3D12RHIVertexDeclaration*>(initializer.VertexDeclaration))
+		if (const auto InputLayout = static_cast<D3D12RHIVertexDeclaration*>(initializer.VertexDeclaration))
 		{
 			outDesc.Desc.InputLayout.NumElements = static_cast<UINT>(InputLayout->VertexElements.size());
 			outDesc.Desc.InputLayout.pInputElementDescs = InputLayout->VertexElements.data();
@@ -54,9 +54,9 @@ namespace Thunder
 		{
 			if (shaderBound.contains(sourceStage))
 			{
-				auto& byteCode = shaderBound[sourceStage].ByteCode;
-				destination.pShaderBytecode = byteCode.GetData();
-				destination.BytecodeLength = byteCode.GetSize();
+				const auto& byteCode = shaderBound[sourceStage].ByteCode;
+				destination.pShaderBytecode = byteCode.Data;
+				destination.BytecodeLength = byteCode.Size;
 			}
 		};
 		CopyShader(outDesc.Desc.VS, EShaderStageType::Vertex);

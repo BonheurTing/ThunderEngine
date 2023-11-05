@@ -136,6 +136,14 @@ namespace Thunder
     //
     // Pipeline stat
     //
+
+    class RHIVertexDeclaration
+    {
+    public:
+        RHIVertexDeclaration(Array<RHIVertexElement> const& inElements) : Elements(inElements) {}
+    private:
+        Array<RHIVertexElement> Elements;
+    };
     
     struct TRHIGraphicsPipelineState
     {
@@ -144,6 +152,7 @@ namespace Thunder
 
     struct TGraphicsPipelineStateInitializer
     {
+        TShaderRegisterCounts           RegisterCounts;
         RHIVertexDeclaration*			VertexDeclaration;
         ShaderCombination*				ShaderCombination;
         RHIBlendState*					BlendState;
@@ -157,7 +166,8 @@ namespace Thunder
 
         bool operator==(const TGraphicsPipelineStateInitializer& rhs) const
         {
-            if (VertexDeclaration != rhs.VertexDeclaration ||
+            if (RegisterCounts != rhs.RegisterCounts ||
+                VertexDeclaration != rhs.VertexDeclaration ||
                 ShaderCombination != rhs.ShaderCombination ||
                 BlendState != rhs.BlendState ||
                 RasterizerState != rhs.RasterizerState ||

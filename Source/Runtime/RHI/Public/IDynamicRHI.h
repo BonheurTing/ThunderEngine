@@ -14,9 +14,9 @@ namespace Thunder
 
         virtual RHICommandContextRef RHICreateCommandContext() = 0;
         
-        /*
-        virtual RHIVertexDeclarationRef RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& elements) { return nullptr; }
+        virtual RHIVertexDeclarationRef RHICreateVertexDeclaration(const Array<RHIVertexElement>& InElements) = 0;
         
+        /*
         virtual RHIBlendStateRef RHICreateBlendState(const BlendStateInitializerRHI& initializer) { return nullptr; }
         
         virtual RHIRasterizerStateRef RHICreateRasterizerState(const RasterizerStateInitializerRHI& initializer) { return nullptr; }
@@ -68,6 +68,11 @@ namespace Thunder
     FORCEINLINE RHICommandContextRef RHICreateCommandContext()
     {
         return GDynamicRHI->RHICreateCommandContext();
+    }
+
+    FORCEINLINE RHIVertexDeclarationRef RHICreateVertexDeclaration(const Array<RHIVertexElement>& InElements)
+    {
+        return GDynamicRHI->RHICreateVertexDeclaration(InElements);
     }
 
     FORCEINLINE RHGraphicsPipelineStateIRef RHICreateGraphicsPipelineState(TGraphicsPipelineStateInitializer& initializer)

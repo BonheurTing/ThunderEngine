@@ -1,5 +1,7 @@
 ﻿#include "D3D12RHIModule.h"
 #include "D3D12RHI.h"
+#include "D3D12PipelineState.h"
+#include "D3D12RootSignature.h"
 
 namespace Thunder
 {
@@ -13,8 +15,9 @@ namespace Thunder
 		GDynamicRHI = DynamicRHI.get();
 	}
 
-	void TD3D12RHIModule::InitPipelineStateTable(ID3D12Device* InDevice)
+	void TD3D12RHIModule::InitD3D12Context(ID3D12Device* InDevice)
 	{
-		//PipelineStateTable = MakeRefCount<TD3D12PipelineStateCache>( InDevice);
+		PipelineStateTable = MakeRefCount<TD3D12PipelineStateCache>(InDevice);
+		RootSignatureManager = MakeRefCount<TD3D12RootSignatureManager>(InDevice);
 	}
 }

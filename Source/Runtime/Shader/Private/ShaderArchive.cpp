@@ -289,7 +289,6 @@ namespace Thunder
     		registerIndex++;
     	}
     	// sampler
-    	if (!sbGeneratedCode.empty())
     	{
     		codeStream << "SamplerState GPointClampSampler : register(s0);\n";
     		codeStream << "SamplerState GPointWrapSampler : register(s1);\n";
@@ -326,7 +325,8 @@ namespace Thunder
     {
     	TAssertf((PassVariantMask & variantId) == variantId, "Compile Shader: Invalid variantId");
     	// Stage
-    	ShaderCombination newVariant{};
+    	Variants[variantId] = MakeRefCount<ShaderCombination>();
+    	ShaderCombination& newVariant = *Variants[variantId];
     	for (auto& meta : StageMetas)
     	{
     		// Variant Marco
@@ -335,18 +335,17 @@ namespace Thunder
     		HashMap<NameHandle, bool> shaderMarco{};
     		VariantIdToShaderMarco(stageVariantId, meta.second.VariantMask, shaderMarco);
     		//todo: include file
-    		ShaderStage newStageVariant{};
+    		newVariant.Shaders[meta.first] = ShaderStage{};
+    		ShaderStage& newStageVariant = newVariant.Shaders[meta.first];
     		ShaderModule::GetModule()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
     
-    		if(newStageVariant.ByteCode.Size == 0)
+    		if (newStageVariant.ByteCode.GetSize() == 0)
     		{
     			TAssertf(false, "Compile Shader: Output an empty ByteCode");
     			return false;
     		}
     		newStageVariant.VariantId = stageVariantId;
-    		newVariant.Shaders[meta.first] = newStageVariant;
     	}
-    	UpdateOrAddVariants(variantId, newVariant);
     	return true;
     }
     

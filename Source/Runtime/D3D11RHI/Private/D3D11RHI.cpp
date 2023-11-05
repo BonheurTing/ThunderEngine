@@ -49,6 +49,11 @@ namespace Thunder
 		return nullptr;
 	}
 
+	RHIVertexDeclarationRef D3D11DynamicRHI::RHICreateVertexDeclaration(const Array<RHIVertexElement>& InElements)
+	{
+		return nullptr;
+	}
+
 	void D3D11DynamicRHI::RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize)
 	{
 		

@@ -1,17 +1,151 @@
 ﻿#include "D3D12RootSignature.h"
 #include "d3dx12.h"
+#include "CommonUtilities.h"
+#include "D3D12RHIPrivate.h"
 
 namespace Thunder
 {
+	static D3D12_STATIC_SAMPLER_DESC MakeStaticSampler(D3D12_FILTER Filter, D3D12_TEXTURE_ADDRESS_MODE WrapMode, uint32 Register, uint32 Space)
+	{
+		D3D12_STATIC_SAMPLER_DESC Result = {};
+	
+		Result.Filter           = Filter;
+		Result.AddressU         = WrapMode;
+		Result.AddressV         = WrapMode;
+		Result.AddressW         = WrapMode;
+		Result.MipLODBias       = 0.0f;
+		Result.MaxAnisotropy    = 1;
+		Result.ComparisonFunc   = D3D12_COMPARISON_FUNC_NEVER;
+		Result.BorderColor      = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+		Result.MinLOD           = 0.0f;
+		Result.MaxLOD           = D3D12_FLOAT32_MAX;
+		Result.ShaderRegister   = Register;
+		Result.RegisterSpace    = Space;
+		Result.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+		return Result;
+	}
+
+	// Static sampler table must match D3DCommon.ush
+	static const D3D12_STATIC_SAMPLER_DESC StaticSamplerDescs[] =
+	{
+		MakeStaticSampler(D3D12_FILTER_MIN_MAG_MIP_POINT,        D3D12_TEXTURE_ADDRESS_MODE_WRAP,  0, 1000),
+		MakeStaticSampler(D3D12_FILTER_MIN_MAG_MIP_POINT,        D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 1, 1000),
+		MakeStaticSampler(D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP,  2, 1000),
+		MakeStaticSampler(D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 3, 1000),
+		MakeStaticSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR,       D3D12_TEXTURE_ADDRESS_MODE_WRAP,  4, 1000),
+		MakeStaticSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR,       D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 5, 1000),
+	};
+	
 	TD3D12RootSignature::TD3D12RootSignature(ID3D12Device* InParent, const TShaderRegisterCounts& shaderRC) : TD3D12DeviceChild(InParent)
 	{
-		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-		rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		const D3D12_ROOT_PARAMETER_TYPE rootParameterTypePriorityOrder[2] = { D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE, D3D12_ROOT_PARAMETER_TYPE_CBV };
+		// Determine if our descriptors or their data is static based on the resource binding tier.
 
-		ComPtr<ID3DBlob> signature;
+		//todo: move to FD3D12Adapter to check device surpport 
+		D3D12_RESOURCE_HEAP_TIER ResourceHeapTier;
+		D3D12_RESOURCE_BINDING_TIER ResourceBindingTier;
+		D3D12_FEATURE_DATA_D3D12_OPTIONS D3D12Caps;
+		memset(&D3D12Caps, 0, sizeof(D3D12Caps));
+		TAssertf(SUCCEEDED(ParentDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &D3D12Caps, sizeof(D3D12Caps))), "Failed to check D3D12 feature support.");
+		ResourceHeapTier = D3D12Caps.ResourceHeapTier;
+		ResourceBindingTier = D3D12Caps.ResourceBindingTier;
+
+		const D3D12_DESCRIPTOR_RANGE_FLAGS SRVDescriptorRangeFlags = (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1) ?
+			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE :
+			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE | D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+
+		const D3D12_DESCRIPTOR_RANGE_FLAGS CBVDescriptorRangeFlags = (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2) ?
+			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE :
+			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE | D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+
+		const D3D12_DESCRIPTOR_RANGE_FLAGS UAVDescriptorRangeFlags = (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2) ?
+			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE :
+			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+
+		const D3D12_DESCRIPTOR_RANGE_FLAGS SamplerDescriptorRangeFlags = (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1) ?
+			D3D12_DESCRIPTOR_RANGE_FLAG_NONE :
+			D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
+
+		const D3D12_ROOT_DESCRIPTOR_FLAGS CBVRootDescriptorFlags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC;	// We always set the data in an upload heap before calling Set*RootConstantBufferView.
+
+		
+		uint32 rootParameterCount = 0;
+		D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+		CD3DX12_ROOT_PARAMETER1 tableSlots[MaxRootParameters];
+		CD3DX12_DESCRIPTOR_RANGE1 descriptorRanges[MaxRootParameters];
+		
+		// For each root parameter type...
+		for (uint32 rootParameterTypeIndex = 0; rootParameterTypeIndex < 2; rootParameterTypeIndex++)
+		{
+			const D3D12_ROOT_PARAMETER_TYPE& rootParameterType = rootParameterTypePriorityOrder[rootParameterTypeIndex];
+			switch (rootParameterType)
+			{
+			case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+			{
+				if (shaderRC.ShaderResourceCount > 0)
+				{
+					check(rootParameterCount < MaxRootParameters);
+					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, shaderRC.ShaderResourceCount, 0u, 0, SRVDescriptorRangeFlags);
+					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
+					rootParameterCount++;
+				}
+
+				if (shaderRC.ConstantBufferCount > MAX_ROOT_CBVS)
+				{
+					// Use a descriptor table for the 'excess' CBVs
+					check(rootParameterCount < MaxRootParameters);
+					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, shaderRC.ConstantBufferCount - MAX_ROOT_CBVS, MAX_ROOT_CBVS, 0, CBVDescriptorRangeFlags);
+					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
+					rootParameterCount++;
+				}
+
+				if (shaderRC.SamplerCount > 0)
+				{
+					check(rootParameterCount < MaxRootParameters);
+					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, shaderRC.SamplerCount, 0u, 0, SamplerDescriptorRangeFlags);
+					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
+					rootParameterCount++;
+				}
+
+				if (shaderRC.UnorderedAccessCount > 0)
+				{
+					check(rootParameterCount < MaxRootParameters);
+					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, shaderRC.UnorderedAccessCount, 0u, 0, UAVDescriptorRangeFlags);
+					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
+					rootParameterCount++;
+				}
+				break;
+			}
+			case D3D12_ROOT_PARAMETER_TYPE_CBV:
+			{
+				for (uint32 ShaderRegister = 0; (ShaderRegister < shaderRC.ConstantBufferCount) && (ShaderRegister < MAX_ROOT_CBVS); ShaderRegister++)
+				{
+					check(rootParameterCount < MaxRootParameters);
+					tableSlots[rootParameterCount].InitAsConstantBufferView(ShaderRegister, 0, CBVRootDescriptorFlags, D3D12_SHADER_VISIBILITY_ALL);
+					rootParameterCount++;
+				}
+				break;
+			}
+			default:
+				TAssert(false);
+				break;
+			}
+		}
+		
+
+		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootDesc;
+		rootDesc.Init_1_1(rootParameterCount, tableSlots, 6, StaticSamplerDescs, flags);
+
 		ComPtr<ID3DBlob> error;
-		TAssert(D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error));
-		TAssert(ParentDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&RootSignature)));
+		ComPtr<ID3DBlob> signature;
+		const D3D_ROOT_SIGNATURE_VERSION MaxRootSignatureVersion = rootDesc.Version;
+		HRESULT hr = D3DX12SerializeVersionedRootSignature(&rootDesc, MaxRootSignatureVersion, &signature, &error);
+		TAssertf(SUCCEEDED(hr), "D3DX12SerializeVersionedRootSignature failed with hrcode %l", hr);
+		TAssertf(!error.Get(), "D3DX12SerializeVersionedRootSignature failed with error %s", static_cast<char*>(error->GetBufferPointer()));
+
+		hr = ParentDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&RootSignature));
+		TAssertf(SUCCEEDED(hr), "D3DX12CreateRootSignature failed with hrcode %l", hr);
 	}
 
 	void TD3D12RootSignatureManager::Destroy()

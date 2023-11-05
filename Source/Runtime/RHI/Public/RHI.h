@@ -6,22 +6,25 @@ namespace Thunder
 {
 #define MAX_RENDER_TARGETS 8
 	
-	struct RHIInputLayoutDescriptor
-    {
-    	// base
-    	LPCSTR                     SemanticName;
-    	UINT                       SemanticIndex;
-    	RHIFormat                Format;
-    	UINT                       InputSlot;
-    	UINT                       AlignedByteOffset;
-    	ERHIInputClassification    InputSlotClass;
-    	UINT                       InstanceDataStepRate;
-    	// custom
-    };
-    
-	struct RHIVertexDeclaration
+	struct RHIVertexElement
 	{
+		RHIVertexElement(ERHIVertexInputSemantic name, uint8 index, RHIFormat format, uint8 inputSlot, uint16 alignedByteOffset, bool isPerInstanceData)
+			: Name(name), Index(index), Format(format), InputSlot(inputSlot), AlignedByteOffset(alignedByteOffset), IsPerInstanceData(isPerInstanceData) {}
 		
+		union
+		{
+			uint8 Hash[5];
+
+			struct
+			{
+				ERHIVertexInputSemantic Name : 4;
+				uint8 Index : 4;
+				RHIFormat Format : 8;
+				uint8 InputSlot : 4;
+				uint16 AlignedByteOffset;
+				uint8 IsPerInstanceData : 1;
+			};
+		};
 	};
 
 	struct RHIBlendDescriptor

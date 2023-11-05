@@ -10,16 +10,15 @@ namespace Thunder
 	struct TD3D12GraphicsPipelineStateDesc
 	{
 		//const FD3D12RootSignature *pRootSignature;
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc;
-		uint32 VSHash;
-		uint32 MSHash;
-		uint32 ASHash;
-		uint32 GSHash;
-		uint32 PSHash;
-		uint32 InputLayoutHash;
-		//bool bFromPSOFileCache;
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc{};
+		uint32 VSHash = 0;
+		uint32 MSHash = 0;
+		uint32 ASHash = 0;
+		uint32 GSHash = 0;
+		uint32 PSHash = 0;
+		uint32 InputLayoutHash = 0;
 
-		uint32 CombinedHash;
+		uint32 CombinedHash = 0;
 
 		bool operator==(const TD3D12GraphicsPipelineStateDesc& rhs) const
 		{
@@ -30,12 +29,12 @@ namespace Thunder
 	struct TD3D12ComputePipelineStateDesc
 	{
 		//const FD3D12RootSignature *pRootSignature;
-		D3D12_COMPUTE_PIPELINE_STATE_DESC Desc;
-		uint32 CSHash;
+		D3D12_COMPUTE_PIPELINE_STATE_DESC Desc{};
+		uint32 CSHash = 0;
 		
 		//bool bFromPSOFileCache;
 
-		uint32 CombinedHash;
+		uint32 CombinedHash = 0;
 	};
 }
 namespace std
@@ -52,7 +51,7 @@ namespace std
 
 namespace Thunder
 {
-	//TD3D12GraphicsPipelineStateDesc GetGraphicsPipelineStateDesc(const TGraphicsPipelineStateInitializer& initializer, const TD3D12RootSignature* rootSignature);
+	void GetGraphicsPipelineStateDesc(const TGraphicsPipelineStateInitializer& initializer, const TD3D12RootSignature* rootSignature, TD3D12GraphicsPipelineStateDesc& outDesc);
 	//TD3D12ComputePipelineStateDesc GetComputePipelineStateDesc(const FD3D12ComputeShader* ComputeShader);
 	
 	class D3D12PipelineState
@@ -84,6 +83,7 @@ namespace Thunder
 	{
 	public:
 		TD3D12PipelineStateCache(ID3D12Device* InDevice) : TD3D12DeviceChild(InDevice) {}
+		TD3D12PipelineStateCache() = delete;
 		//TD3D12PipelineStateCache() = delete;
 		TD3D12GraphicsPipelineState* FindInLoadedCache(const TGraphicsPipelineStateInitializer& initializer, const TD3D12RootSignature* rootSignature, TD3D12GraphicsPipelineStateDesc& outDesc);
 		D3D12PipelineState* CreateAndAddToCache(const TD3D12GraphicsPipelineStateDesc& desc);
@@ -92,7 +92,7 @@ namespace Thunder
 	private:
 		template <typename TDesc, typename TValue = D3D12PipelineState*>
 		using TPipelineCache = HashMap<TDesc, TValue>;
-		TPipelineCache<TD3D12GraphicsPipelineStateDesc> GraphicsPipelineStateCache;
+		TPipelineCache<TD3D12GraphicsPipelineStateDesc> GraphicsPipelineStateCache; // TODO
 		//TPipelineCache<TD3D12ComputePipelineStateDesc> ComputePipelineStateCache;
 	};
 	

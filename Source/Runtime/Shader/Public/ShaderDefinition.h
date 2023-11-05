@@ -24,7 +24,7 @@ namespace Thunder
     
     struct ShaderStage
     {
-    	BinaryData ByteCode;
+    	ManagedBinaryData ByteCode;
     	uint64 VariantId;
     };
     

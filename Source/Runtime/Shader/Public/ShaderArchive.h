@@ -9,6 +9,7 @@ namespace Thunder
     	ShaderPass() = delete;
     	ShaderPass(NameHandle name) : Name(name), PassVariantMask(0) {}
 		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
+        _NODISCARD_ TShaderRegisterCounts GetShaderRegisterCounts() const { return RegisterCounts; }
     	uint64 VariantNameToMask(const Array<VariantMeta>& variantName) const;
     	void VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, HashMap<NameHandle, bool>& shaderMarco) const;
     	//void SetPassVariantMeta(const Array<VariantMeta>& meta) {VariantDefinitionTable = meta;}
@@ -23,6 +24,16 @@ namespace Thunder
     	{
     		if (CheckCache(variantId))
     		{
+    			auto& byteCode = Variants[variantId].get()->Shaders[EShaderStageType::Vertex].ByteCode;
+    			std::cout << " GetShaderCombination Content = [ ";
+    			const auto content = static_cast<const uint8*>(byteCode.GetData());
+    			for (uint32 i = 0; i < byteCode.GetSize(); ++i)
+    			{
+    				auto const converted = static_cast<uint32>(content[i]);
+    				std::cout << std::hex << converted << ", ";
+    			}
+    			std::cout << "]" << std::endl;
+    			
     			return Variants[variantId].get();
     		}
     		return nullptr;

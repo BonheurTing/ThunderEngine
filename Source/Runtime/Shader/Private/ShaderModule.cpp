@@ -276,7 +276,7 @@ namespace Thunder
     			}
     		}
     
-    		ShaderMap[shaderArchiveName] = currentShader;
+    		ShaderMap[shaderArchiveName] = currentShader; // TODO.
     		LOG("Succeed to Parse %s", metaFileName.c_str());
     	}
     	if(!shaderNameList.empty())
@@ -296,19 +296,35 @@ namespace Thunder
 		return nullptr;
 	}
 
-	bool ShaderModule::GetShaderCombination(NameHandle shaderName, NameHandle passName, uint64 variantId,
-		ShaderCombination& outShaderCombination)
+	bool ShaderModule::GetPassRegisterCounts(NameHandle shaderName, NameHandle passName, TShaderRegisterCounts& outRegisterCounts)
 	{
 		if (!ShaderMap.contains(shaderName))
 		{
 			TAssertf(false, "ShaderArchive not exist");
 			return false;
 		}
-		if (auto pass = ShaderMap[shaderName]->GetPass(passName))
+		if (const auto pass = ShaderMap[shaderName]->GetPass(passName))
+		{
+			outRegisterCounts = pass->GetShaderRegisterCounts();
+			return true;
+		}
+		TAssertf(false, "ShaderPass not exist");
+		return false;
+	}
+
+	bool ShaderModule::GetShaderCombination(NameHandle shaderName, NameHandle passName, uint64 variantId,
+	                                        ShaderCombination*& outShaderCombination)
+	{
+		if (!ShaderMap.contains(shaderName))
+		{
+			TAssertf(false, "ShaderArchive not exist");
+			return false;
+		}
+		if (const auto pass = ShaderMap[shaderName]->GetPass(passName))
 		{
 			if (pass->CheckCache(variantId))
 			{
-				outShaderCombination = *pass->GetShaderCombination(variantId);
+				outShaderCombination = pass->GetShaderCombination(variantId);
 				return true;
 			}
 		}
@@ -335,7 +351,7 @@ namespace Thunder
 	}
 	
 	void ShaderModule::Compile(NameHandle archiveName, const String& inSource, const HashMap<NameHandle, bool>& marco,
-		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+		const String& includeStr, const String& pEntryPoint, const String& pTarget, ManagedBinaryData& outByteCode)
 	{
 		ShaderCompiler->Compile(archiveName, inSource, inSource.size(), marco, includeStr, pEntryPoint, pTarget, outByteCode);
 	}

@@ -64,7 +64,7 @@ namespace Thunder
     	};
     }
     
-    void FXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+    void FXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, ManagedBinaryData& outByteCode)
     {
     #if defined(SHAHER_DEBUG)
     	// Enable better shader debugging with the graphics debugging tools.
@@ -88,8 +88,7 @@ namespace Thunder
     	
     	if (SUCCEEDED(hr))
     	{
-    		outByteCode.Size = pResult->GetBufferSize();
-    		outByteCode.Data = pResult->GetBufferPointer();
+    		outByteCode.SetData(pResult->GetBufferPointer(), pResult->GetBufferSize());
     	}
     	else
     	{
@@ -119,7 +118,7 @@ namespace Thunder
     	}
     }
     
-    void DXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+    void DXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, ManagedBinaryData& outByteCode)
     {
     	if (ShaderCompiler == nullptr || ShaderUtils == nullptr)
     	{
@@ -186,8 +185,7 @@ namespace Thunder
     		pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pShader), &pShaderName);
     		if (pShader != nullptr && pShader->GetBufferSize() > 0)
     		{
-    			outByteCode.Data = pShader->GetBufferPointer();
-    			outByteCode.Size = pShader->GetBufferSize();
+    			outByteCode.SetData(pShader->GetBufferPointer(), pShader->GetBufferSize());
     		}
     		else
     		{
@@ -219,8 +217,7 @@ namespace Thunder
     			pResult->GetResult(&pShader);
     			if (pShader != nullptr)
     			{
-    				outByteCode.Data = pShader->GetBufferPointer();
-    				outByteCode.Size = pShader->GetBufferSize();
+                    outByteCode.SetData(pShader->GetBufferPointer(), pShader->GetBufferSize());
     			}
     		}
     		else

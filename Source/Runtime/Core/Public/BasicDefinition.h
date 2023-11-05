@@ -4,19 +4,70 @@
 #include "Platform.h"
 #include <cstring>
 #include "Container.h"
+#include "Memory/MemoryBase.h"
 
 #define _NODISCARD_ [[nodiscard]]
 
 namespace Thunder
 {
+	template <bool Predicate, typename Result = void>
+	class TEnableIf;
+
+	template <typename Result>
+	class TEnableIf<true, Result>
+	{
+	public:
+		using type = Result;
+		using Type = Result;
+	};
+
+	template <typename Result>
+	class TEnableIf<false, Result>
+	{ };
+	
 	/* Unsafe Binary Data*/
 	struct BinaryData
 	{
-		void* Data;
-		size_t Size;
+		void* Data = nullptr;
+		size_t Size = 0;
 	};
 
-	// todo: Safe Binary Data
+	/* Safe Binary Data*/
+	struct ManagedBinaryData
+	{
+		ManagedBinaryData() = default;
+		ManagedBinaryData(const void* inData, size_t inSize)
+			: Size(inSize)
+		{
+			Data = TMemory::Malloc<uint8>(inSize);
+			memcpy(Data, inData, inSize);
+		}
+		~ManagedBinaryData()
+		{
+			TMemory::Destroy(Data);
+		}
+		void SetData(const void* inData, size_t inSize)
+		{
+			if (Data)
+			{
+				TMemory::Destroy(Data);
+			}
+			Size = inSize;
+			Data = TMemory::Malloc<uint8>(inSize);
+			memcpy(Data, inData, inSize);
+		}
+		_NODISCARD_ void* GetData()
+		{
+			return Data;
+		}
+		_NODISCARD_ size_t GetSize()
+		{
+			return Size;
+		}
+	protected:
+		void* Data = nullptr;
+		size_t Size = 0;
+	};
 
 	// root signature
 	struct TShaderRegisterCounts
@@ -31,6 +82,9 @@ namespace Thunder
 			return 0 == memcmp(this, &rhs, sizeof(rhs));
 		}
 	};
+
+	
+	
 
 	template<typename Enum>
 	constexpr bool EnumHasAnyFlags(Enum Flags, Enum Contains)

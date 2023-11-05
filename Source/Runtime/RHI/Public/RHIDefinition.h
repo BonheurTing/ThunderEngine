@@ -3,13 +3,32 @@
 
 namespace Thunder
 {
-    enum class ERHIInputClassification : uint32
+    enum class ERHIVertexInputSemantic : uint8
     {
-        PerVertexData = 0,
-        PerInstanceData
+        Unknown = 0,
+        Position,
+        TexCoord,
+        Normal,
+        Tangent,
+        Color,
+        BiNormal,
+        BlendIndices,
+        BlendWeights
+    };
+    static const HashMap<ERHIVertexInputSemantic, String> GVertexInputSemanticToString =
+    {
+        { ERHIVertexInputSemantic::Unknown, "UNKNOWN" },
+        { ERHIVertexInputSemantic::Position, "POSITION" },
+        { ERHIVertexInputSemantic::TexCoord, "TEXCOORD" },
+        { ERHIVertexInputSemantic::Normal, "NORMAL" },
+        { ERHIVertexInputSemantic::Tangent, "TANGENT" },
+        { ERHIVertexInputSemantic::Color, "COLOR" },
+        { ERHIVertexInputSemantic::BiNormal, "BINORMAL" },
+        { ERHIVertexInputSemantic::BlendIndices, "BLENDINDICES" },
+        { ERHIVertexInputSemantic::BlendWeights, "BLENDWEIGHT" }
     };
     
-    enum class ERHIResourceType : uint32
+    enum class ERHIResourceType : uint8
     {
         Unknown	= 0,
         Buffer,
@@ -19,7 +38,7 @@ namespace Thunder
         Texture3D
     };
     
-    enum class ERHITextureLayout : uint32
+    enum class ERHITextureLayout : uint8
     {
         Unknown = 0,
         RowMajor,
@@ -27,7 +46,7 @@ namespace Thunder
         StandardSwizzle64KB
     };
     
-    enum class RHIFormat : uint32
+    enum class RHIFormat : uint8
     {
         UNKNOWN	                                = 0,
         R32G32B32A32_TYPELESS                   = 1,
@@ -155,7 +174,7 @@ namespace Thunder
         SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE = 190,
     
     
-        FORCE_UINT                  = 0xffffffff
+        FORCE_UINT                  = 0xff
     };
 
     enum class ERHIViewDimension : uint32
@@ -359,5 +378,13 @@ namespace Thunder
         Triangle = 3,
         Patch = 4
     };
+
+    /** The maximum number of vertex elements which can be used by a vertex declaration. */
+    enum
+    {
+        MaxVertexElementCount = 17,
+        MaxVertexElementCount_NumBits = 5,
+    };
+    static_assert(MaxVertexElementCount <= (1 << MaxVertexElementCount_NumBits), "MaxVertexElementCount will not fit on MaxVertexElementCount_NumBits");
 }
 

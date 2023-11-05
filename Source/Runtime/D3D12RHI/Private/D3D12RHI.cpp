@@ -9,6 +9,7 @@
 #include <dxgi1_4.h>
 
 #include "D3D12RHIModule.h"
+#include "D3D12RootSignature.h"
 #include "d3dx12.h"
 
 namespace Thunder
@@ -52,7 +53,7 @@ namespace Thunder
         DSVDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, DSVDescriptorHeapSize);
         SamplerDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, SamplerDescriptorHeapSize);
 
-        TD3D12RHIModule::GetModule()->InitPipelineStateTable(Device.Get());
+        TD3D12RHIModule::GetModule()->InitD3D12Context(Device.Get());
         
         if(SUCCEEDED(hr))
         {
@@ -89,12 +90,18 @@ namespace Thunder
         }
     }
 
+    RHIVertexDeclarationRef D3D12DynamicRHI::RHICreateVertexDeclaration(const Array<RHIVertexElement>& InElements)
+    {
+        return MakeRefCount<D3D12RHIVertexDeclaration>(InElements);
+    }
+
     RHGraphicsPipelineStateIRef D3D12DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateInitializer& initializer)
     {
         TD3D12PipelineStateCache* psoCache = TD3D12RHIModule::GetModule()->GetPipelineStateTable();
         TD3D12GraphicsPipelineStateDesc pipelineStateDesc{};
-        TD3D12RootSignature* rootSignature{};
-        if(TD3D12GraphicsPipelineState* found = psoCache->FindInLoadedCache(initializer, rootSignature, pipelineStateDesc))
+
+        const TD3D12RootSignature* rootSignature = TD3D12RHIModule::GetModule()->GetRootSignatureManager()->GetRootSignature(initializer.RegisterCounts);
+        if (TD3D12GraphicsPipelineState* found = psoCache->FindInLoadedCache(initializer, rootSignature, pipelineStateDesc))
         {
             return RHGraphicsPipelineStateIRef(found);
         }

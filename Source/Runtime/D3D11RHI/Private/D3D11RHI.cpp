@@ -5,6 +5,7 @@
 #include "D3D11CommandContext.h"
 #include "Assertion.h"
 #include "D3d11_4.h"
+#include "ShaderModule.h"
 
 namespace Thunder
 {
@@ -38,9 +39,8 @@ namespace Thunder
 
 	RHICommandContextRef D3D11DynamicRHI::RHICreateCommandContext()
 	{
-
 		ID3D11DeviceContext* deferredContext;
-		HRESULT hr = Device->CreateDeferredContext(0, &deferredContext);
+		const HRESULT hr = Device->CreateDeferredContext(0, &deferredContext);
 		
 		if (SUCCEEDED(hr))
 		{
@@ -49,8 +49,36 @@ namespace Thunder
 		return nullptr;
 	}
 
-	RHIVertexDeclarationRef D3D11DynamicRHI::RHICreateVertexDeclaration(const Array<RHIVertexElement>& InElements)
+	TRHIGraphicsPipelineState* D3D11DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer)
 	{
+		const Array<RHIVertexElement>& inElements = initializer.VertexDeclaration.Elements;
+		ShaderModule* shaderModule = ShaderModule::GetModule();
+		
+		ShaderCombination* combination = shaderModule->GetShaderCombination(initializer.ShaderIdentifier.ToString());
+		TAssertf(combination != nullptr, "Failed to get shader combination");
+		const BinaryData& shaderByteCode = combination->GetByteCode(EShaderStageType::Vertex);
+		
+		Array<D3D11_INPUT_ELEMENT_DESC> descs;
+		for(const RHIVertexElement& element : inElements)
+		{
+			D3D11_INPUT_ELEMENT_DESC D3DElement{};
+			TAssertf(GVertexInputSemanticToString.contains(element.Name), "Unknown vertex element semantic");
+			D3DElement.SemanticName = GVertexInputSemanticToString.find(element.Name)->second.c_str();
+			D3DElement.SemanticIndex = element.Index;
+			D3DElement.Format = static_cast<DXGI_FORMAT>(element.Format);
+			D3DElement.InputSlot = element.InputSlot;
+			D3DElement.AlignedByteOffset = element.AlignedByteOffset;
+			D3DElement.InputSlotClass = element.IsPerInstanceData ? D3D11_INPUT_PER_INSTANCE_DATA : D3D11_INPUT_PER_VERTEX_DATA;
+			D3DElement.InstanceDataStepRate = 0;
+			descs.push_back(D3DElement);
+		}
+		TAssertf(inElements.size() < MaxVertexElementCount, "Too many vertex elements in declaration");
+		ID3D11InputLayout* inputLayout;
+		const HRESULT hr = Device->CreateInputLayout(descs.data(), static_cast<UINT>(inElements.size()), shaderByteCode.Data, shaderByteCode.Size, &inputLayout);
+		if (SUCCEEDED(hr))
+		{
+			//todo return MakeRefCount<D3D11RHIVertexDeclaration>(inElements, inputLayout);
+		}
 		return nullptr;
 	}
 

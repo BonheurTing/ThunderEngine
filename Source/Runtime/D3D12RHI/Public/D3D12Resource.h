@@ -15,35 +15,6 @@ namespace Thunder
     private:
         ComPtr<ID3D12Device> Device;
     };
-
-    class D3D12RHIVertexDeclaration : public RHIVertexDeclaration
-    {
-    public:
-        /** Elements of the vertex declaration. */
-        Array<D3D12_INPUT_ELEMENT_DESC> VertexElements; //check max vertex element count: MaxVertexElementCount
-        
-        /** Initialization constructor. */
-        explicit D3D12RHIVertexDeclaration(const Array<RHIVertexElement>& InElements)
-            : RHIVertexDeclaration(InElements)
-        {
-            for(const RHIVertexElement& Element : InElements)
-            {
-                D3D12_INPUT_ELEMENT_DESC D3DElement{};
-                TAssertf(GVertexInputSemanticToString.contains(Element.Name), "Unknown vertex element semantic");
-                D3DElement.SemanticName = GVertexInputSemanticToString.find(Element.Name)->second.c_str();
-                D3DElement.SemanticIndex = Element.Index;
-                D3DElement.Format = static_cast<DXGI_FORMAT>(Element.Format);
-                D3DElement.InputSlot = Element.InputSlot;
-                D3DElement.AlignedByteOffset = Element.AlignedByteOffset;
-                D3DElement.InputSlotClass = Element.IsPerInstanceData ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-                D3DElement.InstanceDataStepRate = 0;
-                VertexElements.push_back(D3DElement);
-            }
-            TAssertf(InElements.size() < MaxVertexElementCount, "Too many vertex elements in declaration");
-        }
-
-        //virtual bool GetInitializer(FVertexDeclarationElementList& Init) final override;
-    };
     
     class D3D12RHIVertexBuffer : public RHIVertexBuffer
     {

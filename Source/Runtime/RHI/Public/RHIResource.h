@@ -136,54 +136,23 @@ namespace Thunder
     //
     // Pipeline stat
     //
-
-    class RHIVertexDeclaration
+    
+    class TRHIGraphicsPipelineState
     {
     public:
-        RHIVertexDeclaration(Array<RHIVertexElement> const& inElements) : Elements(inElements) {}
+        TRHIGraphicsPipelineState(const TGraphicsPipelineStateDescriptor& desc) : PipelineStateDesc(desc) {}
     private:
-        Array<RHIVertexElement> Elements;
-    };
-    
-    struct TRHIGraphicsPipelineState
-    {
-        TRHIGraphicsPipelineState() = default;
+        TGraphicsPipelineStateDescriptor PipelineStateDesc;
     };
 
-    struct TGraphicsPipelineStateInitializer
+    class TRHIComputePipelineState
     {
-        TShaderRegisterCounts           RegisterCounts;
-        RHIVertexDeclaration*			VertexDeclaration;
-        ShaderCombination*				ShaderCombination;
-        RHIBlendState*					BlendState;
-        RHIRasterizerState*			    RasterizerState;
-        RHIDepthStencilState*			DepthStencilState;
-        ERHIPrimitiveType				PrimitiveType;
-        uint32							RenderTargetsEnabled;
-        Array<RHIFormat>			    RenderTargetFormats;
-        RHIFormat                       DepthStencilFormat;
-        uint16							NumSamples;
-
-        bool operator==(const TGraphicsPipelineStateInitializer& rhs) const
-        {
-            if (RegisterCounts != rhs.RegisterCounts ||
-                VertexDeclaration != rhs.VertexDeclaration ||
-                ShaderCombination != rhs.ShaderCombination ||
-                BlendState != rhs.BlendState ||
-                RasterizerState != rhs.RasterizerState ||
-                DepthStencilState != rhs.DepthStencilState ||
-                PrimitiveType != rhs.PrimitiveType ||
-                RenderTargetsEnabled != rhs.RenderTargetsEnabled ||
-                RenderTargetFormats != rhs.RenderTargetFormats || 
-                DepthStencilFormat != rhs.DepthStencilFormat || 
-                NumSamples != rhs.NumSamples)
-            {
-                return false;
-            }
-            return true;
-        }
+    public:
+        TRHIComputePipelineState(const TComputePipelineStateDescriptor& desc) : PipelineStateDesc(desc) {}
+    private:
+        TComputePipelineStateDescriptor PipelineStateDesc;
     };
-    
+
     //
     // State blocks npv_
     //
@@ -211,7 +180,7 @@ namespace Thunder
     typedef RefCountPtr<RHIBlendState> RHIBlendStateRef;
     typedef RefCountPtr<RHIRasterizerState> RHIRasterizerStateRef;
     typedef RefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
-    typedef RefCountPtr<RHIVertexDeclaration> RHIVertexDeclarationRef;
+    typedef RefCountPtr<RHIVertexDeclarationDescriptor> RHIVertexDeclarationRef;
     typedef RefCountPtr<RHICommandContext> RHICommandContextRef;
     typedef RefCountPtr<TRHIGraphicsPipelineState> RHGraphicsPipelineStateIRef;    
     typedef RefCountPtr<RHISampler> RHISamplerRef;

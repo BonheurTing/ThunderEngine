@@ -8,6 +8,7 @@
 #include "NameHandle.h"
 #include "BasicDefinition.h"
 #include <wrl.h>
+#include <ranges>
 
 using namespace Microsoft::WRL;
 

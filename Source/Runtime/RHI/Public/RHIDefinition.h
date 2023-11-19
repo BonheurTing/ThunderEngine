@@ -13,7 +13,8 @@ namespace Thunder
         Color,
         BiNormal,
         BlendIndices,
-        BlendWeights
+        BlendWeights,
+        Max
     };
     static const HashMap<ERHIVertexInputSemantic, String> GVertexInputSemanticToString =
     {
@@ -27,7 +28,7 @@ namespace Thunder
         { ERHIVertexInputSemantic::BlendIndices, "BLENDINDICES" },
         { ERHIVertexInputSemantic::BlendWeights, "BLENDWEIGHT" }
     };
-    
+
     enum class ERHIResourceType : uint8
     {
         Unknown	= 0,
@@ -341,33 +342,49 @@ namespace Thunder
         Back = 3
     };
 
+    enum class ERHIDepthBiasType : uint8
+    {
+        Default = 0,
+        Invalid
+    };
+
+    struct DepthBiasConfig
+    {
+        int32 Bias = 0;
+        float BiasClamp = 0.f;
+        float SlopeScaledBias = 0.f;
+    };
+
     enum class ERHIDepthWriteMask : uint8
     {
         Zero = 0,
         All = 1
     };
 
+    // +1 for the dx12 value
     enum class ERHIComparisonFunc : uint8
     {
-        Never = 1,
-        Less = 2,
-        Equal = 3,
-        LessEqual = 4,
-        Greater = 5,
-        NotEqual = 6,
-        GreaterEqual = 7,
-        Always = 8
+        Never = 0,
+        Less,
+        Equal,
+        LessEqual,
+        Greater,
+        NotEqual,
+        GreaterEqual,
+        Always
     };
+
+    // +1 for the dx12 value
     enum class ERHIStencilOp : uint8
     {
-        Keep = 1,
-        Zero = 2,
-        Replace = 3,
-        IncrSat = 4,
-        DecrSat = 5,
-        Invert = 6,
-        Incr = 7,
-        Decr = 8
+        Keep = 0,
+        Zero,
+        Replace,
+        IncrSat,
+        DecrSat,
+        Invert,
+        Incr,
+        Decr
     };
 
     enum class ERHIPrimitiveType : uint8

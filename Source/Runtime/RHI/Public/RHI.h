@@ -13,22 +13,30 @@ namespace Thunder
 		
 		union
 		{
-			uint8 Hash[5];
-
+			uint8 Hash[5] = { 0, 0, 0, 0, 0 };
 			struct
 			{
 				ERHIVertexInputSemantic Name : 4;
 				uint8 Index : 4;
 				RHIFormat Format : 8;
-				uint8 InputSlot : 4;
 				uint16 AlignedByteOffset;
+				uint8 InputSlot : 4;
 				uint8 IsPerInstanceData : 1;
+				uint8 Padding : 3;
 			};
 		};
+	};
+	
+	struct RHIVertexDeclarationDescriptor
+	{
+		RHIVertexDeclarationDescriptor() = default;
+		RHIVertexDeclarationDescriptor(Array<RHIVertexElement> const& inElements) : Elements(inElements) {}
+		Array<RHIVertexElement> Elements;
 	};
 
 	struct RHIBlendDescriptor
 	{
+		RHIBlendDescriptor();
 		union
 		{
 			uint8 Hash[5];
@@ -43,49 +51,66 @@ namespace Thunder
 				ERHIBlend DestBlendAlpha : 5;
 				ERHIBlendOp BlendOpAlpha : 3;
 				ERHILogicOp LogicOp : 4;
-				uint8 RenderTargetWriteMask : 8;
+				uint8 RenderTargetWriteMask : 4;
+				uint8 Padding : 4;
 			};
 		};
 	};
 
 	struct RHIBlendState
 	{
-		bool AlphaToCoverageEnable;
-		bool IndependentBlendEnable;
-		RHIBlendDescriptor* RenderTarget[MAX_RENDER_TARGETS];
+		RHIBlendState();
+		union
+		{
+			uint8 Hash[41];
+			struct
+			{
+				RHIBlendDescriptor RenderTarget[MAX_RENDER_TARGETS];
+				uint8 AlphaToCoverageEnable : 1;
+				uint8 IndependentBlendEnable : 1;
+				uint8 Padding : 6;
+			};
+		};
 	};
+	
+	RHI_API extern HashMap<ERHIDepthBiasType, DepthBiasConfig> GRHIDepthBiasConfig;
 
 	struct RHIRasterizerState
 	{
-		ERHIFillMode FillMode;
-		ERHICullMode CullMode;
-		bool FrontCounterClockwise;
-		int32 DepthBias;
-		float DepthBiasClamp;
-		float SlopeScaleDepthBias;
-		bool DepthClipEnable;
-		bool MultisampleEnable;
-		bool AntialiasedLineEnable;
-		uint32 ForcedSampleCount;
-		bool ConservativeRaster;
-
-		RHI_API friend uint32 GetTypeHash(const RHIRasterizerState& initializer);
-		RHI_API friend bool operator== (const RHIRasterizerState& a, const RHIRasterizerState& b);
+		RHIRasterizerState();
+		union
+		{
+			uint8 Hash[2];
+			struct
+			{
+				ERHIFillMode FillMode : 2;
+				ERHICullMode CullMode : 2;
+				uint8 FrontCounterClockwise : 1;
+				ERHIDepthBiasType DepthBias : 3;
+				uint8 DepthClipEnable : 1;
+				uint8 MultisampleEnable : 1;
+				uint8 AntiAliasedLineEnable : 1;
+				uint8 ForcedSampleCount : 4;
+				uint8 ConservativeRaster : 1;
+				uint8 Padding : 1;
+			};
+		};
 	};
 
 	struct RHIDepthStencilState
 	{
+		RHIDepthStencilState();
 		union
 		{
-			uint8 Hash[6];
+			uint8 Hash[6] = { 0, 0, 0, 0, 0, 0 };
 
 			struct
 			{
 				uint8 DepthEnable : 1;
-				uint8 DepthWriteMask : 1;
-				ERHIDepthWriteMask : 1;
+				ERHIDepthWriteMask DepthWriteMask: 1;
 				ERHIComparisonFunc DepthFunc : 3;
 				uint8 StencilEnable : 1;
+				uint8 Padding : 1;
 				uint8 StencilReadMask : 8;
 				uint8 StencilWriteMask : 8;
 
@@ -99,6 +124,41 @@ namespace Thunder
 				ERHIComparisonFunc BackFaceStencilFunc : 3;
 			};
 		};
+	};
+
+	struct TGraphicsPipelineStateDescriptor
+	{
+		TShaderRegisterCounts           RegisterCounts;
+		RHIVertexDeclarationDescriptor	VertexDeclaration;
+		RHIBlendState					BlendState;
+		RHIRasterizerState			    RasterizerState;
+		RHIDepthStencilState            DepthStencilState;
+		RHIFormat	                    RenderTargetFormats[MAX_RENDER_TARGETS];
+		RHIFormat                       DepthStencilFormat : 8;
+		ERHIPrimitiveType				PrimitiveType : 3;
+		uint8							RenderTargetsEnabled : 1;
+		uint8							NumSamples : 4;
+
+		NameHandle						ShaderIdentifier;
+		
+		void GetStateIdentifier(Array<uint8>& outIdentifier) const;
+		TGraphicsPipelineStateDescriptor() :
+			RegisterCounts{},
+			VertexDeclaration{},
+			BlendState{},
+			RasterizerState{},
+			DepthStencilState{},
+			RenderTargetFormats{RHIFormat::UNKNOWN},
+			DepthStencilFormat{RHIFormat::UNKNOWN},
+			PrimitiveType{ERHIPrimitiveType::Undefined},
+			RenderTargetsEnabled{0},
+			NumSamples{1},
+			ShaderIdentifier{""}
+		{}
+	};
+	struct TComputePipelineStateDescriptor
+	{
+		
 	};
 	
 	/**

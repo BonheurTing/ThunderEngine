@@ -14,10 +14,8 @@ namespace Thunder
 		RHIDeviceRef RHICreateDevice() override;
 
 		RHICommandContextRef RHICreateCommandContext() override;
-
-		RHIVertexDeclarationRef RHICreateVertexDeclaration(const Array<RHIVertexElement>& InElements) override;
 		
-		RHGraphicsPipelineStateIRef RHICreateGraphicsPipelineState(TGraphicsPipelineStateInitializer& initializer) override {return nullptr;}
+		TRHIGraphicsPipelineState* RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer) override;
         
 		void RHICreateComputePipelineState() override {}
 

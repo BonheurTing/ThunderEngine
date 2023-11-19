@@ -32,7 +32,7 @@ namespace Thunder
     	bool CompileShader(NameHandle archiveName, const String& shaderSource, const String& includeStr, uint64 variantId);
 		bool RegisterRootSignature()
 		{
-			//todo: get rootsignaturemanager
+			//TD3D12RHIModule::GetRootSignatureManager().RegisterRootSignature(Name, RegisterCounts);
 			return false;
 		}
     private:

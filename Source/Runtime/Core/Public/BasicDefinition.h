@@ -72,11 +72,17 @@ namespace Thunder
 	// root signature
 	struct TShaderRegisterCounts
 	{
-		uint8 SamplerCount;
-		uint8 ConstantBufferCount;
-		uint8 ShaderResourceCount;
-		uint8 UnorderedAccessCount;
-
+		union
+		{
+			uint8 Hash[4] { 0, 0, 0, 0 };
+			struct
+			{
+				uint8 SamplerCount;
+				uint8 ConstantBufferCount;
+				uint8 ShaderResourceCount;
+				uint8 UnorderedAccessCount;
+			};
+		};
 		inline bool operator==(const TShaderRegisterCounts& rhs) const
 		{
 			return 0 == memcmp(this, &rhs, sizeof(rhs));

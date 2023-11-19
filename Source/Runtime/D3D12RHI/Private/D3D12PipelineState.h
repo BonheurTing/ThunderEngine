@@ -9,17 +9,12 @@ namespace Thunder
 	class TD3D12RootSignature;
 	struct TD3D12GraphicsPipelineStateDesc
 	{
-		//const FD3D12RootSignature *pRootSignature;
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc{};
-		uint32 VSHash = 0;
-		uint32 MSHash = 0;
-		uint32 ASHash = 0;
-		uint32 GSHash = 0;
-		uint32 PSHash = 0;
-		uint32 InputLayoutHash = 0;
-
+		Array<D3D12_INPUT_ELEMENT_DESC> InputLayout{};
+		
 		uint32 CombinedHash = 0;
-
+		
+		explicit TD3D12GraphicsPipelineStateDesc() {}
 		bool operator==(const TD3D12GraphicsPipelineStateDesc& rhs) const
 		{
 			return CombinedHash == rhs.CombinedHash;
@@ -31,8 +26,6 @@ namespace Thunder
 		//const FD3D12RootSignature *pRootSignature;
 		D3D12_COMPUTE_PIPELINE_STATE_DESC Desc{};
 		uint32 CSHash = 0;
-		
-		//bool bFromPSOFileCache;
 
 		uint32 CombinedHash = 0;
 	};
@@ -47,53 +40,59 @@ namespace std
 			return hash<Thunder::uint32>()(value.CombinedHash);
 		}
 	};
+
+	template<>
+	struct hash<Thunder::TD3D12ComputePipelineStateDesc>
+	{
+		size_t operator()(const Thunder::TD3D12ComputePipelineStateDesc& value) const
+		{
+			return hash<Thunder::uint32>()(value.CombinedHash);
+		}
+	};
 }
 
 namespace Thunder
 {
-	void GetGraphicsPipelineStateDesc(const TGraphicsPipelineStateInitializer& initializer, const TD3D12RootSignature* rootSignature, TD3D12GraphicsPipelineStateDesc& outDesc);
+	void GetD3D12GraphicsPipelineStateDesc(const TGraphicsPipelineStateDescriptor& descriptor, const TD3D12RootSignature* rootSignature, TD3D12GraphicsPipelineStateDesc& outDesc);
 	//TD3D12ComputePipelineStateDesc GetComputePipelineStateDesc(const FD3D12ComputeShader* ComputeShader);
 	
-	class D3D12PipelineState
+	class TD3D12GraphicsPipelineState : public TRHIGraphicsPipelineState
 	{
 	public:
-		explicit D3D12PipelineState(ID3D12PipelineState* inPso) : PipelineState(inPso) {}
-		~D3D12PipelineState() = default;
-
-		bool IsValid() {return false;}
-
-	private:
-		RefCountPtr<ID3D12PipelineState> PipelineState;
-	
-	};
-	
-	struct TD3D12GraphicsPipelineState : public TRHIGraphicsPipelineState
-	{
-		TD3D12GraphicsPipelineState(const TGraphicsPipelineStateInitializer& initializer, D3D12PipelineState* inPipelineState)
-			: PipelineStateInitializer(initializer), PipelineState(inPipelineState) {}
+		TD3D12GraphicsPipelineState(const TGraphicsPipelineStateDescriptor& desc, ComPtr<ID3D12PipelineState> inPipelineState)
+			: TRHIGraphicsPipelineState(desc), PipelineState(inPipelineState) {}
 		TD3D12GraphicsPipelineState(const TD3D12GraphicsPipelineState& rhs) = default;
 		~TD3D12GraphicsPipelineState() = default;
 		
-		TGraphicsPipelineStateInitializer PipelineStateInitializer;
-		D3D12PipelineState* PipelineState;
+	private:
+		ComPtr<ID3D12PipelineState> PipelineState = nullptr;
 	};
 
+	class TD3D12ComputePipelineState : public TRHIComputePipelineState
+	{
+	public:
+		TD3D12ComputePipelineState(const TComputePipelineStateDescriptor& desc, ComPtr<ID3D12PipelineState> inPipelineState)
+			: TRHIComputePipelineState(desc), PipelineState(inPipelineState) {}
+		TD3D12ComputePipelineState(const TD3D12ComputePipelineState& rhs) = default;
+		~TD3D12ComputePipelineState() = default;
+		
+	private:
+		ComPtr<ID3D12PipelineState> PipelineState = nullptr;
+	};
 
 	class TD3D12PipelineStateCache : public TD3D12DeviceChild
 	{
 	public:
 		TD3D12PipelineStateCache(ID3D12Device* InDevice) : TD3D12DeviceChild(InDevice) {}
 		TD3D12PipelineStateCache() = delete;
-		//TD3D12PipelineStateCache() = delete;
-		TD3D12GraphicsPipelineState* FindInLoadedCache(const TGraphicsPipelineStateInitializer& initializer, const TD3D12RootSignature* rootSignature, TD3D12GraphicsPipelineStateDesc& outDesc);
-		D3D12PipelineState* CreateAndAddToCache(const TD3D12GraphicsPipelineStateDesc& desc);
 		
+		TD3D12GraphicsPipelineState* FindOrCreateGraphicsPipelineState(const TGraphicsPipelineStateDescriptor& rhiDesc);
 		
 	private:
-		template <typename TDesc, typename TValue = D3D12PipelineState*>
-		using TPipelineCache = HashMap<TDesc, TValue>;
-		TPipelineCache<TD3D12GraphicsPipelineStateDesc> GraphicsPipelineStateCache; // TODO
-		//TPipelineCache<TD3D12ComputePipelineStateDesc> ComputePipelineStateCache;
+		TD3D12GraphicsPipelineState* CreateAndAddToCache(const TGraphicsPipelineStateDescriptor& rhiDesc, const TD3D12GraphicsPipelineStateDesc& d3d12Desc);
+
+		HashMap<TD3D12GraphicsPipelineStateDesc, RefCountPtr<TD3D12GraphicsPipelineState>> GraphicsPipelineStateCache;
+		//HashMap<TD3D12ComputePipelineStateDesc, TD3D12ComputePipelineState> ComputePipelineStateCache;
 	};
 	
 }

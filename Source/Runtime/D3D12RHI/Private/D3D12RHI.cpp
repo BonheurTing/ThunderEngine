@@ -90,27 +90,10 @@ namespace Thunder
         }
     }
 
-    RHIVertexDeclarationRef D3D12DynamicRHI::RHICreateVertexDeclaration(const Array<RHIVertexElement>& InElements)
-    {
-        return MakeRefCount<D3D12RHIVertexDeclaration>(InElements);
-    }
-
-    RHGraphicsPipelineStateIRef D3D12DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateInitializer& initializer)
+    TRHIGraphicsPipelineState* D3D12DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer)
     {
         TD3D12PipelineStateCache* psoCache = TD3D12RHIModule::GetModule()->GetPipelineStateTable();
-        TD3D12GraphicsPipelineStateDesc pipelineStateDesc{};
-
-        const TD3D12RootSignature* rootSignature = TD3D12RHIModule::GetModule()->GetRootSignatureManager()->GetRootSignature(initializer.RegisterCounts);
-        if (TD3D12GraphicsPipelineState* found = psoCache->FindInLoadedCache(initializer, rootSignature, pipelineStateDesc))
-        {
-            return RHGraphicsPipelineStateIRef(found);
-        }
-        D3D12PipelineState* const PipelineState = psoCache->CreateAndAddToCache(pipelineStateDesc);
-        if (PipelineState && PipelineState->IsValid())
-        {
-            return MakeRefCount<TD3D12GraphicsPipelineState>(initializer, PipelineState);
-        }
-        return nullptr;
+        return psoCache->FindOrCreateGraphicsPipelineState(initializer);
     }
 
     void D3D12DynamicRHI::RHICreateComputePipelineState()

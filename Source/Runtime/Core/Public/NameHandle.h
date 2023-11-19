@@ -21,6 +21,7 @@ namespace Thunder
 
 		_NODISCARD_ bool IsEmpty() const { return StringAddress == Empty.StringAddress; }
 		_NODISCARD_ const char* c_str() const { return StringAddress; }
+		String ToString() const { return StringAddress; }
 
 		const char* operator*() const { return StringAddress; }
 

@@ -15,8 +15,15 @@ namespace Thunder
 	    ComPtr<ID3D11Device> Device;
     };
 
-	
-    //class D3D11Desc : public 
+    class D3D11RHIVertexDeclaration : public RHIVertexDeclarationDescriptor
+    {
+    public:
+        D3D11RHIVertexDeclaration() = delete;
+        D3D11RHIVertexDeclaration(Array<RHIVertexElement> const& inElements, ID3D11InputLayout * inInputLayout)
+        : RHIVertexDeclarationDescriptor(inElements), InputLayout(inInputLayout) {}
+    private:
+        ComPtr<ID3D11InputLayout> InputLayout;
+    };
     
     class D3D11RHIVertexBuffer : public RHIVertexBuffer
     {

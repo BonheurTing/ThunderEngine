@@ -129,11 +129,11 @@ namespace Thunder
 
 	void ShaderModule::ShutDown()
 	{
-		for (auto pair : ShaderMap)
+		for (auto value : ShaderMap | std::views::values)
 		{
-			if (pair.second)
+			if (value)
 			{
-				TMemory::Destroy(pair.second);
+				TMemory::Destroy(value);
 			}
 		}
 	}
@@ -276,7 +276,7 @@ namespace Thunder
     			}
     		}
     
-    		ShaderMap[shaderArchiveName] = currentShader; // TODO.
+    		ShaderMap[shaderArchiveName] = currentShader;
     		LOG("Succeed to Parse %s", metaFileName.c_str());
     	}
     	if(!shaderNameList.empty())
@@ -312,24 +312,39 @@ namespace Thunder
 		return false;
 	}
 
-	bool ShaderModule::GetShaderCombination(NameHandle shaderName, NameHandle passName, uint64 variantId,
-	                                        ShaderCombination*& outShaderCombination)
+	ShaderCombination* ShaderModule::GetShaderCombination(const String& combinationHandle)
+	{
+		size_t pos1 = 0, pos2 = 0;
+		pos1 = combinationHandle.find_first_of('|');
+		TAssert(pos1 != String::npos);
+		const NameHandle shaderName = combinationHandle.substr(0, pos1);
+		pos2 = combinationHandle.find_last_of('|');
+		TAssert(pos2 != String::npos && pos2 > pos1);
+		const NameHandle passName = combinationHandle.substr(pos1 + 1, pos2 - pos1 - 1);
+		const uint64 variantId = CommonUtilities::StringToInteger(combinationHandle.substr(pos2 + 1));
+		return GetShaderCombination(shaderName, passName, variantId);
+	}
+
+	ShaderCombination* ShaderModule::GetShaderCombination(NameHandle shaderName, NameHandle passName, uint64 variantId)
 	{
 		if (!ShaderMap.contains(shaderName))
 		{
 			TAssertf(false, "ShaderArchive not exist");
-			return false;
+			return nullptr;
 		}
 		if (const auto pass = ShaderMap[shaderName]->GetPass(passName))
 		{
 			if (pass->CheckCache(variantId))
 			{
-				outShaderCombination = pass->GetShaderCombination(variantId);
-				return true;
+				return pass->GetShaderCombination(variantId);
+			}
+			else
+			{
+				//todo compile?
 			}
 		}
 		TAssertf(false, "ShaderPass not exist");
-		return false;
+		return nullptr;
 	}
 
 	void ShaderModule::InitShaderCompiler(EGfxApiType type)
@@ -365,6 +380,7 @@ namespace Thunder
     {
     	if (!ShaderMap.contains(shaderType))
     	{
+			TAssertf(false, "ShaderArchive not exist");
     		return false;
     	}
     	return ShaderMap[shaderType]->CompileShaderPass(passName, VariantId);

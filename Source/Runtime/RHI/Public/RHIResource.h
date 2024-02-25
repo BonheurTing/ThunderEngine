@@ -1,7 +1,6 @@
 #pragma once
 
 #include "RHI.h"
-#include "RHIContext.h"
 #include "CoreMinimal.h"
 #include "RHI.export.h"
 
@@ -134,21 +133,35 @@ namespace Thunder
     };
 
     //
-    // Pipeline stat
+    // Pipeline state
     //
-    
-    class TRHIGraphicsPipelineState
+
+    class TRHIPipelineState
     {
     public:
-        TRHIGraphicsPipelineState(const TGraphicsPipelineStateDescriptor& desc) : PipelineStateDesc(desc) {}
+        TRHIPipelineState(ERHIPipelineStateType type) : PipelineStateType(type) {}
+        virtual ~TRHIPipelineState() = default;
+        _NODISCARD_ virtual void* GetPipelineState() const { return nullptr; }
+        _NODISCARD_ ERHIPipelineStateType GetPipelineStateType() const { return PipelineStateType; }
+        
+    private:
+        ERHIPipelineStateType PipelineStateType;
+    };
+    
+    class TRHIGraphicsPipelineState : public TRHIPipelineState
+    {
+    public:
+        TRHIGraphicsPipelineState(const TGraphicsPipelineStateDescriptor& desc) :
+            TRHIPipelineState(ERHIPipelineStateType::Graphics), PipelineStateDesc(desc) {}
     private:
         TGraphicsPipelineStateDescriptor PipelineStateDesc;
     };
 
-    class TRHIComputePipelineState
+    class TRHIComputePipelineState : public TRHIPipelineState
     {
     public:
-        TRHIComputePipelineState(const TComputePipelineStateDescriptor& desc) : PipelineStateDesc(desc) {}
+        TRHIComputePipelineState(const TComputePipelineStateDescriptor& desc) :
+            TRHIPipelineState(ERHIPipelineStateType::Compute), PipelineStateDesc(desc) {}
     private:
         TComputePipelineStateDescriptor PipelineStateDesc;
     };
@@ -164,10 +177,11 @@ namespace Thunder
         
     };
 
-    class RHIViewPort
+    class RHIViewport
     {
     public:
-        RHIViewPort(){}
+        virtual ~RHIViewport() = default;
+        _NODISCARD_ virtual const void* GetViewPort() const = 0;
     };
     
 
@@ -181,7 +195,6 @@ namespace Thunder
     typedef RefCountPtr<RHIRasterizerState> RHIRasterizerStateRef;
     typedef RefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
     typedef RefCountPtr<RHIVertexDeclarationDescriptor> RHIVertexDeclarationRef;
-    typedef RefCountPtr<RHICommandContext> RHICommandContextRef;
     typedef RefCountPtr<TRHIGraphicsPipelineState> RHGraphicsPipelineStateIRef;    
     typedef RefCountPtr<RHISampler> RHISamplerRef;
     typedef RefCountPtr<RHIFence> RHIFenceRef;

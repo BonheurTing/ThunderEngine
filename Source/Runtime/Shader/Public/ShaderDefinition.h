@@ -53,16 +53,15 @@ namespace Thunder
     		}
     	}
 
-    	const BinaryData& GetByteCode(EShaderStageType type)
-		{
-			if (Shaders.contains(type))
-			{
-				return Shaders[type].ByteCode;
-			}
-			return {};
-		}
-    	
-    	HashMap<EShaderStageType, ShaderStage> Shaders;
+    	void GetByteCode(EShaderStageType type, BinaryData& outByteCode)
+    	{
+    		if (Shaders.contains(type))
+    		{
+    			outByteCode = Shaders[type].ByteCode;
+    		}
+    	}
+
+    	THashMap<EShaderStageType, ShaderStage> Shaders;
     };
     
     struct VariantMeta

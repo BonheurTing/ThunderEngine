@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <iostream>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -14,25 +15,25 @@ namespace Thunder
 	using String = std::string;
 
 	template<typename InElementType, typename InAllocatorType = std::allocator<InElementType>>
-	using Array = std::vector<InElementType, InAllocatorType>;
+	using TArray = std::vector<InElementType, InAllocatorType>;
 
 	template<typename InElementType>
-	using List = std::list<InElementType>;
+	using TList = std::list<InElementType>;
 	
 	template<typename InElementType>
-	using HashSet = std::unordered_set<InElementType>;
+	using THashSet = std::unordered_set<InElementType>;
 
 	template<typename InElementType>
-	using Set = std::set<InElementType>;
+	using TSet = std::set<InElementType>;
 
 	template<typename InKeyType, typename InValueType>
-	using HashMap = std::unordered_map<InKeyType, InValueType>;
+	using THashMap = std::unordered_map<InKeyType, InValueType>;
 
 	template<typename InKeyType, typename InValueType>
-	using Map = std::map<InKeyType, InValueType>;
+	using TMap = std::map<InKeyType, InValueType>;
 
 	template<typename InElementType>
-	using Deque = std::deque<InElementType>;
+	using TDeque = std::deque<InElementType>;
 
 	using Mutex = std::mutex;
 	using ScopeLock = std::lock_guard<std::mutex>;

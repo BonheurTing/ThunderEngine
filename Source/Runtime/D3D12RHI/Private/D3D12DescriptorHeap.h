@@ -33,7 +33,7 @@ namespace Thunder
 		ID3D12DescriptorHeap* GetHeap() { return RootHeap.Get(); }
 		const D3D12_DESCRIPTOR_HEAP_DESC& GetDesc() const { return Desc; }
 		
-		List<uint32> HeapFreeList;
+		TList<uint32> HeapFreeList;
 		
 		uint32 DescriptorSize;
 		const D3D12_DESCRIPTOR_HEAP_DESC Desc;

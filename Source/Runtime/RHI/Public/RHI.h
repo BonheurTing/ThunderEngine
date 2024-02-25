@@ -1,9 +1,11 @@
 #pragma once
 #include "dxgiformat.h"
 #include "RHIDefinition.h"
+#include <wrl/client.h>
 
 namespace Thunder
 {
+	using namespace Microsoft::WRL;
 #define MAX_RENDER_TARGETS 8
 	
 	struct RHIVertexElement
@@ -30,8 +32,8 @@ namespace Thunder
 	struct RHIVertexDeclarationDescriptor
 	{
 		RHIVertexDeclarationDescriptor() = default;
-		RHIVertexDeclarationDescriptor(Array<RHIVertexElement> const& inElements) : Elements(inElements) {}
-		Array<RHIVertexElement> Elements;
+		RHIVertexDeclarationDescriptor(TArray<RHIVertexElement> const& inElements) : Elements(inElements) {}
+		TArray<RHIVertexElement> Elements;
 	};
 
 	struct RHIBlendDescriptor
@@ -73,7 +75,7 @@ namespace Thunder
 		};
 	};
 	
-	RHI_API extern HashMap<ERHIDepthBiasType, DepthBiasConfig> GRHIDepthBiasConfig;
+	RHI_API extern THashMap<ERHIDepthBiasType, DepthBiasConfig> GRHIDepthBiasConfig;
 
 	struct RHIRasterizerState
 	{
@@ -141,7 +143,7 @@ namespace Thunder
 
 		NameHandle						ShaderIdentifier;
 		
-		void GetStateIdentifier(Array<uint8>& outIdentifier) const;
+		void GetStateIdentifier(TArray<uint8>& outIdentifier) const;
 		TGraphicsPipelineStateDescriptor() :
 			RegisterCounts{},
 			VertexDeclaration{},
@@ -169,6 +171,9 @@ namespace Thunder
 	{
 		RHIFormat Format;
 		ERHIViewDimension Type;
+		uint64 Width;
+		uint32 Height;
+		uint16 DepthOrArraySize;
 	};
 
 	struct RHISamplerDescriptor
@@ -215,7 +220,7 @@ namespace Thunder
     		UINT sampleCount,
     		UINT sampleQuality,
     		ERHITextureLayout layout,
-    		RHIResourceFlags flags ) noexcept
+    		RHIResourceFlags flags) noexcept
     		: SampleDesc{}, Flags{}
     	{
     		Type = dimension;

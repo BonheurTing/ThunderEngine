@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Assertion.h"
+#include "RHI.h"
 #include "D3D12RHICommon.h"
 #include "CoreMinimal.h"
 
@@ -42,7 +42,7 @@ namespace Thunder
 		Mutex MapMutex;
 		TD3D12RootSignature* CreateRootSignature(const TShaderRegisterCounts& shaderRC);
 
-		HashMap<TShaderRegisterCounts, TD3D12RootSignature*> RootSignatureMap;
+		THashMap<TShaderRegisterCounts, TD3D12RootSignature*> RootSignatureMap;
 
 	};
 }

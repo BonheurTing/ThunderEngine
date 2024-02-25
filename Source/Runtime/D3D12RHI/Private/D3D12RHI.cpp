@@ -372,7 +372,7 @@ namespace Thunder
         }
     }
 
-    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
+    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* vertexBuffer;
         const D3D12_HEAP_PROPERTIES heapType = {
@@ -380,17 +380,26 @@ namespace Thunder
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
 
-        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
+        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(sizeInBytes);
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                            D3D12_HEAP_FLAG_NONE,
                                                            &desc,
                                                            D3D12_RESOURCE_STATE_GENERIC_READ,
                                                            nullptr,
                                                            IID_PPV_ARGS(&vertexBuffer));
-    
+        
         if (SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHIVertexBuffer>(RHIResourceDescriptor::Buffer(size), vertexBuffer);
+            RHIVertexBufferRef vertexBufferRef = MakeRefCount<D3D12RHIVertexBuffer>(sizeInBytes, StrideInBytes, RHIResourceDescriptor::Buffer(sizeInBytes), vertexBuffer);
+            if (RHIUpdateSharedMemoryResource(vertexBufferRef.get(), resourceData, sizeInBytes, 0))
+            {
+                return vertexBufferRef;
+            }
+            else
+            {
+                TAssertf(false, "Fail to update vertex buffer");
+                return nullptr;
+            }
         }
         else
         {
@@ -399,14 +408,14 @@ namespace Thunder
         }
     }
     
-    RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
+    RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EResourceUsageFlags usage, void *resourceData)
     {
         ID3D12Resource* indexBuffer;
         const D3D12_HEAP_PROPERTIES heapType = {
             EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
-        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
+        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(width);
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                            D3D12_HEAP_FLAG_NONE,
                                                            &desc,
@@ -416,7 +425,7 @@ namespace Thunder
     
         if (SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHIIndexBuffer>(RHIResourceDescriptor::Buffer(size), indexBuffer);
+            return MakeRefCount<D3D12RHIIndexBuffer>(type, RHIResourceDescriptor::Buffer(width), indexBuffer);
         }
         else
         {
@@ -619,4 +628,21 @@ namespace Thunder
         }
     }
 
+    bool D3D12DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)
+    {
+        if (auto const d3d12Res = static_cast<ID3D12Resource*>(resource->GetResource()))
+        {
+            UINT8* pVertexDataBegin;
+            const auto hr = d3d12Res->Map(subresourceId, nullptr, reinterpret_cast<void**>(&pVertexDataBegin));
+            if (FAILED(hr))
+            {
+                TAssertf(false, "Fail to map resource");
+                return false;
+            }
+            memcpy(pVertexDataBegin, resourceData, size);
+            d3d12Res->Unmap(subresourceId, nullptr);
+            return true;
+        }
+        return false;
+    }
 }

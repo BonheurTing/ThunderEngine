@@ -41,7 +41,7 @@ namespace Thunder
 
 	protected:
 		Mutex PoolMutex;
-		Array<char*> StringPools;
+		TArray<char*> StringPools;
 		size_t PoolSize = 1048576;
 		size_t CurrentStringOffset = 0;
 		char* CurrentStringPool = nullptr;

@@ -14,7 +14,7 @@ namespace Thunder
 {
 #define DEBUG_DX12_PSO_CACHE 0
 
-	void GetD3D12VertexDeclaration(const RHIVertexDeclarationDescriptor& desc, Array<D3D12_INPUT_ELEMENT_DESC>& OutVertexElements)
+	void GetD3D12VertexDeclaration(const RHIVertexDeclarationDescriptor& desc, TArray<D3D12_INPUT_ELEMENT_DESC>& OutVertexElements)
 	{
 		for(const RHIVertexElement& element : desc.Elements)
 		{
@@ -89,7 +89,7 @@ namespace Thunder
 		
 		outD3D12Desc.Desc.Flags = DEBUG_DX12_PSO_CACHE ? D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG : D3D12_PIPELINE_STATE_FLAG_NONE;
 
-		Array<uint8> stateIdentifier;
+		TArray<uint8> stateIdentifier;
 		rhiDesc.GetStateIdentifier(stateIdentifier);
 		outD3D12Desc.CombinedHash = FCrc::StrCrc32(stateIdentifier.data());
 		outD3D12Desc.CombinedHash = FCrc::StrCrc32(rhiDesc.ShaderIdentifier.c_str(), outD3D12Desc.CombinedHash);

@@ -1,6 +1,7 @@
 
 #pragma once
-#include "CoreMinimal.h"
+#include "Platform.h"
+#include "BasicDefinition.h"
 
 namespace Thunder
 {

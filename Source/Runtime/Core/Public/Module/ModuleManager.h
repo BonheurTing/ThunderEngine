@@ -117,8 +117,8 @@ namespace Thunder
 		ModuleManager() = default;
 		static Mutex InstanceMutex;
 		static ModuleManager* Instance;
-		HashMap<NameHandle, RefCountPtr<IModule>> ModuleMap;
-		HashMap<NameHandle, Function<IModule*()>> ModuleRegisterMap;
+		THashMap<NameHandle, RefCountPtr<IModule>> ModuleMap;
+		THashMap<NameHandle, Function<IModule*()>> ModuleRegisterMap;
 	};
 
 	template<typename ModuleType>

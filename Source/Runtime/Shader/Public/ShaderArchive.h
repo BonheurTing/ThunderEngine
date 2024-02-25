@@ -10,11 +10,11 @@ namespace Thunder
     	ShaderPass(NameHandle name) : Name(name), PassVariantMask(0) {}
 		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
         _NODISCARD_ TShaderRegisterCounts GetShaderRegisterCounts() const { return RegisterCounts; }
-    	uint64 VariantNameToMask(const Array<VariantMeta>& variantName) const;
-    	void VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, HashMap<NameHandle, bool>& shaderMarco) const;
+    	uint64 VariantNameToMask(const TArray<VariantMeta>& variantName) const;
+    	void VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, THashMap<NameHandle, bool>& shaderMarco) const;
     	//void SetPassVariantMeta(const Array<VariantMeta>& meta) {VariantDefinitionTable = meta;}
     	void AddStageMeta(EShaderStageType type, const StageMeta& meta) {StageMetas[type] = meta;}
-    	void GenerateVariantDefinitionTable(const Array<VariantMeta>& passVariantMeta, const HashMap<EShaderStageType, Array<VariantMeta>>& stageVariantMeta);
+    	void GenerateVariantDefinitionTable(const TArray<VariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<VariantMeta>>& stageVariantMeta);
     	void CacheDefaultShaderCache();
     	bool CheckCache(uint64 variantId) const
     	{
@@ -39,9 +39,9 @@ namespace Thunder
     	NameHandle Name;
     	uint64 PassVariantMask;
 		TShaderRegisterCounts RegisterCounts{};
-    	Array<VariantMeta> VariantDefinitionTable; // 改了之后相关递归mask都要改
-    	HashMap<EShaderStageType, StageMeta> StageMetas;
-    	HashMap<uint64, RefCountPtr<ShaderCombination>> Variants;
+    	TArray<VariantMeta> VariantDefinitionTable; // 改了之后相关递归mask都要改
+    	THashMap<EShaderStageType, StageMeta> StageMetas;
+    	THashMap<uint64, RefCountPtr<ShaderCombination>> Variants;
     };
     
     class ShaderArchive
@@ -62,7 +62,7 @@ namespace Thunder
     	{
     		ParameterMeta.push_back(meta);
     	}
-    	void AddPassParameterMeta(NameHandle name, const Array<ShaderParameterMeta>& metas)
+    	void AddPassParameterMeta(NameHandle name, const TArray<ShaderParameterMeta>& metas)
     	{
     		PasseParameterMeta.emplace(name, metas);
     	}
@@ -77,11 +77,11 @@ namespace Thunder
     private:
     	NameHandle Name;
     	String SourcePath;
-    	Array<ShaderPropertyMeta> PropertyMeta;
-    	Array<ShaderParameterMeta> ParameterMeta;
-    	HashMap<NameHandle, Array<ShaderParameterMeta>> PasseParameterMeta;
+    	TArray<ShaderPropertyMeta> PropertyMeta;
+    	TArray<ShaderParameterMeta> ParameterMeta;
+    	THashMap<NameHandle, TArray<ShaderParameterMeta>> PasseParameterMeta;
     	RenderStateMeta renderState {};
-    	HashMap<NameHandle, RefCountPtr<ShaderPass>> Passes;
+    	THashMap<NameHandle, RefCountPtr<ShaderPass>> Passes;
     };
     
 }

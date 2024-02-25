@@ -11,8 +11,8 @@ namespace Thunder
 	//////////////////////////////////////////////////////////////////////////////////////////
     /// Parse Shader File
     //////////////////////////////////////////////////////////////////////////////////////////
-    HashMap<EShaderStageType, String> GShaderModuleTarget = {};
-    HashMap<String, String> GShaderParameterType = {
+    THashMap<EShaderStageType, String> GShaderModuleTarget = {};
+    THashMap<String, String> GShaderParameterType = {
     	{"Integer", "int"},
     	{"Float", "float"},
     	{"Float4", "float4"},
@@ -20,7 +20,7 @@ namespace Thunder
     	{"Color", "float4"},
     	{"Texture2D", "Texture2D"}
     };
-    HashMap<String, int> GShaderParameterSize = {
+    THashMap<String, int> GShaderParameterSize = {
     	{"Integer", 4},
     	{"Float", 4},
     	{"Float4", 16},
@@ -83,7 +83,7 @@ namespace Thunder
     	}
     
     	template<typename InElementType>
-    	void GenerateParameterCodeArray(const Array<InElementType>& param, Array<CBParamBinding>& outCbCode, Array<String>& outSbCode, uint8& outUAVNum)
+    	void GenerateParameterCodeArray(const TArray<InElementType>& param, TArray<CBParamBinding>& outCbCode, TArray<String>& outSbCode, uint8& outUAVNum)
     	{
     		for (auto& meta : param)
     		{
@@ -116,7 +116,7 @@ namespace Thunder
     	}
     }
     
-    uint64 ShaderPass::VariantNameToMask(const Array<VariantMeta>& variantName) const
+    uint64 ShaderPass::VariantNameToMask(const TArray<VariantMeta>& variantName) const
     {
     	if (!variantName.empty())
     	{
@@ -140,7 +140,7 @@ namespace Thunder
     	return 0;
     }
     
-    void ShaderPass::VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, HashMap<NameHandle, bool>& shaderMarco) const
+    void ShaderPass::VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, THashMap<NameHandle, bool>& shaderMarco) const
     {
     	const int totalVariantType = static_cast<int>(VariantDefinitionTable.size());
     	TAssertf(variantId >> totalVariantType == 0, "Error input VariantId");
@@ -153,10 +153,10 @@ namespace Thunder
     	}
     }
     
-    void ShaderPass::GenerateVariantDefinitionTable(const Array<VariantMeta>& passVariantMeta, const HashMap<EShaderStageType, Array<VariantMeta>>& stageVariantMeta)
+    void ShaderPass::GenerateVariantDefinitionTable(const TArray<VariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<VariantMeta>>& stageVariantMeta)
     {
     	// gen VariantDefinitionTable
-    	HashSet<NameHandle> variantDefinition;
+    	THashSet<NameHandle> variantDefinition;
     	for (auto& meta : passVariantMeta)
     	{
     		TAssertf(!variantDefinition.contains(meta.Name), "Duplicate variant definitions: %s", meta.Name);
@@ -202,7 +202,7 @@ namespace Thunder
     {
     	const bool hasPassParameters = PasseParameterMeta.contains(passName);
     	//check duplicate names
-    	HashSet<NameHandle> uniqueNames;
+    	THashSet<NameHandle> uniqueNames;
     	for (auto& meta : PropertyMeta)
     	{
     		uniqueNames.insert(meta.Name);
@@ -226,8 +226,8 @@ namespace Thunder
     		return;
     	}
     	// preprocess param
-    	Array<CBParamBinding> cbGeneratedCode;
-    	Array<String> sbGeneratedCode;
+    	TArray<CBParamBinding> cbGeneratedCode;
+    	TArray<String> sbGeneratedCode;
     	uint8 dummy = 0;
     	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode, dummy);
     	GenerateParameterCodeArray<ShaderParameterMeta>(ParameterMeta, cbGeneratedCode, sbGeneratedCode, dummy);
@@ -249,7 +249,7 @@ namespace Thunder
     		codeStream << "cbuffer GeneratedConstantBuffer : register(b0)\n{\n";
     	
     		std::sort(cbGeneratedCode.begin(), cbGeneratedCode.end(), CBParamBinding::cmp);
-    		Deque<CBParamBinding> cbQueue;
+    		TDeque<CBParamBinding> cbQueue;
     		cbQueue.assign(cbGeneratedCode.begin(), cbGeneratedCode.end());
     
     		//todo: this is temporary algorithm to be optimized
@@ -306,8 +306,8 @@ namespace Thunder
     	outCount.SamplerCount = 6;
     	outCount.ConstantBufferCount = 1;
 
-    	Array<CBParamBinding> cbGeneratedCode;
-    	Array<String> sbGeneratedCode;
+    	TArray<CBParamBinding> cbGeneratedCode;
+    	TArray<String> sbGeneratedCode;
     	outCount.UnorderedAccessCount = 0;
     	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
     	GenerateParameterCodeArray<ShaderParameterMeta>(ParameterMeta, cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
@@ -332,7 +332,7 @@ namespace Thunder
     		// Variant Marco
     		TAssertf((meta.second.VariantMask & PassVariantMask) == meta.second.VariantMask, "Compile Shader: Invalid stage variantId");
     		const uint64 stageVariantId = variantId & meta.second.VariantMask;
-    		HashMap<NameHandle, bool> shaderMarco{};
+    		THashMap<NameHandle, bool> shaderMarco{};
     		VariantIdToShaderMarco(stageVariantId, meta.second.VariantMask, shaderMarco);
     		//todo: include file
     		newVariant.Shaders[meta.first] = ShaderStage{};

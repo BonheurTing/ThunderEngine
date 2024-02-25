@@ -4,7 +4,7 @@
 #include "D3D11RHIPrivate.h"
 #include "D3D11CommandContext.h"
 #include "Assertion.h"
-#include "D3d11_4.h"
+#include "d3d11_4.h"
 #include "ShaderModule.h"
 
 namespace Thunder
@@ -51,14 +51,16 @@ namespace Thunder
 
 	TRHIGraphicsPipelineState* D3D11DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer)
 	{
-		const Array<RHIVertexElement>& inElements = initializer.VertexDeclaration.Elements;
+		const TArray<RHIVertexElement>& inElements = initializer.VertexDeclaration.Elements;
 		ShaderModule* shaderModule = ShaderModule::GetModule();
 		
 		ShaderCombination* combination = shaderModule->GetShaderCombination(initializer.ShaderIdentifier.ToString());
 		TAssertf(combination != nullptr, "Failed to get shader combination");
-		const BinaryData& shaderByteCode = combination->GetByteCode(EShaderStageType::Vertex);
+		BinaryData shaderByteCode{};
+		combination->GetByteCode(EShaderStageType::Vertex, shaderByteCode);
+		TAssertf(shaderByteCode.Data != nullptr, "Failed to get vertex shader byte code");
 		
-		Array<D3D11_INPUT_ELEMENT_DESC> descs;
+		TArray<D3D11_INPUT_ELEMENT_DESC> descs;
 		for(const RHIVertexElement& element : inElements)
 		{
 			D3D11_INPUT_ELEMENT_DESC D3DElement{};
@@ -84,7 +86,7 @@ namespace Thunder
 
 	void D3D11DynamicRHI::RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize)
 	{
-		
+		TAssertf(false, "Not implemented");
 	}
 
 	void D3D11DynamicRHI::RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc)
@@ -261,8 +263,8 @@ namespace Thunder
 			DSVDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
 			break;
 		case ERHIResourceType::Texture3D:
+		case ERHIResourceType::Unknown:
 			break;
-		case ERHIResourceType::Unknown: break;
 		}
 		
 		ID3D11DepthStencilView* DSVView;
@@ -346,10 +348,10 @@ namespace Thunder
 		}
 	}
 
-	RHIVertexBufferRef D3D11DynamicRHI::RHICreateVertexBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
+	RHIVertexBufferRef D3D11DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  EResourceUsageFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC vbDesc;
-		vbDesc.ByteWidth = size;
+		vbDesc.ByteWidth = sizeInBytes;
 		vbDesc.Usage = D3D11_USAGE_DEFAULT;
 		vbDesc.CPUAccessFlags = 0;
 		if (EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic))
@@ -368,7 +370,7 @@ namespace Thunder
 
 		if (SUCCEEDED(hr))
 		{
-			return MakeRefCount<D3D11RHIVertexBuffer>(RHIResourceDescriptor::Buffer(size), vertexBuffer);
+			return MakeRefCount<D3D11RHIVertexBuffer>(RHIResourceDescriptor::Buffer(sizeInBytes), vertexBuffer);
 		}
 		else
 		{
@@ -377,10 +379,10 @@ namespace Thunder
 		}
 	}
 
-	RHIIndexBufferRef D3D11DynamicRHI::RHICreateIndexBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
+	RHIIndexBufferRef D3D11DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EResourceUsageFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC ibDesc;
-		ibDesc.ByteWidth = size;
+		ibDesc.ByteWidth = width;
 		ibDesc.Usage = D3D11_USAGE_DEFAULT;
 		ibDesc.CPUAccessFlags = 0;
 		if (EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic))
@@ -399,7 +401,7 @@ namespace Thunder
 
 		if (SUCCEEDED(hr))
 		{
-			return MakeRefCount<D3D11RHIIndexBuffer>(RHIResourceDescriptor::Buffer(size), indexBuffer);
+			return MakeRefCount<D3D11RHIIndexBuffer>(RHIResourceDescriptor::Buffer(width), indexBuffer);
 		}
 		else
 		{
@@ -612,5 +614,11 @@ namespace Thunder
 			TAssertf(false, "Fail to create texture3d");
 			return nullptr;
 		}
+	}
+
+	bool D3D11DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)
+	{
+		TAssertf(false, "Not implemented");
+		return false;
 	}
 }

@@ -52,7 +52,7 @@ namespace Thunder
     private:
     	const String IncludeCode;
     	NameHandle ShaderName;
-    	Array<String> IncludeSourceList;
+    	TArray<String> IncludeSourceList;
     };
     
     FXCCompiler::FXCCompiler()
@@ -64,7 +64,7 @@ namespace Thunder
     	};
     }
     
-    void FXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+    void FXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const THashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
     {
     #if defined(SHAHER_DEBUG)
     	// Enable better shader debugging with the graphics debugging tools.
@@ -120,7 +120,7 @@ namespace Thunder
     	}
     }
     
-    void DXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const HashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
+    void DXCCompiler::Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const THashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
     {
     	if (ShaderCompiler == nullptr || ShaderUtils == nullptr)
     	{

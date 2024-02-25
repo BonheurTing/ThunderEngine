@@ -102,7 +102,7 @@ namespace Thunder
     		return result;
     	}
     
-    	bool ParseStageNode(GenericValue<UTF8<>> const& object, StageMeta& outStageMata, Array<VariantMeta>& outStageVariantMeta)
+    	bool ParseStageNode(GenericValue<UTF8<>> const& object, StageMeta& outStageMata, TArray<VariantMeta>& outStageVariantMeta)
     	{
     		TAssertf(object.IsObject(), "Shader meta parse error : Stage node is not an object\n");
     
@@ -140,13 +140,13 @@ namespace Thunder
 
 	bool ShaderModule::ParseShaderFile()
     {
-    	Array<String> shaderNameList;
+    	TArray<String> shaderNameList;
     	GFileManager->TraverseFileFromFolderWithFormat(GFileManager->GetEngineRoot() + "\\Shader", shaderNameList, "shader");
     	
     	for (const String& metaFileName: shaderNameList)
     	{
     		String metaContent;
-    		LOG("%s", metaFileName.c_str());
+    		LOG("ParseShaderFile: %s", metaFileName.c_str());
     		if (!GFileManager->LoadFileToString(metaFileName, metaContent))
     		{
     			continue;
@@ -204,7 +204,7 @@ namespace Thunder
     				auto shaderPass = shaderPasses[passName.c_str()].GetObject();
     				ShaderPass* currentPass = new ShaderPass(passName);
     				// PassVariants
-    				Array<VariantMeta> passVariantMeta;
+    				TArray<VariantMeta> passVariantMeta;
     				if (shaderPass.HasMember("PassVariants") && !shaderPass["PassVariants"].IsNull())
     				{
     					TAssertf(shaderPass["PassVariants"].IsArray(), "Shader meta parse error : %s PassVariants node is not an array\nFile name : %s.", passName, metaFileName.c_str());
@@ -219,7 +219,7 @@ namespace Thunder
     				// PassParameters
     				if (shaderPass.HasMember("PassParameters") && !shaderPass["PassParameters"].IsNull())
     				{
-    					Array<ShaderParameterMeta> passParameterMeta;
+    					TArray<ShaderParameterMeta> passParameterMeta;
     					TAssertf(shaderPass["PassParameters"].IsArray(), "Shader meta parse error : %s PassParameters node is not an array\nFile name : %s.", passName, metaFileName.c_str());
     					auto const& parametersNode = shaderPass["PassParameters"].GetArray();
     					for (auto itr = parametersNode.Begin(); itr != parametersNode.End(); ++itr)
@@ -230,12 +230,12 @@ namespace Thunder
     					}
     					currentShader->AddPassParameterMeta(passName, passParameterMeta);
     				}
-    				HashMap<EShaderStageType, Array<VariantMeta>> stageVariantConfig;
+    				THashMap<EShaderStageType, TArray<VariantMeta>> stageVariantConfig;
     				// Vertex
     				if (shaderPass.HasMember("Vertex") && !shaderPass["Vertex"].IsNull())
     				{
     					StageMeta sMeta{};
-    					Array<VariantMeta> StageVariantMeta;
+    					TArray<VariantMeta> StageVariantMeta;
     					ParseStageNode(shaderPass["Vertex"], sMeta, StageVariantMeta);
     					currentPass->AddStageMeta(EShaderStageType::Vertex, sMeta);
     					if (!StageVariantMeta.empty())
@@ -247,7 +247,7 @@ namespace Thunder
     				if (shaderPass.HasMember("Pixel") && !shaderPass["Pixel"].IsNull())
     				{
     					StageMeta sMeta{};
-    					Array<VariantMeta> StageVariantMeta;
+    					TArray<VariantMeta> StageVariantMeta;
     					ParseStageNode(shaderPass["Pixel"], sMeta, StageVariantMeta);
     					currentPass->AddStageMeta(EShaderStageType::Pixel, sMeta);
     					if (!StageVariantMeta.empty())
@@ -259,7 +259,7 @@ namespace Thunder
     				if (shaderPass.HasMember("Compute") && !shaderPass["Compute"].IsNull())
     				{
     					StageMeta sMeta{};
-    					Array<VariantMeta> StageVariantMeta;
+    					TArray<VariantMeta> StageVariantMeta;
     					ParseStageNode(shaderPass["Compute"], sMeta, StageVariantMeta);
     					currentPass->AddStageMeta(EShaderStageType::Compute, sMeta);
     					if (!StageVariantMeta.empty())
@@ -365,13 +365,13 @@ namespace Thunder
 		}
 	}
 	
-	void ShaderModule::Compile(NameHandle archiveName, const String& inSource, const HashMap<NameHandle, bool>& marco,
+	void ShaderModule::Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco,
 		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
 	{
 		ShaderCompiler->Compile(archiveName, inSource, inSource.size(), marco, includeStr, pEntryPoint, pTarget, outByteCode);
 	}
 	
-    bool ShaderModule::CompileShaderCollection(NameHandle shaderType, NameHandle passName, const HashMap<NameHandle, bool>& variantParameters, bool force)
+    bool ShaderModule::CompileShaderCollection(NameHandle shaderType, NameHandle passName, const THashMap<NameHandle, bool>& variantParameters, bool force)
     {
     	return false;
     }

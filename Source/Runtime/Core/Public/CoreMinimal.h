@@ -7,10 +7,8 @@
 #include "RefCount.h"
 #include "NameHandle.h"
 #include "BasicDefinition.h"
-#include <wrl.h>
 #include <ranges>
-
-using namespace Microsoft::WRL;
+#include <intsafe.h>
 
 #include "Windows/WindowsPlatform.h"
 #include "Memory/MemoryBase.h"

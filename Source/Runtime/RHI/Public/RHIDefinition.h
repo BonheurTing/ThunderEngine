@@ -3,6 +3,12 @@
 
 namespace Thunder
 {
+    enum class ERHIIndexBufferType : uint8
+    {
+        Uint16 = 0,
+        Uint32
+    };
+
     enum class ERHIVertexInputSemantic : uint8
     {
         Unknown = 0,
@@ -16,7 +22,7 @@ namespace Thunder
         BlendWeights,
         Max
     };
-    static const HashMap<ERHIVertexInputSemantic, String> GVertexInputSemanticToString =
+    static const THashMap<ERHIVertexInputSemantic, String> GVertexInputSemanticToString =
     {
         { ERHIVertexInputSemantic::Unknown, "UNKNOWN" },
         { ERHIVertexInputSemantic::Position, "POSITION" },
@@ -192,6 +198,14 @@ namespace Thunder
         TextureCube,
         TextureCubeArray,
         Bufferex
+    };
+
+    enum class ERHIClearFlags : uint8
+    {
+        None = 0,
+        Depth = 1 << 0,
+        Stencil = 1 << 1,
+        DepthStencil = Depth | Stencil
     };
 
     enum class EResourceUsageFlags : uint32
@@ -396,6 +410,26 @@ namespace Thunder
         Patch = 4
     };
 
+    enum class ERHIPrimitive : uint32
+    {
+        Undefined = 0,
+        PointList = 1,
+        LineList = 2,
+        LineStrip = 3,
+        TriangleList = 4,
+        TriangleStrip = 5,
+        LineListAdj = 10,
+        LineStripAdj = 11,
+        TriangleListAdj = 12,
+        TriangleStripAdj = 13
+    };
+
+    enum class ERHIPipelineStateType : uint8
+    {
+        Graphics = 0,
+        Compute = 1
+    };
+
     /** The maximum number of vertex elements which can be used by a vertex declaration. */
     enum
     {
@@ -403,5 +437,26 @@ namespace Thunder
         MaxVertexElementCount_NumBits = 5,
     };
     static_assert(MaxVertexElementCount <= (1 << MaxVertexElementCount_NumBits), "MaxVertexElementCount will not fit on MaxVertexElementCount_NumBits");
+
+    struct RHITextureCopyRegion
+    {
+        uint32 DstX;
+        uint32 DstY;
+        uint32 DstZ;
+        uint32 SrcX;
+        uint32 SrcY;
+        uint32 SrcZ;
+        uint32 Width;
+        uint32 Height;
+        uint32 DepthOrArraySize;
+    };
+
+    struct RHIRect
+    {
+        int32 Left;
+        int32 Top;
+        int32 Right;
+        int32 Bottom;
+    };
 }
 

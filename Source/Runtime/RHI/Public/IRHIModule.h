@@ -13,9 +13,9 @@ namespace Thunder
 	public:
 		IRHIModule(NameHandle name) : IModule(name) {}
 		virtual ~IRHIModule() = default;
-		void SetCommandContext(RHICommandContext* context)
+		void SetCommandContext(const RHICommandContextRef context)
 		{
-			RHICommandList = MakeRefCount<RHICommandContext>(*context);
+			RHICommandList = context;
 		}
 		
 		static IRHIModule* GetModule()

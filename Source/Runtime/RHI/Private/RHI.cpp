@@ -2,7 +2,7 @@
 
 namespace Thunder
 {
-	HashMap<ERHIDepthBiasType, DepthBiasConfig> GRHIDepthBiasConfig
+	THashMap<ERHIDepthBiasType, DepthBiasConfig> GRHIDepthBiasConfig
 	{
 		{ ERHIDepthBiasType::Default, {} },
 		{ ERHIDepthBiasType::Invalid, {} }
@@ -63,7 +63,7 @@ namespace Thunder
 	{
 	}
 
-	void TGraphicsPipelineStateDescriptor::GetStateIdentifier(Array<uint8>& outIdentifier) const
+	void TGraphicsPipelineStateDescriptor::GetStateIdentifier(TArray<uint8>& outIdentifier) const
 	{	
 		for (const auto& registerCount : RegisterCounts.Hash)
 		{

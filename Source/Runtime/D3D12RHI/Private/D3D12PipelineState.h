@@ -10,7 +10,7 @@ namespace Thunder
 	struct TD3D12GraphicsPipelineStateDesc
 	{
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc{};
-		Array<D3D12_INPUT_ELEMENT_DESC> InputLayout{};
+		TArray<D3D12_INPUT_ELEMENT_DESC> InputLayout{};
 		
 		uint32 CombinedHash = 0;
 		
@@ -63,6 +63,7 @@ namespace Thunder
 			: TRHIGraphicsPipelineState(desc), PipelineState(inPipelineState) {}
 		TD3D12GraphicsPipelineState(const TD3D12GraphicsPipelineState& rhs) = default;
 		~TD3D12GraphicsPipelineState() = default;
+		_NODISCARD_ void* GetPipelineState() const override { return PipelineState.Get(); }
 		
 	private:
 		ComPtr<ID3D12PipelineState> PipelineState = nullptr;
@@ -75,6 +76,7 @@ namespace Thunder
 			: TRHIComputePipelineState(desc), PipelineState(inPipelineState) {}
 		TD3D12ComputePipelineState(const TD3D12ComputePipelineState& rhs) = default;
 		~TD3D12ComputePipelineState() = default;
+		_NODISCARD_ void* GetPipelineState() const override { return PipelineState.Get(); }
 		
 	private:
 		ComPtr<ID3D12PipelineState> PipelineState = nullptr;
@@ -91,7 +93,7 @@ namespace Thunder
 	private:
 		TD3D12GraphicsPipelineState* CreateAndAddToCache(const TGraphicsPipelineStateDescriptor& rhiDesc, const TD3D12GraphicsPipelineStateDesc& d3d12Desc);
 
-		HashMap<TD3D12GraphicsPipelineStateDesc, RefCountPtr<TD3D12GraphicsPipelineState>> GraphicsPipelineStateCache;
+		THashMap<TD3D12GraphicsPipelineStateDesc, RefCountPtr<TD3D12GraphicsPipelineState>> GraphicsPipelineStateCache;
 		//HashMap<TD3D12ComputePipelineStateDesc, TD3D12ComputePipelineState> ComputePipelineStateCache;
 	};
 	

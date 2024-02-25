@@ -4,7 +4,6 @@
 #include <sstream>
 #include <string>
 #include <filesystem>
-#include "CoreMinimal.h"
 
 namespace Thunder
 {
@@ -30,12 +29,12 @@ namespace Thunder
     	return true;
     }
     
-    int FileManager::TraverseFileFromFolder(const String& folderPath, Array<String>& outFileNames)
+    int FileManager::TraverseFileFromFolder(const String& folderPath, TArray<String>& outFileNames)
     {
     	return TraverseFileFromFolderWithFormat(folderPath, outFileNames, "");
     }
     
-    int FileManager::TraverseFileFromFolderWithFormat(const String& folderPath, Array<String>& outFileNames, const String& fileFormat)
+    int FileManager::TraverseFileFromFolderWithFormat(const String& folderPath, TArray<String>& outFileNames, const String& fileFormat)
     {
     	for (const auto& dirEntry : recursive_directory_iterator(folderPath))
     	{

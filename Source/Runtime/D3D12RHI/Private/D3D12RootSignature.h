@@ -12,7 +12,7 @@ namespace Thunder
 	public:
 		TD3D12RootSignature() = delete;
 		TD3D12RootSignature(ID3D12Device* InParent, const TShaderRegisterCounts& shaderRC);
-		ID3D12RootSignature* GetRootSignature() const { return RootSignature.Get(); }
+		_NODISCARD_ ID3D12RootSignature* GetRootSignature() const { return RootSignature.Get(); }
 
 		static constexpr uint32 MaxRootParameters = 32;	// Arbitrary max, increase as needed.
 		

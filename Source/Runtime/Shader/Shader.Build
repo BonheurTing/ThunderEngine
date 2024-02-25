@@ -5,10 +5,6 @@ set(PublicDependencyModuleList
     Core
 )
 
-set(PublicThirdPartyIncludeList
-    ThirdParty/rapidjson/include
-)
-
 set(PrivateThirdPartyPathList
     #ThirdParty/Windows/DXCompiler/lib
     #ThirdParty/Windows/DXCompiler/bin

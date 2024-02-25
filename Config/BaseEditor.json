@@ -1,0 +1,11 @@
+{
+    "RHI" : "DX12",
+    "EnableAO" : true,
+    "ReflectionMode" : 1,
+    "SamplerOffset" : 0.5,
+    "a" : 32.0,
+    "b" : "12",
+    "c" : true,
+    "d" : 128,
+    "e" : 2048
+}

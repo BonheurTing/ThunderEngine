@@ -3,7 +3,9 @@ set(LinkMode SHARED)
 
 set(PublicThirdPartyIncludeList
     ThirdParty/Mimalloc/include
+    ThirdParty/rapidjson/include
 )
+
 set(PrivateThirdPartyIncludeList
     #ThirdParty/Mimalloc/src
 )

@@ -28,6 +28,7 @@
 *.app
 *.ipa
 *.sln
+*.user
 
 .idea/
 .vs/

@@ -6,6 +6,7 @@ namespace Thunder
 	struct CORE_API FileManager
 	{
 		bool LoadFileToString(const String& fileName, String& outString);
+		bool SaveFileFromString(const String& fileName, const String& inString);
 		int TraverseFileFromFolder(const String& folderPath,  TArray<String>& outFileNames);
 		int TraverseFileFromFolderWithFormat(const String& folderPath,  TArray<String>& outFileNames, const String& fileFormat);
 

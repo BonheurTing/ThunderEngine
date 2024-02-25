@@ -28,7 +28,21 @@ namespace Thunder
     	outString = buf.str();
     	return true;
     }
-    
+
+    bool FileManager::SaveFileFromString(const String& fileName, const String& inString)
+    {
+    	std::ofstream fout;
+		fout.open(fileName, std::ios::out);
+		if (!fout.is_open())
+		{
+			LOG( "File Not Found!");
+			return false;
+		}
+		fout << inString;
+		fout.close();
+		return true;
+    }
+
     int FileManager::TraverseFileFromFolder(const String& folderPath, TArray<String>& outFileNames)
     {
     	return TraverseFileFromFolderWithFormat(folderPath, outFileNames, "");

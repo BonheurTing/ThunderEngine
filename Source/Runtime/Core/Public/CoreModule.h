@@ -3,6 +3,7 @@
 
 namespace Thunder
 {
+	class ConfigManager;
 	class FileManager;
 	class IMalloc;
 	
@@ -17,11 +18,13 @@ namespace Thunder
 		
 
 	private:
-		RefCountPtr<FileManager> FileManagerInstance;
 		RefCountPtr<IMalloc> MemoryAllocator;
+		RefCountPtr<FileManager> FileManagerInstance;
+		RefCountPtr<ConfigManager> ConfigManagerInstance;
 	};
 
 	extern CORE_API FileManager* GFileManager;
+	extern CORE_API ConfigManager* GConfigManager;
 }
 
 namespace Thunder

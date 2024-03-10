@@ -11,13 +11,35 @@ namespace Thunder
 	{
 		IRHIModule::ModuleInstance = this;
 		
-		DynamicRHI = MakeRefCount<D3D12DynamicRHI>();
-		GDynamicRHI = DynamicRHI.get();
+		DynamicRHI = new D3D12DynamicRHI();
+		GDynamicRHI = DynamicRHI;
+	}
+
+	void TD3D12RHIModule::ShutDown()
+	{
+		if (DynamicRHI)
+		{
+			delete DynamicRHI;
+			GDynamicRHI = nullptr;
+		}
+		IRHIModule::ModuleInstance = nullptr;
+
+		if (PipelineStateTable)
+		{
+			delete PipelineStateTable;
+			PipelineStateTable = nullptr;
+		}
+
+		if (RootSignatureManager)
+		{
+			delete RootSignatureManager;
+			RootSignatureManager = nullptr;
+		}
 	}
 
 	void TD3D12RHIModule::InitD3D12Context(ID3D12Device* InDevice)
 	{
-		PipelineStateTable = MakeRefCount<TD3D12PipelineStateCache>(InDevice);
-		RootSignatureManager = MakeRefCount<TD3D12RootSignatureManager>(InDevice);
+		PipelineStateTable = new TD3D12PipelineStateCache(InDevice);
+		RootSignatureManager = new TD3D12RootSignatureManager(InDevice);
 	}
 }

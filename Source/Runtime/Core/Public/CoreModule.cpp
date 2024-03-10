@@ -1,6 +1,6 @@
 ﻿#include "CoreModule.h"
 #include "FileManager.h"
-#include "Config/ConfigManager.h"
+#include "Memory/MallocAnsi.h"
 #include "Memory/MallocMinmalloc.h"
 
 namespace Thunder
@@ -11,14 +11,24 @@ namespace Thunder
 	
 	void CoreModule::StartUp()
 	{
-		MemoryAllocator = MakeRefCount<TMallocMinmalloc>();
-		GMalloc = MemoryAllocator.get();
+		MemoryAllocator = new TMallocMinmalloc();
+		GMalloc = MemoryAllocator;
 
 		FileManagerInstance = MakeRefCount<FileManager>();
-		GFileManager = FileManagerInstance.get();
+		GFileManager = FileManagerInstance.Get();
 
 		ConfigManagerInstance = MakeRefCount<ConfigManager>();
-		GConfigManager = ConfigManagerInstance.get();
+		GConfigManager = ConfigManagerInstance.Get();
+	}
+
+	void CoreModule::ShutDown()
+	{
+		if (MemoryAllocator)
+		{
+			delete MemoryAllocator;
+			MemoryAllocator = nullptr;
+			GMalloc = nullptr;
+		}
 	}
 }
 

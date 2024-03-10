@@ -129,7 +129,7 @@ namespace Thunder
 
 		if(SUCCEEDED(hr))
 		{
-			const D3D11RHIShaderResourceView view{desc, SRVView};
+			D3D11RHIShaderResourceView* view = new D3D11RHIShaderResourceView(desc, SRVView);
 			resource.SetSRV(view); 
 		}
 		else
@@ -181,7 +181,7 @@ namespace Thunder
 
 		if(SUCCEEDED(hr))
 		{
-			const D3D11RHIUnorderedAccessView view{desc, UAVView};
+			D3D11RHIUnorderedAccessView* view = new D3D11RHIUnorderedAccessView(desc, UAVView);
 			resource.SetUAV(view);
 		}
 		else
@@ -229,7 +229,7 @@ namespace Thunder
 
 		if(SUCCEEDED(hr))
 		{
-			const D3D11RHIRenderTargetView view{desc, RTVView};
+			D3D11RHIRenderTargetView* view = new D3D11RHIRenderTargetView(desc, RTVView);
 			resource.SetRTV(view);
 		}
 		else
@@ -273,7 +273,7 @@ namespace Thunder
 
 		if(SUCCEEDED(hr))
 		{
-			const D3D11RHIDepthStencilView view{desc, DSVView};
+			D3D11RHIDepthStencilView* view = new D3D11RHIDepthStencilView(desc, DSVView);
 			resource.SetDSV(view);
 		}
 		else

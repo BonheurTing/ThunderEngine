@@ -2,7 +2,7 @@
 #include "BasicDefinition.h"
 #include "Callable.h"
 #include "NameHandle.h"
-#include "RefCount.h"
+#include "Templates/RefCounting.h"
 
 #define DECLARE_MODULE_CTOR(ModuleName, ModuleType) \
 	public: \
@@ -39,7 +39,7 @@
 
 namespace Thunder
 {
-	class CORE_API IModule
+	class CORE_API IModule : public RefCountedObject
 	{
 		friend class ModuleManager;
 
@@ -100,7 +100,7 @@ namespace Thunder
 		void LoadModule()
 		{
 			InternalLoadModuleByName(ModuleType::GetStaticName());
-			ModuleType::ModuleInstance = static_cast<ModuleType*>(ModuleMap[ModuleType::GetStaticName()].get());
+			ModuleType::ModuleInstance = static_cast<ModuleType*>(ModuleMap[ModuleType::GetStaticName()].Get());
 		}
 
 		template<typename ModuleType>
@@ -117,7 +117,7 @@ namespace Thunder
 		ModuleManager() = default;
 		static Mutex InstanceMutex;
 		static ModuleManager* Instance;
-		THashMap<NameHandle, RefCountPtr<IModule>> ModuleMap;
+		THashMap<NameHandle, TRefCountPtr<IModule>> ModuleMap;
 		THashMap<NameHandle, Function<IModule*()>> ModuleRegisterMap;
 	};
 

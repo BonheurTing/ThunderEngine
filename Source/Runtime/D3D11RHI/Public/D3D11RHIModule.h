@@ -9,6 +9,6 @@ namespace Thunder
 		DECLARE_MODULE_WITH_SUPER(D3D11RHI, TD3D11RHIModule, IRHIModule)
 	public:
 		void StartUp() override;
-		void ShutDown() override {}
+		void ShutDown() override;
 	};
 }

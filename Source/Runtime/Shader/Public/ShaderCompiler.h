@@ -2,11 +2,12 @@
 #include <wrl/client.h>
 #include "CoreMinimal.h"
 #include "dxcapi.h"
+#include "Templates/RefCountObject.h"
 
 namespace Thunder
 {
 	using namespace Microsoft::WRL;
-	class SHADER_API ICompiler
+	class SHADER_API ICompiler : public RefCountedObject
     {
     public:
     	virtual ~ICompiler() = default;

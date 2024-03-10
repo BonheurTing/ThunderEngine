@@ -22,7 +22,7 @@ namespace Thunder
 	{
 		if (ModuleMap.contains(name))
 		{
-			return ModuleMap[name].get();
+			return ModuleMap[name].Get();
 		}
 		TAssertf(false, "Module \"%s\" doesn't exist.", name.c_str());
 		return nullptr;
@@ -37,7 +37,7 @@ namespace Thunder
 		else if (ModuleRegisterMap.contains(name))
 		{
 			auto const moduleInst = ModuleRegisterMap[name].operator()();
-			ModuleMap[name] = RefCountPtr<IModule>(moduleInst);
+			ModuleMap[name] = TRefCountPtr<IModule>(moduleInst);
 			moduleInst->StartUp();
 			LOG("Module \"%s\" loaded.", name.c_str());
 		}

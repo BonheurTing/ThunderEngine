@@ -5,7 +5,7 @@
 
 namespace Thunder
 {
-    class RHICommandContext
+    class RHICommandContext : public RefCountedObject
     {
     public:
         virtual ~RHICommandContext() = default;
@@ -50,5 +50,5 @@ namespace Thunder
     	virtual void ResourceBarrier() {} //todo
     };
 
-	using RHICommandContextRef = RefCountPtr<RHICommandContext>;
+	using RHICommandContextRef = TRefCountPtr<RHICommandContext>;
 }

@@ -1,11 +1,13 @@
 ﻿#pragma once
 #include "Module/ModuleManager.h"
+#include "Templates/RefCounting.h"
+#include "Config/ConfigManager.h"
 
 namespace Thunder
 {
-	class ConfigManager;
-	class FileManager;
 	class IMalloc;
+	class FileManager;
+	class ConfigManager;
 	
 	class CORE_API CoreModule : public IModule
 	{
@@ -14,35 +16,15 @@ namespace Thunder
 	public:
 		virtual ~CoreModule() = default;
 		void StartUp() override;
-		void ShutDown() override {}
+		void ShutDown() override;
 		
 
 	private:
-		RefCountPtr<IMalloc> MemoryAllocator;
-		RefCountPtr<FileManager> FileManagerInstance;
-		RefCountPtr<ConfigManager> ConfigManagerInstance;
+		IMalloc* MemoryAllocator;
+		TRefCountPtr<FileManager> FileManagerInstance;
+		TRefCountPtr<ConfigManager> ConfigManagerInstance;
 	};
 
 	extern CORE_API FileManager* GFileManager;
 	extern CORE_API ConfigManager* GConfigManager;
-}
-
-namespace Thunder
-{
-/*
-	class CORE_API TestModule : public IModule
-	{
-	public:
-		TestModule(NameHandle name) : IModule(name) {}
-	};
-
-	class CORE_API TestModule1 : public TestModule
-	{
-		DECLARE_MODULE_WITH_SUPER(Test1, TestModule1, TestModule)
-	public:
-		void StartUp() override {}
-		void ShutDown() override {}
-	};
-*/
-	
 }

@@ -24,7 +24,7 @@ namespace Thunder
 		}
 		
 	protected:
-		RefCountPtr<IDynamicRHI> DynamicRHI;
+		IDynamicRHI* DynamicRHI;
 		RHICommandContextRef RHICommandList;
 		static IRHIModule* ModuleInstance;
 	};

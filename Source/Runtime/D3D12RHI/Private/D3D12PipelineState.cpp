@@ -103,7 +103,7 @@ namespace Thunder
 		if (SUCCEEDED(hr))
 		{
 			GraphicsPipelineStateCache[d3d12Desc] = MakeRefCount<TD3D12GraphicsPipelineState>(rhiDesc, pso);
-			return GraphicsPipelineStateCache[d3d12Desc].get();
+			return GraphicsPipelineStateCache[d3d12Desc].Get();
 		}
 		else
 		{
@@ -119,7 +119,7 @@ namespace Thunder
 
 		if (GraphicsPipelineStateCache.contains(d3d12Desc))
 		{
-			return GraphicsPipelineStateCache[d3d12Desc].get();
+			return GraphicsPipelineStateCache[d3d12Desc].Get();
 		}
 		else
 		{

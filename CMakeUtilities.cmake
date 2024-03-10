@@ -1,7 +1,10 @@
 # move sln file
 macro(MoveMSVCSolutionFile)
     set(SolutionBinaryPath ${CMAKE_SOURCE_DIR}/Intermediate/Build/${PROJECT_NAME}.sln)
+    message("=========================================================")
+    message("SolutionBinaryPath = \"${SolutionBinaryPath}\"")
     if(EXISTS ${SolutionBinaryPath})
+        message("Exists")
         # Load solution file from bin-dir and change the relative references to 
         # project files so that the in memory copy is as if it had been built in 
         # the source dir.
@@ -18,12 +21,20 @@ macro(MoveMSVCSolutionFile)
         set(SlnOutPath ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}.sln)
         set(OldContent "")
         if(EXISTS ${SlnOutPath})
+            message("1")
             file(READ ${SlnOutPath} OldContent)
         endif()
         if(NOT OldContent STREQUAL SlnContent)
+            message("2")
             file(WRITE ${SlnOutPath} ${SlnContent})
         endif()
+    else()
+        message("Not exists")
+        file(GLOB_RECURSE TestDirList "${CMAKE_SOURCE_DIR}/Intermediate/Build/*")
+   #      message("${TestDirList}")
+        message("Fail to find ${SolutionBinaryPath}")
     endif()
+    message("=========================================================")
 endmacro()
 
 # link module

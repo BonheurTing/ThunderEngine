@@ -116,7 +116,7 @@ namespace Thunder
 
         if(SUCCEEDED(hr))
         {
-            const D3D12RHIConstantBufferView view{CommonDescriptorHeap.get(), cbvOffset};
+            D3D12RHIConstantBufferView* view = new D3D12RHIConstantBufferView(CommonDescriptorHeap.Get(), cbvOffset);
             resource.SetCBV(view);
         }
         else
@@ -168,7 +168,7 @@ namespace Thunder
 
         if(SUCCEEDED(hr))
         {
-            const D3D12RHIShaderResourceView view{desc, CommonDescriptorHeap.get(), srvOffset};
+            D3D12RHIShaderResourceView* view = new D3D12RHIShaderResourceView(desc, CommonDescriptorHeap.Get(), srvOffset);
             resource.SetSRV(view);
         }
         else
@@ -218,7 +218,7 @@ namespace Thunder
 
         if(SUCCEEDED(hr))
         {
-            const D3D12RHIUnorderedAccessView view{desc, CommonDescriptorHeap.get(), uavOffset};
+            D3D12RHIUnorderedAccessView* view = new D3D12RHIUnorderedAccessView(desc, CommonDescriptorHeap.Get(), uavOffset);
             resource.SetUAV(view);
         }
         else
@@ -267,7 +267,7 @@ namespace Thunder
 
         if(SUCCEEDED(hr))
         {
-            const D3D12RHIRenderTargetView view{desc, RTVDescriptorHeap.get(), rtvOffset};
+            D3D12RHIRenderTargetView* view = new D3D12RHIRenderTargetView(desc, RTVDescriptorHeap.Get(), rtvOffset);
             resource.SetRTV(view);
         }
         else
@@ -311,7 +311,7 @@ namespace Thunder
 
         if(SUCCEEDED(hr))
         {
-            const D3D12RHIDepthStencilView view{desc, DSVDescriptorHeap.get(), dsvOffset};
+            D3D12RHIDepthStencilView* view = new D3D12RHIDepthStencilView(desc, DSVDescriptorHeap.Get(), dsvOffset);
             resource.SetDSV(view);
         }
         else
@@ -391,7 +391,7 @@ namespace Thunder
         if (SUCCEEDED(hr))
         {
             RHIVertexBufferRef vertexBufferRef = MakeRefCount<D3D12RHIVertexBuffer>(sizeInBytes, StrideInBytes, RHIResourceDescriptor::Buffer(sizeInBytes), vertexBuffer);
-            if (RHIUpdateSharedMemoryResource(vertexBufferRef.get(), resourceData, sizeInBytes, 0))
+            if (RHIUpdateSharedMemoryResource(vertexBufferRef.Get(), resourceData, sizeInBytes, 0))
             {
                 return vertexBufferRef;
             }

@@ -47,7 +47,7 @@ namespace Thunder
 	{
 		if (const auto d3d12Resource = static_cast<ID3D12Resource*>(resource->GetResource()))
 		{
-			if (const auto d3d12Uav = static_cast<D3D12RHIUnorderedAccessView*>(resource->GetUAV().get()))
+			if (const auto d3d12Uav = static_cast<D3D12RHIUnorderedAccessView*>(resource->GetUAV().Get()))
 			{
 				CommandList->ClearUnorderedAccessViewUint(d3d12Uav->GetGPUHandle(), d3d12Uav->GetCPUHandle(), d3d12Resource, clearValue.XYZW, 0, nullptr);
 			}
@@ -58,7 +58,7 @@ namespace Thunder
 	{
 		if (const auto d3d12Resource = static_cast<ID3D12Resource*>(resource->GetResource()))
 		{
-			if (const auto d3d12Uav = static_cast<D3D12RHIUnorderedAccessView*>(resource->GetUAV().get()))
+			if (const auto d3d12Uav = static_cast<D3D12RHIUnorderedAccessView*>(resource->GetUAV().Get()))
 			{
 				CommandList->ClearUnorderedAccessViewFloat(d3d12Uav->GetGPUHandle(), d3d12Uav->GetCPUHandle(), d3d12Resource, clearValue.XYZW, 0, nullptr);
 			}
@@ -67,7 +67,7 @@ namespace Thunder
 
 	void D3D12CommandContext::SetIndexBuffer(RHIIndexBufferRef indexBuffer)
 	{
-		if (const auto d3d12IndexBuffer = static_cast<D3D12RHIIndexBuffer*>(indexBuffer.get()))
+		if (const auto d3d12IndexBuffer = static_cast<D3D12RHIIndexBuffer*>(indexBuffer.Get()))
 		{
 			CommandList->IASetIndexBuffer(d3d12IndexBuffer->GetIndexBufferView());
 		}
@@ -80,7 +80,7 @@ namespace Thunder
 
 	void D3D12CommandContext::SetVertexBuffer(uint32 slot, uint32 numViews, RHIVertexBufferRef vertexBuffer)
 	{
-		if (const auto d3d12VertexBuffer = static_cast<D3D12RHIVertexBuffer*>(vertexBuffer.get()))
+		if (const auto d3d12VertexBuffer = static_cast<D3D12RHIVertexBuffer*>(vertexBuffer.Get()))
 		{
 			CommandList->IASetVertexBuffers(slot, numViews, d3d12VertexBuffer->GetVertexBufferView());
 		}

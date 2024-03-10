@@ -1,5 +1,4 @@
 #pragma once
-#include <type_traits>
 
 #include "Platform.h"
 
@@ -17,7 +16,7 @@ namespace Thunder
 	
 	extern CORE_API IMalloc* GMalloc;
 
-	struct TMemory
+	struct CORE_API TMemory
 	{
 		template<typename Type>
 		static void* Malloc(size_t arrayCount = 1)

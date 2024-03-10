@@ -1,5 +1,6 @@
 #pragma once
 #include "Assertion.h"
+#include "Templates/RefCountObject.h"
 
 struct ID3D12Device;
 
@@ -10,7 +11,7 @@ namespace Thunder
 	constexpr uint32 DSVDescriptorHeapSize = 2048;
 	constexpr uint32 SamplerDescriptorHeapSize = 32;
 	
-	class TD3D12DeviceChild
+	class TD3D12DeviceChild : public RefCountedObject
 	{
 	public:
 		TD3D12DeviceChild(ID3D12Device* InParent = nullptr) : ParentDevice(InParent) {}

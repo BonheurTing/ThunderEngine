@@ -2,6 +2,7 @@
 #include "dxgiformat.h"
 #include "RHIDefinition.h"
 #include <wrl/client.h>
+#include "Templates/RefCountObject.h"
 
 namespace Thunder
 {
@@ -260,7 +261,7 @@ namespace Thunder
 	/**
  * \brief Descriptor View
  */
-	class RHI_API RHIDescriptorView
+	class RHI_API RHIDescriptorView : public RefCountedObject
 	{
 	public:
 		RHIDescriptorView(RHIViewDescriptor const& desc) : Desc(desc) {}
@@ -296,7 +297,7 @@ namespace Thunder
 		RHIDepthStencilView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
 	};
 
-	class RHI_API RHISampler
+	class RHI_API RHISampler : public RefCountedObject
 	{
 	public:
 		RHISampler(RHISamplerDescriptor const& desc) : Desc(desc) {}
@@ -305,7 +306,7 @@ namespace Thunder
 		RHISamplerDescriptor Desc = {};
 	};
 
-	class RHI_API RHIFence
+	class RHI_API RHIFence : public RefCountedObject
 	{
 	public:
 		RHIFence(uint64 initValue) : Value(initValue) {}

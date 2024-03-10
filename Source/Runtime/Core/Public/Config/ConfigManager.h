@@ -1,6 +1,7 @@
 #pragma once
 #include "Container.h"
 #include "NameHandle.h"
+#include "Templates/RefCountObject.h"
 
 namespace Thunder
 {
@@ -53,8 +54,8 @@ namespace Thunder
 			return str;
 		}
 	};
-	
-	class CORE_API ConfigManager
+
+	class CORE_API ConfigManager : public RefCountedObject
 	{
 	public:
 		bool LoadConfig(NameHandle configName);

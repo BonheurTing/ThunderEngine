@@ -85,7 +85,7 @@ namespace Thunder
 			{
 				if (shaderRC.ShaderResourceCount > 0)
 				{
-					check(rootParameterCount < MaxRootParameters);
+					TAssert(rootParameterCount < MaxRootParameters);
 					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, shaderRC.ShaderResourceCount, 0u, 0, SRVDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
 					rootParameterCount++;
@@ -94,7 +94,7 @@ namespace Thunder
 				if (shaderRC.ConstantBufferCount > MAX_ROOT_CBVS)
 				{
 					// Use a descriptor table for the 'excess' CBVs
-					check(rootParameterCount < MaxRootParameters);
+					TAssert(rootParameterCount < MaxRootParameters);
 					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, shaderRC.ConstantBufferCount - MAX_ROOT_CBVS, MAX_ROOT_CBVS, 0, CBVDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
 					rootParameterCount++;
@@ -102,7 +102,7 @@ namespace Thunder
 
 				if (shaderRC.SamplerCount > 0)
 				{
-					check(rootParameterCount < MaxRootParameters);
+					TAssert(rootParameterCount < MaxRootParameters);
 					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, shaderRC.SamplerCount, 0u, 0, SamplerDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
 					rootParameterCount++;
@@ -110,7 +110,7 @@ namespace Thunder
 
 				if (shaderRC.UnorderedAccessCount > 0)
 				{
-					check(rootParameterCount < MaxRootParameters);
+					TAssert(rootParameterCount < MaxRootParameters);
 					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, shaderRC.UnorderedAccessCount, 0u, 0, UAVDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
 					rootParameterCount++;
@@ -121,7 +121,7 @@ namespace Thunder
 			{
 				for (uint32 ShaderRegister = 0; (ShaderRegister < shaderRC.ConstantBufferCount) && (ShaderRegister < MAX_ROOT_CBVS); ShaderRegister++)
 				{
-					check(rootParameterCount < MaxRootParameters);
+					TAssert(rootParameterCount < MaxRootParameters);
 					tableSlots[rootParameterCount].InitAsConstantBufferView(ShaderRegister, 0, CBVRootDescriptorFlags, D3D12_SHADER_VISIBILITY_ALL);
 					rootParameterCount++;
 				}

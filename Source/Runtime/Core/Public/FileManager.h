@@ -1,9 +1,10 @@
 ﻿#pragma once
 #include "Container.h"
+#include "Templates/RefCountObject.h"
 
 namespace Thunder
 {
-	struct CORE_API FileManager
+	struct CORE_API FileManager : public RefCountedObject
 	{
 		bool LoadFileToString(const String& fileName, String& outString);
 		bool SaveFileFromString(const String& fileName, const String& inString);

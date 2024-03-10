@@ -3,19 +3,20 @@
 #include "RHI.h"
 #include "CoreMinimal.h"
 #include "RHI.export.h"
+#include "Templates/RefCounting.h"
 
 namespace Thunder
 {
     class ShaderCombination;
     
-    typedef RefCountPtr<RHIConstantBufferView> RHIConstantBufferViewRef;
-    typedef RefCountPtr<RHIShaderResourceView> RHIShaderResourceViewRef;
-    typedef RefCountPtr<RHIUnorderedAccessView> RHIUnorderedAccessViewRef;
-    typedef RefCountPtr<RHIRenderTargetView> RHIRenderTargetViewRef;
-    typedef RefCountPtr<RHIDepthStencilView> RHIDepthStencilViewRef;
+    typedef TRefCountPtr<RHIConstantBufferView> RHIConstantBufferViewRef;
+    typedef TRefCountPtr<RHIShaderResourceView> RHIShaderResourceViewRef;
+    typedef TRefCountPtr<RHIUnorderedAccessView> RHIUnorderedAccessViewRef;
+    typedef TRefCountPtr<RHIRenderTargetView> RHIRenderTargetViewRef;
+    typedef TRefCountPtr<RHIDepthStencilView> RHIDepthStencilViewRef;
 
     
-    class RHI_API RHIResource
+    class RHI_API RHIResource : public RefCountedObject
     {
     public:
         RHIResource(RHIResourceDescriptor const& desc) : Desc(desc) {}
@@ -23,13 +24,13 @@ namespace Thunder
 
         _NODISCARD_ virtual void* GetResource() const = 0;
         _NODISCARD_ const RHIResourceDescriptor* GetResourceDescriptor() const { return &Desc; }
-        void SetSRV(const RHIShaderResourceView& view)
+        void SetSRV(RHIShaderResourceView* view)
         {
-            SRV = MakeRefCount<RHIShaderResourceView>(view);
+            SRV = view;
         }
-        void SetUAV(const RHIUnorderedAccessView& view)
+        void SetUAV(RHIUnorderedAccessView* view)
         {
-            UAV = MakeRefCount<RHIUnorderedAccessView>(view);
+            UAV = view;
         }
 
         _NODISCARD_ RHIShaderResourceViewRef GetSRV() const { return SRV; }
@@ -46,9 +47,9 @@ namespace Thunder
     public:
         RHIBuffer(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
         
-        void SetCBV(const RHIConstantBufferView& view)
+        void SetCBV(RHIConstantBufferView* view)
         {
-            CBV = MakeRefCount<RHIConstantBufferView>(view);
+            CBV = view;
         }
         
         _NODISCARD_ virtual RHIConstantBufferViewRef GetCBV() const { return CBV; }
@@ -65,13 +66,13 @@ namespace Thunder
     public:
         RHITexture(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
 
-        void SetRTV(const RHIRenderTargetView& view)
+        void SetRTV(RHIRenderTargetView* view)
         {
-            RTV = MakeRefCount<RHIRenderTargetView>(view);
+            RTV = view;
         }
-        void SetDSV(const RHIDepthStencilView& view)
+        void SetDSV(RHIDepthStencilView* view)
         {
-            DSV = MakeRefCount<RHIDepthStencilView>(view);
+            DSV = view;
         }
         
         _NODISCARD_ virtual RHIRenderTargetViewRef GetRTV() const { return RTV; }
@@ -136,7 +137,7 @@ namespace Thunder
     // Pipeline state
     //
 
-    class TRHIPipelineState
+    class TRHIPipelineState : public RefCountedObject
     {
     public:
         TRHIPipelineState(ERHIPipelineStateType type) : PipelineStateType(type) {}
@@ -170,11 +171,10 @@ namespace Thunder
     // State blocks npv_
     //
     
-    class RHIDevice
+    class RHIDevice : public RefCountedObject
     {
     public:
         RHIDevice(){}
-        
     };
 
     class RHIViewport
@@ -183,33 +183,22 @@ namespace Thunder
         virtual ~RHIViewport() = default;
         _NODISCARD_ virtual const void* GetViewPort() const = 0;
     };
-    
 
-    
-    
-    
-    
     ////// REF
-    typedef RefCountPtr<RHIDevice> RHIDeviceRef;
-    typedef RefCountPtr<RHIBlendState> RHIBlendStateRef;
-    typedef RefCountPtr<RHIRasterizerState> RHIRasterizerStateRef;
-    typedef RefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
-    typedef RefCountPtr<RHIVertexDeclarationDescriptor> RHIVertexDeclarationRef;
-    typedef RefCountPtr<TRHIGraphicsPipelineState> RHGraphicsPipelineStateIRef;    
-    typedef RefCountPtr<RHISampler> RHISamplerRef;
-    typedef RefCountPtr<RHIFence> RHIFenceRef;
-    typedef RefCountPtr<RHIVertexBuffer> RHIVertexBufferRef;
-    typedef RefCountPtr<RHIIndexBuffer> RHIIndexBufferRef;
-    typedef RefCountPtr<RHIStructuredBuffer> RHIStructuredBufferRef;
-    typedef RefCountPtr<RHIConstantBuffer> RHIConstantBufferRef;
-    typedef RefCountPtr<RHITexture1D> RHITexture1DRef;
-    typedef RefCountPtr<RHITexture2D> RHITexture2DRef;
-    typedef RefCountPtr<RHITexture2DArray> RHITexture2DArrayRef;
-    typedef RefCountPtr<RHITexture3D> RHITexture3DRef;
-
-
-    
-
-   
-    
+    typedef TRefCountPtr<RHIDevice> RHIDeviceRef;
+    typedef TRefCountPtr<RHIBlendState> RHIBlendStateRef;
+    typedef TRefCountPtr<RHIRasterizerState> RHIRasterizerStateRef;
+    typedef TRefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
+    typedef TRefCountPtr<RHIVertexDeclarationDescriptor> RHIVertexDeclarationRef;
+    typedef TRefCountPtr<TRHIGraphicsPipelineState> RHGraphicsPipelineStateIRef;    
+    typedef TRefCountPtr<RHISampler> RHISamplerRef;
+    typedef TRefCountPtr<RHIFence> RHIFenceRef;
+    typedef TRefCountPtr<RHIVertexBuffer> RHIVertexBufferRef;
+    typedef TRefCountPtr<RHIIndexBuffer> RHIIndexBufferRef;
+    typedef TRefCountPtr<RHIStructuredBuffer> RHIStructuredBufferRef;
+    typedef TRefCountPtr<RHIConstantBuffer> RHIConstantBufferRef;
+    typedef TRefCountPtr<RHITexture1D> RHITexture1DRef;
+    typedef TRefCountPtr<RHITexture2D> RHITexture2DRef;
+    typedef TRefCountPtr<RHITexture2DArray> RHITexture2DArrayRef;
+    typedef TRefCountPtr<RHITexture3D> RHITexture3DRef;
 }

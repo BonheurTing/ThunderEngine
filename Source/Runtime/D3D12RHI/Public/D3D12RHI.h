@@ -2,10 +2,11 @@
 
 #include "IDynamicRHI.h"
 #include "d3d12.h"
+#include "D3D12DescriptorHeap.h"
 
 namespace Thunder
 {
-    class TD3D12DescriptorHeap;
+    //class TD3D12DescriptorHeap;
     
     class D3D12RHI_API D3D12DynamicRHI : public IDynamicRHI
     {
@@ -57,9 +58,9 @@ namespace Thunder
         ComPtr<ID3D12Device> Device;
 
         // descriptor heap
-        RefCountPtr<TD3D12DescriptorHeap> CommonDescriptorHeap; //cbv srv uav
-        RefCountPtr<TD3D12DescriptorHeap> RTVDescriptorHeap;
-        RefCountPtr<TD3D12DescriptorHeap> DSVDescriptorHeap;
-        RefCountPtr<TD3D12DescriptorHeap> SamplerDescriptorHeap;
+        TRefCountPtr<TD3D12DescriptorHeap> CommonDescriptorHeap; //cbv srv uav
+        TRefCountPtr<TD3D12DescriptorHeap> RTVDescriptorHeap;
+        TRefCountPtr<TD3D12DescriptorHeap> DSVDescriptorHeap;
+        TRefCountPtr<TD3D12DescriptorHeap> SamplerDescriptorHeap;
     };
 }

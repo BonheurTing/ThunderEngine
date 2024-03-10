@@ -39,5 +39,11 @@ add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 PreBuildModule()
 BuildModule()
 PostBuildModule()
-MoveMSVCSolutionFile()
+#MoveMSVCSolutionFile()
 file(COPY ${CMAKE_SOURCE_DIR}/Shader/shaders.hlsl DESTINATION ${CMAKE_SOURCE_DIR}/Intermediate/Build/Output/Bin/Debug)
+
+# find_program(Python_EXECUTABLE python NO_CMAKE_FIND_ROOT_PATH)
+# set(Python_ARGS "../../Setup.py")
+# execute_process(
+#   COMMAND ${Python_EXECUTABLE} ${Python_ARGS}
+# )

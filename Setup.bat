@@ -4,7 +4,7 @@ mkdir ".\Intermediate\Build"
 cd ./Intermediate/Build
 cmake -A x64 ../..
 echo Config finished...
-pause
+rem pause
 rem cmake --build .
 rem echo Build finished...
 rem pause

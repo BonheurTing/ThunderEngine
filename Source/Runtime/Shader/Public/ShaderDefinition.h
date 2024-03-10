@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "CommonUtilities.h"
+#include "Templates/RefCountObject.h"
 
 namespace Thunder
 {
@@ -28,11 +29,11 @@ namespace Thunder
     	uint64 VariantId;
     };
     
-    struct ShaderCombination
+    struct ShaderCombination : public RefCountedObject
     {
     	ShaderCombination() = default;
-		ShaderCombination(const ShaderCombination& rhs) = default;
-		ShaderCombination& operator=(const ShaderCombination& rhs) = default;
+		/*ShaderCombination(const ShaderCombination& rhs) = default;
+		ShaderCombination& operator=(const ShaderCombination& rhs) = default;*/
     	ShaderCombination& operator=(ShaderCombination&& rhs) noexcept
     	{
     		Shaders = std::move(rhs.Shaders);
@@ -42,7 +43,7 @@ namespace Thunder
     	{
     		Shaders = std::move(rhs.Shaders);
     	}
-    	~ShaderCombination()
+    	~ShaderCombination() override
     	{
     		for (auto pair : Shaders)
     		{

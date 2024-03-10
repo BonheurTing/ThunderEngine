@@ -1,6 +1,7 @@
 #pragma once
 #include "ShaderDefinition.h"
 #include "Module/ModuleManager.h"
+#include "ShaderCompiler.h"
 
 namespace Thunder
 {
@@ -24,7 +25,7 @@ namespace Thunder
     	
     private:
     	THashMap<NameHandle, ShaderArchive*> ShaderMap;
-    	RefCountPtr<ICompiler> ShaderCompiler;
+    	TRefCountPtr<ICompiler> ShaderCompiler;
     };
     
     extern SHADER_API THashMap<EShaderStageType, String> GShaderModuleTarget;

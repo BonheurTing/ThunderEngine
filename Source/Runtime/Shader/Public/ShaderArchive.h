@@ -1,9 +1,10 @@
 ﻿#pragma once
 #include "ShaderDefinition.h"
+#include "Templates/RefCounting.h"
 
 namespace Thunder
 {
-	class ShaderPass
+	class ShaderPass : public RefCountedObject
     {
     public:
     	ShaderPass() = delete;
@@ -24,11 +25,10 @@ namespace Thunder
     	{
     		if (CheckCache(variantId))
     		{
-    			return Variants[variantId].get();
+    			return Variants[variantId].Get();
     		}
     		return nullptr;
     	}
-    	void UpdateOrAddVariants(uint64 variantId, ShaderCombination& variant) {Variants[variantId] = MakeRefCount<ShaderCombination>(variant);}
     	bool CompileShader(NameHandle archiveName, const String& shaderSource, const String& includeStr, uint64 variantId);
 		bool RegisterRootSignature()
 		{
@@ -41,7 +41,7 @@ namespace Thunder
 		TShaderRegisterCounts RegisterCounts{};
     	TArray<VariantMeta> VariantDefinitionTable; // 改了之后相关递归mask都要改
     	THashMap<EShaderStageType, StageMeta> StageMetas;
-    	THashMap<uint64, RefCountPtr<ShaderCombination>> Variants;
+    	THashMap<uint64, TRefCountPtr<ShaderCombination>> Variants;
     };
     
     class ShaderArchive
@@ -52,7 +52,7 @@ namespace Thunder
     
     	void AddPass(NameHandle name, ShaderPass* inPass)
     	{
-    		Passes.emplace(name, RefCountPtr<ShaderPass>(inPass));
+    		Passes.emplace(name, TRefCountPtr<ShaderPass>(inPass));
     	}
     	void AddPropertyMeta(const ShaderPropertyMeta& meta)
     	{
@@ -81,7 +81,7 @@ namespace Thunder
     	TArray<ShaderParameterMeta> ParameterMeta;
     	THashMap<NameHandle, TArray<ShaderParameterMeta>> PasseParameterMeta;
     	RenderStateMeta renderState {};
-    	THashMap<NameHandle, RefCountPtr<ShaderPass>> Passes;
+    	THashMap<NameHandle, TRefCountPtr<ShaderPass>> Passes;
     };
     
 }

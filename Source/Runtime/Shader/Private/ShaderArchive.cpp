@@ -5,6 +5,7 @@
 #include "CoreModule.h"
 #include "FileManager.h"
 #include "ShaderModule.h"
+#include "Templates/RefCounting.h"
 
 namespace Thunder
 {
@@ -317,7 +318,7 @@ namespace Thunder
     	}
     	outCount.ShaderResourceCount = static_cast<uint8>(sbGeneratedCode.size()) - outCount.UnorderedAccessCount;
     }
-	
+
     //////////////////////////////////////////////////////////////////////////////////////////
     /// Compile Shader
     //////////////////////////////////////////////////////////////////////////////////////////
@@ -353,7 +354,7 @@ namespace Thunder
     {
     	if (Passes.contains(name))
     	{
-    		return Passes[name].get();
+    		return Passes[name].Get();
     	}
     	TAssertf(false, "Pass not exist");
     	return nullptr;

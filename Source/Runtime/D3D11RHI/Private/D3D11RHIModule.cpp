@@ -10,9 +10,14 @@ namespace Thunder
 	{
 		IRHIModule::ModuleInstance = this;
 		
-		DynamicRHI = MakeRefCount<D3D11DynamicRHI>();
-		GDynamicRHI = DynamicRHI.get();
+		DynamicRHI = new D3D11DynamicRHI();
+		GDynamicRHI = DynamicRHI;
+	}
 
-		
+	void TD3D11RHIModule::ShutDown()
+	{
+		delete DynamicRHI;
+		GDynamicRHI = nullptr;
+		IRHIModule::ModuleInstance = nullptr;
 	}
 }

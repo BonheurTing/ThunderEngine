@@ -93,7 +93,7 @@ namespace Thunder
 	private:
 		TD3D12GraphicsPipelineState* CreateAndAddToCache(const TGraphicsPipelineStateDescriptor& rhiDesc, const TD3D12GraphicsPipelineStateDesc& d3d12Desc);
 
-		THashMap<TD3D12GraphicsPipelineStateDesc, RefCountPtr<TD3D12GraphicsPipelineState>> GraphicsPipelineStateCache;
+		THashMap<TD3D12GraphicsPipelineStateDesc, TRefCountPtr<TD3D12GraphicsPipelineState>> GraphicsPipelineStateCache;
 		//HashMap<TD3D12ComputePipelineStateDesc, TD3D12ComputePipelineState> ComputePipelineStateCache;
 	};
 	

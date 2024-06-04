@@ -39,7 +39,6 @@ namespace Thunder
 	using ScopeLock = std::lock_guard<std::mutex>;
 
 	////// Function type macros.
-	#define FORCEINLINE __forceinline									/* Force code to be inline */
 
 #define LOG(...) printf(__VA_ARGS__); \
 	std::cout << std::endl

@@ -1,8 +1,34 @@
 #pragma once
-
+#include <intrin0.inl.h>
 
 namespace Thunder
 {
+#define FORCEINLINE __forceinline									/* Force code to be inline */
+
+	//---------------------------------------------------------------------
+	// Utility for automatically setting up the pointer-sized integer type
+	//---------------------------------------------------------------------
+
+	template<typename T32BITS, typename T64BITS, int PointerSize>
+	struct SelectIntPointerType
+	{
+		// nothing here are is it an error if the partial specializations fail
+	};
+
+	template<typename T32BITS, typename T64BITS>
+	struct SelectIntPointerType<T32BITS, T64BITS, 8>
+	{
+		// Select the 64 bit type.
+		typedef T64BITS TIntPointer;
+	};
+
+	template<typename T32BITS, typename T64BITS>
+	struct SelectIntPointerType<T32BITS, T64BITS, 4>
+	{
+		// Select the 32 bit type.
+		typedef T32BITS TIntPointer;
+	};
+	
 	/**
 	* Generic types for almost all compilers and platforms
 	**/
@@ -59,6 +85,9 @@ namespace Thunder
 		
 		// A switchable character. In-memory only. Either ANSICHAR or WIDECHAR, depending on a licensee's requirements.
 		typedef widechar			tchar;
+
+		// Signed int. The same size as a pointer.
+		typedef SelectIntPointerType<int32, int64, sizeof(void*)>::TIntPointer PTRINT;
 	};
 
 	//------------------------------------------------------------------
@@ -92,7 +121,8 @@ namespace Thunder
 	typedef GenericPlatformTypes::widechar		widechar;
 	/// Either ANSICHAR or WIDECHAR, depending on whether the platform supports wide characters or the requirements of the licensee.
 	typedef GenericPlatformTypes::tchar			tchar;
-
+	/// A signed integer the same size as a pointer
+	typedef GenericPlatformTypes::PTRINT		PTRINT;
 
 	enum class EGfxApiType : uint32
 	{
@@ -102,6 +132,5 @@ namespace Thunder
 	};
 
 	int TMessageBox(void* handle, const char* text, const char* caption, uint32 type);
-	
 }
 

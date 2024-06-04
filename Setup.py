@@ -7,7 +7,7 @@ import re
 if __name__ == "__main__":
     os.system(".\Setup.bat")
     time.sleep(5)
-    solution_file_name = "./Intermediate/Build/ThunderEditor.sln"
+    solution_file_name = ".\\Intermediate\\Build\\ThunderEditor.sln"
     if os.path.exists(solution_file_name):
         solution_content = ""
         with open("./Intermediate/Build/ThunderEditor.sln", 'rb') as solution_file:

@@ -8,9 +8,9 @@ namespace Thunder
 	{
 		
 		/**
-	 * Tells the processor to pause for implementation-specific amount of time. Is used for spin-loops to improve the speed at 
-	 * which the code detects the release of the lock and power-consumption.
-	 */
+		 * Tells the processor to pause for implementation-specific amount of time. Is used for spin-loops to improve the speed at 
+		 * which the code detects the release of the lock and power-consumption.
+		 */
 		static void CoreYield()
 		{
 #if PLATFORM_CPU_X86_FAMILY
@@ -26,6 +26,18 @@ namespace Thunder
 #endif
 		}
 
+		static void Sleep( float Seconds )
+		{
+			uint32 Milliseconds = (uint32)(Seconds * 1000.0);
+			if (Milliseconds == 0)
+			{
+				::SwitchToThread();
+			}
+			else
+			{
+				::Sleep(Milliseconds);
+			}
+		}
 		
 	};
 }

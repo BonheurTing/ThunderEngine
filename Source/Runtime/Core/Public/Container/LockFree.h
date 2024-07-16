@@ -10,9 +10,22 @@
 #define MAX_LOCK_FREE_NODES_AS_BITS (26)
 #define MAX_LOCK_FREE_NODES (1 << 26) //最多支持2^26个节点
 #define checkLockFreePointerList TAssert
+#define MAX_TagBitsValue (uint64(1) << (64 - MAX_LOCK_FREE_NODES_AS_BITS))
 
 namespace Thunder
 {
+
+	/*template<int TPaddingForCacheContention>
+	struct FPaddingForCacheContention
+	{
+		uint8 PadToAvoidContention[TPaddingForCacheContention];
+	};
+
+	template<>
+	struct FPaddingForCacheContention<0>
+	{
+	};*/
+	
 	template<class T, unsigned int MaxTotalItems, unsigned int ItemsPerPage>
 	class TLockFreeAllocOnceIndexedAllocator
 	{
@@ -156,6 +169,11 @@ namespace Thunder
 			SetCounterAndState((GetCounterAndState() & ~(TABAInc - 1)) | value);
 		}
 
+		/*
+		* 把other的数据读到自己的Ptrs中
+		* AtomicRead主要是用的 InterlockedCompareExchange(ptr, 0, 0)的返回值，这个函数是ptr指向的值和参数三作比较，相同则赋值参数二，
+		* 另外无论如何都会返回ptr指向的原始值，所以需要的是这个返回值，随便写个交换值和比较值相同的参数即可
+		*/
 		FORCEINLINE void AtomicRead(const AtomicPointer& other)
 		{
 			checkLockFreePointerList(IsAligned(&Ptrs, 8) && IsAligned(&other.Ptrs, 8));
@@ -182,50 +200,118 @@ namespace Thunder
 		uint64 Ptrs;
 	}; //todo GCC_ALIGN(8)
 
-	template<typename T>
-	struct LockFreeLink
+	/*
+	 *
+	 * 
+	*/
+	struct IndexedLockFreeLink 
 	{
-		LockFreeLink* Next;
-		T* Value;
+		AtomicPointer DoubleNext; //是个uint64，是SingleNext的原子版本
+		void *Payload; // 实际要装载的数据
+		uint32 SingleNext; // 下个节点所在大块内存array的索引
 	};
 
-	template<typename T>
+	/*
+	 * 
+	 * 
+	*/
 	struct LockFreeLinkPolicy
 	{
-		typedef AtomicPointer TDoublePtr;
-		typedef LockFreeLink<T> TNode;
-		
-		CORE_API static TNode* AllocLockFreeLink(T* nodeValue)
+		enum
 		{
-			return new (TMemory::Malloc<TNode>()) TNode{ nullptr, nodeValue };
-		}
-		CORE_API static void FreeLockFreeLink(TNode* node)
+			MAX_BITS_IN_TLinkPtr = MAX_LOCK_FREE_NODES_AS_BITS
+		};
+		typedef AtomicPointer TDoublePtr; // 可以原子操作的指针，地26位地址是地址(其实就是分配的大块内存的索引TLinkPtr), 高位计数 // 作为head
+		typedef IndexedLockFreeLink TLink; // 队列的单个节点
+		typedef uint32 TLinkPtr; //分配的一大块内存array的索引
+		typedef TLockFreeAllocOnceIndexedAllocator<IndexedLockFreeLink, MAX_LOCK_FREE_NODES, 16384> TAllocator;
+		// 无锁队列的操作只对head，数据，next，head和next都保证原子性才能多线程安全，这俩都是指向node的指针，因此实现一个AtomicPointer来保证原子性
+		// IndexedLockFreeLink节点，todo: single next的用处
+
+		static FORCEINLINE IndexedLockFreeLink* DerefLink(uint32 Ptr) 
 		{
-			TMemory::Destroy(node->Value);
-			TMemory::Destroy(node);
+			return LinkAllocator.GetItem(Ptr);
 		}
+		// 
+		static FORCEINLINE IndexedLockFreeLink* IndexToLink(uint32 Index)
+		{
+			return LinkAllocator.GetItem(Index);
+		}
+		// 
+		static FORCEINLINE uint32 IndexToPtr(uint32 Index)
+		{
+			return Index;
+		}
+
+		/*
+		 * 向队列申请分配一个Node来存储数据
+		 * 初始的时候申请一大块，来一个节点就分配一直地址，而不是每次新node都直接TMemory::Malloc
+		 * 因为现在的内存管理器虽然支持多线程，但是无锁队列要解决ABA问题需要计数，需要低26位是地址，高位是计数状态，内存管理器不能保证高位都是0
+		 * 因此先申请一大块再做映射
+		*/
+		CORE_API static uint32 AllocLockFreeLink();
+		CORE_API static void FreeLockFreeLink(uint32 Item);
+		CORE_API static TAllocator LinkAllocator;
 	};
 
-	template<typename T, uint64 TABAInc = 1>
+	template<class T, int TPaddingForCacheContention, uint64 TABAInc = 1>
 	class LockFreeLIFOListBase
-	{ 
-		typedef typename LockFreeLinkPolicy<T>::TDoublePtr TDoublePtr;
-		typedef LockFreeLink<T> TNode;
+	{
+		typedef LockFreeLinkPolicy::TDoublePtr TDoublePtr;
+		typedef LockFreeLinkPolicy::TLink TLink;
+		typedef LockFreeLinkPolicy::TLinkPtr TLinkPtr;
 
 	public:
-		FORCEINLINE LockFreeLIFOListBase()
+		LockFreeLIFOListBase()
 		{
+			// We want to make sure we have quite a lot of extra counter values to avoid the ABA problem. This could probably be relaxed, but eventually it will be dangerous. 
+			// The question is "how many queue operations can a thread starve for".
+			TAssertf(MAX_TagBitsValue / TABAInc >= (1 << 23), "risk of ABA problem");
+			TAssertf((TABAInc & (TABAInc - 1)) == 0, "must be power of two");
+			Head.Init();
+		}
+
+		~LockFreeLIFOListBase()
+		{
+			while (Pop()) {};
+		}
+
+		void Reset()
+		{
+			while (Pop()) {};
 			Head.Init();
 		}
 		
-		void Push(T* item)
+		void Push(T* InPayload)
 		{
+			//向队列申请分配一个Node来存储数据
+			TLinkPtr Item = LockFreeLinkPolicy::AllocLockFreeLink();
+			// TLinkPtr是映射后的索引，所以对node操作都要先解引用
+			LockFreeLinkPolicy::DerefLink(Item)->Payload = InPayload;
+			
 			while (true)
 			{
 				// 从内存中拿出Head指针
+				TDoublePtr LocalHead;
+				LocalHead.AtomicRead(Head);
+				
+				TDoublePtr NewHead;
+				NewHead.AdvanceCounterAndState(LocalHead, TABAInc); //ABA计数+1
+				NewHead.SetPtr(Item); //设置节点
+				LockFreeLinkPolicy::DerefLink(Item)->SingleNext = LocalHead.GetPtr(); //设置next为原来的head指向的节点地址
+				
+				if (Head.InterlockedCompareExchange(NewHead, LocalHead)) //Head和LocalHead比较，如果一致就赋值成NewHead；返回Head指向的内容和LocalHead做比较，如果相同就说明刚才交换成功了，break
+				{
+					break;
+				}
+				
+				/*
+				提问：每次新node都正常申请64位，64位计数，每次都原子操作128位可以吗
+				// 从内存中拿出Head指针
 				TDoublePtr localHead;
 				localHead.AtomicRead(Head);
-				TNode* newNode = LockFreeLinkPolicy<T>::AllocLockFreeLink(item);
+				
+				TNode* newNode = LockFreeLinkPolicy_Old<T>::AllocLockFreeLink(item);
 				
 				TDoublePtr newHead;
 				// 更新用于防止ABA问题的计数器
@@ -241,35 +327,58 @@ namespace Thunder
 				{
 					break;
 				}
+				*/
 			}
 		}
 
 		T* Pop()
 		{
-			uint64 Item = 0;
+			TLinkPtr Item = 0;
 			while (true)
 			{
-				TDoublePtr localHead;
-				localHead.AtomicRead(Head);
-				Item = localHead.GetPtr();
+				TDoublePtr LocalHead;
+				LocalHead.AtomicRead(Head);
+				Item = LocalHead.GetPtr();
 				if (!Item)
 				{
 					break;
 				}
 				TDoublePtr NewHead;
-				NewHead.AdvanceCounterAndState(localHead, TABAInc);
-				TNode* ItemP = (TNode*)Item;
-				NewHead.SetPtr(ItemP->Next);
-				if (Head.InterlockedCompareExchange(NewHead, localHead))
+				NewHead.AdvanceCounterAndState(LocalHead, TABAInc); //todo: 这个计数是怎么保证原子的，咋push和pop都是+1
+				TLink* ItemP = LockFreeLinkPolicy::DerefLink(Item);
+				NewHead.SetPtr(ItemP->SingleNext);
+				if (Head.InterlockedCompareExchange(NewHead, LocalHead))
 				{
 					ItemP->SingleNext = 0;
 					break;
 				}
 			}
-			return Item;
+
+			T* Result = nullptr;
+			if (Item) // >0 todo: check 0 is clipped
+			{
+				Result = (T*)LockFreeLinkPolicy::DerefLink(Item)->Payload;
+				LockFreeLinkPolicy::FreeLockFreeLink(Item);
+			}
+			return Result;
 		}
+
+		bool IsEmpty() const
+		{
+			return !Head.GetPtr();
+		}
+
+		uint64 GetState() const
+		{
+			TDoublePtr LocalHead;
+			LocalHead.AtomicRead(Head);
+			return LocalHead.GetState<TABAInc>();
+		}
+		
 	private:
+		//FPaddingForCacheContention<TPaddingForCacheContention> PadToAvoidContention1; //todo
 		TDoublePtr Head;
+		//FPaddingForCacheContention<TPaddingForCacheContention> PadToAvoidContention2;
 	};
 
 	class LockFreeFIFOListBase

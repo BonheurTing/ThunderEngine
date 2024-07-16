@@ -86,6 +86,9 @@ namespace Thunder
 		// A switchable character. In-memory only. Either ANSICHAR or WIDECHAR, depending on a licensee's requirements.
 		typedef widechar			tchar;
 
+		// Unsigned int. The same size as a pointer.
+		typedef SelectIntPointerType<uint32, uint64, sizeof(void*)>::TIntPointer UPTRINT;
+
 		// Signed int. The same size as a pointer.
 		typedef SelectIntPointerType<int32, int64, sizeof(void*)>::TIntPointer PTRINT;
 	};
@@ -121,8 +124,14 @@ namespace Thunder
 	typedef GenericPlatformTypes::widechar		widechar;
 	/// Either ANSICHAR or WIDECHAR, depending on whether the platform supports wide characters or the requirements of the licensee.
 	typedef GenericPlatformTypes::tchar			tchar;
+	// Unsigned int. The same size as a pointer.
+	typedef SelectIntPointerType<uint32, uint64, sizeof(void*)>::TIntPointer UPTRINT;
 	/// A signed integer the same size as a pointer
 	typedef GenericPlatformTypes::PTRINT		PTRINT;
+	// Unsigned int. The same size as a pointer.
+	typedef UPTRINT SIZE_T;
+	// Signed int. The same size as a pointer.
+	typedef PTRINT SSIZE_T;
 
 	enum class EGfxApiType : uint32
 	{

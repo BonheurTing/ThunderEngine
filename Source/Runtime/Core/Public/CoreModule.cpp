@@ -11,7 +11,7 @@ namespace Thunder
 	
 	void CoreModule::StartUp()
 	{
-		MemoryAllocator = new TMallocMinmalloc();
+		MemoryAllocator = new TMallocMinmalloc(); //
 		GMalloc = MemoryAllocator;
 
 		FileManagerInstance = MakeRefCount<FileManager>();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Platform.h"
+#include <Windows.h> //to tls
 
 #define PLATFORM_SUPPORTS_MESH_SHADERS						1
 
@@ -25,7 +26,7 @@
 #endif
 
 // Prefetch
-#define PLATFORM_CACHE_LINE_SIZE	64
+#define PLATFORM_CACHE_LINE_SIZE	64  // cpu cache line
 
 // DLL export and import definitions
 #define DLLEXPORT __declspec(dllexport)

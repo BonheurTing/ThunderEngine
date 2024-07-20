@@ -134,7 +134,7 @@ private:
 	uint32 TlsSlot;
 
 	/** Lock free list of free memory blocks, these are all linked into a bundle of NUM_PER_BUNDLE. */
-	LockFreeLIFOListBase<int,PLATFORM_CACHE_LINE_SIZE> GlobalFreeListBundles; //FLockFreePointerListLIFORoot<PLATFORM_CACHE_LINE_SIZE>
+	LockFreePointerListLIFORoot<PLATFORM_CACHE_LINE_SIZE> GlobalFreeListBundles;
 };
 
 static LockFreeLinkAllocator_TLSCache& GetLockFreeAllocator()

@@ -30,6 +30,9 @@
 *.sln
 *.user
 
+# git
+*.patch
+
 .idea/
 .vs/
 .vscode/

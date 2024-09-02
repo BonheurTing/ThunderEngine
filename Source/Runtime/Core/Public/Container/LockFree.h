@@ -374,14 +374,7 @@ class LockFreeLIFOListBase
 	typedef LockFreeLinkPolicy::TLinkPtr TLinkPtr;
 
 public:
-	LockFreeLIFOListBase()
-	{
-		// We want to make sure we have quite a lot of extra counter values to avoid the ABA problem. This could probably be relaxed, but eventually it will be dangerous. 
-		// The question is "how many queue operations can a thread starve for".
-		TAssertf(MAX_TagBitsValue / TABAInc >= (1 << 23), "risk of ABA problem");
-		TAssertf((TABAInc & (TABAInc - 1)) == 0, "must be power of two");
-		RootList.Init();
-	}
+	LockFreeLIFOListBase() = default;
 
 	~LockFreeLIFOListBase()
 	{
@@ -414,87 +407,6 @@ public:
 		}
 		return Result;
 	}
-	
-	/*void Push(T* InPayload)
-	{
-		//向队列申请分配一个Node来存储数据
-		TLinkPtr Item = LockFreeLinkPolicy::AllocLockFreeLink();
-		// TLinkPtr是映射后的索引，所以对node操作都要先解引用
-		LockFreeLinkPolicy::DerefLink(Item)->Payload = InPayload;
-		
-		while (true)
-		{
-			// 从内存中拿出Head指针
-			TDoublePtr LocalHead;
-			LocalHead.AtomicRead(Head);
-			
-			TDoublePtr NewHead;
-			NewHead.AdvanceCounterAndState(LocalHead, TABAInc); //ABA计数+1
-			NewHead.SetPtr(Item); //设置节点
-			LockFreeLinkPolicy::DerefLink(Item)->SingleNext = LocalHead.GetPtr(); //设置next为原来的head指向的节点地址
-			
-			if (Head.InterlockedCompareExchange(NewHead, LocalHead)) //Head和LocalHead比较，如果一致就赋值成NewHead；返回Head指向的内容和LocalHead做比较，如果相同就说明刚才交换成功了，break
-			{
-				break;
-			}
-			
-			/*
-			提问：每次新node都正常申请64位，64位计数，每次都原子操作128位可以吗
-			// 从内存中拿出Head指针
-			TDoublePtr localHead;
-			localHead.AtomicRead(Head);
-			
-			TNode* newNode = LockFreeLinkPolicy_Old<T>::AllocLockFreeLink(item);
-			
-			TDoublePtr newHead;
-			// 更新用于防止ABA问题的计数器
-			newHead.AdvanceCounterAndState(localHead, TABAInc);
-			// 更新NewHead指向LocalHead
-			newHead.SetPtr(&newNode);
-			newNode->Next = localHead.GetPtr();
-			// CAS原子判定（指针和计数器，合在一起是uint64，直接用CAS比较）
-			// 这样其他线程中的Push/Pop操作没法重入，Pop中的实现类似
-			::InterlockedCompareExchange128((volatile int64*)&Head, newHead.GetCounterAndState(), newHead.GetPtr(), (int64*)&localHead);
-		
-			if (Head.InterlockedCompareExchange(newHead, localHead))
-			{
-				break;
-			}
-			#1#
-		}
-	}
-
-	T* Pop()
-	{
-		TLinkPtr Item = 0;
-		while (true)
-		{
-			TDoublePtr LocalHead;
-			LocalHead.AtomicRead(Head);
-			Item = LocalHead.GetPtr();
-			if (!Item)
-			{
-				break;
-			}
-			TDoublePtr NewHead;
-			NewHead.AdvanceCounterAndState(LocalHead, TABAInc); //todo: 这个计数是怎么保证原子的，咋push和pop都是+1
-			TLink* ItemP = LockFreeLinkPolicy::DerefLink(Item);
-			NewHead.SetPtr(ItemP->SingleNext);
-			if (Head.InterlockedCompareExchange(NewHead, LocalHead))
-			{
-				ItemP->SingleNext = 0;
-				break;
-			}
-		}
-
-		T* Result = nullptr;
-		if (Item) // >0 todo: check 0 is clipped
-		{
-			Result = (T*)LockFreeLinkPolicy::DerefLink(Item)->Payload;
-			LockFreeLinkPolicy::FreeLockFreeLink(Item);
-		}
-		return Result;
-	}*/
 
 	bool IsEmpty() const
 	{
@@ -636,7 +548,6 @@ public:
 		}
 	}
 
-
 	FORCEINLINE bool IsEmpty() const
 	{
 		TDoublePtr LocalHead;
@@ -653,5 +564,51 @@ private:
 	TPaddingForCacheContention<PaddingForCacheContention> PadToAvoidContention2;
 	TDoublePtr Tail;
 	TPaddingForCacheContention<PaddingForCacheContention> PadToAvoidContention3;
+};
+
+	
+template<class T, int TPaddingForCacheContention>
+class TLockFreeLIFOListNoPad : private LockFreeLIFOListBase<T, TPaddingForCacheContention>
+{
+public:
+
+	void Push(T *NewItem)
+	{
+		LockFreeLIFOListBase<T, TPaddingForCacheContention>::Push(NewItem);
+	}
+
+	T* Pop()
+	{
+		return LockFreeLIFOListBase<T, TPaddingForCacheContention>::Pop();
+	}
+
+	template <typename ContainerType>
+	void PopAll(ContainerType& Output)
+	{
+		LockFreeLIFOListBase<T, TPaddingForCacheContention>::PopAll(Output);
+	}
+
+	template <typename FunctorType>
+	void PopAllAndApply(FunctorType InFunctor)
+	{
+		LockFreeLIFOListBase<T, TPaddingForCacheContention>::PopAllAndApply(InFunctor);
+	}
+
+	FORCEINLINE bool IsEmpty() const
+	{
+		return LockFreeLIFOListBase<T, TPaddingForCacheContention>::IsEmpty();
+	}
+};
+
+template<class T>
+class TLockFreeLIFOList : public TLockFreeLIFOListNoPad<T, 0>
+{
+
+};
+
+template<class T, int TPaddingForCacheContention>
+class TLockFreeListUnordered : public TLockFreeLIFOListNoPad<T, TPaddingForCacheContention>
+{
+
 };
 }

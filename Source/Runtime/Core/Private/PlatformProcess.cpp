@@ -5,6 +5,23 @@
 
 namespace Thunder
 {
+    IEvent* FPlatformProcess::CreateSyncEvent(bool bIsManualReset)
+    {
+        IEvent* Event = nullptr;	
+        if (SupportsMultithreading())
+        {
+            Event = new EventWindows();
+        }
+
+        // If the internal create fails, delete the instance and return NULL
+        if (!Event->Create(bIsManualReset))
+        {
+            delete Event;
+            Event = nullptr;
+        }
+        return Event;
+    }
+
     IEvent* FPlatformProcess::GetSyncEventFromPool(bool bIsManualReset)
     {
         return bIsManualReset

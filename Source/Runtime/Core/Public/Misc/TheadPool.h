@@ -48,10 +48,10 @@ public:
 	std::atomic<bool> TimeToDie { false };
 
 	/** The work this thread is doing. */
-	ITask* volatile QueuedWork = nullptr;
+	ITask* volatile QueuedTask = nullptr;
 
 	/** The pool this thread belongs to. */
-	class FQueuedThreadPoolBase* ThreadPoolOwner = nullptr;
+	class ThreadPoolBase* ThreadPoolOwner = nullptr;
 
 	/** My Thread  */
 	IThread* Thread = nullptr;
@@ -61,7 +61,7 @@ public:
 	void Stop() { }
 	void Exit() { }
 	uint32 Run();
-	bool Create(class FQueuedThreadPoolBase* InPool,uint32 InStackSize = 0, EThreadPriority ThreadPriority = EThreadPriority::Normal);
+	bool Create(class ThreadPoolBase* InPool,uint32 InStackSize = 0, EThreadPriority ThreadPriority = EThreadPriority::Normal);
 	bool KillThread();
 	void DoWork(ITask* InTask);
 };
@@ -78,6 +78,10 @@ public:
 public:
     IThreadPool() = default;
     virtual	~IThreadPool() = default;
+	IThreadPool(IThreadPool const&) = default;
+	IThreadPool& operator =(IThreadPool const&) = default;
+	IThreadPool(IThreadPool&&) = default;
+	IThreadPool& operator=(IThreadPool&&) = default;
 
 public:
     static IThreadPool* Allocate();

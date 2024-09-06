@@ -80,68 +80,43 @@ public:
 		EmptyPool();
 	}
 
-	/**
-	 * Gets an event from the pool or creates one if necessary.
-	 *
-	 * @return The event.
-	 * @see ReturnToPool
-	 */
 	IEvent* GetEventFromPool()
 	{
 		return new SafeRecyclableEvent(GetRawEvent());
 	}
 
-	/**
-	 * Returns an event to the pool.
-	 *
-	 * @param Event The event to return.
-	 * @see GetEventFromPool
-	 */
 	void ReturnToPool(IEvent* Event)
 	{
 		TAssert(Event);
 		TAssert(Event->IsManualReset() == (PoolType == EEventMode::ManualReset));
 
-		SafeRecyclableEvent* SafeEvent = (SafeRecyclableEvent*)Event;
+		const SafeRecyclableEvent* SafeEvent = static_cast<SafeRecyclableEvent*>(Event);
 		ReturnRawEvent(SafeEvent->InnerEvent);
 		delete SafeEvent;
 	}
 
 	void EmptyPool()
 	{
-		while (IEvent* Event = Pool.Pop())
+		while (const IEvent* Event = Pool.Pop())
 		{
 			delete Event;
 		}
 	}
 
-	/**
-	* Gets a "raw" event (as opposite to `FSafeRecyclableEvent` handle returned by `GetEventFromPool`) from the pool or 
-	* creates one if necessary.
-	* @see ReturnRaw
-	*/
 	IEvent* GetRawEvent()
 	{
 		IEvent* Event = Pool.Pop();
-
 		if (Event == nullptr)
 		{
-			Event = FPlatformProcess::GetSyncEventFromPool(PoolType == EEventMode::ManualReset);
+			Event = FPlatformProcess::CreateSyncEvent(PoolType == EEventMode::ManualReset);
 		}
-
 		TAssert(Event);
-
 		return Event;
 	}
 
-	/**
-	 * Returns a "raw" event to the pool.
-	 * @see GetRaw
-	 */
 	void ReturnRawEvent(IEvent* Event)
 	{
 		TAssert(Event);
-
 		Event->Reset();
 		Pool.Push(Event);
 	}

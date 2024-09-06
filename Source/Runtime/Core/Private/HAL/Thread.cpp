@@ -7,7 +7,7 @@ namespace Thunder
 
 IThread* IThread::Create(class ThreadProxy* InRunnable, const String& ThreadName, uint32 InStackSize, EThreadPriority InThreadPri)
 {
-    bool bCreateRealThread = FPlatformProcess::SupportsMultithreading();
+    const bool bCreateRealThread = FPlatformProcess::SupportsMultithreading();
 
     IThread* NewThread = nullptr;
 
@@ -21,9 +21,7 @@ IThread* IThread::Create(class ThreadProxy* InRunnable, const String& ThreadName
     if (NewThread)
     {
         // Call the thread's create method
-        bool bIsValid = NewThread->CreateInternal(InRunnable, ThreadName, InStackSize, InThreadPri);
-
-        if( bIsValid )
+        if (NewThread->CreateInternal(InRunnable, ThreadName, InStackSize, InThreadPri))
         {
             TAssert(NewThread->Runnable);
         }

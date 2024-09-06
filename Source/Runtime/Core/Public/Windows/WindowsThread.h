@@ -64,19 +64,15 @@ class ThreadWindows : public IThread
 	HANDLE Thread = 0;
 
 	/**
-	 * The thread entry point. Simply forwards the call on to the right
-	 * thread main function
+	 * MSDN创建线程后回调函数入口
 	 */
-	static ::DWORD __stdcall _ThreadProc(LPVOID pThis)
+	static ::DWORD __stdcall ThreadProc(LPVOID pThis)
 	{
 		TAssert(pThis);
-		auto* ThisThread = (ThreadWindows*)pThis;
+		auto* ThisThread = static_cast<ThreadWindows*>(pThis);
 		ThreadManager::Get().AddThread(ThisThread->GetThreadID(), ThisThread);
-		return ThisThread->GuardedRun();
+		return ThisThread->Run();
 	}
-
-	/** Guarding works only if debugger is not attached or GAlwaysReportCrash is true. */
-	uint32 GuardedRun();
 
 	/**
 	 * The real thread entry point. It calls the Init/Run/Exit methods on
@@ -85,10 +81,11 @@ class ThreadWindows : public IThread
 	uint32 Run();
 
 public:
-	~ThreadWindows()
+	~ThreadWindows() override
 	{
 		if (Thread)
 		{
+			// 子类析构函数调用虚函数，很不推荐，一定要用的话，需要注意不能访问子类成员，子类此时可能已经析构了
 			Kill(true);
 		}
 	}
@@ -113,7 +110,7 @@ public:
 		}
 	}
 
-	virtual bool Kill(bool bShouldWait = false) override;
+	virtual bool Kill(bool bShouldWait = true) override;
 
 	virtual void WaitForCompletion() override
 	{

@@ -73,34 +73,60 @@ public:
 	}
 };
 
-
+//todo: 没明白
 uint32 ThreadProxy::Run()
 {
-	//todo
+	while (!TimeToDie.load(std::memory_order_relaxed))
+	{
+		DoWorkEvent->Wait();
+
+		ITask* LocalQueuedWork = QueuedTask;
+		QueuedTask = nullptr;
+		FPlatformMisc::MemoryBarrier();
+		TAssert(LocalQueuedWork || TimeToDie.load(std::memory_order_relaxed));
+		while (LocalQueuedWork)
+		{
+			LocalQueuedWork->DoThreadedWork();
+			LocalQueuedWork = ThreadPoolOwner->ReturnToPoolOrGetNextJob(this);
+		}
+	}
 	return 0;
 }
 
-bool ThreadProxy::Create(class FQueuedThreadPoolBase* InPool,uint32 InStackSize, EThreadPriority ThreadPriority)
+bool ThreadProxy::Create(class ThreadPoolBase* InPool,uint32 InStackSize, EThreadPriority ThreadPriority)
 {
-	static int32 PoolThreadIndex = 0;
-
 	ThreadPoolOwner = InPool;
 	DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-	Thread = IThread::Create(this, "PoolThread", InStackSize, ThreadPriority);
+	Thread = IThread::Create(this, "NULL", InStackSize, ThreadPriority);
 	TAssert(Thread);
 	return true;
 }
 
+// 强制销毁线程可能会导致TLS泄漏等, 所以杀线程都需要等待完成
 bool ThreadProxy::KillThread()
 {
-	bool bDidExitOK = true;
-	//todo
-	return bDidExitOK;
+	// 线程标记
+	TimeToDie = true;
+	// 触发Event
+	DoWorkEvent->Trigger();
+	// 等待完成
+	Thread->WaitForCompletion();
+	// 回收线程同步Event
+	FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
+	DoWorkEvent = nullptr;
+	delete Thread;
+	return true;
 }
 
 void ThreadProxy::DoWork(ITask* InTask)
 {
-	//todo
+	TAssert(QueuedTask == nullptr && "Can't do more than one task at a time");
+	// 告诉线程来任务了
+	QueuedTask = InTask;
+	FPlatformMisc::MemoryBarrier();
+	// 唤醒线程并执行任务
+	DoWorkEvent->Trigger();
+	//todo: 怎么doWork的？
 }
     
 

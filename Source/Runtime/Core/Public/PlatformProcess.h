@@ -9,6 +9,8 @@ namespace Thunder
 {
 	struct FPlatformProcess
 	{
+		static CORE_API class IEvent* CreateSyncEvent(bool bIsManualReset = false);
+		
 		static CORE_API class IEvent* GetSyncEventFromPool(bool bIsManualReset = false);
 
 		static CORE_API void ReturnSyncEventToPool(IEvent* Event);
@@ -28,5 +30,18 @@ namespace Thunder
 
 		static CORE_API void Sleep( float Seconds );
 		
+	};
+
+	// temple
+	struct FPlatformMisc
+	{
+		FORCEINLINE static void MemoryBarrier() 
+		{
+#if PLATFORM_CPU_X86_FAMILY
+			_mm_sfence();
+#elif PLATFORM_CPU_ARM_FAMILY
+			__dmb(_ARM64_BARRIER_SY);
+#endif
+		}
 	};
 }

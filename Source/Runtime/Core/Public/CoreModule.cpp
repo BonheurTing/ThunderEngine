@@ -1,5 +1,4 @@
 ﻿#include "CoreModule.h"
-#include "FileManager.h"
 #include "Memory/MallocAnsi.h"
 #include "Memory/MallocMinmalloc.h"
 
@@ -30,9 +29,4 @@ namespace Thunder
 			GMalloc = nullptr;
 		}
 	}
-}
-
-namespace Thunder
-{
-	//IMPLEMENT_MODULE(Test1, TestModule1)
 }

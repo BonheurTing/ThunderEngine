@@ -23,7 +23,7 @@ public:
 	IEvent(IEvent&&) = default;
 	IEvent& operator=(IEvent&&) = default;
 private:
-	
+	uint32 EventId;
 };
 
 enum class EEventMode : uint8 { AutoReset, ManualReset };

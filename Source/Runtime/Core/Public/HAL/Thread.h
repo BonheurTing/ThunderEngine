@@ -70,7 +70,7 @@ protected:
     ThreadProxy* Runnable;
 
     /** Sync event to make sure that Init() has been completed before allowing the main thread to continue. */
-    IEvent* ThreadInitSyncEvent;
+    //IEvent* ThreadInitSyncEvent;
 
     /** The priority to run the thread at. */
     EThreadPriority ThreadPriority;

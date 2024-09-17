@@ -1,5 +1,5 @@
 #pragma once
-
+#pragma optimize("", off)
 #include "Platform.h"
 
 namespace Thunder
@@ -18,6 +18,11 @@ namespace Thunder
 
 	struct CORE_API TMemory
 	{
+		static void* Malloc(SIZE_T Count, uint32 Alignment = 0)
+		{
+			return GMalloc->Malloc(Count, Alignment);
+		}
+		
 		template<typename Type>
 		static void* Malloc(size_t arrayCount = 1)
 		{
@@ -31,5 +36,13 @@ namespace Thunder
 			GMalloc->Free(ptr);
 			ptr = nullptr;
 		}
+
+		template<typename Type>
+		static void Free(Type*& ptr)
+		{
+			GMalloc->Free(ptr);
+		}
 	};
 }
+
+#pragma optimize("", on)

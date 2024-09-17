@@ -37,21 +37,21 @@ public:
 };
 	
 /************************ 线程池 ************************************/
- // FQueueThread 线程池的线程执行体
+ // FQueuedThread 线程池的线程执行体
 class ThreadProxy
 {
 public:
     /** The event that tells the thread there is work to do. */
-	IEvent* DoWorkEvent = nullptr;
+	//IEvent* DoWorkEvent = nullptr;
 
 	/** If true, the thread should exit. */
-	std::atomic<bool> TimeToDie { false };
+	//std::atomic<bool> TimeToDie { false };
 
 	/** The work this thread is doing. */
 	ITask* volatile QueuedTask = nullptr;
 
 	/** The pool this thread belongs to. */
-	class ThreadPoolBase* ThreadPoolOwner = nullptr;
+	//class ThreadPoolBase* ThreadPoolOwner = nullptr;
 
 	/** My Thread  */
 	IThread* Thread = nullptr;
@@ -62,6 +62,7 @@ public:
 	void Exit() { }
 	uint32 Run();
 	bool Create(class ThreadPoolBase* InPool,uint32 InStackSize = 0, EThreadPriority ThreadPriority = EThreadPriority::Normal);
+	void PushTask(ITask* InTask) { QueuedTask = InTask; }
 	bool KillThread();
 	void DoWork(ITask* InTask);
 };
@@ -87,7 +88,7 @@ public:
     static IThreadPool* Allocate();
 };
 
-
+extern CORE_API IThreadPool* GThreadPool;
     
 }
 

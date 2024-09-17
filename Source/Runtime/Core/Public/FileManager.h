@@ -4,8 +4,9 @@
 
 namespace Thunder
 {
-	struct CORE_API FileManager : public RefCountedObject
+	class CORE_API FileManager : public RefCountedObject
 	{
+	public:
 		bool LoadFileToString(const String& fileName, String& outString);
 		bool SaveFileFromString(const String& fileName, const String& inString);
 		int TraverseFileFromFolder(const String& folderPath,  TArray<String>& outFileNames);

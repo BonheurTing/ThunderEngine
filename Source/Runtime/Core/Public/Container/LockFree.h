@@ -1,4 +1,5 @@
 #pragma once
+#pragma optimize("", off)
 #include "Assertion.h"
 #include "Templates/Alignment.h"
 #include "Container.h"
@@ -51,10 +52,13 @@ public:
 		}
 	}
 
-	FORCEINLINE uint32 Alloc(uint32 Count = 1)
+	uint32 Alloc(uint32 Count = 1)
 	{
 		const uint32 FirstItem = NextIndex.fetch_add(Count, std::memory_order_relaxed);
-		TAssertf(FirstItem + Count > MaxTotalItems, "Consumed %d lock free links; there are no more.", MaxTotalItems);
+		if (FirstItem + Count > MaxTotalItems)
+		{
+			TAssertf(false, "Consumed %d lock free links; there are no more.", MaxTotalItems);
+		}
 		for (uint32 CurrentItem = FirstItem; CurrentItem < FirstItem + Count; CurrentItem++)
 		{
 			new (GetRawItem(CurrentItem)) T();
@@ -81,7 +85,7 @@ private:
 		TAssert(Index && Index < (uint32)NextIndex.load() && Index < MaxTotalItems && BlockIndex < MaxBlocks);
 		if (!Pages[BlockIndex])
 		{
-			T* NewBlock = new (TMemory::Malloc<T>(ItemsPerPage)) T{};
+			T* NewBlock = new (TMemory::Malloc(ItemsPerPage)) T{};
 			TAssert(IsAligned(NewBlock, alignof(T)));
 			if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Pages[BlockIndex], NewBlock, nullptr) != nullptr)
 			{
@@ -612,3 +616,5 @@ class TLockFreeListUnordered : public TLockFreeLIFOListNoPad<T, TPaddingForCache
 
 };
 }
+
+#pragma optimize("", on)

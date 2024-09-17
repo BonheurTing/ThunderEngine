@@ -1,7 +1,8 @@
+
+#pragma optimize("", off)
 #include "Misc/TheadPool.h"
 #include "Misc/AsyncTask.h"
 #include "Container.h"
-
 namespace Thunder
 {
 
@@ -73,9 +74,21 @@ public:
 	}
 };
 
+IThreadPool* GThreadPool = new ThreadPoolBase();
+
 //todo: 没明白
 uint32 ThreadProxy::Run()
 {
+	// no thread pool
+	{
+		LOG("ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
+		ITask* LocalQueuedWork = QueuedTask;
+		QueuedTask = nullptr;
+		TAssert(LocalQueuedWork);
+		LocalQueuedWork->DoThreadedWork();
+	}
+	
+	/* thread pool
 	while (!TimeToDie.load(std::memory_order_relaxed))
 	{
 		DoWorkEvent->Wait();
@@ -89,14 +102,14 @@ uint32 ThreadProxy::Run()
 			LocalQueuedWork->DoThreadedWork();
 			LocalQueuedWork = ThreadPoolOwner->ReturnToPoolOrGetNextJob(this);
 		}
-	}
+	}*/
 	return 0;
 }
 
 bool ThreadProxy::Create(class ThreadPoolBase* InPool,uint32 InStackSize, EThreadPriority ThreadPriority)
 {
-	ThreadPoolOwner = InPool;
-	DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+	//ThreadPoolOwner = InPool;
+	//DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
 	Thread = IThread::Create(this, "NULL", InStackSize, ThreadPriority);
 	TAssert(Thread);
 	return true;
@@ -106,14 +119,14 @@ bool ThreadProxy::Create(class ThreadPoolBase* InPool,uint32 InStackSize, EThrea
 bool ThreadProxy::KillThread()
 {
 	// 线程标记
-	TimeToDie = true;
+	//TimeToDie = true;
 	// 触发Event
-	DoWorkEvent->Trigger();
+	//DoWorkEvent->Trigger();
 	// 等待完成
 	Thread->WaitForCompletion();
 	// 回收线程同步Event
-	FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
-	DoWorkEvent = nullptr;
+	//FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
+	//DoWorkEvent = nullptr;
 	delete Thread;
 	return true;
 }
@@ -123,12 +136,14 @@ void ThreadProxy::DoWork(ITask* InTask)
 	TAssert(QueuedTask == nullptr && "Can't do more than one task at a time");
 	// 告诉线程来任务了
 	QueuedTask = InTask;
-	FPlatformMisc::MemoryBarrier();
+	//FPlatformMisc::MemoryBarrier();
 	// 唤醒线程并执行任务
-	DoWorkEvent->Trigger();
+	//DoWorkEvent->Trigger();
 	//todo: 怎么doWork的？
 }
     
 
     
 }
+
+#pragma optimize("", on)

@@ -18,7 +18,7 @@ uint32 ThreadWindows::Run()
 
     if (Runnable->Init() == true)
     {
-        ThreadInitSyncEvent->Trigger();
+        //ThreadInitSyncEvent->Trigger();
 
         // Setup TLS for this thread, used by FTlsAutoCleanup objects.
         SetTls();
@@ -33,7 +33,7 @@ uint32 ThreadWindows::Run()
     else
     {
         // Initialization has failed, release the sync event
-        ThreadInitSyncEvent->Trigger();
+        //ThreadInitSyncEvent->Trigger();
     }
 
     return ExitCode;
@@ -61,13 +61,13 @@ bool ThreadWindows::Kill(bool bShouldWait)
 bool ThreadWindows::CreateInternal(ThreadProxy* InRunnable, const String& InThreadName, uint32 InStackSize, EThreadPriority InThreadPri)
 {
     //todo: Priority
-    ::SetThreadPriority(::GetCurrentThread(), TranslateThreadPriority(EThreadPriority::Normal));
+    //::SetThreadPriority(::GetCurrentThread(), TranslateThreadPriority(EThreadPriority::Normal));
 
     TAssert(InRunnable);
     Runnable = InRunnable;
 
     // 创建一个同步的Event
-    ThreadInitSyncEvent = FPlatformProcess::GetSyncEventFromPool(true);
+    //ThreadInitSyncEvent = FPlatformProcess::GetSyncEventFromPool(true);
 
     //ThreadName = InThreadName ? InThreadName : TEXT("NULL");
     ThreadPriority = InThreadPri;
@@ -93,12 +93,12 @@ bool ThreadWindows::CreateInternal(ThreadProxy* InRunnable, const String& InThre
          **/
         ResumeThread(Thread);
 
-        ThreadInitSyncEvent->Wait(INFINITE);
-        SetThreadPriority(InThreadPri);
+        //ThreadInitSyncEvent->Wait(INFINITE);
+        //SetThreadPriority(InThreadPri);
     }
 
-    FPlatformProcess::ReturnSyncEventToPool(ThreadInitSyncEvent);
-    ThreadInitSyncEvent = nullptr;
+    //FPlatformProcess::ReturnSyncEventToPool(ThreadInitSyncEvent);
+    //ThreadInitSyncEvent = nullptr;
     return Thread != nullptr;
 }
     

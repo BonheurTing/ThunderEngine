@@ -1,8 +1,27 @@
 #pragma once
+#include <functional>
+
 #include "Misc/TheadPool.h"
+#include "Templates/Function.h"
+
 
 namespace Thunder
 {
+
+// CORE_API void AsyncTask
+class RawTask : public ITask
+{
+public:
+	RawTask(TFunction<void()>&& InFunction)
+		: Function(MoveTemp(InFunction))
+	{}
+
+	void DoThreadedWork() override { Function(); }
+private:
+
+	TFunction<void()> Function;
+};
+	
 
 /**
 	FAsyncTask - template task for jobs queued to thread pools
@@ -59,10 +78,43 @@ namespace Thunder
 **/
 template<typename TTask>
 class FAsyncTask
-	: private ITask
+	: public ITask
 {
-	virtual void DoThreadedWork() {}
-	virtual void Abandon() {}
+	/** User job embedded in this task */ 
+	TTask Task;
+
+public:
+	FAsyncTask()
+		: Task()
+	{
+		// Cache the StatId to remain backward compatible with TTask that declare GetStatId as non-const.
+		//Init(Task.GetStatId());
+	}
+
+	/** Forwarding constructor. */
+	template <typename Arg0Type, typename... ArgTypes>
+	FAsyncTask(Arg0Type&& Arg0, ArgTypes&&... Args)
+		: Task(std::forward<Arg0Type>(Arg0), std::forward<ArgTypes>(Args)...)
+	{
+		// Cache the StatId to remain backward compatible with TTask that declare GetStatId as non-const.
+		/*Init(Task.GetStatId());*/
+	}
+	void StartTask() { DoThreadedWork();}
+	void EnsureCompletion() {}
+	void DoThreadedWork() override { Task.DoWork(); }
+	void Abandon() override {}
+
+private:
+	/** Thread safe counter that indicates WORK completion, no necessarily finalization of the job */
+	std::atomic<int32>	WorkNotFinishedCounter;
+	/** If we aren't doing the work synchronously, this will hold the completion event */
+	IEvent*				DoneEvent = nullptr;
+	/** Pool we are queued into, maintained by the calling thread */
+	IThreadPool*	QueuedPool = nullptr;
+	/** Current priority */
+	ETaskPriority Priority = ETaskPriority::Normal;
+	/** Approximation of the peak memory (in bytes) this task could require during it's execution. */
+	int64 RequiredMemory = -1;
 };
 
 }

@@ -15,7 +15,8 @@ namespace Thunder
 		}
 		RefCountedObject(const RefCountedObject& Rhs) = delete;
 		RefCountedObject& operator=(const RefCountedObject& Rhs) = delete;
-		static bool NeedAutoMemoryFree() { return true; }
+		// ReSharper disable once CppMemberFunctionMayBeStatic
+		bool NeedAutoMemoryFree() const { return true; }
 		uint32 AddRef() const
 		{
 			return NumRefs.fetch_add(1, std::memory_order_acquire);
@@ -37,6 +38,7 @@ namespace Thunder
 		{
 			return NumRefs.load(std::memory_order_acquire);
 		}
+		
 	private:
 		mutable std::atomic_int NumRefs;
 	};

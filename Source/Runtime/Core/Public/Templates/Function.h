@@ -1,7 +1,6 @@
 #pragma once
 #include <cstring>
 #include <type_traits>
-
 #include "Platform.h"
 #include "Memory/MemoryBase.h"
 #define NUM_TFUNCTION_INLINE_BYTES 32
@@ -13,7 +12,7 @@ template <typename T> struct TRemovePointer<T*> { typedef T Type; };
 
 
 namespace Thunder
-	{
+{
 	template<int32 Size, uint32 Alignment>
 	struct TAlignedBytes
 	{
@@ -34,6 +33,7 @@ namespace Thunder
 
 	struct IFunction_OwnedObject
 	{
+		virtual void* CloneToEmptyStorage(void* Storage) const = 0;
 		virtual void* GetAddress() = 0;
 		virtual void Destroy() = 0;
 		virtual ~IFunction_OwnedObject() = default;
@@ -77,12 +77,18 @@ namespace Thunder
 		{
 		}
 
-		void Destroy()
+		void* CloneToEmptyStorage(void* Storage) const override
+		{
+			TAssert(false);
+			return nullptr;
+		}
+
+		void Destroy() override
 		{
 			this->~TFunction_OwnedObject();
 		}
 
-		void* GetAddress()
+		void* GetAddress() override
 		{
 			return &Obj;
 		}
@@ -117,11 +123,23 @@ namespace Thunder
 		FunctionStorage(const FunctionStorage& Other) = delete;
 		FunctionStorage& operator=(FunctionStorage&& Other) = delete;
 		FunctionStorage& operator=(const FunctionStorage& Other) = delete;
+
+		void* BindCopy(const FunctionStorage& Other)
+		{
+			void* NewObj = Other.GetBoundObject()->CloneToEmptyStorage(this);
+			return NewObj;
+		}
+
+		[[nodiscard]] IFunction_OwnedObject* GetBoundObject() const
+		{
+			const auto Result = static_cast<IFunction_OwnedObject*>(HeapAllocation);
+			return Result;
+		}
 		
 		//Returns a pointer to the callable object
 		void* GetPtr() const
 		{
-			IFunction_OwnedObject* Owned = static_cast<IFunction_OwnedObject*>(HeapAllocation);
+			auto Owned = static_cast<IFunction_OwnedObject*>(HeapAllocation);
 			if (!Owned)
 			{
 				Owned = (IFunction_OwnedObject*)(&InlineAllocation);
@@ -196,8 +214,6 @@ namespace Thunder
 	};
 
 	//TFunctionRefBase
-
-	
 	template <typename FuncType>
 	class TFunction;
 	
@@ -216,6 +232,18 @@ namespace Thunder
 		TFunction() noexcept {}
 		TFunction(nullptr_t) noexcept {}
 		
+
+		template <typename FunctorType>
+		TFunction(const FunctorType& Other)
+			: Callable(Other.Callable)
+		{
+			if (!Callable)
+			{
+				return;
+			}
+			void* NewPtr = Storage.BindCopy(Other.Storage);
+		}
+		
 		template <typename FunctorType>
 		TFunction(FunctorType&& InFunc)
 		{
@@ -226,12 +254,10 @@ namespace Thunder
 			}
 			
 			Callable = &TFunctionRefCaller<std::decay_t<FunctorType>, Ret (ParamTypes...)>::Call;
-			//std::function<void()> q;
-		} 
+		}
 
 		TFunction& operator=(TFunction&&) = delete;
 		TFunction& operator=(const TFunction&) = delete;
-
 		
 		Ret operator()(ParamTypes... Params) const
 		{
@@ -244,12 +270,11 @@ namespace Thunder
 	};
 
 
-
+	//AsyncTask(
 	template <typename Ret, typename... ParamTypes>
-	static Ret Invoke1(TFunction<Ret (ParamTypes...)> FunctionType, ParamTypes... Params)
+	static Ret Invoke(TFunction<Ret (ParamTypes...)>& FunctionType, ParamTypes... Params)
 	{
 		return FunctionType(Params...);
-		return Ret();
 	}
 
 	

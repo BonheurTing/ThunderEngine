@@ -39,7 +39,6 @@
 Debug/
 Engine/
 Intermediate/
-Source/Programs/
 Source/ThirdParty/EASTL
 Source/ThirdParty/llvm8
 Saved/

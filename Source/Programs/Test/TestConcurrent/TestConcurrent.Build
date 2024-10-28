@@ -1,0 +1,5 @@
+set(ModuleName TestConcurrent)
+set(LinkMode EXECUTABLE)
+set(PublicDependencyModuleList
+    Core
+)

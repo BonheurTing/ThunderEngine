@@ -51,7 +51,7 @@ public:
 	ITask* volatile QueuedTask = nullptr;
 
 	/** The pool this thread belongs to. */
-	//class ThreadPoolBase* ThreadPoolOwner = nullptr;
+	class ThreadPoolBase* ThreadPoolOwner = nullptr;
 
 	/** My Thread  */
 	IThread* Thread = nullptr;
@@ -71,11 +71,12 @@ public:
 class CORE_API IThreadPool
 {
 public:
-    virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize = (32 * 1024), EThreadPriority ThreadPriority = EThreadPriority::Normal, const tchar* Name = nullptr) = 0;
+    virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize = (32 * 1024), EThreadPriority ThreadPriority = EThreadPriority::Normal, const String& Name = "") = 0;
     virtual void Destroy() = 0;
     virtual void AddQueuedWork( ITask* InQueuedWork, ETaskPriority InQueuedWorkPriority = ETaskPriority::Normal) = 0;
     virtual bool RetractQueuedWork(ITask* InQueuedWork) = 0;
-    virtual int32 GetNumThreads() const = 0;
+    [[nodiscard]] virtual int32 GetNumThreads() const = 0;
+	virtual void WaitForCompletion() = 0;
 public:
     IThreadPool() = default;
     virtual	~IThreadPool() = default;
@@ -86,6 +87,7 @@ public:
 
 public:
     static IThreadPool* Allocate();
+	static void ParallelFor(const TArray<ITask*>& InTasks, EThreadPriority InThreadPriority, uint32 InNumThreads);
 };
 
 extern CORE_API IThreadPool* GThreadPool;

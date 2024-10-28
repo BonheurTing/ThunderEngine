@@ -3,17 +3,28 @@
 #include "Misc/TheadPool.h"
 #include "Misc/AsyncTask.h"
 #include "Container.h"
+#include "Misc/Lock.h"
+
 namespace Thunder
 {
+	struct PriorityQueueTask
+	{
+		ITask* Task;
+		ETaskPriority Priority;
 
-class FCriticalSection;
+		bool operator<(const PriorityQueueTask& Other) const
+		{
+			return Priority < Other.Priority;
+		}
+	};
+
+// FQueuedThreadPoolBase
 class ThreadPoolBase : public IThreadPool
 {
 protected:
-
 	/** The work queue to pull from. */
-	//FThreadPoolPriorityQueue QueuedWork;
-	
+	TPriorityQueue<PriorityQueueTask> QueuedWork;
+
 	/** The thread pool to dole work out to. */
 	TArray<ThreadProxy*> QueuedThreads;
 
@@ -21,7 +32,7 @@ protected:
 	TArray<ThreadProxy*> AllThreads;
 
 	/** The synchronization object used to protect access to the queued work. */
-	FCriticalSection* SynchQueue;
+	SpinLock SynchQueue;
 
 	/** If true, indicates the destruction process has taken place. */
 	bool TimeToDie;
@@ -30,9 +41,9 @@ public:
 
 	/** Default constructor. */
 	ThreadPoolBase()
-		: SynchQueue(nullptr)
-		, TimeToDie(0)
-	{ }
+		: TimeToDie(false)
+	{
+	}
 
 	/** Virtual destructor (cleans up the synchronization objects). */
 	virtual ~ThreadPoolBase() override
@@ -40,25 +51,129 @@ public:
 		Destroy();
 	}
 
-	virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize, EThreadPriority ThreadPriority, const tchar* Name) override
+	virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize, EThreadPriority ThreadPriority, const String& Name) override
 	{
-		//todo
-		return false;
+		bool bWasSuccessful = true;
+		TLockGuard<SpinLock> guard(SynchQueue); //获得临界区，构造时lock，退出作用域时析构unlock
+
+		TAssert(QueuedThreads.empty());
+		//QueuedThreads.resize(InNumQueuedThreads);
+		while (!QueuedWork.empty())
+		{
+			QueuedWork.pop();
+		}
+
+		uint32 OverrideStackSize = StackSize;
+
+		// Now create each thread and add it to the array
+		for (uint32 Count = 0; Count < InNumQueuedThreads && bWasSuccessful == true; Count++)
+		{
+			// Create a new queued thread
+			auto pThread = new ThreadProxy();
+			// Now create the thread and add it if ok
+			const String ThreadName = "ThreadPoolThread + Count";
+			if (pThread->Create(this, StackSize, ThreadPriority) == true)
+			{
+				QueuedThreads.push_back(pThread);
+				AllThreads.push_back(pThread);
+			}
+			else
+			{
+				// Failed to fully create so clean up
+				bWasSuccessful = false;
+				delete pThread;
+			}
+		}
+		// Destroy any created threads if the full set was not successful
+		if (bWasSuccessful == false)
+		{
+			Destroy();
+		}
+
+		return bWasSuccessful;
 	}
 
 	virtual void Destroy() override final
 	{
-		//todo
+		/*{
+			TLockGuard<SpinLock> guard(SynchQueue);
+			TimeToDie = 1;
+			FPlatformMisc::MemoryBarrier();
+			// Clean up all queued objects
+			while (const auto WorkItem = QueuedWork.top().Task)
+			{
+				QueuedWork.pop();
+				WorkItem->Abandon();
+			}
+		}
+		// wait for all threads to finish up
+		while (true)
+		{
+			{
+				TLockGuard<SpinLock> guard(SynchQueue);
+				if (AllThreads.size() == QueuedThreads.size())
+				{
+					break;
+				}
+			}
+			FPlatformProcess::Sleep(0.0f);
+		}
+		// Delete all threads
+		{
+			TLockGuard<SpinLock> guard(SynchQueue);
+			// Now tell each thread to die and delete those
+			for (int32 Index = 0; Index < AllThreads.size(); Index++)
+			{
+				AllThreads[Index]->KillThread();
+				delete AllThreads[Index];
+			}
+			TArray<ThreadProxy*> Empty;
+			QueuedThreads.swap(Empty);
+			AllThreads.swap(Empty);
+		}*/
 	}
 
-	virtual int32 GetNumThreads() const 
+	int32 GetNumThreads() const override
 	{
-		return AllThreads.size();
+		return static_cast<int32>(AllThreads.size());
 	}
 
 	void AddQueuedWork(ITask* InQueuedWork, ETaskPriority InQueuedWorkPriority) override
 	{
-		//todo
+		TAssert(InQueuedWork != nullptr);
+
+		if (TimeToDie)
+		{
+			InQueuedWork->Abandon();
+			return;
+		}
+
+		//检查线程是否可用确保在执行此操作时没有其他线程可以操作线程池。
+		//
+		//我们从数组的后面选择一个线程，因为这将是最近使用的线程，因此最有可能具有堆栈等的“热”缓存（类似于Windows IOCP调度策略）。
+		//从后面选择也更便宜，因为不需要移动内存。
+
+		ThreadProxy* Thread;
+
+		{
+			TLockGuard<SpinLock> guard(SynchQueue);
+			const auto AvailableThreadCount = static_cast<int32>(QueuedThreads.size());
+			if (AvailableThreadCount == 0)
+			{
+				//无可用
+				QueuedWork.push({InQueuedWork, InQueuedWorkPriority});
+				LOG("QueuedWork Push Task: %d", QueuedWork.size());
+				return;
+			}
+
+			const int32 ThreadIndex = AvailableThreadCount - 1;
+
+			Thread = QueuedThreads[ThreadIndex];
+			QueuedThreads.pop_back(); //移除队尾
+			TAssert(QueuedThreads.size() == ThreadIndex);
+		}
+
+		Thread->DoWork(InQueuedWork);
 	}
 
 	virtual bool RetractQueuedWork(ITask* InQueuedWork) override
@@ -69,27 +184,130 @@ public:
 
 	ITask* ReturnToPoolOrGetNextJob(ThreadProxy* InQueuedThread)
 	{
-		//todo
-		return nullptr;
+		TAssert(InQueuedThread != nullptr);
+		// Check to see if there is any work to be done
+		TLockGuard<SpinLock> guard(SynchQueue);
+		if (TimeToDie)
+		{
+			TAssert(QueuedWork.empty());
+		}
+		
+		if (QueuedWork.empty())
+		{
+			QueuedThreads.push_back(InQueuedThread);
+			return nullptr;
+		}
+
+		ITask* Work = QueuedWork.top().Task;
+		QueuedWork.pop();
+		LOG("QueuedWork Pop Task: %d", QueuedWork.size());
+
+		if (!Work)
+		{
+			// There was no work to be done, so add the thread to the pool
+			QueuedThreads.push_back(InQueuedThread);
+		}
+		return Work;
+	}
+
+	void WaitForCompletion() override
+	{
+		while(!QueuedWork.empty())
+		{
+			ThreadProxy* Thread;
+			ITask* WorkItem;
+			{
+				TLockGuard<SpinLock> guard(SynchQueue);
+				const auto AvailableThreadCount = static_cast<int32>(QueuedThreads.size());
+				if (AvailableThreadCount == 0)
+				{
+					//无可用
+					_sleep(5);
+					continue;
+				}
+				if (QueuedWork.empty())
+				{
+					continue;
+				}
+				WorkItem = QueuedWork.top().Task;
+				QueuedWork.pop();
+				TAssert(WorkItem);
+				const int32 ThreadIndex = AvailableThreadCount - 1;
+
+				Thread = QueuedThreads[ThreadIndex];
+				QueuedThreads.pop_back(); //移除队尾
+				TAssert(QueuedThreads.size() == ThreadIndex);
+			}
+			
+			Thread->DoWork(WorkItem);
+		}
+	}
+
+	void ParallelForInternal(const TArray<ITask*>& InTasks)
+	{
+		
 	}
 };
 
-IThreadPool* GThreadPool = new ThreadPoolBase();
+IThreadPool* IThreadPool::Allocate()
+{
+	return new ThreadPoolBase();
+}
+
+IThreadPool* GThreadPool = IThreadPool::Allocate();
+IThreadPool* GCacheThreadPool = nullptr;
+
+void IThreadPool::ParallelFor(const TArray<ITask*>& InTasks, EThreadPriority InThreadPriority, uint32 InNumThreads)
+{
+	if(!GCacheThreadPool)
+	{
+		GCacheThreadPool = IThreadPool::Allocate();
+	}
+	GCacheThreadPool->Create(InNumThreads, 96 * 1024, InThreadPriority, "ParallelForThreadPool");
+
+	for(const auto Task : InTasks)
+	{
+		GCacheThreadPool->AddQueuedWork(Task);
+	}
+	GCacheThreadPool->WaitForCompletion();
+	GCacheThreadPool->Destroy();
+}
+
+
 
 //todo: 没明白
 uint32 ThreadProxy::Run()
 {
 	// no thread pool
+	if (!ThreadPoolOwner)
 	{
 		LOG("ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
 		ITask* LocalQueuedWork = QueuedTask;
 		QueuedTask = nullptr;
-		TAssert(LocalQueuedWork);
-		LocalQueuedWork->DoThreadedWork();
+		if (LocalQueuedWork)
+		{
+			LocalQueuedWork->DoThreadedWork();
+		}
+		return 0;
 	}
+
+	// thread pool
+	//while (!TimeToDie.Load(EMemoryOrder::Relaxed))
+	LOG("thread pool ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
+	ITask* LocalQueuedWork = QueuedTask;
+	QueuedTask = nullptr;
+	FPlatformMisc::MemoryBarrier();
+	//TAssert(LocalQueuedWork || TimeToDie.load(std::memory_order_relaxed));
+	while (LocalQueuedWork)
+	{
+		LocalQueuedWork->DoThreadedWork();
+		LocalQueuedWork = ThreadPoolOwner->ReturnToPoolOrGetNextJob(this);
+	}
+
+
 	
-	/* thread pool
-	while (!TimeToDie.load(std::memory_order_relaxed))
+	// thread pool
+	/*while (!TimeToDie.load(std::memory_order_relaxed))
 	{
 		DoWorkEvent->Wait();
 
@@ -108,7 +326,7 @@ uint32 ThreadProxy::Run()
 
 bool ThreadProxy::Create(class ThreadPoolBase* InPool,uint32 InStackSize, EThreadPriority ThreadPriority)
 {
-	//ThreadPoolOwner = InPool;
+	ThreadPoolOwner = InPool;
 	//DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
 	Thread = IThread::Create(this, "NULL", InStackSize, ThreadPriority);
 	TAssert(Thread);
@@ -136,7 +354,7 @@ void ThreadProxy::DoWork(ITask* InTask)
 	TAssert(QueuedTask == nullptr && "Can't do more than one task at a time");
 	// 告诉线程来任务了
 	QueuedTask = InTask;
-	//FPlatformMisc::MemoryBarrier();
+	FPlatformMisc::MemoryBarrier();
 	// 唤醒线程并执行任务
 	//DoWorkEvent->Trigger();
 	//todo: 怎么doWork的？

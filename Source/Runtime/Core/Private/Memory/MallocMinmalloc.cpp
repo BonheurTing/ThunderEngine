@@ -1,4 +1,5 @@
-﻿#include "Memory/MallocMinmalloc.h"
+﻿#pragma optimize("", off)
+#include "Memory/MallocMinmalloc.h"
 #include "mimalloc.h"
 
 namespace Thunder

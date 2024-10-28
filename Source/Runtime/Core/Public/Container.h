@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 #include <deque>
+#include <queue>
 #include <set>
 #include <unordered_set>
 
@@ -34,6 +35,9 @@ namespace Thunder
 
 	template<typename InElementType>
 	using TDeque = std::deque<InElementType>;
+	
+	template<typename InElementType>
+	using TPriorityQueue = std::priority_queue<InElementType>;
 
 	using Mutex = std::mutex;
 	using ScopeLock = std::lock_guard<std::mutex>;

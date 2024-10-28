@@ -1,4 +1,5 @@
 #pragma once
+#pragma optimize("", off)
 #include <cstring>
 #include <type_traits>
 #include "Platform.h"

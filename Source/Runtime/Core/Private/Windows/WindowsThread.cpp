@@ -15,27 +15,15 @@ uint32 ThreadWindows::Run()
     //todo: Runnable
     uint32 ExitCode = 1;
     TAssert(Runnable);
+    // 如果考虑同步和tls请参考uint32 FRunnableThreadWin::Run()的 ThreadInitSyncEvent
 
-    if (Runnable->Init() == true)
+    if (Runnable->Init())
     {
-        //ThreadInitSyncEvent->Trigger();
-
-        // Setup TLS for this thread, used by FTlsAutoCleanup objects.
-        SetTls();
-
         ExitCode = Runnable->Run();
 
-        // Allow any allocated resources to be cleaned up
         Runnable->Exit();
-
-        FreeTls();
     }
-    else
-    {
-        // Initialization has failed, release the sync event
-        //ThreadInitSyncEvent->Trigger();
-    }
-
+    
     return ExitCode;
 }
 

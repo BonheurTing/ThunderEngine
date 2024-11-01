@@ -57,6 +57,7 @@ private:
  /**
  * This is the base interface for all runnable thread classes. It specifies the
  * methods used in managing its life cycle.
+ * FRunnableThreadWin
  */
 class ThreadWindows : public IThread
 {

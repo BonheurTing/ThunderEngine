@@ -40,12 +40,12 @@ public:
  // FQueuedThread 线程池的线程执行体
 class ThreadProxy
 {
-public:
+private:
     /** The event that tells the thread there is work to do. */
-	//IEvent* DoWorkEvent = nullptr;
+	IEvent* DoWorkEvent = nullptr;
 
 	/** If true, the thread should exit. */
-	//std::atomic<bool> TimeToDie { false };
+	std::atomic<bool> TimeToDie { false };
 
 	/** The work this thread is doing. */
 	ITask* volatile QueuedTask = nullptr;

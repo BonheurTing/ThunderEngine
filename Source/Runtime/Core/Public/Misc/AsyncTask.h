@@ -100,21 +100,20 @@ public:
 		/*Init(Task.GetStatId());*/
 	}
 	void StartTask() { DoThreadedWork();}
-	void EnsureCompletion() {}
+	//void EnsureCompletion() {}
 	void DoThreadedWork() override { Task.DoWork(); }
 	void Abandon() override {}
 
 private:
-	/** Thread safe counter that indicates WORK completion, no necessarily finalization of the job */
-	std::atomic<int32>	WorkNotFinishedCounter;
+
 	/** If we aren't doing the work synchronously, this will hold the completion event */
-	IEvent*				DoneEvent = nullptr;
+	//IEvent*				DoneEvent = nullptr;
 	/** Pool we are queued into, maintained by the calling thread */
-	IThreadPool*	QueuedPool = nullptr;
+	//IThreadPool*	QueuedPool = nullptr;
 	/** Current priority */
-	ETaskPriority Priority = ETaskPriority::Normal;
+	//ETaskPriority Priority = ETaskPriority::Normal;
 	/** Approximation of the peak memory (in bytes) this task could require during it's execution. */
-	int64 RequiredMemory = -1;
+	//int64 RequiredMemory = -1;
 };
 
 }

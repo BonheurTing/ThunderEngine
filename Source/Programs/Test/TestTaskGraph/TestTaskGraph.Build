@@ -1,0 +1,5 @@
+set(ModuleName TestTaskGraph)
+set(LinkMode EXECUTABLE)
+set(PublicDependencyModuleList
+    Core
+)

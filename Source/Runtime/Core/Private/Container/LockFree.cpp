@@ -1,5 +1,5 @@
 #include "Container/LockFree.h"
-
+#pragma optimize("", off)
 namespace Thunder
 {
 
@@ -165,5 +165,5 @@ LockFreeLinkPolicy::TLinkPtr LockFreeLinkPolicy::AllocLockFreeLink()
 
 LockFreeLinkPolicy::TAllocator LockFreeLinkPolicy::LinkAllocator;
 
-	
 }
+#pragma optimize("", on)

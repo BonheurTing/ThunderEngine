@@ -276,7 +276,7 @@ public:
         return NumRefs.load(std::memory_order_acquire);
     }
 
-    bool NeedAutoMemoryFree() const { return false; }
+    static bool NeedAutoMemoryFree() { return false; }
     
 protected:
     int x = 5;

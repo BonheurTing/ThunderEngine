@@ -118,6 +118,13 @@ namespace Thunder
 			}
 			return Result;
 		}
+
+		void Swap(TRefCountPtr& InPtr) // this does not change the reference count, and so is faster
+		{
+				ReferencedType* OldReference = Reference;
+				Reference = InPtr.Reference;
+				InPtr.Reference = OldReference;
+		}
 		
 		// operator=
 		TRefCountPtr& operator=(ReferencedType* InReference)

@@ -26,6 +26,46 @@ private:
 	uint32 EventId;
 };
 
+class FScopedEvent
+{
+public:
+
+	/** Default constructor. */
+	CORE_API FScopedEvent();
+
+	/** Destructor. */
+	CORE_API ~FScopedEvent();
+
+	/** Triggers the event. */
+	void Trigger()
+	{
+		Event->Trigger();
+	}
+
+	/**
+	 * Checks if the event has been triggered (used for special early out cases of scope event)
+	 * if this returns true once it will return true forever
+	 *
+	 * @return returns true if the scoped event has been triggered once
+	 */
+	CORE_API bool IsReady();
+
+	/**
+	 * Retrieve the event, usually for passing around.
+	 *
+	 * @return The event.
+	 */
+	IEvent* Get()
+	{
+		return Event;
+	}
+
+private:
+
+	/** Holds the event. */
+	IEvent* Event;
+};
+
 enum class EEventMode : uint8 { AutoReset, ManualReset };
 
 // 给IEvent包了一层，析构的时候释放

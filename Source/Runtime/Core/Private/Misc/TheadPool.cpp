@@ -3,6 +3,7 @@
 #include "Misc/TheadPool.h"
 #include "Misc/AsyncTask.h"
 #include "Container.h"
+#include "Misc/LazySingleton.h"
 #include "Misc/Lock.h"
 
 namespace Thunder
@@ -17,6 +18,30 @@ namespace Thunder
 			return Priority < Other.Priority;
 		}
 	};
+
+	FScopedEvent::FScopedEvent()
+	: Event(TLazySingleton<TEventPool<EEventMode::AutoReset>>::Get().GetRawEvent())
+	{ }
+
+	bool FScopedEvent::IsReady()
+	{
+		if ( Event && Event->Wait(1) )
+		{
+			TLazySingleton<TEventPool<EEventMode::AutoReset>>::Get().ReturnRawEvent(Event);
+			Event = nullptr;
+			return true;
+		}
+		return Event == nullptr;
+	}
+
+	FScopedEvent::~FScopedEvent()
+	{
+		if(Event)
+		{
+			Event->Wait();
+			TLazySingleton<TEventPool<EEventMode::AutoReset>>::Get().ReturnRawEvent(Event);
+		}
+	}
 
 // FQueuedThreadPoolBase
 class ThreadPoolBase : public IThreadPool
@@ -184,7 +209,7 @@ public:
 		TLockGuard<SpinLock> guard(SynchQueue);
 		if (QueuedWork.empty())
 		{
-			LOG("Thread Push Pack with QueuedWork.empty(), ThreadID: %d, Num of QueuedThread: %d", FPlatformTLS::GetCurrentThreadId(), QueuedThreads.size());
+			//LOG("Thread Push Pack with QueuedWork.empty(), ThreadID: %d, Num of QueuedThread: %d", FPlatformTLS::GetCurrentThreadId(), QueuedThreads.size());
 			QueuedThreads.push_back(InQueuedThread);
 			return nullptr;
 		}
@@ -195,7 +220,7 @@ public:
 
 		if (!Work)
 		{
-			LOG("Thread Push Pack with Pop empty error, ThreadID: %d, Num of QueuedThread: %d", FPlatformTLS::GetCurrentThreadId(), QueuedThreads.size());
+			//LOG("Thread Push Pack with Pop empty error, ThreadID: %d, Num of QueuedThread: %d", FPlatformTLS::GetCurrentThreadId(), QueuedThreads.size());
 			// There was no work to be done, so add the thread to the pool
 			QueuedThreads.push_back(InQueuedThread);
 		}
@@ -290,7 +315,6 @@ uint32 ThreadProxy::Run()
 		// no thread pool
 		if (!ThreadPoolOwner)
 		{
-			LOG("No Pool ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
 			ITask* LocalQueuedWork = QueuedTask;
 			QueuedTask = nullptr;
 			if (LocalQueuedWork)
@@ -301,15 +325,13 @@ uint32 ThreadProxy::Run()
 		}
 
 		// thread pool
-		LOG("thread pool ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
 		ITask* LocalQueuedWork = QueuedTask;
-		LOG("QueuedTask set: null, ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
 		QueuedTask = nullptr;
 		FPlatformMisc::MemoryBarrier();
 		TAssert(LocalQueuedWork || TimeToDie.load(std::memory_order_relaxed));
 		while (LocalQueuedWork)
 		{
-			LOG("LocalQueuedWork do task, ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
+			//LOG("LocalQueuedWork do task, ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
 			LocalQueuedWork->DoThreadedWork();
 			LocalQueuedWork = ThreadPoolOwner->ReturnToPoolOrGetNextJob(this);
 		}
@@ -347,7 +369,6 @@ void ThreadProxy::DoWork(ITask* InTask)
 {
 	TAssert(QueuedTask == nullptr && "Can't do more than one task at a time");
 	// 告诉线程来任务了
-	LOG("QueuedTask set: %llu, ThreadID: %d", reinterpret_cast<uint64>(InTask), FPlatformTLS::GetCurrentThreadId());
 	QueuedTask = InTask;
 	FPlatformMisc::MemoryBarrier();
 	// Tell the thread to wake up and do its job

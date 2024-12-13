@@ -43,5 +43,7 @@ namespace Thunder
 			__dmb(_ARM64_BARRIER_SY);
 #endif
 		}
+
+		static int32 NumberOfCores();
 	};
 }

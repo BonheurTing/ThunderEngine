@@ -273,7 +273,7 @@ namespace Thunder
 
 	//AsyncTask(
 	template <typename Ret, typename... ParamTypes>
-	static Ret Invoke(TFunction<Ret (ParamTypes...)>& FunctionType, ParamTypes... Params)
+	static Ret AsyncTask(TFunction<Ret (ParamTypes...)>& FunctionType, ParamTypes... Params)
 	{
 		return FunctionType(Params...);
 	}

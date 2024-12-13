@@ -78,4 +78,15 @@ namespace Thunder
             ::Sleep(Milliseconds);
         }
     }
+
+
+    int32 FPlatformMisc::NumberOfCores()
+    {
+        int32 CoreCount = 0;
+        //QueryCpuInformation(GroupDesc, NumaNodeCount, NumCores, LogicalProcessorCount);
+        
+        return CoreCount;
+    }
+
+    
 }

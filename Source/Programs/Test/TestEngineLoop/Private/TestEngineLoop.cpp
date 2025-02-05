@@ -7,10 +7,20 @@
 #include "Misc/FTaskGraphInterface.h"
 #include "Misc/TheadPool.h"
 #include "Module/ModuleManager.h"
+#include "CoreModule.h"
+#include "ShaderModule.h"
+
+namespace Thunder
+{
+    class ShaderModule;
+    class CoreModule;
+}
 
 using namespace Thunder;
 bool GIsRequestingExit = false;
-
+std::mutex mtx;
+std::condition_variable cv;
+bool ready = false;
 
 class GameThreadTask
 {
@@ -29,26 +39,67 @@ public:
 
     void DoWork()
     {
-        LOG("GameThread Task Execute Add 1: %d", FrameData + 1);
+        EngineLoop();
     }
+private:
+    void EngineLoop();
+private:
+    
 };
 
 
-struct FEngineLoop
+bool IsEngineExitRequested()
+{
+    return GIsRequestingExit;
+}
+    
+ThreadProxy* GGameThread;
+ThreadProxy* GRenderThread;
+ThreadProxy* GRHIThread;
+std::atomic<uint32> GFrameNumberGameThread = 0;
+
+void GameThreadTask::EngineLoop()
+{
+    while( !IsEngineExitRequested() )
+    {
+        // game thread
+        LOG("GameThread Execute Frame: %d", GFrameNumberGameThread.load(std::memory_order_relaxed));
+        // 物理
+        // cull
+        // tick
+        // push render command
+            // rhi
+                // frame + 1
+        // cv wait (check frame)
+
+        GFrameNumberGameThread.fetch_add(1, std::memory_order_relaxed);
+        if (GFrameNumberGameThread >= 10)
+        {
+            GIsRequestingExit = true;
+        }
+    }
+
+    ready = true;
+    cv.notify_all();
+    LOG("End GameThread Execute");
+}
+
+struct EngineLaunch
 {
 public:
     int32 Init();
-    int32 Tick();
+    int32 Run();
     int32 Exit();
 private:
-    ThreadProxy* GGameThread;
-    ThreadProxy* GRenderThread;
-    ThreadProxy* GRHIThread;
-    std::atomic<uint32> GFrameNumberGameThread = 0;
 };
 
-int32 FEngineLoop::Init()
+int32 EngineLaunch::Init()
 {
+    //Fast Init
+    GMalloc = new TMallocMinmalloc();
+    ModuleManager::GetInstance()->LoadModule<CoreModule>();
+    ModuleManager::GetInstance()->LoadModule<ShaderModule>();
+    
     //创建三个线程
     GGameThread = new ThreadProxy();
     GGameThread->Create(nullptr, 4096, EThreadPriority::Normal);
@@ -61,40 +112,40 @@ int32 FEngineLoop::Init()
     return 0;
 }
 
-int32 FEngineLoop::Tick()
+int32 EngineLaunch::Run()
 {
     FAsyncTask<GameThreadTask>* testGameThreadTask = new FAsyncTask<GameThreadTask>(GFrameNumberGameThread);
     GGameThread->DoWork(testGameThreadTask);
-
-    GFrameNumberGameThread.fetch_add(1, std::memory_order_relaxed);
-    if (GFrameNumberGameThread >= 10)
-    {
-        GIsRequestingExit = true;
-    }
     
     return 0;
 }
 
-
-FEngineLoop	GEngineLoop;
-
-
-bool IsEngineExitRequested()
+int32 EngineLaunch::Exit()
 {
-    return GIsRequestingExit;
+    return 0;
 }
+
+
+EngineLaunch* GEngine = nullptr;
+
+
 
 int main()
 {
-    GMalloc = new TMallocMinmalloc();
-    
-    GEngineLoop.Init();
-    
-    while( !IsEngineExitRequested() )
+    //Fast Init
+    GEngine = new EngineLaunch();
+
+    GEngine->Init();
+    GEngine->Run();
+
+    //挂起
     {
-        GEngineLoop.Tick();
+        std::unique_lock<std::mutex> lock(mtx);
+        cv.wait(lock, []{ return ready; });   
     }
 
+    LOG("exit");
+    
     return 0;
 }
 #pragma optimize("", on)

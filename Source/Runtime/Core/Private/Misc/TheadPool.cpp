@@ -345,8 +345,17 @@ bool ThreadProxy::Create(class ThreadPoolBase* InPool,uint32 InStackSize, EThrea
 	ThreadPoolOwner = InPool;
 	DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
 	Thread = IThread::Create(this, "NULL", InStackSize, ThreadPriority);
+	TAssert(DoWorkEvent);
 	TAssert(Thread);
 	return true;
+}
+
+void ThreadProxy::WaitForCompletion()
+{
+	// 触发Event
+	DoWorkEvent->Trigger();
+	// 等待完成
+	Thread->WaitForCompletion();
 }
 
 // 强制销毁线程可能会导致TLS泄漏等, 所以杀线程都需要等待完成

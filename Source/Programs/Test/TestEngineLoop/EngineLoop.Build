@@ -1,0 +1,13 @@
+set(ModuleName TestEngineLoop)
+set(LinkMode EXECUTABLE)
+set(PublicDependencyModuleList
+    RHI
+    Shader
+    Core
+    D3D12RHI
+    Launch
+)
+set(PrecompileHeaderImportList
+    Runtime/RHI/Public/RHI.export.h
+    Runtime/D3D12RHI/Public/D3D12RHI.export.h
+)

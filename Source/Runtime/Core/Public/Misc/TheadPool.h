@@ -57,12 +57,21 @@ private:
 	IThread* Thread = nullptr;
 
 public:
+	ThreadProxy() = default;
+	~ThreadProxy()
+	{
+		if (DoWorkEvent)
+		{
+			KillThread();
+		}
+	}
 	bool Init() { return true; }
 	void Stop() { }
 	void Exit() { }
 	uint32 Run();
 	bool Create(class ThreadPoolBase* InPool,uint32 InStackSize = 0, EThreadPriority ThreadPriority = EThreadPriority::Normal);
 	void PushTask(ITask* InTask) { QueuedTask = InTask; }
+	void WaitForCompletion();
 	bool KillThread();
 	void DoWork(ITask* InTask);
 };

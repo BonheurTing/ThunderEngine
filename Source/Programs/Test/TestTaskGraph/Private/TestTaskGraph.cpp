@@ -1,4 +1,6 @@
 #pragma optimize("", off)
+#include <string>
+
 #include "CommonUtilities.h"
 #include "NameHandle.h"
 #include "Misc/FTaskGraphInterface.h"
@@ -31,24 +33,24 @@ private:
 	NameHandle DebugName;
 };
 
-class ExampleAsyncTask1 : public TaskAllocator
+class GameThreadTask : public TaskAllocator
 {
 public:
 
-	int32 ExampleData;
-	ExampleAsyncTask1(): ExampleData(0)
+	int32 FrameData;
+	GameThreadTask(): FrameData(0)
 	{
 	}
 
-	ExampleAsyncTask1(int32 InExampleData, const String& InDebugName = "")
+	GameThreadTask(int32 InExampleData, const String& InDebugName = "")
 		: TaskAllocator(InDebugName)
-		, ExampleData(InExampleData)
+		, FrameData(InExampleData)
 	{
 	}
 
 	void DoWork()
 	{
-		LOG("ExampleData Add 1: %d", ExampleData + 1);
+		LOG("ExampleData Add 1: %d", FrameData + 1);
 	}
 };
 
@@ -180,8 +182,8 @@ private:
 void main()
 {
 	TaskGraphManager* TaskGraph = new TaskGraphManager();
-	ExampleAsyncTask1* TaskA = new ExampleAsyncTask1(1, "TaskA");
-	ExampleAsyncTask1* TaskB = new ExampleAsyncTask1(2, "TaskB");
+	GameThreadTask* TaskA = new GameThreadTask(1, "TaskA");
+	GameThreadTask* TaskB = new GameThreadTask(2, "TaskB");
 	
 	TaskGraph->PushTask(TaskA);
 	TaskGraph->PushTask(TaskB, {TaskA->UniqueId});

@@ -10,24 +10,24 @@
 using namespace Thunder;
 
 
-class ExampleAsyncTask1
+class GameThreadTask
 {
 public:
-	friend class FAsyncTask<ExampleAsyncTask1>;
+	friend class FAsyncTask<GameThreadTask>;
 
-	int32 ExampleData;
-	ExampleAsyncTask1(): ExampleData(0)
+	int32 FrameData;
+	GameThreadTask(): FrameData(0)
 	{
 	}
 
-	ExampleAsyncTask1(int32 InExampleData)
-	 : ExampleData(InExampleData)
+	GameThreadTask(int32 InExampleData)
+	 : FrameData(InExampleData)
 	{
 	}
 
 	void DoWork()
 	{
-		LOG("ExampleData Add 1: %d", ExampleData + 1);
+		LOG("ExampleData Add 1: %d", FrameData + 1);
 	}
 };
 static int CallCount = 0;
@@ -185,8 +185,7 @@ inline void Test_GraphTask_Simple2()
 	LOG("Over ......");
 }
 
-
-int main()
+void TaskGraphExample()
 {
 	GMalloc = new TMallocMinmalloc();
 
@@ -204,7 +203,10 @@ int main()
 }
 
 
-int Example()
+
+
+
+int MultiThreadExample()
 {
 	GMalloc = new TMallocMinmalloc();
 
@@ -218,28 +220,27 @@ int Example()
 		int dummy = testFunction(4.0f, "Hello World function");
 		dummy = Thunder::AsyncTask(testFunction, 5.0f, std::string("Hello World Invoke"));
 	}
-	/*
+	
 	// no thread example 1.
 	{
-		FAsyncTask<ExampleAsyncTask1>* NoThreadTask = new FAsyncTask<ExampleAsyncTask1>(1);
+		FAsyncTask<GameThreadTask>* NoThreadTask = new FAsyncTask<GameThreadTask>(1);
 		NoThreadTask->StartTask();
-		NoThreadTask->EnsureCompletion();
 		delete NoThreadTask;
 	}
-	
+
 	// IThread example 1.
 	{
 		// 测试单个任务，在thread proxy中执行
-		FAsyncTask<ExampleAsyncTask1>* testAsyncTask = new FAsyncTask<ExampleAsyncTask1>(2);
+		FAsyncTask<GameThreadTask>* testAsyncTask = new FAsyncTask<GameThreadTask>(2);
 		ThreadProxy* testThreadProxy1 = new ThreadProxy();
 		testThreadProxy1->PushTask(testAsyncTask);
 		testThreadProxy1->Create(nullptr, 4096, EThreadPriority::Normal); //内部用 IThread实现
-		testThreadProxy1->KillThread();
+		testThreadProxy1->WaitForCompletion();
 		delete testAsyncTask;
 		delete testThreadProxy1;
 	}
 
-	// IThread example 2.
+	/*// IThread example 2.
 	{
 		// 测试创建线程；实际上线程的创建不应该暴露出来，ThreadProxy创建内部是IThread的创建
 		ThreadProxy* testThreadProxy2 = new ThreadProxy();
@@ -247,8 +248,8 @@ int Example()
 		testThread2->WaitForCompletion();
 		delete testThreadProxy2;
 		delete testThread2;
-	}
-
+	}*/
+	
 	// IThreadPool example 1.
 	LOG("IThreadPool example 1 start");
 	TArray<ITask*> testTasks = {};
@@ -258,150 +259,12 @@ int Example()
 		testTasks.push_back(testAsyncTask);
 	}
 	IThreadPool::ParallelFor(testTasks, EThreadPriority::Normal, 8);
-	*/
-
-
-	/*// 初始化整个TaskGraph系统
-	FTaskGraphInterface::Startup(6);
-	// 当前线程附加到AnyThread
-	FTaskGraphInterface::Get().AttachToThread(ENamedThreads::AnyThread);
-	
-
-	// Task queue example 1.
-	// 创建一个任务并在后台AnyThread中执行
-	FGraphEventRef Event = FunctionGraphTask::CreateAndDispatchWhenReady([]()
-		{
-			FPlatformProcess::Sleep(5.f); // pause for a bit to let waiting start
-			LOG("Succeed to Graph Task，ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
-		}
-	);
-	//TAssert(!Event->IsComplete());
-
-	// 在主线程中等待该任务完成
-	Event->Wait(ENamedThreads::GameThread);
-
-	
-	
-	// Task queue example 2.
-	// 同时创建多个任务
-	FGraphEventArray Tasks;
-	for (int i = 0; i < 10; ++i)
-	{
-		Tasks.push_back(FunctionGraphTask::CreateAndDispatchWhenReady([i]()
-		{
-			
-		}));
-	}
-
-	// Task Graph example 1.
-	
-	// 在主线程中等待所有任务完成
-	FTaskGraphInterface::Get().WaitUntilTasksComplete(MoveTemp(Tasks), ENamedThreads::GameThread);
-
-	FGraphEventRef TaskA, TaskB, TaskC, TaskD, TaskE;
-
-	// TaskA
-	TaskA = TGraphTask<FTask>::CreateTask().ConstructAndDispatchWhenReady(TEXT("TaksA"), 1, 1);
-
-	// TaskB 依赖 TaskA
-	{
-		FGraphEventArray Prerequisites;
-		Prerequisites.push_back(TaskA);
-		TaskB = TGraphTask<FTask>::CreateTask(&Prerequisites).ConstructAndDispatchWhenReady(TEXT("TaksB"), 1, 1);
-	}
-
-	// TaskC 依赖 TaskB
-	{
-		FGraphEventArray Prerequisites;
-		Prerequisites.push_back(TaskB);
-		TaskC = TGraphTask<FTask>::CreateTask(&Prerequisites).ConstructAndDispatchWhenReady(TEXT("TaksC"), 1, 1);
-	}
-
-	// TaskD 依赖 TaskA
-	{
-		FGraphEventArray Prerequisites;
-		Prerequisites.push_back(TaskA);
-		TaskD = TGraphTask<FTask>::CreateTask(&Prerequisites).ConstructAndDispatchWhenReady(TEXT("TaksD"), 1, 3);
-	}
-
-	// TaskE 依赖 TaskC、TaskD
-	{
-		FGraphEventArray Prerequisites {TaskC, TaskD};
-		TaskE = TGraphTask<FTask>::CreateTask(&Prerequisites).ConstructAndDispatchWhenReady(TEXT("TaksE"), 1, 1);
-	}
-
-	// 在当前线程等待，直到TaskE完成
-	TaskE->Wait();*/
-	
-
-
-	//------------------------------------------------------------------------------------------------------
-	/*
-	// Task queue example 1.
-	TaskManager->AttachThread("Main", GameThread, EThreadPriority::Normal);
-	TaskManager->PushQueuedTask(NameHandle("Main"),
-		[]()
-		{
-			// Do some work.
-		}, ETaskPriority::Normal);
-
-	// Task queue example 2.
-	TaskManager->AttachThreadPool("IOThreadPool", threadPool, EThreadPriority::Low);
-	TaskManager->PushQueuedTask(NameHandle("IOThreadPool"),
-		[]()
-		{
-			// Do some work.
-		}, ETaskPriority::Normal);
-
-	// Task graph example 1.
-	ITask* task1 = new Task([](){});
-	ITask* task2 = new Task([](){});
-	task2->AddDependency(task1);
-	ITask* task3 = new Task([](){});
-	task3->AddDependency(task1);
-	ITask* startTask = new Task([](){});
-	startTask->AddDependency(task2);
-	startTask->AddDependency(task3);
-	ITaskGraph* taskGraph = new TaskGraph();
-	taskGraph->SetRootNode(startTask);
-	TaskManager->PushTaskGraph(NameHandle("IOThreadPool"), taskGraph, ETaskPriority::Normal);
-
-
-	// TFunction example 2.
-	{
-		struct TestCallable
-		{
-			TestCallable(int capturedInteger) : capturedInteger(capturedInteger) {}
-
-			int operator()(std::string b) const
-			{
-				LOG("a: %d, b: %s", capturedInteger, b.c_str());
-				return 0;
-			}
-
-		private:
-			int capturedInteger = 0;
-		};
-		TestCallable testCallable{ 6 };
-		TFunction<int(int, std::string)> testFunction2 = testCallable;
-		int dummy = testFunction2("Hello World");
-		//Thunder::Invoke(testFunction2, std::string("Hello World"));
-	}
-	
-
-	
-	// TFunction example 3.
-	auto const testLambda = [](float a, std::string b, int c, double d) -> int
-	{
-		LOG("a: %f, b: %s, c: %d, d: %f", a, b.c_str(), c, d);
-		return 0;
-	};
-	TFunction<int(float, double)> testFunction3 = std::bind(testLambda, std::placeholders::_1, "Hello~", 7);
-	Thunder::Invoke(testFunction3, 1.0, 2.0);
-	testFunction3->Invoke(1.0, 2.0);*/
 
 	//system("pause");
 	return 0;
 }
 
-
+int main()
+{
+	MultiThreadExample();
+}

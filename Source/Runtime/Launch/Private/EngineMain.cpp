@@ -28,10 +28,27 @@ namespace Thunder
         {
             // game thread
             LOG("GameThread Execute Frame: %d", GFrameNumberGameThread.load(std::memory_order_relaxed));
+            
             // 物理
+            PhysicsTask* TaskPhysics = new PhysicsTask(GFrameNumberGameThread, "PhysicsTask");
             // cull
+            CullTask* TaskCull = new CullTask(GFrameNumberGameThread, "CullTask");
             // tick
+            TickTask* TaskTick = new TickTask(GFrameNumberGameThread, "TickTask");
+
+            // Task Graph
+            TaskGraphManager* TaskGraph = new TaskGraphManager();
+            TaskGraph->PushTask(TaskPhysics);
+            TaskGraph->PushTask(TaskCull, {TaskPhysics->UniqueId});
+            TaskGraph->PushTask(TaskTick, {TaskCull->UniqueId});
+
+            TaskGraph->CreateWorkerThread();
+            TaskGraph->WaitForComplete();
+            
             // push render command
+            FAsyncTask<RenderThreadTask>* testRenderThreadTask = new FAsyncTask<RenderThreadTask>(GFrameNumberGameThread);
+            GRenderThread->PushAndExecuteTask(testRenderThreadTask);
+            Sleep(100); //是不是不该有
             // rhi
             // frame + 1
             // cv wait (check frame)
@@ -41,6 +58,9 @@ namespace Thunder
             {
                 GIsRequestingExit = true;
             }
+
+            // delete todo: use malloc
+            //delete TaskGraph;
         }
 
         GThunderEngineLock->ready = true;

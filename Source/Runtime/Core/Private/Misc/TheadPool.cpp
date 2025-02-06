@@ -321,19 +321,21 @@ uint32 ThreadProxy::Run()
 			{
 				LocalQueuedWork->DoThreadedWork();
 			}
-			return 0;
+			DoWorkEvent->Reset();
 		}
-
-		// thread pool
-		ITask* LocalQueuedWork = QueuedTask;
-		QueuedTask = nullptr;
-		FPlatformMisc::MemoryBarrier();
-		TAssert(LocalQueuedWork || TimeToDie.load(std::memory_order_relaxed));
-		while (LocalQueuedWork)
+		else
 		{
-			//LOG("LocalQueuedWork do task, ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
-			LocalQueuedWork->DoThreadedWork();
-			LocalQueuedWork = ThreadPoolOwner->ReturnToPoolOrGetNextJob(this);
+			// thread pool
+			ITask* LocalQueuedWork = QueuedTask;
+			QueuedTask = nullptr;
+			FPlatformMisc::MemoryBarrier();
+			TAssert(LocalQueuedWork || TimeToDie.load(std::memory_order_relaxed));
+			while (LocalQueuedWork)
+			{
+				//LOG("LocalQueuedWork do task, ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
+				LocalQueuedWork->DoThreadedWork();
+				LocalQueuedWork = ThreadPoolOwner->ReturnToPoolOrGetNextJob(this);
+			}
 		}
 	}
 	
@@ -350,9 +352,14 @@ bool ThreadProxy::Create(class ThreadPoolBase* InPool,uint32 InStackSize, EThrea
 	return true;
 }
 
+	//todo: 希望是执行并结束的功能，不要不触发执行就结束，也不要执行后卡死，需要想想办法，要么就分成两个函数
 void ThreadProxy::WaitForCompletion()
 {
 	// 触发Event
+	DoWorkEvent->Trigger();
+	Sleep(100);
+	// 线程标记
+	TimeToDie = true;
 	DoWorkEvent->Trigger();
 	// 等待完成
 	Thread->WaitForCompletion();

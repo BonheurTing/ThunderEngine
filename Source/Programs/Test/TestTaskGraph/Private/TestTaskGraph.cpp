@@ -33,16 +33,16 @@ private:
 	NameHandle DebugName;
 };
 
-class GameThreadTask : public TaskAllocator
+class ExampleAsyncTask1 : public TaskAllocator
 {
 public:
 
 	int32 FrameData;
-	GameThreadTask(): FrameData(0)
+	ExampleAsyncTask1(): FrameData(0)
 	{
 	}
 
-	GameThreadTask(int32 InExampleData, const String& InDebugName = "")
+	ExampleAsyncTask1(int32 InExampleData, const String& InDebugName = "")
 		: TaskAllocator(InDebugName)
 		, FrameData(InExampleData)
 	{
@@ -99,9 +99,9 @@ public:
 		}
 		else
 		{
-			LOG("ThreadID: %d", ThreadID);
+			//LOG("ThreadID: %d", ThreadID);
 			auto ret = ResumeThread(Thread);
-			LOG("ResumeThread %d: %d", ret, GetLastError());
+			//LOG("ResumeThread %d: %d", ret, GetLastError());
 		}
 		return Thread != nullptr;
 	}
@@ -113,7 +113,7 @@ public:
 private:
 	static ::DWORD __stdcall ThreadProc(LPVOID pThis)
 	{
-		LOG("ThreadProc");
+		//LOG("ThreadProc");
 		TAssert(pThis);
 		auto* ThisThread = static_cast<TaskGraphManager*>(pThis);
 		return ThisThread->ExacuteImpl();
@@ -121,7 +121,7 @@ private:
 	
 	uint32 ExacuteImpl()
 	{
-		LOG("ExacuteImpl");
+		//LOG("ExacuteImpl");
 		while (auto Task = FindWork())
 		{
 			Task->DoWork();
@@ -182,8 +182,8 @@ private:
 void main()
 {
 	TaskGraphManager* TaskGraph = new TaskGraphManager();
-	GameThreadTask* TaskA = new GameThreadTask(1, "TaskA");
-	GameThreadTask* TaskB = new GameThreadTask(2, "TaskB");
+	ExampleAsyncTask1* TaskA = new ExampleAsyncTask1(1, "TaskA");
+	ExampleAsyncTask1* TaskB = new ExampleAsyncTask1(2, "TaskB");
 	
 	TaskGraph->PushTask(TaskA);
 	TaskGraph->PushTask(TaskB, {TaskA->UniqueId});

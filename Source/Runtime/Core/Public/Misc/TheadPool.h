@@ -71,6 +71,7 @@ public:
 	uint32 Run();
 	bool Create(class ThreadPoolBase* InPool,uint32 InStackSize = 0, EThreadPriority ThreadPriority = EThreadPriority::Normal);
 	void PushTask(ITask* InTask) { QueuedTask = InTask; }
+	void PushAndExecuteTask(ITask* InTask) { QueuedTask = InTask; DoWorkEvent->Trigger();}
 	void WaitForCompletion();
 	bool KillThread();
 	void DoWork(ITask* InTask);

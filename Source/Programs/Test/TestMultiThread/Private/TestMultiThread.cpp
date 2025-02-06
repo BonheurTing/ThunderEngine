@@ -10,17 +10,17 @@
 using namespace Thunder;
 
 
-class GameThreadTask
+class ExampleAsyncTask1
 {
 public:
-	friend class FAsyncTask<GameThreadTask>;
+	friend class FAsyncTask<ExampleAsyncTask1>;
 
 	int32 FrameData;
-	GameThreadTask(): FrameData(0)
+	ExampleAsyncTask1(): FrameData(0)
 	{
 	}
 
-	GameThreadTask(int32 InExampleData)
+	ExampleAsyncTask1(int32 InExampleData)
 	 : FrameData(InExampleData)
 	{
 	}
@@ -223,7 +223,7 @@ int MultiThreadExample()
 	
 	// no thread example 1.
 	{
-		FAsyncTask<GameThreadTask>* NoThreadTask = new FAsyncTask<GameThreadTask>(1);
+		FAsyncTask<ExampleAsyncTask1>* NoThreadTask = new FAsyncTask<ExampleAsyncTask1>(1);
 		NoThreadTask->StartTask();
 		delete NoThreadTask;
 	}
@@ -231,7 +231,7 @@ int MultiThreadExample()
 	// IThread example 1.
 	{
 		// 测试单个任务，在thread proxy中执行
-		FAsyncTask<GameThreadTask>* testAsyncTask = new FAsyncTask<GameThreadTask>(2);
+		FAsyncTask<ExampleAsyncTask1>* testAsyncTask = new FAsyncTask<ExampleAsyncTask1>(2);
 		ThreadProxy* testThreadProxy1 = new ThreadProxy();
 		testThreadProxy1->PushTask(testAsyncTask);
 		testThreadProxy1->Create(nullptr, 4096, EThreadPriority::Normal); //内部用 IThread实现
@@ -249,16 +249,31 @@ int MultiThreadExample()
 		delete testThreadProxy2;
 		delete testThread2;
 	}*/
+
+	// IThread example 3
+	{
+		// 测试多次喂task执行
+		ThreadProxy* testThreadProxy3 = new ThreadProxy();
+		testThreadProxy3->Create(nullptr, 4096, EThreadPriority::Normal); //内部用 IThread实现
+		for (int i = 0; i < 5; i++)
+		{
+			FAsyncTask<ExampleAsyncTask1>* testRenderThreadTask = new FAsyncTask<ExampleAsyncTask1>(i);
+			testThreadProxy3->PushAndExecuteTask(testRenderThreadTask);
+			Sleep(500);
+			delete testRenderThreadTask;
+		}
+		delete testThreadProxy3;
+	}
 	
 	// IThreadPool example 1.
-	LOG("IThreadPool example 1 start");
+	/*LOG("IThreadPool example 1 start");
 	TArray<ITask*> testTasks = {};
 	for (int i = 0; i < 20; i++)
 	{
 		const auto testAsyncTask = new FAsyncTask<ExampleAsyncTask2>(i);
 		testTasks.push_back(testAsyncTask);
 	}
-	IThreadPool::ParallelFor(testTasks, EThreadPriority::Normal, 8);
+	IThreadPool::ParallelFor(testTasks, EThreadPriority::Normal, 8);*/
 
 	//system("pause");
 	return 0;

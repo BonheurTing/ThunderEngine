@@ -22,33 +22,16 @@ namespace Thunder
         return GIsRequestingExit;
     }
 
-    void GameThreadTask::EngineLoop()
+    void GameThread::EngineLoop()
     {
         while( !IsEngineExitRequested() )
         {
-            // game thread
-            LOG("GameThread Execute Frame: %d", GFrameNumberGameThread.load(std::memory_order_relaxed));
-            
-            // 物理
-            PhysicsTask* TaskPhysics = new PhysicsTask(GFrameNumberGameThread, "PhysicsTask");
-            // cull
-            CullTask* TaskCull = new CullTask(GFrameNumberGameThread, "CullTask");
-            // tick
-            TickTask* TaskTick = new TickTask(GFrameNumberGameThread, "TickTask");
+            GameMain();
 
-            // Task Graph
-            TaskGraphManager* TaskGraph = new TaskGraphManager();
-            TaskGraph->PushTask(TaskPhysics);
-            TaskGraph->PushTask(TaskCull, {TaskPhysics->UniqueId});
-            TaskGraph->PushTask(TaskTick, {TaskCull->UniqueId});
-
-            TaskGraph->CreateWorkerThread();
-            TaskGraph->WaitForComplete();
-            
             // push render command
-            FAsyncTask<RenderThreadTask>* testRenderThreadTask = new FAsyncTask<RenderThreadTask>(GFrameNumberGameThread);
+            FAsyncTask<RenderingThread>* testRenderThreadTask = new FAsyncTask<RenderingThread>(GFrameNumberGameThread);
             GRenderThread->PushAndExecuteTask(testRenderThreadTask);
-            Sleep(100); //是不是不该有
+            Sleep(100); //todo 是不是不该有
             // rhi
             // frame + 1
             // cv wait (check frame)
@@ -58,14 +41,52 @@ namespace Thunder
             {
                 GIsRequestingExit = true;
             }
-
-            // delete todo: use malloc
-            //delete TaskGraph;
         }
 
         GThunderEngineLock->ready = true;
         GThunderEngineLock->cv.notify_all();
         LOG("End GameThread Execute");
+    }
+
+    void GameThread::GameMain()
+    {
+        // game thread
+        LOG("GameThread Execute Frame: %d", GFrameNumberGameThread.load(std::memory_order_relaxed));
+            
+        // physics
+        PhysicsTask* TaskPhysics = new PhysicsTask(GFrameNumberGameThread, "PhysicsTask");
+        // cull
+        CullTask* TaskCull = new CullTask(GFrameNumberGameThread, "CullTask");
+        // tick
+        TickTask* TaskTick = new TickTask(GFrameNumberGameThread, "TickTask");
+
+        // Task Graph
+        TaskGraphManager* TaskGraph = new TaskGraphManager();
+        TaskGraph->PushTask(TaskPhysics);
+        TaskGraph->PushTask(TaskCull, {TaskPhysics->UniqueId});
+        TaskGraph->PushTask(TaskTick, {TaskCull->UniqueId});
+
+        TaskGraph->CreateWorkerThread();
+        TaskGraph->WaitForComplete();
+
+        // delete todo: use malloc
+        //delete TaskGraph;
+    }
+
+    void RenderingThread::RenderMain()
+    {
+        
+        LOG("Execute render thread in frame: %d with thread: %lu", FrameData, __threadid());
+        // rhi thread
+        FAsyncTask<RHIThreadTask>* testRHIThreadTask = new FAsyncTask<RHIThreadTask>(GFrameNumberGameThread);
+        GRHIThread->PushAndExecuteTask(testRHIThreadTask);
+        Sleep(100); //todo 是不是不该有
+    }
+
+    void RHIThreadTask::RHIMain()
+    {
+        LOG("Execute rhi thread in frame: %d with thread: %lu", FrameData, __threadid());
+        //GFrameNumberGameThread.fetch_add(1, std::memory_order_relaxed);
     }
 
     int32 EngineMain::FastInit()
@@ -110,7 +131,7 @@ namespace Thunder
 
     int32 EngineMain::Run()
     {
-        FAsyncTask<GameThreadTask>* testGameThreadTask = new FAsyncTask<GameThreadTask>(GFrameNumberGameThread);
+        FAsyncTask<GameThread>* testGameThreadTask = new FAsyncTask<GameThread>(GFrameNumberGameThread);
         GGameThread->DoWork(testGameThreadTask);
     
         return 0;

@@ -74,17 +74,17 @@ namespace Thunder
 		}
 	};
 	
-	class GameThreadTask //临时放在这
+	class GameThread //临时放在这
 	{
 	public:
-		friend class FAsyncTask<GameThreadTask>;
+		friend class FAsyncTask<GameThread>;
 
 		int32 FrameData;
-		GameThreadTask(): FrameData(0)
+		GameThread(): FrameData(0)
 		{
 		}
 
-		GameThreadTask(int32 InExampleData)
+		GameThread(int32 InExampleData)
 		 : FrameData(InExampleData)
 		{
 		}
@@ -95,31 +95,54 @@ namespace Thunder
 		}
 	private:
 		void EngineLoop();
-	private:
+		void GameMain();
     
 	};
 
-	class RenderThreadTask //临时放在这
+	class RenderingThread //临时放在这
 	{
 	public:
-		friend class FAsyncTask<RenderThreadTask>;
+		friend class FAsyncTask<RenderingThread>;
 
 		int32 FrameData;
-		RenderThreadTask(): FrameData(0)
+		RenderingThread(): FrameData(0)
 		{
 		}
 
-		RenderThreadTask(int32 InExampleData)
+		RenderingThread(int32 InExampleData)
 		 : FrameData(InExampleData)
 		{
 		}
 
 		void DoWork()
 		{
-			LOG("Execute render thread in frame: %d with thread: %lu", FrameData, __threadid());
+			RenderMain();
+		}
+	private:
+		void RenderMain();
+	};
+
+	class RHIThreadTask //临时放在这
+	{
+	public:
+		friend class FAsyncTask<RHIThreadTask>;
+
+		int32 FrameData;
+		RHIThreadTask(): FrameData(0)
+		{
 		}
 
+		RHIThreadTask(int32 InExampleData)
+		 : FrameData(InExampleData)
+		{
+		}
+
+		void DoWork()
+		{
+			RHIMain();
+		}
 	private:
+		void RHIMain();
 	};
 	
 	class LAUNCH_API EngineMain

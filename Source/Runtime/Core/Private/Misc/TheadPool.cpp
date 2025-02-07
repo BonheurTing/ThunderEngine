@@ -315,19 +315,21 @@ uint32 ThreadProxy::Run()
 		// no thread pool
 		if (!ThreadPoolOwner)
 		{
-			ITask* LocalQueuedWork = QueuedTask;
-			QueuedTask = nullptr;
-			if (LocalQueuedWork)
+			while (!QueuedTask.empty())
 			{
+				TLockGuard<SpinLock> guard(SynchQueue);
+				ITask* LocalQueuedWork = QueuedTask.top();
 				LocalQueuedWork->DoThreadedWork();
+				QueuedTask.pop();
 			}
 			DoWorkEvent->Reset();
 		}
 		else
 		{
 			// thread pool
-			ITask* LocalQueuedWork = QueuedTask;
-			QueuedTask = nullptr;
+			TLockGuard<SpinLock> guard(SynchQueue);
+			ITask* LocalQueuedWork = QueuedTask.top(); //todo 多个任务怎么处理；实际上有线程池和没有，是两套方案
+			QueuedTask.pop();
 			FPlatformMisc::MemoryBarrier();
 			TAssert(LocalQueuedWork || TimeToDie.load(std::memory_order_relaxed));
 			while (LocalQueuedWork)
@@ -383,9 +385,12 @@ bool ThreadProxy::KillThread()
 
 void ThreadProxy::DoWork(ITask* InTask)
 {
-	TAssert(QueuedTask == nullptr && "Can't do more than one task at a time");
-	// 告诉线程来任务了
-	QueuedTask = InTask;
+	{
+		TLockGuard<SpinLock> guard(SynchQueue);
+		TAssert(QueuedTask.empty() && "Can't do more than one task at a time");
+		// 告诉线程来任务了
+		QueuedTask.push(InTask);
+	}
 	FPlatformMisc::MemoryBarrier();
 	// Tell the thread to wake up and do its job
 	DoWorkEvent->Trigger();

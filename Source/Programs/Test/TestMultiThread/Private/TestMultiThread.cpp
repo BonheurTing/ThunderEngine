@@ -233,11 +233,8 @@ int MultiThreadExample()
 		// 测试单个任务，在thread proxy中执行
 		FAsyncTask<ExampleAsyncTask1>* testAsyncTask = new FAsyncTask<ExampleAsyncTask1>(2);
 		ThreadProxy* testThreadProxy1 = new ThreadProxy();
-		testThreadProxy1->PushTask(testAsyncTask);
 		testThreadProxy1->Create(nullptr, 4096, EThreadPriority::Normal); //内部用 IThread实现
-		testThreadProxy1->WaitForCompletion();
-		delete testAsyncTask;
-		delete testThreadProxy1;
+		testThreadProxy1->PushAndExecuteTask(testAsyncTask);
 	}
 
 	/*// IThread example 2.
@@ -259,8 +256,8 @@ int MultiThreadExample()
 		{
 			FAsyncTask<ExampleAsyncTask1>* testRenderThreadTask = new FAsyncTask<ExampleAsyncTask1>(i);
 			testThreadProxy3->PushAndExecuteTask(testRenderThreadTask);
-			Sleep(500);
-			delete testRenderThreadTask;
+			/*Sleep(500);
+			delete testRenderThreadTask;*/
 		}
 		delete testThreadProxy3;
 	}

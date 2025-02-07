@@ -1,5 +1,6 @@
 #pragma once
 #include "Container.h"
+#include "Lock.h"
 #include "Platform.h"
 #include "PlatformProcess.h"
 #include "HAL/Event.h"
@@ -48,7 +49,8 @@ private:
 	std::atomic<bool> TimeToDie { false };
 
 	/** The work this thread is doing. */
-	ITask* volatile QueuedTask = nullptr;
+	TPriorityQueue<ITask*> QueuedTask = {};
+	SpinLock SynchQueue;
 
 	/** The pool this thread belongs to. */
 	class ThreadPoolBase* ThreadPoolOwner = nullptr;
@@ -70,8 +72,8 @@ public:
 	void Exit() { }
 	uint32 Run();
 	bool Create(class ThreadPoolBase* InPool,uint32 InStackSize = 0, EThreadPriority ThreadPriority = EThreadPriority::Normal);
-	void PushTask(ITask* InTask) { QueuedTask = InTask; }
-	void PushAndExecuteTask(ITask* InTask) { QueuedTask = InTask; DoWorkEvent->Trigger();}
+	void PushTask(ITask* InTask) { TLockGuard<SpinLock> guard(SynchQueue); QueuedTask.push(InTask); }
+	void PushAndExecuteTask(ITask* InTask) { TLockGuard<SpinLock> guard(SynchQueue); QueuedTask.push(InTask); DoWorkEvent->Trigger();}
 	void WaitForCompletion();
 	bool KillThread();
 	void DoWork(ITask* InTask);

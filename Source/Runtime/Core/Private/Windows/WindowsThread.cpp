@@ -12,27 +12,16 @@ bool EventWindows::Wait( uint32 WaitTime, const bool bIgnoreThreadIdleStats)
 
 uint32 ThreadWindows::Run()
 {
-    //todo: Runnable
-    uint32 ExitCode = 1;
-    TAssert(Runnable);
-    // 如果考虑同步和tls请参考uint32 FRunnableThreadWin::Run()的 ThreadInitSyncEvent
-
-    if (Runnable->Init())
-    {
-        ExitCode = Runnable->Run();
-
-        Runnable->Exit();
-    }
-    
-    return ExitCode;
+    TAssert(Proxy);
+    return Proxy->Run();
 }
 
 bool ThreadWindows::Kill(bool bShouldWait)
 {
     TAssert(Thread && "Did you forget to call Create()?");
-    if (Runnable)
+    if (Proxy)
     {
-        Runnable->Stop();
+        Proxy->Stop();
     }
     if (bShouldWait)
     {
@@ -46,19 +35,12 @@ bool ThreadWindows::Kill(bool bShouldWait)
     return true;
 }
     
-bool ThreadWindows::CreateInternal(ThreadProxy* InRunnable, const String& InThreadName, uint32 InStackSize, EThreadPriority InThreadPri)
+bool ThreadWindows::CreateInternal(ThreadProxy* InProxy, uint32 InStackSize, const String& InThreadName)
 {
-    //todo: Priority
-    //::SetThreadPriority(::GetCurrentThread(), TranslateThreadPriority(EThreadPriority::Normal));
+    TAssert(InProxy);
+    Proxy = InProxy;
 
-    TAssert(InRunnable);
-    Runnable = InRunnable;
-
-    // 创建一个同步的Event
-    //ThreadInitSyncEvent = FPlatformProcess::GetSyncEventFromPool(true);
-
-    //ThreadName = InThreadName ? InThreadName : TEXT("NULL");
-    ThreadPriority = InThreadPri;
+    DebugName = InThreadName;
     
     /** 创建线程的真正入口：在程序进程的虚拟地址空间创建线程
     * 参数1，lpThreadAttributes：确定返回的句柄是否可由子进程继承
@@ -71,7 +53,7 @@ bool ThreadWindows::CreateInternal(ThreadProxy* InRunnable, const String& InThre
 
     if (Thread == nullptr)
     {
-        Runnable = nullptr;
+        Proxy = nullptr;
     }
     else
     {
@@ -80,13 +62,8 @@ bool ThreadWindows::CreateInternal(ThreadProxy* InRunnable, const String& InThre
          * CreateThread时挂起了，所以此处resume
          **/
         ResumeThread(Thread);
-
-        //ThreadInitSyncEvent->Wait(INFINITE);
-        //SetThreadPriority(InThreadPri);
     }
 
-    //FPlatformProcess::ReturnSyncEventToPool(ThreadInitSyncEvent);
-    //ThreadInitSyncEvent = nullptr;
     return Thread != nullptr;
 }
     

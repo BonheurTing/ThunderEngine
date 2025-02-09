@@ -3,17 +3,18 @@
 #include "HAL/Thread.h"
 #include "Memory/MallocMinmalloc.h"
 #include "Misc/TheadPool.h"
-#include "Misc/AsyncTask.h"
 #include "Misc/FTaskGraphInterface.h"
 #include "Module/ModuleManager.h"
+#include "Misc/Task.h"
 
 using namespace Thunder;
+
 
 
 class ExampleAsyncTask1
 {
 public:
-	friend class FAsyncTask<ExampleAsyncTask1>;
+	friend class TTask<ExampleAsyncTask1>;
 
 	int32 FrameData;
 	ExampleAsyncTask1(): FrameData(0)
@@ -34,7 +35,7 @@ static int CallCount = 0;
 class ExampleAsyncTask2
 {
 public:
-	friend class FAsyncTask<ExampleAsyncTask2>;
+	friend class TTask<ExampleAsyncTask2>;
 
 	int32 ExampleData;
 	ExampleAsyncTask2(): ExampleData(0)
@@ -110,7 +111,7 @@ public:
 
 
 // 定义一个支持依赖关系的任务
-class FTask : public FGraphTaskSimple
+/*class FTask : public FGraphTaskSimple
 {
 public:
 	using FGraphTaskSimple::FGraphTaskSimple;
@@ -125,7 +126,9 @@ public:
 	{
 		return TrackSubsequents;
 	}
-};
+};*/
+
+#pragma region TestWorkerThread
 
 std::queue<std::string> taskQueue; // 任务队列
 std::mutex mtx;                    // 互斥锁，保护任务队列
@@ -157,7 +160,7 @@ void WorkerThread() {
 	std::cout << "work thread exit" << std::endl;
 }
 
-void TestLockFreeQueue()
+void TestWorkerThread()
 {
 	// 启动子线程
 	std::thread worker(WorkerThread);
@@ -186,13 +189,21 @@ void TestLockFreeQueue()
 	std::cout << "main thread exit" << std::endl;
 }
 
+#pragma endregion
+
+
+void TestLockFreeQueue()
+{
+	
+}
+
 void TestTFunction()
 {
 	// todo TFunction自己实现并跑通三种测试用例：lambda表达式，仿函数，bind
-	
+	// 目前来说根本没法用，问题太多了
 	// 测试1: Lambda表达式赋值给TFunction，然后调用
 	{
-		TFunction<int(float, std::string)> testFunction = [](float a, std::string b) -> int
+		TFunctionMy<int(float, std::string)> testFunction = [](float a, std::string b) -> int
 		{
 			LOG("a: %f, b: %s", a, b.c_str());
 			return 0;
@@ -233,15 +244,60 @@ void TestTFunction()
 	*/
 }
 
+#pragma region TestTask
+
+class ExampleTask
+{
+public:
+	friend class TTask<ExampleTask>;
+
+	int32 Data;
+	ExampleTask(): Data(0) {}
+
+	ExampleTask(int32 InExampleData)
+	 : Data(InExampleData) {}
+
+	void DoWork() const
+	{
+		LOG("Execute TTask<ExampleTask>(Data: %d) with thread: %lu", Data, __threadid());
+	}
+};
+
 void TestTask()
 {
-	
+	// example 1
+	const TFunction testFunction = []() -> void
+	{
+		LOG("Execute Function<void()> with thread: %lu", __threadid());
+	};
+	//FTask* ExampleTask1 = new FTask(testFunction);
+	FTask* ExampleTask1 = new (TMemory::Malloc<FTask>()) FTask{testFunction};
+	ExampleTask1->DoWork();
+
+	// example 2
+	const auto ExampleTask2 = new (TMemory::Malloc<ExampleInheritedTask>()) ExampleInheritedTask(1);
+	ExampleTask2->DoWork();
+
+	// example 3
+	const auto ExampleTask3 = new (TMemory::Malloc<TTask<ExampleTask>>()) TTask<ExampleTask>(1);
+	ExampleTask3->DoWork();
 }
 
+#pragma endregion
 
 void TestIThread()
 {
-	
+	// 测试1: 创建线程，执行任务
+	{
+		const auto testAsyncTask = new (TMemory::Malloc<TTask<ExampleTask>>()) TTask<ExampleTask>(2025);
+
+		const auto testThreadProxy1 = new ThreadProxy(); //后面考虑分单个线程还是线程池的情况
+		testThreadProxy1->CreateSingleThread();
+		testThreadProxy1->PushTask(testAsyncTask);
+
+
+		testThreadProxy1->WaitForCompletion();
+	}
 }
 
 
@@ -253,20 +309,15 @@ void TestThreadPool()
 int MultiThreadExample()
 {
 	
-	// no thread example 1.
-	{
-		FAsyncTask<ExampleAsyncTask1>* NoThreadTask = new FAsyncTask<ExampleAsyncTask1>(1);
-		NoThreadTask->StartTask();
-		delete NoThreadTask;
-	}
-
 	// IThread example 1.
 	{
 		// 测试单个任务，在thread proxy中执行
-		FAsyncTask<ExampleAsyncTask1>* testAsyncTask = new FAsyncTask<ExampleAsyncTask1>(2);
+		TTask<ExampleTask>* testAsyncTask = new TTask<ExampleTask>(2);
 		ThreadProxy* testThreadProxy1 = new ThreadProxy();
-		testThreadProxy1->Create(nullptr, 4096); //内部用 IThread实现
-		testThreadProxy1->PushAndExecuteTask(testAsyncTask);
+		testThreadProxy1->CreateThreadPool(nullptr, 4096); //内部用 IThread实现
+		testThreadProxy1->PushTask(testAsyncTask);
+
+		testThreadProxy1->WaitForCompletion();
 	}
 
 	/*// IThread example 2.
@@ -283,11 +334,11 @@ int MultiThreadExample()
 	{
 		// 测试多次喂task执行
 		ThreadProxy* testThreadProxy3 = new ThreadProxy();
-		testThreadProxy3->Create(nullptr, 4096); //内部用 IThread实现
+		testThreadProxy3->CreateThreadPool(nullptr, 4096); //内部用 IThread实现
 		for (int i = 0; i < 5; i++)
 		{
-			FAsyncTask<ExampleAsyncTask1>* testRenderThreadTask = new FAsyncTask<ExampleAsyncTask1>(i);
-			testThreadProxy3->PushAndExecuteTask(testRenderThreadTask);
+			TTask<ExampleTask>* testRenderThreadTask = new TTask<ExampleTask>(i);
+			testThreadProxy3->PushTask(testRenderThreadTask);
 			//Sleep(500);
 			//delete testRenderThreadTask;
 		}
@@ -312,6 +363,9 @@ int MultiThreadExample()
 int main()
 {
 	GMalloc = new TMallocMinmalloc();
+	//TestWorkerThread(); // successful
+	//TestTFunction(); // failed
+	//TestTask(); // successful
+	TestIThread();
 	TestLockFreeQueue();
-	//TestTFunction();
 }

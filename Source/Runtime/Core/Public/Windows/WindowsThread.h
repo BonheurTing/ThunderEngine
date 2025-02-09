@@ -54,19 +54,13 @@ private:
 	bool ManualReset;
 };
 	
- /**
- * This is the base interface for all runnable thread classes. It specifies the
- * methods used in managing its life cycle.
- * FRunnableThreadWin
- */
+
 class ThreadWindows : public IThread
 {
-	/** The thread handle for the thread. */
+	// thread handle
 	HANDLE Thread = 0;
 
-	/**
-	 * MSDN创建线程后回调函数入口
-	 */
+	// 创建线程后回调函数入口
 	static ::DWORD __stdcall ThreadProc(LPVOID pThis)
 	{
 		TAssert(pThis);
@@ -75,10 +69,6 @@ class ThreadWindows : public IThread
 		return ThisThread->Run();
 	}
 
-	/**
-	 * The real thread entry point. It calls the Init/Run/Exit methods on
-	 * the runnable object
-	 */
 	uint32 Run();
 
 public:
@@ -89,13 +79,6 @@ public:
 			// 子类析构函数调用虚函数，很不推荐，一定要用的话，需要注意不能访问子类成员，子类此时可能已经析构了
 			Kill(true);
 		}
-	}
-
-	virtual void SetThreadPriority(EThreadPriority NewPriority) override
-	{
-		ThreadPriority = NewPriority;
-
-		::SetThreadPriority(Thread, TranslateThreadPriority(ThreadPriority));
 	}
 
 	virtual void Suspend(bool bShouldPause = true) override
@@ -118,10 +101,8 @@ public:
 		WaitForSingleObject(Thread, INFINITE);
 	}
 
-	static int TranslateThreadPriority(EThreadPriority Priority) {return 1;};
 protected:
-	virtual bool CreateInternal(ThreadProxy* InRunnable, const String& InThreadName,
-		uint32 InStackSize = 0, EThreadPriority InThreadPri = EThreadPriority::Normal) override;
+	virtual bool CreateInternal(ThreadProxy* InProxy, uint32 InStackSize = 0, const String& InThreadName = "") override;
 };
 
 }

@@ -3,6 +3,7 @@
 #include <cstring>
 #include <type_traits>
 #include "Platform.h"
+#include "Assertion.h"
 #include "Memory/MemoryBase.h"
 #define NUM_TFUNCTION_INLINE_BYTES 32
 #define TFUNCTION_INLINE_SIZE         NUM_TFUNCTION_INLINE_BYTES

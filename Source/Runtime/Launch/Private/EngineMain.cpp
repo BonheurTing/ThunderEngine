@@ -97,13 +97,13 @@ namespace Thunder
     
         //创建三个线程
         GGameThread = new ThreadProxy();
-        GGameThread->CreateThreadPool(nullptr, 4096);
+        GGameThread->CreateSingleThread(4096, "GameThread");
 
         GRenderThread = new ThreadProxy();
-        GRenderThread->CreateThreadPool(nullptr, 4096);
+        GRenderThread->CreateSingleThread(4096, "RenderThread");
 
         GRHIThread = new ThreadProxy();
-        GRHIThread->CreateThreadPool(nullptr, 4096);
+        GRHIThread->CreateSingleThread(4096, "RHIThread");
         return 0;
     }
 
@@ -132,7 +132,7 @@ namespace Thunder
     int32 EngineMain::Run()
     {
         TTask<GameThread>* testGameThreadTask = new TTask<GameThread>(GFrameNumberGameThread);
-        GGameThread->ThreadPoolDoWork(testGameThreadTask);
+        GGameThread->PushTask(testGameThreadTask);
     
         return 0;
     }

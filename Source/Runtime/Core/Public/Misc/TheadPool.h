@@ -30,12 +30,13 @@ namespace Thunder
 		std::atomic<bool> TimeToDie { false };
 
 		// 任务及其锁，后面改成无锁队列
-		LockFreeFIFOListBase<ITask, 8> QueuedTask = {};
-		SpinLock SyncQueuedTask;
+		LockFreeFIFOListBase<ITask, 8> QueuedTask {};
 
 		class ThreadPoolBase* ThreadPoolOwner = nullptr;
 		
 		IThread* Thread = nullptr;
+
+		
 
 	
 	public:
@@ -50,7 +51,6 @@ namespace Thunder
 		void Stop() {}
 		uint32 Run();
 		bool CreateSingleThread(uint32 InStackSize = 0, const String& InThreadName = "");
-		bool CreateThreadPool(class ThreadPoolBase* InPool,uint32 InStackSize = 0);
 		void PushTask(ITask* InTask)
 		{
 			QueuedTask.Push(InTask);
@@ -58,6 +58,10 @@ namespace Thunder
 		}
 		void WaitForCompletion();
 		bool KillThread();
+	private:
+		
+		friend class ThreadPoolBase;
+		bool CreateWithThreadPool(class ThreadPoolBase* InPool,uint32 InStackSize = 0);
 		void ThreadPoolDoWork(ITask* InTask);
 	};
 
@@ -71,11 +75,11 @@ namespace Thunder
 class CORE_API IThreadPool
 {
 public:
-    virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize = (32 * 1024), const String& Name = "") = 0;
+    virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize = (32 * 1024)) = 0;
     virtual void Destroy() = 0;
     virtual void AddQueuedWork( ITask* InQueuedWork, ETaskPriority InQueuedWorkPriority = ETaskPriority::Normal) = 0;
     virtual bool RetractQueuedWork(ITask* InQueuedWork) = 0;
-    [[nodiscard]] virtual int32 GetNumThreads() const = 0;
+    _NODISCARD_ virtual int32 GetNumThreads() const = 0;
 	virtual void WaitForCompletion() = 0;
 public:
     IThreadPool() = default;
@@ -87,7 +91,7 @@ public:
 
 public:
     static IThreadPool* Allocate();
-	static void ParallelFor(const TArray<ITask*>& InTasks, uint32 InNumThreads);
+	virtual void ParallelFor(TFunction<void(int32, int32)> &Body, uint32 NumTask, uint32 NumThreads, uint32 BundleSize) = 0;
 };
 
 extern CORE_API IThreadPool* GThreadPool;

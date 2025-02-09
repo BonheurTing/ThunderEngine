@@ -1,6 +1,8 @@
 #pragma once
+#include "Assertion.h"
+#include "CoreMinimal.h"
 #include "NameHandle.h"
-#include "Misc/FTaskGraphInterface.h"
+#include "Templates/ThunderTemplates.h"
 
 
 namespace Thunder

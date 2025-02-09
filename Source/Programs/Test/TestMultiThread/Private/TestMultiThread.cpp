@@ -3,9 +3,9 @@
 #include "HAL/Thread.h"
 #include "Memory/MallocMinmalloc.h"
 #include "Misc/TheadPool.h"
-#include "Misc/FTaskGraphInterface.h"
 #include "Module/ModuleManager.h"
 #include "Misc/Task.h"
+#include "Templates/FunctionMy.h"
 
 using namespace Thunder;
 
@@ -207,6 +207,18 @@ public:
 		LOG("ExampleData Pow Data: %d = %d, Count = %d，ThreadID: %d", ExampleData, ExampleData * ExampleData, CallCount, FPlatformTLS::GetCurrentThreadId());
 	}
 };
+struct BoundingBox
+{
+	float Top;
+	float Bottom;
+	float Left;
+	float Right;
+};
+
+bool CullObject(BoundingBox ObjectBounding)
+{
+	return true;
+}
 
 void TestThreadPool()
 {
@@ -222,34 +234,38 @@ void TestThreadPool()
 	}
 	*/
 
-	// 测试1: 
-	/*const auto testThreadProxy1 = new ThreadProxy(); //后面考虑分单个线程还是线程池的情况
-	testThreadProxy1->CreateThreadPool();
-	testThreadProxy1->PushTask(testAsyncTask);
-	testThreadProxy1->WaitForCompletion();
+	IThreadPool* WorkerThreadPool = IThreadPool::Allocate();
+	WorkerThreadPool->Create(8, 96 * 1024);
+
+
+	// 测试1:
+	const auto TestAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(214);
+	WorkerThreadPool->AddQueuedWork(TestAsyncTask, ETaskPriority::Normal);
 
 	// 测试2: ParallelFor
-	std::vector<BoundingBox> objectBoundings(1024);
-	std::vector<bool> cullResult(1024);
-	const auto testThreadProxy1 = new ThreadProxy(); //后面考虑分单个线程还是线程池的情况
-	testThreadProxy1->CreateThreadPool();
-	testThreadProxy1->ParallelFor([cullResult, objectBoundings](int bundleBegin, int bundleSize)
+			
+	std::vector<BoundingBox> ObjectsBounding(1024);
+	std::vector<bool> CullResult(1024);
+
+	TFunction<void(int32, int32)> Func = [&CullResult, ObjectsBounding](int bundleBegin, int bundleSize)
+	{
+		for (int i = bundleBegin; i < bundleBegin + bundleSize; i++)
 		{
-			for (int i = bundleBegin; i < bundleBegin + bundleSize; i++)
-			{
-				cullResult[i] = CullObject(objectBoundings[i]);
-			}
-		},*/
-	//	1024, 8, /*BundleSize = */256);
-	//testThreadProxy1->WaitForCompletion();
+			CullResult[i] = CullObject(ObjectsBounding[i]);
+		}
+	};
+	
+	WorkerThreadPool->ParallelFor(Func, 1024, 8, 256);
+
+	WorkerThreadPool->WaitForCompletion();
 }
 
 int main()
 {
 	GMalloc = new TMallocMinmalloc();
-	TestWorkerThread(); // successful
+	//TestWorkerThread(); // successful
 	//TestTFunction(); // failed
-	TestTask(); // successful
-	TestIThread(); // successful
+	//TestTask(); // successful
+	//TestIThread(); // successful
 	TestThreadPool(); //
 }

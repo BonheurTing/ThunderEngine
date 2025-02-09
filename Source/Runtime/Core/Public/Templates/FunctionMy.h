@@ -132,7 +132,7 @@ namespace Thunder
 			return NewObj;
 		}
 
-		[[nodiscard]] IFunction_OwnedObject* GetBoundObject() const
+		_NODISCARD_ IFunction_OwnedObject* GetBoundObject() const
 		{
 			const auto Result = static_cast<IFunction_OwnedObject*>(HeapAllocation);
 			return Result;

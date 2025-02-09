@@ -127,99 +127,131 @@ public:
 	}
 };
 
+std::queue<std::string> taskQueue; // 任务队列
+std::mutex mtx;                    // 互斥锁，保护任务队列
+std::condition_variable cv;        // 条件变量，用于线程同步
+bool stop = false;                 // 标志位，用于停止子线程
 
+// 子线程函数
+void WorkerThread() {
+	while (true) {
+		std::unique_lock<std::mutex> lock(mtx);
 
-inline void Test_GraphTask_Simple()
-{
-	// 创建一个一次性任务并执行，任务结束自动删除
-	auto Event = TGraphTask<FGraphTaskSimple>::CreateTask().ConstructAndDispatchWhenReady("SimpleTask1", 10000, 3);
-	TAssert(!Event->IsComplete());
+		// 等待任务队列非空或停止信号
+		cv.wait(lock, [] { return !taskQueue.empty() || stop; });
 
-	// 创建一个任务但不放入TaskGraph执行
-	/*TGraphTask<FGraphTaskSimple>* Task = TGraphTask<FGraphTaskSimple>::CreateTask().ConstructAndHold("SimpleTask2", 20000);
-	if (Task)
-	{
-		// Unlock操作，放入TaskGraph执行
-		LOG("Task is Unlock to Run...");
-		Task->Unlock();
-		Task = nullptr;
-	}*/
-	Event->Wait(ENamedThreads::AnyThread);  
+		// 如果收到停止信号且队列为空，退出线程
+		if (stop && taskQueue.empty()) {
+			break;
+		}
+
+		// 取出任务
+		std::string task = taskQueue.front();
+		taskQueue.pop();
+		lock.unlock(); // 提前释放锁，减少锁的持有时间
+
+		// 执行任务
+		std::cout << "work thread execute task: " << task << std::endl;
+		std::this_thread::sleep_for(std::chrono::milliseconds(500)); // 模拟任务执行时间
+	}
+	std::cout << "work thread exit" << std::endl;
 }
 
-// TaskA -> TaskB -> TaskC
-inline void Test_GraphTask_Simple2()
+void TestLockFreeQueue()
 {
-	LOG("Start ......");
+	// 启动子线程
+	std::thread worker(WorkerThread);
 
-	FGraphEventRef TaskA, TaskB, TaskC;
-
-	// TaskA
-	{
-		TaskA = TGraphTask<FTask>::CreateTask().ConstructAndDispatchWhenReady("TaksA", 1, 3);
+	// 主线程不断喂任务
+	for (int i = 1; i <= 5; ++i) {
+		std::string task = "task" + std::to_string(i);
+		{
+			std::lock_guard<std::mutex> lock(mtx);
+			taskQueue.push(task);
+			std::cout << "main thread push task: " << task << std::endl;
+		}
+		cv.notify_one(); // 通知子线程有新任务
+		std::this_thread::sleep_for(std::chrono::milliseconds(200)); // 模拟任务添加间隔
 	}
 
-	// TaskA -> TaskB
+	// 停止子线程
 	{
-		FGraphEventArray Prerequisites;
-		Prerequisites.push_back(TaskA);
-		TaskB = TGraphTask<FTask>::CreateTask(&Prerequisites).ConstructAndDispatchWhenReady("TaksB", 2, 2);
+		std::lock_guard<std::mutex> lock(mtx);
+		stop = true;
 	}
+	cv.notify_one(); // 通知子线程退出
 
-	// TaskB -> TaskC
-	{
-		FGraphEventArray Prerequisites{TaskB};
-		TaskC = TGraphTask<FTask>::CreateTask(&Prerequisites).ConstructAndDispatchWhenReady("TaksC", 3, 1);
-	}
-
-	LOG("Construct is Done ......");
-
-	// Waiting until TaskC is Done
-	// FTaskGraphInterface::Get().WaitUntilTaskCompletes(TaskC);
-	// Or.
-	TaskC->Wait();
-
-	LOG("TaskA is Done : %d", TaskA->IsComplete());
-	LOG("TaskB is Done : %d", TaskA->IsComplete());
-	LOG("TaskC is Done : %d", TaskC->IsComplete());
-	LOG("Over ......");
+	// 等待子线程结束
+	worker.join();
+	std::cout << "main thread exit" << std::endl;
 }
 
-void TaskGraphExample()
+void TestTFunction()
 {
-	GMalloc = new TMallocMinmalloc();
-
-	FTaskGraphInterface::Startup(6);
-
-	// 当前线程Attach为GameThread
-	FTaskGraphInterface::Get().AttachToThread(ENamedThreads::GameThread);
+	// todo TFunction自己实现并跑通三种测试用例：lambda表达式，仿函数，bind
 	
-	Test_GraphTask_Simple();
-
-	//Test_GraphTask_Simple2();
-
-
-	LOG("Ending the test...");
-}
-
-
-
-
-
-int MultiThreadExample()
-{
-	GMalloc = new TMallocMinmalloc();
-
-	// TFunction example 1.
+	// 测试1: Lambda表达式赋值给TFunction，然后调用
 	{
 		TFunction<int(float, std::string)> testFunction = [](float a, std::string b) -> int
 		{
 			LOG("a: %f, b: %s", a, b.c_str());
 			return 0;
 		};
-		int dummy = testFunction(4.0f, "Hello World function");
-		dummy = Thunder::AsyncTask(testFunction, 5.0f, std::string("Hello World Invoke"));
+		const int dummy = testFunction(4.0f, "Hello World function");
+		Thunder::AsyncTask(testFunction, static_cast<float>(dummy), std::string("Hello World Invoke"));
 	}
+	/*
+	// 测试2: 仿函数对象赋值给TFunction，然后调用
+	{
+		struct TestCallable
+		{
+			TestCallable(int capturedInteger) : capturedInteger(capturedInteger) {}
+
+			int operator()(std::string b) const
+			{
+				LOG("a: %d, b: %s", capturedInteger, b.c_str());
+				return 0;
+			}
+
+		private:
+			int capturedInteger = 0;
+		};
+		TestCallable testCallable{ 6 }; // capture数据
+		TFunction<int(int, std::string)> testFunction2 = testCallable;
+		int dummy = testFunction2(4, "Hello World function");
+	}
+	
+	// 测试3: bind赋值给TFunction，然后调用
+	auto const testLambda = [](float a, std::string b, int c, double d) -> int
+	{
+		LOG("a: %f, b: %s, c: %d, d: %f", a, b.c_str(), c, d);
+		return 0;
+	};
+	TFunction<int(float, double)> testFunction3 = std::bind(testLambda, std::placeholders::_1, "Hello~", 7);
+	Thunder::Invoke(testFunction3, 1.0, 2.0);
+	testFunction3->Invoke(1.0, 2.0);
+	*/
+}
+
+void TestTask()
+{
+	
+}
+
+
+void TestIThread()
+{
+	
+}
+
+
+void TestThreadPool()
+{
+	
+}
+
+int MultiThreadExample()
+{
 	
 	// no thread example 1.
 	{
@@ -233,7 +265,7 @@ int MultiThreadExample()
 		// 测试单个任务，在thread proxy中执行
 		FAsyncTask<ExampleAsyncTask1>* testAsyncTask = new FAsyncTask<ExampleAsyncTask1>(2);
 		ThreadProxy* testThreadProxy1 = new ThreadProxy();
-		testThreadProxy1->Create(nullptr, 4096, EThreadPriority::Normal); //内部用 IThread实现
+		testThreadProxy1->Create(nullptr, 4096); //内部用 IThread实现
 		testThreadProxy1->PushAndExecuteTask(testAsyncTask);
 	}
 
@@ -251,15 +283,16 @@ int MultiThreadExample()
 	{
 		// 测试多次喂task执行
 		ThreadProxy* testThreadProxy3 = new ThreadProxy();
-		testThreadProxy3->Create(nullptr, 4096, EThreadPriority::Normal); //内部用 IThread实现
+		testThreadProxy3->Create(nullptr, 4096); //内部用 IThread实现
 		for (int i = 0; i < 5; i++)
 		{
 			FAsyncTask<ExampleAsyncTask1>* testRenderThreadTask = new FAsyncTask<ExampleAsyncTask1>(i);
 			testThreadProxy3->PushAndExecuteTask(testRenderThreadTask);
-			/*Sleep(500);
-			delete testRenderThreadTask;*/
+			//Sleep(500);
+			//delete testRenderThreadTask;
 		}
-		delete testThreadProxy3;
+		//testThreadProxy3->WaitForCompletion();
+		//delete testThreadProxy3;
 	}
 	
 	// IThreadPool example 1.
@@ -278,5 +311,7 @@ int MultiThreadExample()
 
 int main()
 {
-	MultiThreadExample();
+	GMalloc = new TMallocMinmalloc();
+	TestLockFreeQueue();
+	//TestTFunction();
 }

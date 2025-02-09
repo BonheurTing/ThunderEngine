@@ -26,6 +26,7 @@ private:
 	uint32 EventId;
 };
 
+//todo delete
 class FScopedEvent
 {
 public:

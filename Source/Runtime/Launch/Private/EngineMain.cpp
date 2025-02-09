@@ -29,8 +29,8 @@ namespace Thunder
             GameMain();
 
             // push render command
-            FAsyncTask<RenderingThread>* testRenderThreadTask = new FAsyncTask<RenderingThread>(GFrameNumberGameThread);
-            GRenderThread->PushAndExecuteTask(testRenderThreadTask);
+            TTask<RenderingThread>* testRenderThreadTask = new TTask<RenderingThread>(GFrameNumberGameThread);
+            GRenderThread->PushTask(testRenderThreadTask);
             Sleep(100); //todo 是不是不该有
             // rhi
             // frame + 1
@@ -78,8 +78,8 @@ namespace Thunder
         
         LOG("Execute render thread in frame: %d with thread: %lu", FrameData, __threadid());
         // rhi thread
-        FAsyncTask<RHIThreadTask>* testRHIThreadTask = new FAsyncTask<RHIThreadTask>(GFrameNumberGameThread);
-        GRHIThread->PushAndExecuteTask(testRHIThreadTask);
+        TTask<RHIThreadTask>* testRHIThreadTask = new TTask<RHIThreadTask>(GFrameNumberGameThread);
+        GRHIThread->PushTask(testRHIThreadTask);
         Sleep(100); //todo 是不是不该有
     }
 
@@ -97,13 +97,13 @@ namespace Thunder
     
         //创建三个线程
         GGameThread = new ThreadProxy();
-        GGameThread->Create(nullptr, 4096, EThreadPriority::Normal);
+        GGameThread->CreateThreadPool(nullptr, 4096);
 
         GRenderThread = new ThreadProxy();
-        GRenderThread->Create(nullptr, 4096, EThreadPriority::Normal);
+        GRenderThread->CreateThreadPool(nullptr, 4096);
 
         GRHIThread = new ThreadProxy();
-        GRHIThread->Create(nullptr, 4096, EThreadPriority::Normal);
+        GRHIThread->CreateThreadPool(nullptr, 4096);
         return 0;
     }
 
@@ -131,8 +131,8 @@ namespace Thunder
 
     int32 EngineMain::Run()
     {
-        FAsyncTask<GameThread>* testGameThreadTask = new FAsyncTask<GameThread>(GFrameNumberGameThread);
-        GGameThread->DoWork(testGameThreadTask);
+        TTask<GameThread>* testGameThreadTask = new TTask<GameThread>(GFrameNumberGameThread);
+        GGameThread->ThreadPoolDoWork(testGameThreadTask);
     
         return 0;
     }

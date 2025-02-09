@@ -1,6 +1,6 @@
 #pragma once
 #include "Launch.export.h"
-#include "Misc/AsyncTask.h"
+#include "Misc/Task.h"
 #include "Misc/TaskGraph.h"
 
 namespace Thunder
@@ -77,7 +77,7 @@ namespace Thunder
 	class GameThread //临时放在这
 	{
 	public:
-		friend class FAsyncTask<GameThread>;
+		friend class TTask<GameThread>;
 
 		int32 FrameData;
 		GameThread(): FrameData(0)
@@ -102,7 +102,7 @@ namespace Thunder
 	class RenderingThread //临时放在这
 	{
 	public:
-		friend class FAsyncTask<RenderingThread>;
+		friend class TTask<RenderingThread>;
 
 		int32 FrameData;
 		RenderingThread(): FrameData(0)
@@ -125,7 +125,7 @@ namespace Thunder
 	class RHIThreadTask //临时放在这
 	{
 	public:
-		friend class FAsyncTask<RHIThreadTask>;
+		friend class TTask<RHIThreadTask>;
 
 		int32 FrameData;
 		RHIThreadTask(): FrameData(0)

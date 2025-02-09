@@ -2,7 +2,7 @@
 #pragma optimize("", off)
 #include "Container.h"
 #include "Container/LockFree.h"
-#include "Templates/Function.h"
+#include "Templates/FunctionMy.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder
@@ -408,14 +408,14 @@ namespace Thunder
     // FFunctionGraphTask
     struct FunctionGraphTask
     {
-        static FGraphEventRef CreateAndDispatchWhenReady(TFunction<void()> InFunction, const FGraphEventArray* InPrerequisites = nullptr, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
+        static FGraphEventRef CreateAndDispatchWhenReady(TFunctionMy<void()> InFunction, const FGraphEventArray* InPrerequisites = nullptr, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
         {
         	TAssert(false);
         	return nullptr;
             //return TGraphTask<TFunctionGraphTaskImpl<void(), TrackSubsequents>>::CreateTask(InPrerequisites).ConstructAndDispatchWhenReady(MoveTemp(InFunction), InDesiredThread);
         }
 
-        static FGraphEventRef CreateAndDispatchWhenReady(TFunction<void()> InFunction, const FGraphEventRef& InPrerequisite, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
+        static FGraphEventRef CreateAndDispatchWhenReady(TFunctionMy<void()> InFunction, const FGraphEventRef& InPrerequisite, ENamedThreads::Type InDesiredThread = ENamedThreads::AnyThread)
         {
             FGraphEventArray Prerequisites;
             TAssert(InPrerequisite.Get());

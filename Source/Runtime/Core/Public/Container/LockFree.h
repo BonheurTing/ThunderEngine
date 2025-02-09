@@ -35,12 +35,9 @@ namespace Thunder
 	template<class T, unsigned int MaxTotalItems, unsigned int ItemsPerPage>
 	class TLockFreeAllocOnceIndexedAllocator
 	{
-		//unsigned int MaxTotalItems;
-		//unsigned int ItemsPerPage;
-		
 		enum
 		{
-			MaxBlocks = 10 //(MaxTotalItems + ItemsPerPage - 1) / ItemsPerPage
+			MaxBlocks = (MaxTotalItems + ItemsPerPage - 1) / ItemsPerPage
 		};
 	public:
 

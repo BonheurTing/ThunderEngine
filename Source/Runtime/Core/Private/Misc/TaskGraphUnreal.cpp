@@ -455,7 +455,7 @@ namespace Thunder
         uint32				PerThreadIdTLSSlot;
 
     	/** Array of callbacks to call before shutdown. **/
-    	TArray<TFunction<void()> > ShutdownCallbacks;
+    	TArray<TFunctionMy<void()> > ShutdownCallbacks;
 
 
     	StallingTaskQueue<FBaseGraphTask, PLATFORM_CACHE_LINE_SIZE, 1> IncomingAnyThreadTasks[3]; //numproirities = 1

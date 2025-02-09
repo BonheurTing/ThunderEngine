@@ -1,7 +1,7 @@
 
 #pragma optimize("", off)
 #include "Misc/TheadPool.h"
-#include "Misc/AsyncTask.h"
+#include "Misc/Task.h"
 #include "Container.h"
 #include "Misc/LazySingleton.h"
 #include "Misc/Lock.h"
@@ -76,7 +76,7 @@ public:
 		Destroy();
 	}
 
-	virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize, EThreadPriority ThreadPriority, const String& Name) override
+	virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize, const String& Name) override
 	{
 		bool bWasSuccessful = true;
 		TLockGuard<SpinLock> guard(SynchQueue); //获得临界区，构造时lock，退出作用域时析构unlock
@@ -97,7 +97,7 @@ public:
 			auto pThread = new ThreadProxy();
 			// Now create the thread and add it if ok
 			const String ThreadName = "ThreadPoolThread + Count";
-			if (pThread->Create(this, StackSize, ThreadPriority) == true)
+			if (pThread->CreateThreadPool(this, StackSize) == true)
 			{
 				QueuedThreads.push_back(pThread);
 				AllThreads.push_back(pThread);
@@ -193,7 +193,7 @@ public:
 			TAssert(QueuedThreads.size() == ThreadIndex);
 		}
 
-		Thread->DoWork(InQueuedWork);
+		Thread->ThreadPoolDoWork(InQueuedWork);
 	}
 
 	virtual bool RetractQueuedWork(ITask* InQueuedWork) override
@@ -269,7 +269,7 @@ public:
 				TAssert(QueuedThreads.size() == ThreadIndex);
 			}
 			
-			Thread->DoWork(WorkItem);
+			Thread->ThreadPoolDoWork(WorkItem);
 		}
 	}
 
@@ -287,13 +287,13 @@ IThreadPool* IThreadPool::Allocate()
 IThreadPool* GThreadPool = IThreadPool::Allocate();
 IThreadPool* GCacheThreadPool = nullptr;
 
-void IThreadPool::ParallelFor(const TArray<ITask*>& InTasks, EThreadPriority InThreadPriority, uint32 InNumThreads)
+void IThreadPool::ParallelFor(const TArray<ITask*>& InTasks, uint32 InNumThreads)
 {
 	if(!GCacheThreadPool)
 	{
 		GCacheThreadPool = IThreadPool::Allocate();
 	}
-	GCacheThreadPool->Create(InNumThreads, 96 * 1024, InThreadPriority, "ParallelForThreadPool");
+	GCacheThreadPool->Create(InNumThreads, 96 * 1024, "ParallelForThreadPool");
 
 	for(const auto Task : InTasks)
 	{
@@ -308,88 +308,89 @@ void IThreadPool::ParallelFor(const TArray<ITask*>& InTasks, EThreadPriority InT
 //todo: 没明白
 uint32 ThreadProxy::Run()
 {
-	while (!TimeToDie.load(std::memory_order_relaxed))
+	while (!(QueuedTask.IsEmpty() && TimeToDie.load(std::memory_order_relaxed)))
 	{
 		DoWorkEvent->Wait();
 
-		// no thread pool
-		if (!ThreadPoolOwner)
+		if (!ThreadPoolOwner) // single thread
 		{
-			while (!QueuedTask.empty())
+			while (!QueuedTask.IsEmpty())
 			{
-				TLockGuard<SpinLock> guard(SynchQueue);
-				ITask* LocalQueuedWork = QueuedTask.top();
-				LocalQueuedWork->DoThreadedWork();
-				QueuedTask.pop();
+				ITask* LocalQueuedWork = QueuedTask.Pop();
+				LocalQueuedWork->DoWork();
 			}
-			DoWorkEvent->Reset();
 		}
 		else
 		{
 			// thread pool
-			TLockGuard<SpinLock> guard(SynchQueue);
-			ITask* LocalQueuedWork = QueuedTask.top(); //todo 多个任务怎么处理；实际上有线程池和没有，是两套方案
-			QueuedTask.pop();
+			ITask* LocalQueuedWork = QueuedTask.Pop(); //todo 多个任务怎么处理；实际上有线程池和没有，是两套方案
 			FPlatformMisc::MemoryBarrier();
 			TAssert(LocalQueuedWork || TimeToDie.load(std::memory_order_relaxed));
 			while (LocalQueuedWork)
 			{
 				//LOG("LocalQueuedWork do task, ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
-				LocalQueuedWork->DoThreadedWork();
+				LocalQueuedWork->DoWork();
 				LocalQueuedWork = ThreadPoolOwner->ReturnToPoolOrGetNextJob(this);
 			}
 		}
+		
+		//DoWorkEvent->Reset();
 	}
 	
 	return 0;
 }
 
-bool ThreadProxy::Create(class ThreadPoolBase* InPool,uint32 InStackSize, EThreadPriority ThreadPriority)
+bool ThreadProxy::CreateSingleThread(uint32 InStackSize, const String& InThreadName)
 {
-	ThreadPoolOwner = InPool;
+	TAssert(ThreadPoolOwner == nullptr);
+	TAssert(DoWorkEvent == nullptr);
+	TAssert(Thread == nullptr);
+
 	DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-	Thread = IThread::Create(this, "NULL", InStackSize, ThreadPriority);
+	Thread = IThread::Create(this, InStackSize, InThreadName);
+
 	TAssert(DoWorkEvent);
 	TAssert(Thread);
 	return true;
 }
 
-	//todo: 希望是执行并结束的功能，不要不触发执行就结束，也不要执行后卡死，需要想想办法，要么就分成两个函数
+bool ThreadProxy::CreateThreadPool(class ThreadPoolBase* InPool,uint32 InStackSize)
+{
+	ThreadPoolOwner = InPool;
+	DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+	Thread = IThread::Create(this, InStackSize);
+	TAssert(DoWorkEvent);
+	TAssert(Thread);
+	return true;
+}
+
 void ThreadProxy::WaitForCompletion()
 {
-	// 触发Event
-	DoWorkEvent->Trigger();
-	Sleep(100);
 	// 线程标记
 	TimeToDie = true;
+	// 触发Event
 	DoWorkEvent->Trigger();
 	// 等待完成
 	Thread->WaitForCompletion();
 }
 
-// 强制销毁线程可能会导致TLS泄漏等, 所以杀线程都需要等待完成
 bool ThreadProxy::KillThread()
 {
-	// 线程标记
-	TimeToDie = true;
-	// 触发Event
-	DoWorkEvent->Trigger();
-	// 等待完成
-	Thread->WaitForCompletion();
+	WaitForCompletion();
 	// 回收线程同步Event
 	FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
 	DoWorkEvent = nullptr;
 	delete Thread;
+	Thread = nullptr;
 	return true;
 }
 
-void ThreadProxy::DoWork(ITask* InTask)
+void ThreadProxy::ThreadPoolDoWork(ITask* InTask)
 {
 	{
-		TLockGuard<SpinLock> guard(SynchQueue);
-		TAssert(QueuedTask.empty() && "Can't do more than one task at a time");
+		TAssert(QueuedTask.IsEmpty() && "Can't do more than one task at a time");
 		// 告诉线程来任务了
-		QueuedTask.push(InTask);
+		QueuedTask.Push(InTask);
 	}
 	FPlatformMisc::MemoryBarrier();
 	// Tell the thread to wake up and do its job

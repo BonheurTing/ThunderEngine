@@ -9,125 +9,6 @@
 
 using namespace Thunder;
 
-
-
-class ExampleAsyncTask1
-{
-public:
-	friend class TTask<ExampleAsyncTask1>;
-
-	int32 FrameData;
-	ExampleAsyncTask1(): FrameData(0)
-	{
-	}
-
-	ExampleAsyncTask1(int32 InExampleData)
-	 : FrameData(InExampleData)
-	{
-	}
-
-	void DoWork()
-	{
-		LOG("ExampleData Add 1: %d", FrameData + 1);
-	}
-};
-static int CallCount = 0;
-class ExampleAsyncTask2
-{
-public:
-	friend class TTask<ExampleAsyncTask2>;
-
-	int32 ExampleData;
-	ExampleAsyncTask2(): ExampleData(0)
-	{
-	}
-
-	ExampleAsyncTask2(int32 InExampleData)
-	 : ExampleData(InExampleData)
-	{
-	}
-
-	void DoWork()
-	{
-		CallCount++;
-		LOG("ExampleData Pow Data: %d = %d, Count = %d，ThreadID: %d", ExampleData, ExampleData * ExampleData, CallCount, FPlatformTLS::GetCurrentThreadId());
-	}
-};
-
-
-// 定义一个一次性任务
-class FGraphTaskSimple
-{
-public:
-	FGraphTaskSimple(const String& TheName, int InSomeArgument, float InWorkingTime = 1.0f)
-		: TaskName(TheName), SomeArgument(InSomeArgument), WorkingTime(InWorkingTime) //
-	{
-		Log(__FUNCTION__);
-	}
-
-	~FGraphTaskSimple()
-	{
-		Log(__FUNCTION__);
-	}
-
-	// AnyThread中运行
-	static ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
-
-	// FireAndForget：一次性任务，没有依赖关系
-	static ESubsequentsMode GetSubsequentsMode()
-	{
-		return ESubsequentsMode::FireAndForget;
-	}
-
-	// 执行任务
-	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
-	{
-		// The arguments are useful for setting up other tasks. 
-		// Do work here, probably using SomeArgument.
-		LOG("Succeed to Exacute Simple Task，ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
-		FPlatformProcess::Sleep(WorkingTime);
-		Log(__FUNCTION__);
-	}
-
-public:
-	// 自定义参数
-	String TaskName;
-	int SomeArgument;
-	float WorkingTime;
-
-	// 日志接口
-	void Log(const char* Action)
-	{
-		uint32 CurrentThreadId = FPlatformTLS::GetCurrentThreadId();
-		String CurrentThreadName = ""; //FThreadManager::Get().GetThreadName(CurrentThreadId);
-		LOG("%s@%s[%d] - %s, SomeArgument=%d", TaskName.c_str(), CurrentThreadName.c_str(),
-			   CurrentThreadId,
-			   Action, SomeArgument);
-	}
-};
-
-
-// 定义一个支持依赖关系的任务
-/*class FTask : public FGraphTaskSimple
-{
-public:
-	using FGraphTaskSimple::FGraphTaskSimple;
-
-	static ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::AnyThread;
-	}
-
-	// TrackSubsequents - 支持依赖检查
-	static ESubsequentsMode GetSubsequentsMode()
-	{
-		return TrackSubsequents;
-	}
-};*/
-
 #pragma region TestWorkerThread
 
 std::queue<std::string> taskQueue; // 任务队列
@@ -190,12 +71,6 @@ void TestWorkerThread()
 }
 
 #pragma endregion
-
-
-void TestLockFreeQueue()
-{
-	
-}
 
 void TestTFunction()
 {
@@ -295,77 +170,86 @@ void TestIThread()
 		testThreadProxy1->CreateSingleThread();
 		testThreadProxy1->PushTask(testAsyncTask);
 
-
 		testThreadProxy1->WaitForCompletion();
+	}
+
+	// 测试2: 创建线程，连续派发任务，执行任务
+	{
+		const auto testThreadProxy2 = new ThreadProxy();
+		testThreadProxy2->CreateSingleThread();
+
+		for (int i = 0; i < 5; i++)
+		{
+			const auto testAsyncTask = new (TMemory::Malloc<TTask<ExampleTask>>()) TTask<ExampleTask>(i);
+			testThreadProxy2->PushTask(testAsyncTask);
+		}
+		
+		testThreadProxy2->WaitForCompletion();
 	}
 }
 
+
+static int CallCount = 0;
+class ExampleTask2
+{
+public:
+	friend class TTask<ExampleTask2>;
+
+	int32 ExampleData;
+	ExampleTask2(): ExampleData(0) {}
+
+	ExampleTask2(int32 InExampleData)
+	 : ExampleData(InExampleData) {}
+
+	void DoWork() const
+	{
+		CallCount++;
+		LOG("ExampleData Pow Data: %d = %d, Count = %d，ThreadID: %d", ExampleData, ExampleData * ExampleData, CallCount, FPlatformTLS::GetCurrentThreadId());
+	}
+};
 
 void TestThreadPool()
 {
-	
-}
-
-int MultiThreadExample()
-{
-	
-	// IThread example 1.
+	/*
 	{
-		// 测试单个任务，在thread proxy中执行
-		TTask<ExampleTask>* testAsyncTask = new TTask<ExampleTask>(2);
-		ThreadProxy* testThreadProxy1 = new ThreadProxy();
-		testThreadProxy1->CreateThreadPool(nullptr, 4096); //内部用 IThread实现
-		testThreadProxy1->PushTask(testAsyncTask);
-
-		testThreadProxy1->WaitForCompletion();
-	}
-
-	/*// IThread example 2.
-	{
-		// 测试创建线程；实际上线程的创建不应该暴露出来，ThreadProxy创建内部是IThread的创建
-		ThreadProxy* testThreadProxy2 = new ThreadProxy();
-		IThread* testThread2 = IThread::Create(testThreadProxy2, "Test", 0, EThreadPriority::Normal);
-		testThread2->WaitForCompletion();
-		delete testThreadProxy2;
-		delete testThread2;
-	}*/
-
-	// IThread example 3
-	{
-		// 测试多次喂task执行
-		ThreadProxy* testThreadProxy3 = new ThreadProxy();
-		testThreadProxy3->CreateThreadPool(nullptr, 4096); //内部用 IThread实现
-		for (int i = 0; i < 5; i++)
+		void* context = {};
+		for (int i = 0; i < 65536; i++)
 		{
-			TTask<ExampleTask>* testRenderThreadTask = new TTask<ExampleTask>(i);
-			testThreadProxy3->PushTask(testRenderThreadTask);
-			//Sleep(500);
-			//delete testRenderThreadTask;
+			const auto testAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(i);
+			testTasks.push_back(testAsyncTask);
 		}
-		//testThreadProxy3->WaitForCompletion();
-		//delete testThreadProxy3;
+		IThreadPool::ParallelFor(testTasks, 8);
 	}
-	
-	// IThreadPool example 1.
-	/*LOG("IThreadPool example 1 start");
-	TArray<ITask*> testTasks = {};
-	for (int i = 0; i < 20; i++)
-	{
-		const auto testAsyncTask = new FAsyncTask<ExampleAsyncTask2>(i);
-		testTasks.push_back(testAsyncTask);
-	}
-	IThreadPool::ParallelFor(testTasks, EThreadPriority::Normal, 8);*/
+	*/
 
-	//system("pause");
-	return 0;
+	// 测试1: 
+	/*const auto testThreadProxy1 = new ThreadProxy(); //后面考虑分单个线程还是线程池的情况
+	testThreadProxy1->CreateThreadPool();
+	testThreadProxy1->PushTask(testAsyncTask);
+	testThreadProxy1->WaitForCompletion();
+
+	// 测试2: ParallelFor
+	std::vector<BoundingBox> objectBoundings(1024);
+	std::vector<bool> cullResult(1024);
+	const auto testThreadProxy1 = new ThreadProxy(); //后面考虑分单个线程还是线程池的情况
+	testThreadProxy1->CreateThreadPool();
+	testThreadProxy1->ParallelFor([cullResult, objectBoundings](int bundleBegin, int bundleSize)
+		{
+			for (int i = bundleBegin; i < bundleBegin + bundleSize; i++)
+			{
+				cullResult[i] = CullObject(objectBoundings[i]);
+			}
+		},*/
+	//	1024, 8, /*BundleSize = */256);
+	//testThreadProxy1->WaitForCompletion();
 }
 
 int main()
 {
 	GMalloc = new TMallocMinmalloc();
-	//TestWorkerThread(); // successful
+	TestWorkerThread(); // successful
 	//TestTFunction(); // failed
-	//TestTask(); // successful
-	TestIThread();
-	TestLockFreeQueue();
+	TestTask(); // successful
+	TestIThread(); // successful
+	TestThreadPool(); //
 }

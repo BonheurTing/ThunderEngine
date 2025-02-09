@@ -217,7 +217,7 @@ namespace Thunder
 
 	//TFunctionRefBase
 	template <typename FuncType>
-	class TFunction;
+	class TFunctionMy;
 	
 	/**
 	 * 写一遍std::function
@@ -225,18 +225,18 @@ namespace Thunder
 	 * 功能二：正常调用
 	**/
 	template <typename Ret, typename... ParamTypes>
-	class TFunction<Ret (ParamTypes...)>
+	class TFunctionMy<Ret (ParamTypes...)>
 	{
 	public:
 		template <typename OtherFuncType>
-		friend class TFunction;
+		friend class TFunctionMy;
 
-		TFunction() noexcept {}
-		TFunction(nullptr_t) noexcept {}
+		TFunctionMy() noexcept {}
+		TFunctionMy(nullptr_t) noexcept {}
 		
 
 		template <typename FunctorType>
-		TFunction(const FunctorType& Other)
+		TFunctionMy(const FunctorType& Other)
 			: Callable(Other.Callable)
 		{
 			if (!Callable)
@@ -247,7 +247,7 @@ namespace Thunder
 		}
 		
 		template <typename FunctorType>
-		TFunction(FunctorType&& InFunc)
+		TFunctionMy(FunctorType&& InFunc)
 		{
 			if (!Storage.Bind(std::forward<FunctorType>(InFunc)))
 			{
@@ -258,8 +258,8 @@ namespace Thunder
 			Callable = &TFunctionRefCaller<std::decay_t<FunctorType>, Ret (ParamTypes...)>::Call;
 		}
 
-		TFunction& operator=(TFunction&&) = delete;
-		TFunction& operator=(const TFunction&) = delete;
+		TFunctionMy& operator=(TFunctionMy&&) = delete;
+		TFunctionMy& operator=(const TFunctionMy&) = delete;
 		
 		Ret operator()(ParamTypes... Params) const
 		{
@@ -274,7 +274,7 @@ namespace Thunder
 
 	//AsyncTask(
 	template <typename Ret, typename... ParamTypes>
-	static Ret AsyncTask(TFunction<Ret (ParamTypes...)>& FunctionType, ParamTypes... Params)
+	static Ret AsyncTask(TFunctionMy<Ret (ParamTypes...)>& FunctionType, ParamTypes... Params)
 	{
 		return FunctionType(Params...);
 	}

@@ -30,7 +30,7 @@ namespace Thunder
 		std::atomic<bool> TimeToDie { false };
 
 		// 任务及其锁，后面改成无锁队列
-		TQueue<ITask*> QueuedTask = {};
+		LockFreeFIFOListBase<ITask, 8> QueuedTask = {};
 		SpinLock SyncQueuedTask;
 
 		class ThreadPoolBase* ThreadPoolOwner = nullptr;
@@ -53,8 +53,7 @@ namespace Thunder
 		bool CreateThreadPool(class ThreadPoolBase* InPool,uint32 InStackSize = 0);
 		void PushTask(ITask* InTask)
 		{
-			TLockGuard<SpinLock> guard(SyncQueuedTask);
-			QueuedTask.push(InTask);
+			QueuedTask.Push(InTask);
 			DoWorkEvent->Trigger();
 		}
 		void WaitForCompletion();

@@ -123,7 +123,7 @@ namespace Thunder
 			return static_cast<int32>(AllThreads.size());
 		}
 
-		void AddQueuedWork(ITask* InQueuedWork, ETaskPriority InQueuedWorkPriority) override
+		void AddQueuedWork(ITask* InQueuedWork, ETaskPriority InQueuedWorkPriority = ETaskPriority::Normal) override
 		{
 			TAssert(InQueuedWork != nullptr);
 
@@ -192,7 +192,7 @@ namespace Thunder
 			return Work;
 		}
 
-		void WaitForCompletion() override
+		void WaitForCompletion() override //等待所有任务完成, 并不结束线程
 		{
 			bool NeedWait = false;
 			while(true)
@@ -240,16 +240,38 @@ namespace Thunder
 			}
 		}
 
-		void ParallelFor(TFunction<void(int32, int32)> &Body, uint32 NumTask, uint32 BundleSize) override
+		// todo TFunction还是把类型写死了，最好能任意参数类型
+		void ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize) override
 		{
+			class TaskBundle
+			{
+			public:
+				friend class TTask<TaskBundle>;
+
+				TFunction<void(uint32, uint32)> Func;
+				uint32 Head;
+				uint32 Size;
+
+				TaskBundle(const TFunction<void(uint32, uint32)> &InFunc, uint32 InStart, uint32 InSize)
+					: Func(InFunc)
+					, Head(InStart)
+					, Size(InSize)
+				{
+				}
+
+				void DoWork() const
+				{
+					LOG("Execute Parallel Task Bundle");
+					Func(Head, Size);
+				}
+			};
+			
+			
 			for (uint32 i=0; i < NumTask;i+=BundleSize)
 			{
-				Body(i, BundleSize);
-				//AddQueuedWork()
+				const auto BundleTask = new TTask<TaskBundle>(Body, i, BundleSize);
+				AddQueuedWork(BundleTask);
 			}
-
-			WaitForCompletion();
-			Destroy();
 		}
 	};
 

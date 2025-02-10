@@ -207,32 +207,11 @@ public:
 		LOG("ExampleData Pow Data: %d = %d, Count = %d，ThreadID: %d", ExampleData, ExampleData * ExampleData, CallCount, FPlatformTLS::GetCurrentThreadId());
 	}
 };
-struct BoundingBox
-{
-	float Top;
-	float Bottom;
-	float Left;
-	float Right;
-};
 
-bool CullObject(BoundingBox ObjectBounding)
-{
-	return true;
-}
+
 
 void TestThreadPool()
 {
-	/*
-	{
-		void* context = {};
-		for (int i = 0; i < 65536; i++)
-		{
-			const auto testAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(i);
-			testTasks.push_back(testAsyncTask);
-		}
-		IThreadPool::ParallelFor(testTasks, 8);
-	}
-	*/
 
 	IThreadPool* WorkerThreadPool = IThreadPool::Allocate();
 	WorkerThreadPool->Create(8, 96 * 1024);
@@ -241,7 +220,7 @@ void TestThreadPool()
 	// 测试1: 测试添加任务并执行
 	{
 		const auto TestAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(214);
-		WorkerThreadPool->AddQueuedWork(TestAsyncTask, ETaskPriority::Normal);
+		WorkerThreadPool->AddQueuedWork(TestAsyncTask);
 	}
 
 	// 测试2: 添加多个任务，乱序执行
@@ -252,24 +231,23 @@ void TestThreadPool()
 			WorkerThreadPool->AddQueuedWork(testAsyncTask);
 		}
 	}
-	
 
 	// 测试2: ParallelFor
 			
-	/*std::vector<BoundingBox> ObjectsBounding(1024);
+	std::vector<BoundingBox> ObjectsBounding(1024);
 	std::vector<bool> CullResult(1024);
-
-	TFunction<void(int32, int32)> Func = [&CullResult, ObjectsBounding](int bundleBegin, int bundleSize)
+	
+	WorkerThreadPool->ParallelFor([&CullResult, ObjectsBounding](uint32 bundleBegin, uint32 bundleSize)
 	{
 		for (int i = bundleBegin; i < bundleBegin + bundleSize; i++)
 		{
 			CullResult[i] = CullObject(ObjectsBounding[i]);
+			LOG("Execute CullResult[%d]", i);
 		}
-	};
-	
-	WorkerThreadPool->ParallelFor(Func, 1024, 256);*/
+	}, 1024, 256);
 
-	//WorkerThreadPool->WaitForCompletion();
+	WorkerThreadPool->WaitForCompletion();
+	
 }
 
 int main()
@@ -277,7 +255,7 @@ int main()
 	GMalloc = new TMallocMinmalloc();
 	//TestWorkerThread(); // successful
 	//TestTFunction(); // failed
-	//TestTask(); // successful
-	//TestIThread(); // successful
-	TestThreadPool(); //
+	TestTask(); // successful
+	TestIThread(); // successful
+	TestThreadPool(); // successful
 }

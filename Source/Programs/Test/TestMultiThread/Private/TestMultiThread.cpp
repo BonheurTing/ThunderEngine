@@ -246,8 +246,7 @@ void TestThreadPool()
 		}
 	}, 1024, 256);
 
-	WorkerThreadPool->WaitForCompletion();
-	
+	Sleep(100);
 }
 
 int main()

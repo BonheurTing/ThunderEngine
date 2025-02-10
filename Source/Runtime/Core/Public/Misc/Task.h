@@ -53,16 +53,11 @@ namespace Thunder
 		TaskType Task;
 
 	public:
-		TTask()
-			: Task()
-		{
-		}
 
-		template <typename Arg0Type, typename... ArgTypes>
-		TTask(Arg0Type&& Arg0, ArgTypes&&... Args)
-			: Task(std::forward<Arg0Type>(Arg0), std::forward<ArgTypes>(Args)...)
-		{
-		}
+		template <typename... ArgTypes>
+		TTask(ArgTypes&&... Args)
+			: Task(std::forward<ArgTypes>(Args)...)
+		{}
 
 	public:
 		void DoWork() override { Task.DoWork(); }

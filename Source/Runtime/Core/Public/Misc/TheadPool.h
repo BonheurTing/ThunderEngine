@@ -29,14 +29,13 @@ namespace Thunder
 		/** If true, the thread should exit. */
 		std::atomic<bool> TimeToDie { false };
 
-		// 任务及其锁，后面改成无锁队列
-		LockFreeFIFOListBase<ITask, 8> QueuedTask {};
-
-		class ThreadPoolBase* ThreadPoolOwner = nullptr;
-		
 		IThread* Thread = nullptr;
-
 		
+		class ThreadPoolBase* ThreadPoolOwner = nullptr;
+
+		LockFreeFIFOListBase<ITask, 8> QueuedTask {}; // Thread 使用
+
+		ITask* CurrentTask = nullptr; // ThreadPoolOwner 使用
 
 	
 	public:
@@ -51,18 +50,19 @@ namespace Thunder
 		void Stop() {}
 		uint32 Run();
 		bool CreateSingleThread(uint32 InStackSize = 0, const String& InThreadName = "");
-		void PushTask(ITask* InTask)
+		uint32 GetThreadId() const { return Thread ? Thread->GetThreadID() : 0; }
+		void PushTask(ITask* InTask) //不保证下一个执行
 		{
 			QueuedTask.Push(InTask);
 			DoWorkEvent->Trigger();
 		}
-		void WaitForCompletion();
+		void WaitForCompletion(); // 线程结束
 		bool KillThread();
 	private:
 		
 		friend class ThreadPoolBase;
 		bool CreateWithThreadPool(class ThreadPoolBase* InPool,uint32 InStackSize = 0);
-		void ThreadPoolDoWork(ITask* InTask);
+		void SetCurrentWork(ITask* InTask); //当前物理线程下一个执行，名字可以改一下
 	};
 
 	//线程池管理者
@@ -91,7 +91,7 @@ public:
 
 public:
     static IThreadPool* Allocate();
-	virtual void ParallelFor(TFunction<void(int32, int32)> &Body, uint32 NumTask, uint32 NumThreads, uint32 BundleSize) = 0;
+	virtual void ParallelFor(TFunction<void(int32, int32)> &Body, uint32 NumTask, uint32 BundleSize) = 0;
 };
 
 extern CORE_API IThreadPool* GThreadPool;

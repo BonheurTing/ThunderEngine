@@ -170,7 +170,7 @@ void TestIThread()
 		testThreadProxy1->CreateSingleThread();
 		testThreadProxy1->PushTask(testAsyncTask);
 
-		testThreadProxy1->WaitForCompletion();
+		testThreadProxy1->WaitForCompletion(); // 线程结束
 	}
 
 	// 测试2: 创建线程，连续派发任务，执行任务
@@ -184,7 +184,7 @@ void TestIThread()
 			testThreadProxy2->PushTask(testAsyncTask);
 		}
 		
-		testThreadProxy2->WaitForCompletion();
+		testThreadProxy2->WaitForCompletion(); // 线程结束
 	}
 }
 
@@ -238,13 +238,25 @@ void TestThreadPool()
 	WorkerThreadPool->Create(8, 96 * 1024);
 
 
-	// 测试1:
-	const auto TestAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(214);
-	WorkerThreadPool->AddQueuedWork(TestAsyncTask, ETaskPriority::Normal);
+	// 测试1: 测试添加任务并执行
+	{
+		const auto TestAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(214);
+		WorkerThreadPool->AddQueuedWork(TestAsyncTask, ETaskPriority::Normal);
+	}
+
+	// 测试2: 添加多个任务，乱序执行
+	{
+		for (int i = 0; i < 10; i++)
+		{
+			const auto testAsyncTask = new (TMemory::Malloc<TTask<ExampleTask>>()) TTask<ExampleTask>(i);
+			WorkerThreadPool->AddQueuedWork(testAsyncTask);
+		}
+	}
+	
 
 	// 测试2: ParallelFor
 			
-	std::vector<BoundingBox> ObjectsBounding(1024);
+	/*std::vector<BoundingBox> ObjectsBounding(1024);
 	std::vector<bool> CullResult(1024);
 
 	TFunction<void(int32, int32)> Func = [&CullResult, ObjectsBounding](int bundleBegin, int bundleSize)
@@ -255,9 +267,9 @@ void TestThreadPool()
 		}
 	};
 	
-	WorkerThreadPool->ParallelFor(Func, 1024, 8, 256);
+	WorkerThreadPool->ParallelFor(Func, 1024, 256);*/
 
-	WorkerThreadPool->WaitForCompletion();
+	//WorkerThreadPool->WaitForCompletion();
 }
 
 int main()

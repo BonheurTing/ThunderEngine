@@ -23,8 +23,8 @@ public:
 
     // 阻塞调用线程，直到该线程完成其工作
     virtual void WaitForCompletion() = 0;
-    
-    const uint32 GetThreadID() const { return ThreadID; }
+
+    uint32 GetThreadID() const { return ThreadID; }
 
     IThread() {}
 

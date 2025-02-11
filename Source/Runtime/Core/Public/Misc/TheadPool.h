@@ -19,24 +19,22 @@ namespace Thunder
 	class ITask;
 	
 	/************************ 任务 ************************************/
+	#define SUSPEND_THRESHOLD 50 
 	//单个线程管理者
 	class ThreadProxy
 	{
 	private:
 	    // 控制线程挂起唤醒等
-		IEvent* DoWorkEvent = nullptr;
+		IEvent* DoWorkEvent {};
 
-		/** If true, the thread should exit. */
 		std::atomic<bool> TimeToDie { false };
 
-		IThread* Thread = nullptr;
+		IThread* Thread {};
 		
-		class ThreadPoolBase* ThreadPoolOwner = nullptr;
+		class ThreadPoolBase* ThreadPoolOwner {};
 
-		LockFreeFIFOListBase<ITask, 8> QueuedTask {}; // Thread 使用
-
-		ITask* CurrentTask = nullptr; // ThreadPoolOwner 使用
-
+		//todo PaddingForCacheContention如何设置, 可以看UE的TaskGraphTest.cpp测试用例
+		LockFreeFIFOListBase<ITask, 8> QueuedTasks {}; // Thread 使用 
 	
 	public:
 		ThreadProxy() = default;
@@ -48,12 +46,13 @@ namespace Thunder
 			}
 		}
 		void Stop() {}
+		void Resume() { DoWorkEvent->Trigger(); }
 		uint32 Run();
 		bool CreateSingleThread(uint32 InStackSize = 0, const String& InThreadName = "");
 		uint32 GetThreadId() const { return Thread ? Thread->GetThreadID() : 0; }
 		void PushTask(ITask* InTask) //不保证下一个执行
 		{
-			QueuedTask.Push(InTask);
+			QueuedTasks.Push(InTask);
 			DoWorkEvent->Trigger();
 		}
 		void WaitForCompletion(); // 线程结束
@@ -62,7 +61,6 @@ namespace Thunder
 		
 		friend class ThreadPoolBase;
 		bool CreateWithThreadPool(class ThreadPoolBase* InPool,uint32 InStackSize = 0);
-		void SetCurrentWork(ITask* InTask); //当前物理线程下一个执行，名字可以改一下
 	};
 
 	//线程池管理者
@@ -76,11 +74,10 @@ namespace Thunder
 	{
 	public:
 	    virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize = (32 * 1024)) = 0;
-	    virtual void Destroy() = 0;
-	    virtual void AddQueuedWork( ITask* InQueuedWork, ETaskPriority InQueuedWorkPriority = ETaskPriority::Normal) = 0;
-	    virtual bool RetractQueuedWork(ITask* InQueuedWork) = 0;
+	    virtual void Destroy() = 0; //放弃执行任务，结束线程
+	    virtual void AddQueuedWork( ITask* InQueuedWork) = 0;
 	    _NODISCARD_ virtual int32 GetNumThreads() const = 0;
-		virtual void WaitForCompletion() = 0;
+		virtual void WaitForCompletion() = 0; //等待所有任务完成, 结束线程, debug用
 	public:
 	    IThreadPool() = default;
 	    virtual	~IThreadPool() = default;

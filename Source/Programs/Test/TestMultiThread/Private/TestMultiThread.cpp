@@ -218,10 +218,10 @@ void TestThreadPool()
 
 
 	// 测试1: 测试添加任务并执行
-	{
+	/*{
 		const auto TestAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(214);
 		WorkerThreadPool->AddQueuedWork(TestAsyncTask);
-	}
+	}*/
 
 	// 测试2: 添加多个任务，乱序执行
 	{
@@ -234,7 +234,7 @@ void TestThreadPool()
 
 	// 测试2: ParallelFor
 			
-	std::vector<BoundingBox> ObjectsBounding(1024);
+	/*std::vector<BoundingBox> ObjectsBounding(1024);
 	std::vector<bool> CullResult(1024);
 	
 	WorkerThreadPool->ParallelFor([&CullResult, ObjectsBounding](uint32 bundleBegin, uint32 bundleSize)
@@ -244,9 +244,9 @@ void TestThreadPool()
 			CullResult[i] = CullObject(ObjectsBounding[i]);
 			LOG("Execute CullResult[%d]", i);
 		}
-	}, 1024, 256);
+	}, 1024, 256);*/
 
-	Sleep(100);
+	WorkerThreadPool->WaitForCompletion();
 }
 
 int main()
@@ -254,7 +254,17 @@ int main()
 	GMalloc = new TMallocMinmalloc();
 	//TestWorkerThread(); // successful
 	//TestTFunction(); // failed
-	TestTask(); // successful
-	TestIThread(); // successful
+	//TestTask(); // successful
+	//TestIThread(); // successful
 	TestThreadPool(); // successful
 }
+
+
+/**
+* 先尝试一下伪代码设计
+* 
+* 1.创建线程池，指定线程数
+* 2.用户侧添加任务，实现测是无锁队列，分发线程执行或者物理线程申请任务时不用加锁
+* 3.线程池内部维护一个线程数组，每个线程有一个任务队列
+* 4.
+**/

@@ -23,16 +23,9 @@ namespace Thunder
 	class ThreadPoolBase : public IThreadPool
 	{
 	protected:
-		TPriorityQueue<PriorityQueueTask> QueuedWork {};
 
+		LockFreeFIFOListBase<ITask, PLATFORM_CACHE_LINE_SIZE> QueuedWork {};
 		TArray<ThreadProxy*> QueuedThreads {};
-
-		TArray<ThreadProxy*> AllThreads {};
-		
-		SpinLock SyncQueuedWork; // QueuedWork AllThreads QueuedThreads的锁
-
-		bool TimeToDie { false };
-
 
 	public:
 		ThreadPoolBase() = default;
@@ -45,24 +38,21 @@ namespace Thunder
 		bool Create(uint32 InNumQueuedThreads, uint32 StackSize) override
 		{
 			bool ret = true;
-			TLockGuard<SpinLock> guard(SyncQueuedWork); //获得临界区，构造时lock，退出作用域时析构unlock
 
 			TAssert(QueuedThreads.empty());
-			//QueuedThreads.resize(InNumQueuedThreads);
-			while (!QueuedWork.empty())
+			while (!QueuedWork.IsEmpty())
 			{
-				QueuedWork.pop();
+				QueuedWork.Pop();
 			}
 			
 			for (uint32 Count = 0; Count < InNumQueuedThreads && ret == true; Count++)
 			{
-				auto pThread = new ThreadProxy();
+				const auto pThread = new ThreadProxy();
 				const String ThreadName = "WorkerThread_" + std::to_string(Count);
 				if (pThread->CreateWithThreadPool(this, StackSize))
 				{
 					TAssert(pThread);
 					QueuedThreads.push_back(pThread);
-					AllThreads.push_back(pThread);
 				}
 				else
 				{
@@ -82,161 +72,62 @@ namespace Thunder
 
 		void Destroy() override
 		{
+			while (!QueuedWork.IsEmpty())
 			{
-				TLockGuard<SpinLock> guard(SyncQueuedWork);
-				TimeToDie = true;
-				FPlatformMisc::MemoryBarrier();
-				while (!QueuedWork.empty())
-				{
-					const auto WorkItem = QueuedWork.top().Task;
-					QueuedWork.pop();
-					WorkItem->Abandon();
-				}
-			}
-			while (true)
-			{
-				{
-					TLockGuard<SpinLock> guard(SyncQueuedWork);
-					if (AllThreads.size() == QueuedThreads.size())
-					{
-						break;
-					}
-				}
-				FPlatformProcess::Sleep(0.0f);
+				const auto WorkItem = QueuedWork.Pop();
+				WorkItem->Abandon();
 			}
 
+			for (const auto& QueuedThread : QueuedThreads)
 			{
-				TLockGuard<SpinLock> guard(SyncQueuedWork);
-				for (int32 Index = 0; Index < AllThreads.size(); Index++)
-				{
-					AllThreads[Index]->KillThread();
-					delete AllThreads[Index];
-				}
-				TArray<ThreadProxy*> Empty;
-				QueuedThreads.swap(Empty);
-				AllThreads.swap(Empty);
+				QueuedThread->KillThread();
+				delete QueuedThread;
 			}
+			TArray<ThreadProxy*> Empty;
+			QueuedThreads.swap(Empty);
 		}
 
 		_NODISCARD_ int32 GetNumThreads() const override
 		{
-			return static_cast<int32>(AllThreads.size());
+			return static_cast<int32>(QueuedThreads.size());
 		}
 
-		void AddQueuedWork(ITask* InQueuedWork, ETaskPriority InQueuedWorkPriority = ETaskPriority::Normal) override
+		_NODISCARD_ bool IsIdle() const
+		{
+			return QueuedWork.IsEmpty();
+		}
+
+		void AddQueuedWork(ITask* InQueuedWork) override
 		{
 			TAssert(InQueuedWork != nullptr);
 
-			//检查线程是否可用确保在执行此操作时没有其他线程可以操作线程池。
-			//
-			//我们从数组的后面选择一个线程，因为这将是最近使用的线程，因此最有可能具有堆栈等的“热”缓存（类似于Windows IOCP调度策略）。
-			//从后面选择也更便宜，因为不需要移动内存。
+			QueuedWork.Push(InQueuedWork);
 
-			ThreadProxy* Thread;
-
+			for(const auto Thread : QueuedThreads)
 			{
-				TLockGuard<SpinLock> guard(SyncQueuedWork);
-				const auto AvailableThreadCount = static_cast<int32>(QueuedThreads.size());
-				if (AvailableThreadCount == 0)
-				{
-					//无可用
-					QueuedWork.push({InQueuedWork, InQueuedWorkPriority});
-					//LOG("QueuedWork Push Task: %d", QueuedWork.size());
-					return;
-				}
-
-				const int32 ThreadIndex = AvailableThreadCount - 1;
-
-				Thread = QueuedThreads[ThreadIndex];
-				TAssert(Thread);
-				QueuedThreads.pop_back(); //移除队尾
-				
-				TAssert(Thread);
-				TAssert(static_cast<int32>(QueuedThreads.size()) == ThreadIndex);
+				Thread->Resume();
 			}
-
-			Thread->SetCurrentWork(InQueuedWork);
 		}
 
-		bool RetractQueuedWork(ITask* InQueuedWork) override
+		ITask* GetNextQueuedWork()
 		{
-			return false;
-		}
-
-		ITask* ReturnToPoolOrGetNextJob(ThreadProxy* InQueuedThread)
-		{
-			TAssert(InQueuedThread != nullptr);
-			// Check to see if there is any work to be done
-			TLockGuard<SpinLock> guard(SyncQueuedWork);
-			if (QueuedWork.empty())
+			ITask* Work = nullptr;
+			if (!QueuedWork.IsEmpty())
 			{
-				//LOG("Thread Push Pack with QueuedWork.empty(), ThreadID: %d, Num of QueuedThread: %d", FPlatformTLS::GetCurrentThreadId(), QueuedThreads.size());
-				TAssert(InQueuedThread);
-				QueuedThreads.push_back(InQueuedThread);
-				return nullptr;
-			}
-
-			ITask* Work = QueuedWork.top().Task;
-			QueuedWork.pop();
-			TAssertf(Work, "!!!");
-
-			if (!Work)
-			{
-				//LOG("Thread Push Pack with Pop empty error, ThreadID: %d, Num of QueuedThread: %d", FPlatformTLS::GetCurrentThreadId(), QueuedThreads.size());
-				// There was no work to be done, so add the thread to the pool
-				TAssert(InQueuedThread);
-				auto Num = QueuedThreads.size();
-				QueuedThreads.push_back(InQueuedThread);
-				TAssert(QueuedThreads[Num]);
+				Work = QueuedWork.Pop();
 			}
 			return Work;
 		}
 
-		void WaitForCompletion() override //等待所有任务完成, 并不结束线程
+		void WaitForCompletion() override
 		{
-			bool NeedWait = false;
-			while(true)
+			if (QueuedWork.IsEmpty())
 			{
-				if (NeedWait)
-				{
-					Sleep(5);
-					NeedWait = false;
-				}
-				{
-					TLockGuard<SpinLock> guard(SyncQueuedWork);
-					if (QueuedWork.empty() && QueuedThreads.size() == AllThreads.size())
-					{
-						return;
-					}
-				}
-				ThreadProxy* Thread;
-				ITask* WorkItem;
-				{
-					TLockGuard<SpinLock> guard(SyncQueuedWork);
-					const auto AvailableThreadCount = static_cast<int32>(QueuedThreads.size());
-					if (AvailableThreadCount == 0)
-					{
-						NeedWait = true;
-						continue;
-					}
-					if (QueuedWork.empty())
-					{
-						NeedWait = true;
-						continue;
-					}
-					WorkItem = QueuedWork.top().Task;
-					QueuedWork.pop();
-					TAssert(WorkItem);
-					const int32 ThreadIndex = AvailableThreadCount - 1;
-
-					Thread = QueuedThreads[ThreadIndex];
-					TAssert(Thread);
-					QueuedThreads.pop_back(); //移除队尾
-					TAssert(Thread);
-					TAssert(QueuedThreads.size() == ThreadIndex);
-				}
-				
-				Thread->SetCurrentWork(WorkItem);
+				return;
+			}
+			for (const auto Thread : QueuedThreads)
+			{
+				Thread->WaitForCompletion();
 			}
 		}
 
@@ -282,35 +173,50 @@ namespace Thunder
 
 	uint32 ThreadProxy::Run()
 	{
-		bool bNoMoreTask = ThreadPoolOwner ? CurrentTask == nullptr : QueuedTask.IsEmpty();
-		while (!(bNoMoreTask && TimeToDie.load(std::memory_order_relaxed)))
+		ITask* CurrentWork;
+		if (ThreadPoolOwner)
 		{
-			DoWorkEvent->Wait();
-
-			if (!ThreadPoolOwner) // single thread
+			while (!(ThreadPoolOwner->IsIdle() && TimeToDie.load(std::memory_order_relaxed)))
 			{
-				while (!QueuedTask.IsEmpty())
+				DoWorkEvent->Wait();
+				
+				TAssert(QueuedTasks.IsEmpty());
+
+				int32 NumOfFailed = SUSPEND_THRESHOLD;
+				while (NumOfFailed > 0)
 				{
-					ITask* LocalQueuedWork = QueuedTask.Pop();
-					LocalQueuedWork->DoWork();
+					CurrentWork = ThreadPoolOwner->GetNextQueuedWork();
+					if(CurrentWork)
+					{
+						CurrentWork->DoWork();
+					}
+					else
+					{
+						NumOfFailed--;
+					}
 				}
 			}
-			else
+		}
+		else
+		{
+			while (!(QueuedTasks.IsEmpty() && TimeToDie.load(std::memory_order_relaxed)))
 			{
-				// thread pool
-				TAssert(QueuedTask.IsEmpty());
-				ITask* LocalQueuedWork = CurrentTask;
-				FPlatformMisc::MemoryBarrier(); //todo 需要知道为什么加
-				TAssert(LocalQueuedWork || TimeToDie.load(std::memory_order_relaxed));
-				while (LocalQueuedWork)
+				DoWorkEvent->Wait();
+
+				int32 NumOfFailed = SUSPEND_THRESHOLD;
+				while (NumOfFailed > 0)
 				{
-					//LOG("LocalQueuedWork do task, ThreadID: %d", FPlatformTLS::GetCurrentThreadId());
-					LocalQueuedWork->DoWork();
-					LocalQueuedWork = ThreadPoolOwner->ReturnToPoolOrGetNextJob(this);
+					if (!QueuedTasks.IsEmpty())
+					{
+						CurrentWork = QueuedTasks.Pop();
+						CurrentWork->DoWork();
+					}
+					else
+					{
+						NumOfFailed--;
+					}
 				}
 			}
-
-			bNoMoreTask = ThreadPoolOwner ? CurrentTask == nullptr : QueuedTask.IsEmpty();
 		}
 		
 		return 0;
@@ -343,7 +249,7 @@ namespace Thunder
 	void ThreadProxy::WaitForCompletion()
 	{
 		// 线程标记
-		TimeToDie = true;
+		TimeToDie.store(true, std::memory_order_relaxed);
 		// 触发Event
 		DoWorkEvent->Trigger();
 		// 等待完成
@@ -359,15 +265,6 @@ namespace Thunder
 		delete Thread;
 		Thread = nullptr;
 		return true;
-	}
-
-	void ThreadProxy::SetCurrentWork(ITask* InTask)
-	{
-		TAssert(QueuedTask.IsEmpty() && CurrentTask == nullptr && "Can't do more than one task at a time");
-		CurrentTask = InTask;
-
-		FPlatformMisc::MemoryBarrier(); //todo ?
-		DoWorkEvent->Trigger();
 	}
     
 }

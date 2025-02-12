@@ -1,10 +1,14 @@
 
 #pragma optimize("", off)
 #include "Misc/TheadPool.h"
+
+#include <future>
+
 #include "Misc/Task.h"
 #include "Container.h"
 #include "Misc/LazySingleton.h"
 #include "Misc/Lock.h"
+#include "Templates/RefCounting.h"
 
 namespace Thunder
 {
@@ -121,10 +125,6 @@ namespace Thunder
 
 		void WaitForCompletion() override
 		{
-			if (QueuedWork.IsEmpty())
-			{
-				return;
-			}
 			for (const auto Thread : QueuedThreads)
 			{
 				Thread->WaitForCompletion();
@@ -134,33 +134,30 @@ namespace Thunder
 		// todo TFunction还是把类型写死了，最好能任意参数类型
 		void ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize) override
 		{
-			class TaskBundle
+			class TaskBundle : public ITask
 			{
 			public:
-				friend class TTask<TaskBundle>;
+				TaskBundle(TFunction<void(uint32, uint32)> && InFunction, uint32 InStart, uint32 InSize)
+				: Function(InFunction)
+				, Head(InStart)
+				, Size(InSize)
+				{}
 
-				TFunction<void(uint32, uint32)> Func;
-				uint32 Head;
-				uint32 Size;
-
-				TaskBundle(const TFunction<void(uint32, uint32)> &InFunc, uint32 InStart, uint32 InSize)
-					: Func(InFunc)
-					, Head(InStart)
-					, Size(InSize)
-				{
-				}
-
-				void DoWork() const
+				void DoWork() override
 				{
 					LOG("Execute Parallel Task Bundle");
-					Func(Head, Size);
+					Function(Head, Size);
 				}
+			private:
+
+				TFunction<void(uint32, uint32)> Function;
+				uint32 Head;
+				uint32 Size;
 			};
-			
-			
+
 			for (uint32 i=0; i < NumTask;i+=BundleSize)
 			{
-				const auto BundleTask = new TTask<TaskBundle>(Body, i, BundleSize);
+				const auto BundleTask = new TaskBundle(std::move(Body), i, BundleSize);
 				AddQueuedWork(BundleTask);
 			}
 		}

@@ -221,7 +221,7 @@ void TestThreadPool()
 	/*{
 		const auto TestAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(214);
 		WorkerThreadPool->AddQueuedWork(TestAsyncTask);
-	}*/
+	}
 
 	// 测试2: 添加多个任务，乱序执行
 	{
@@ -230,11 +230,11 @@ void TestThreadPool()
 			const auto testAsyncTask = new (TMemory::Malloc<TTask<ExampleTask>>()) TTask<ExampleTask>(i);
 			WorkerThreadPool->AddQueuedWork(testAsyncTask);
 		}
-	}
+	}*/
 
 	// 测试2: ParallelFor
 			
-	/*std::vector<BoundingBox> ObjectsBounding(1024);
+	std::vector<BoundingBox> ObjectsBounding(1024);
 	std::vector<bool> CullResult(1024);
 	
 	WorkerThreadPool->ParallelFor([&CullResult, ObjectsBounding](uint32 bundleBegin, uint32 bundleSize)
@@ -244,7 +244,8 @@ void TestThreadPool()
 			CullResult[i] = CullObject(ObjectsBounding[i]);
 			LOG("Execute CullResult[%d]", i);
 		}
-	}, 1024, 256);*/
+	}, 1024, 256);
+
 
 	WorkerThreadPool->WaitForCompletion();
 }

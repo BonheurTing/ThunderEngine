@@ -138,7 +138,7 @@ namespace Thunder
 			{
 			public:
 				TaskBundle(TFunction<void(uint32, uint32)> && InFunction, uint32 InStart, uint32 InSize)
-				: Function(InFunction)
+				: Function(std::move(InFunction))
 				, Head(InStart)
 				, Size(InSize)
 				{}

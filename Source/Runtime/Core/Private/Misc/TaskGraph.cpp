@@ -1,6 +1,6 @@
 #pragma optimize("", off)
 #include "Misc/TaskGraph.h"
-#include <string>
+#include "Misc/TheadPool.h"
 
 namespace Thunder
 {
@@ -54,6 +54,11 @@ namespace Thunder
             
             ThreadPool->AddQueuedWork(Task);
         }
+    }
+
+    void TaskGraphProxy::WaitForCompletion() const
+    {
+        ThreadPool->WaitForCompletion();
     }
 
     TGTaskNode* TaskGraphProxy::FindWork()

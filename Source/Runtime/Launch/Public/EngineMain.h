@@ -79,14 +79,10 @@ namespace Thunder
 	public:
 		friend class TTask<GameThread>;
 
-		int32 FrameData;
-		GameThread(): FrameData(0)
-		{
-		}
-
 		GameThread(int32 InExampleData)
 		 : FrameData(InExampleData)
 		{
+			Init();
 		}
 
 		void DoWork()
@@ -96,7 +92,10 @@ namespace Thunder
 	private:
 		void EngineLoop();
 		void GameMain();
-    
+		void Init();
+	private:
+		int32 FrameData;
+		TaskGraphProxy* TaskGraph;
 	};
 
 	class RenderingThread //临时放在这

@@ -1,6 +1,7 @@
 #pragma optimize("", off)
 #include "Memory/MallocMinmalloc.h"
 #include "Misc/TaskGraph.h"
+#include "Misc/TheadPool.h"
 
 using namespace Thunder;
 

@@ -1,11 +1,6 @@
 #pragma once
-#include "Assertion.h"
-#include "CoreMinimal.h"
 #include "NameHandle.h"
 #include "Task.h"
-#include "TheadPool.h"
-#include "Templates/ThunderTemplates.h"
-
 
 namespace Thunder
 {
@@ -65,10 +60,8 @@ namespace Thunder
 
 		void Submit();
 
-		void WaitForCompletion() const
-		{
-			ThreadPool->WaitForCompletion();
-		}
+		void WaitForCompletion() const;
+		
 	private:
 		
 		TGTaskNode* FindWork();

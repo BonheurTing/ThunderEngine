@@ -5,6 +5,7 @@
 #include "Misc/TheadPool.h"
 #include "Module/ModuleManager.h"
 #include "Misc/Task.h"
+#include "Misc/TaskGraph.h"
 #include "Templates/FunctionMy.h"
 
 using namespace Thunder;
@@ -188,6 +189,7 @@ void TestIThread()
 	}
 }
 
+#pragma region TestThreadPool
 
 static int CallCount = 0;
 class ExampleTask2
@@ -208,8 +210,6 @@ public:
 	}
 };
 
-
-
 void TestThreadPool()
 {
 
@@ -218,7 +218,7 @@ void TestThreadPool()
 
 
 	// 测试1: 测试添加任务并执行
-	/*{
+	{
 		const auto TestAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(214);
 		WorkerThreadPool->AddQueuedWork(TestAsyncTask);
 	}
@@ -230,7 +230,7 @@ void TestThreadPool()
 			const auto testAsyncTask = new (TMemory::Malloc<TTask<ExampleTask>>()) TTask<ExampleTask>(i);
 			WorkerThreadPool->AddQueuedWork(testAsyncTask);
 		}
-	}*/
+	}
 
 	// 测试2: ParallelFor
 			
@@ -249,14 +249,59 @@ void TestThreadPool()
 	WorkerThreadPool->WaitForCompletion();
 }
 
+#pragma endregion
+
+#pragma region TestTaskGraph
+
+class ExampleAsyncTask1 : public TGTaskNode
+{
+public:
+
+	int32 FrameData;
+	ExampleAsyncTask1(): FrameData(0)
+	{
+	}
+
+	ExampleAsyncTask1(int32 InExampleData, const String& InDebugName = "")
+		: TGTaskNode(InDebugName)
+		, FrameData(InExampleData)
+	{
+	}
+
+	void DoWork()
+	{
+		LOG("ExampleData Add 1: %d", FrameData + 1);
+	}
+};
+
+void TestTaskGraph()
+{
+	ThreadPoolBase* WorkerThreadPool = new ThreadPoolBase();
+	WorkerThreadPool->Create(8, 96 * 1024);
+	
+	TaskGraphProxy* TaskGraph = new TaskGraphProxy(WorkerThreadPool);
+	
+	ExampleAsyncTask1* TaskA = new ExampleAsyncTask1(1, "TaskA");
+	ExampleAsyncTask1* TaskB = new ExampleAsyncTask1(2, "TaskB");
+	
+	TaskGraph->PushTask(TaskA);
+	TaskGraph->PushTask(TaskB, {TaskA->UniqueId});
+
+	TaskGraph->Submit();
+	TaskGraph->WaitForCompletion();
+}
+
+#pragma endregion
+
 int main()
 {
 	GMalloc = new TMallocMinmalloc();
 	//TestWorkerThread(); // successful
 	//TestTFunction(); // failed
-	//TestTask(); // successful
-	//TestIThread(); // successful
+	TestTask(); // successful
+	TestIThread(); // successful
 	TestThreadPool(); // successful
+	TestTaskGraph(); // successful
 }
 
 

@@ -61,13 +61,15 @@ namespace Thunder
         TickTask* TaskTick = new TickTask(GFrameNumberGameThread, "TickTask");
 
         // Task Graph
-        TaskGraphManager* TaskGraph = new TaskGraphManager();
+        ThreadPoolBase* WorkerThreadPool = new ThreadPoolBase();
+        WorkerThreadPool->Create(8, 96 * 1024);
+        TaskGraphProxy* TaskGraph = new TaskGraphProxy(WorkerThreadPool);
         TaskGraph->PushTask(TaskPhysics);
         TaskGraph->PushTask(TaskCull, {TaskPhysics->UniqueId});
         TaskGraph->PushTask(TaskTick, {TaskCull->UniqueId});
 
-        TaskGraph->CreateWorkerThread();
-        TaskGraph->WaitForComplete();
+        TaskGraph->Submit();
+        TaskGraph->WaitForCompletion();
 
         // delete todo: use malloc
         //delete TaskGraph;

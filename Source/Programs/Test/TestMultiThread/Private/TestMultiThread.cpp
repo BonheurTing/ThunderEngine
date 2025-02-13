@@ -213,7 +213,7 @@ public:
 void TestThreadPool()
 {
 
-	IThreadPool* WorkerThreadPool = IThreadPool::Allocate();
+	ThreadPoolBase* WorkerThreadPool = new ThreadPoolBase();
 	WorkerThreadPool->Create(8, 96 * 1024);
 
 
@@ -237,7 +237,7 @@ void TestThreadPool()
 	std::vector<BoundingBox> ObjectsBounding(1024);
 	std::vector<bool> CullResult(1024);
 	
-	WorkerThreadPool->ParallelFor([&CullResult, ObjectsBounding](uint32 bundleBegin, uint32 bundleSize)
+	WorkerThreadPool->ParallelFor([&CullResult, &ObjectsBounding](uint32 bundleBegin, uint32 bundleSize)
 	{
 		for (int i = bundleBegin; i < bundleBegin + bundleSize; i++)
 		{
@@ -245,7 +245,6 @@ void TestThreadPool()
 			LOG("Execute CullResult[%d]", i);
 		}
 	}, 1024, 256);
-
 
 	WorkerThreadPool->WaitForCompletion();
 }

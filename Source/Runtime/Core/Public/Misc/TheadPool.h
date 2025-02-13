@@ -62,34 +62,56 @@ namespace Thunder
 		friend class ThreadPoolBase;
 		bool CreateWithThreadPool(class ThreadPoolBase* InPool,uint32 InStackSize = 0);
 	};
-
-	//线程池管理者
-	class ThreadPoolProxy
-	{
-		
-	};
 	
 	/************************ 线程池 ************************************/
-	class CORE_API IThreadPool
-	{
-	public:
-	    virtual bool Create(uint32 InNumQueuedThreads, uint32 StackSize = (32 * 1024)) = 0;
-	    virtual void Destroy() = 0; //放弃执行任务，结束线程
-	    virtual void AddQueuedWork( ITask* InQueuedWork) = 0;
-	    _NODISCARD_ virtual int32 GetNumThreads() const = 0;
-		virtual void WaitForCompletion() = 0; //等待所有任务完成, 结束线程, debug用
-	public:
-	    IThreadPool() = default;
-	    virtual	~IThreadPool() = default;
-		IThreadPool(IThreadPool const&) = default;
-		IThreadPool& operator =(IThreadPool const&) = default;
-		IThreadPool(IThreadPool&&) = default;
-		IThreadPool& operator=(IThreadPool&&) = default;
 
+	class ThreadPoolBase
+	{
+	protected:
+		LockFreeFIFOListBase<ITask, PLATFORM_CACHE_LINE_SIZE> QueuedWork {};
+		TArray<ThreadProxy*> QueuedThreads {};
+		TFunction<void(ITask*)> TaskCallBack {};
 	public:
-	    static IThreadPool* Allocate();
-		virtual void ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize) = 0;
+		ThreadPoolBase() = default;
+
+		~ThreadPoolBase()
+		{
+			Destroy();
+		}
+		void SetCallBack(TFunction<void(ITask*)>&& InFunc)
+		{
+			TaskCallBack = std::move(InFunc);
+		}
+		void OnCompleted(ITask* Task) const
+		{
+			if(TaskCallBack)
+			{
+				TaskCallBack(Task);
+			}
+		}
+		bool Create(uint32 InNumQueuedThreads, uint32 StackSize);
+		void Destroy(); //放弃执行任务，结束线程
+		_NODISCARD_ int32 GetNumThreads() const
+		{
+			return static_cast<int32>(QueuedThreads.size());
+		}
+		_NODISCARD_ bool IsIdle() const
+		{
+			return QueuedWork.IsEmpty();
+		}
+		void AddQueuedWork(ITask* InQueuedWork);
+		ITask* GetNextQueuedWork();
+		void WaitForCompletion(); //等待所有任务完成, 结束线程, debug用
+		void ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize);
 	};
+
+
+
+	
+
+
+
+	/************************ 测试用 ************************************/
 	
 	struct BoundingBox
 	{
@@ -103,9 +125,6 @@ namespace Thunder
 	{
 		return true;
 	}
-
-
-extern CORE_API IThreadPool* GThreadPool;
-    
+	
 }
 

@@ -1,14 +1,11 @@
 
 #pragma optimize("", off)
 #include "Misc/TheadPool.h"
-
 #include <future>
-
 #include "Misc/Task.h"
 #include "Container.h"
 #include "Misc/LazySingleton.h"
 #include "Misc/Lock.h"
-#include "Templates/RefCounting.h"
 
 namespace Thunder
 {
@@ -24,148 +21,121 @@ namespace Thunder
 	};
 
 
-	class ThreadPoolBase : public IThreadPool
+	
+
+
+	bool ThreadPoolBase::Create(uint32 InNumQueuedThreads, uint32 StackSize)
 	{
-	protected:
+		bool ret = true;
 
-		LockFreeFIFOListBase<ITask, PLATFORM_CACHE_LINE_SIZE> QueuedWork {};
-		TArray<ThreadProxy*> QueuedThreads {};
-
-	public:
-		ThreadPoolBase() = default;
-
-		~ThreadPoolBase() override
+		TAssert(QueuedThreads.empty());
+		while (!QueuedWork.IsEmpty())
 		{
-			ThreadPoolBase::Destroy();
+			QueuedWork.Pop();
 		}
-
-		bool Create(uint32 InNumQueuedThreads, uint32 StackSize) override
+		
+		for (uint32 Count = 0; Count < InNumQueuedThreads && ret == true; Count++)
 		{
-			bool ret = true;
-
-			TAssert(QueuedThreads.empty());
-			while (!QueuedWork.IsEmpty())
+			const auto pThread = new ThreadProxy();
+			const String ThreadName = "WorkerThread_" + std::to_string(Count);
+			if (pThread->CreateWithThreadPool(this, StackSize))
 			{
-				QueuedWork.Pop();
+				TAssert(pThread);
+				QueuedThreads.push_back(pThread);
 			}
-			
-			for (uint32 Count = 0; Count < InNumQueuedThreads && ret == true; Count++)
+			else
 			{
-				const auto pThread = new ThreadProxy();
-				const String ThreadName = "WorkerThread_" + std::to_string(Count);
-				if (pThread->CreateWithThreadPool(this, StackSize))
-				{
-					TAssert(pThread);
-					QueuedThreads.push_back(pThread);
-				}
-				else
-				{
-					ret = false;
-					delete pThread;
-					break;
-				}
-			}
-
-			if (ret == false)
-			{
-				Destroy();
-			}
-
-			return ret;
-		}
-
-		void Destroy() override
-		{
-			while (!QueuedWork.IsEmpty())
-			{
-				const auto WorkItem = QueuedWork.Pop();
-				WorkItem->Abandon();
-			}
-
-			for (const auto& QueuedThread : QueuedThreads)
-			{
-				QueuedThread->KillThread();
-				delete QueuedThread;
-			}
-			TArray<ThreadProxy*> Empty;
-			QueuedThreads.swap(Empty);
-		}
-
-		_NODISCARD_ int32 GetNumThreads() const override
-		{
-			return static_cast<int32>(QueuedThreads.size());
-		}
-
-		_NODISCARD_ bool IsIdle() const
-		{
-			return QueuedWork.IsEmpty();
-		}
-
-		void AddQueuedWork(ITask* InQueuedWork) override
-		{
-			TAssert(InQueuedWork != nullptr);
-
-			QueuedWork.Push(InQueuedWork);
-
-			for(const auto Thread : QueuedThreads)
-			{
-				Thread->Resume();
+				ret = false;
+				delete pThread;
+				break;
 			}
 		}
 
-		ITask* GetNextQueuedWork()
+		if (ret == false)
 		{
-			ITask* Work = nullptr;
-			if (!QueuedWork.IsEmpty())
-			{
-				Work = QueuedWork.Pop();
-			}
-			return Work;
+			Destroy();
 		}
 
-		void WaitForCompletion() override
-		{
-			for (const auto Thread : QueuedThreads)
-			{
-				Thread->WaitForCompletion();
-			}
-		}
+		return ret;
+	}
 
-		// todo TFunction还是把类型写死了，最好能任意参数类型
-		void ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize) override
-		{
-			class TaskBundle : public ITask
-			{
-			public:
-				TaskBundle(TFunction<void(uint32, uint32)> && InFunction, uint32 InStart, uint32 InSize)
-				: Function(std::move(InFunction))
-				, Head(InStart)
-				, Size(InSize)
-				{}
-
-				void DoWork() override
-				{
-					LOG("Execute Parallel Task Bundle");
-					Function(Head, Size);
-				}
-			private:
-
-				TFunction<void(uint32, uint32)> Function;
-				uint32 Head;
-				uint32 Size;
-			};
-
-			for (uint32 i=0; i < NumTask;i+=BundleSize)
-			{
-				const auto BundleTask = new TaskBundle(std::move(Body), i, BundleSize);
-				AddQueuedWork(BundleTask);
-			}
-		}
-	};
-
-	IThreadPool* IThreadPool::Allocate()
+	void ThreadPoolBase::Destroy()
 	{
-		return new ThreadPoolBase();
+		while (!QueuedWork.IsEmpty())
+		{
+			const auto WorkItem = QueuedWork.Pop();
+			WorkItem->Abandon();
+		}
+
+		for (const auto& QueuedThread : QueuedThreads)
+		{
+			QueuedThread->KillThread();
+			delete QueuedThread;
+		}
+		TArray<ThreadProxy*> Empty;
+		QueuedThreads.swap(Empty);
+	}
+	
+
+	void ThreadPoolBase::AddQueuedWork(ITask* InQueuedWork)
+	{
+		TAssert(InQueuedWork != nullptr);
+
+		QueuedWork.Push(InQueuedWork);
+
+		for(const auto Thread : QueuedThreads)
+		{
+			Thread->Resume();
+		}
+	}
+
+	ITask* ThreadPoolBase::GetNextQueuedWork()
+	{
+		ITask* Work = nullptr;
+		if (!QueuedWork.IsEmpty())
+		{
+			Work = QueuedWork.Pop();
+		}
+		return Work;
+	}
+
+	void ThreadPoolBase::WaitForCompletion()
+	{
+		for (const auto Thread : QueuedThreads)
+		{
+			Thread->WaitForCompletion();
+		}
+	}
+
+	// todo TFunction还是把类型写死了，最好能任意参数类型
+	void ThreadPoolBase::ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize)
+	{
+		class TaskBundle : public ITask
+		{
+		public:
+			TaskBundle(const TFunction<void(uint32, uint32)> & InFunction, uint32 InStart, uint32 InSize)
+			: Function(std::move(InFunction))
+			, Head(InStart)
+			, Size(InSize)
+			{}
+
+			void DoWork() override
+			{
+				LOG("Execute Parallel Task Bundle");
+				Function(Head, Size);
+			}
+		private:
+
+			TFunction<void(uint32, uint32)> Function;
+			uint32 Head;
+			uint32 Size;
+		};
+
+		for (uint32 i=0; i < NumTask;i+=BundleSize)
+		{
+			const auto BundleTask = new TaskBundle(std::move(Body), i, BundleSize);
+			AddQueuedWork(BundleTask);
+		}
 	}
 
 	uint32 ThreadProxy::Run()
@@ -186,6 +156,7 @@ namespace Thunder
 					if(CurrentWork)
 					{
 						CurrentWork->DoWork();
+						ThreadPoolOwner->OnCompleted(CurrentWork);
 					}
 					else
 					{

@@ -1,9 +1,10 @@
 #pragma optimize("", off)
+#include "Memory/MallocMinmalloc.h"
 #include "Misc/TaskGraph.h"
 
 using namespace Thunder;
 
-class ExampleAsyncTask1 : public TaskAllocator
+class ExampleAsyncTask1 : public TGTaskNode
 {
 public:
 
@@ -13,7 +14,7 @@ public:
 	}
 
 	ExampleAsyncTask1(int32 InExampleData, const String& InDebugName = "")
-		: TaskAllocator(InDebugName)
+		: TGTaskNode(InDebugName)
 		, FrameData(InExampleData)
 	{
 	}
@@ -26,15 +27,21 @@ public:
 
 void main()
 {
-	TaskGraphManager* TaskGraph = new TaskGraphManager();
+	GMalloc = new TMallocMinmalloc();
+	
+	ThreadPoolBase* WorkerThreadPool = new ThreadPoolBase();
+	WorkerThreadPool->Create(8, 96 * 1024);
+	
+	TaskGraphProxy* TaskGraph = new TaskGraphProxy(WorkerThreadPool);
+	
 	ExampleAsyncTask1* TaskA = new ExampleAsyncTask1(1, "TaskA");
 	ExampleAsyncTask1* TaskB = new ExampleAsyncTask1(2, "TaskB");
 	
 	TaskGraph->PushTask(TaskA);
 	TaskGraph->PushTask(TaskB, {TaskA->UniqueId});
 
-	TaskGraph->CreateWorkerThread();
-	TaskGraph->WaitForComplete();
+	TaskGraph->Submit();
+	TaskGraph->WaitForCompletion();
 }
 
-
+#pragma optimize("", on)

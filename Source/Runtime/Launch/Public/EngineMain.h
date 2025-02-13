@@ -14,7 +14,7 @@ namespace Thunder
 
 	extern LAUNCH_API SimpleLock* GThunderEngineLock;
 
-	class PhysicsTask : public TaskAllocator //临时放在这
+	class PhysicsTask : public TGTaskNode //临时放在这
 	{
 	public:
 		int32 Data;
@@ -23,7 +23,7 @@ namespace Thunder
 		}
 
 		PhysicsTask(int32 InPhysicsTaskData, const String& InDebugName = "")
-			: TaskAllocator(InDebugName)
+			: TGTaskNode(InDebugName)
 			, Data(InPhysicsTaskData)
 		{
 		}
@@ -34,7 +34,7 @@ namespace Thunder
 		}
 	};
 
-	class CullTask : public TaskAllocator //临时放在这
+	class CullTask : public TGTaskNode //临时放在这
 	{
 	public:
 		int32 Data;
@@ -43,7 +43,7 @@ namespace Thunder
 		}
 
 		CullTask(int32 InCullTaskData, const String& InDebugName = "")
-			: TaskAllocator(InDebugName)
+			: TGTaskNode(InDebugName)
 			, Data(InCullTaskData)
 		{
 		}
@@ -54,7 +54,7 @@ namespace Thunder
 		}
 	};
 
-	class TickTask : public TaskAllocator //临时放在这
+	class TickTask : public TGTaskNode //临时放在这
 	{
 	public:
 		int32 Data;
@@ -63,7 +63,7 @@ namespace Thunder
 		}
 
 		TickTask(int32 InTickTaskData, const String& InDebugName = "")
-			: TaskAllocator(InDebugName)
+			: TGTaskNode(InDebugName)
 			, Data(InTickTaskData)
 		{
 		}

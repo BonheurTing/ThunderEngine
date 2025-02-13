@@ -1,9 +1,10 @@
+#pragma optimize("", off)
 #include "Misc/TaskGraph.h"
 #include <string>
 
 namespace Thunder
 {
-    void TaskGraphManager::PushTask(TaskAllocator* Task, std::vector<uint32> PrepositionList)
+    void TaskGraphProxy::PushTask(TGTaskNode* Task, std::vector<uint32> PrepositionList)
     {
         TaskList.push_back(Task);
         FTaskTable* Table = new FTaskTable(Task);
@@ -16,53 +17,56 @@ namespace Thunder
         }
     }
 
-    uint32 TaskGraphManager::CreateWorkerThread()
+    void TaskGraphProxy::Submit()
     {
-        uint32 ThreadID;
-        Thread = CreateThread(nullptr, 0, ThreadProc, this, 0
-        , reinterpret_cast<::DWORD*>(&ThreadID)); //STACK_SIZE_PARAM_IS_A_RESERVATION | CREATE_SUSPENDED
-        if (Thread == nullptr)
+        ThreadPool->SetCallBack([&](ITask* CompletedTask)
         {
-            TAssert(false);
-        }
-        else
+            if(auto LocalTask = static_cast<TGTaskNode*>(CompletedTask))
+            {
+                TAssert(TaskDependencyMap[LocalTask->UniqueId]->State == ETaskState::Ready);
+                TaskDependencyMap[LocalTask->UniqueId]->State = ETaskState::Completed;
+
+                for (auto id : TaskDependencyMap[LocalTask->UniqueId]->Postposition)
+                {
+                    bool bReady = true;
+                    for(auto pre : TaskDependencyMap[id]->Preposition)
+                    {
+                        if (TaskDependencyMap[pre]->State != ETaskState::Completed)
+                        {
+                            bReady = false;
+                            break;
+                        }
+                    }
+                    if (bReady)
+                    {
+                        TaskDependencyMap[id]->State = ETaskState::Ready;
+                        ThreadPool->AddQueuedWork(TaskDependencyMap[id]->Task);
+                    }
+                }
+            }
+        });
+        
+        while (const auto Task = FindWork())
         {
-            //LOG("ThreadID: %d", ThreadID);
-            auto ret = ResumeThread(Thread);
-            //LOG("ResumeThread %d: %d", ret, GetLastError());
+            TAssert(TaskDependencyMap[Task->UniqueId]->State == ETaskState::Wait);
+            TaskDependencyMap[Task->UniqueId]->State = ETaskState::Ready;
+            TAssert(TaskDependencyMap[Task->UniqueId]->State == ETaskState::Ready);
+            
+            ThreadPool->AddQueuedWork(Task);
         }
-        return Thread != nullptr;
     }
 
-    uint32 TaskGraphManager::ExecuteImpl()
-    {
-        //LOG("ExacuteImpl");
-        while (auto Task = FindWork())
-        {
-            Task->DoWork();
-            TaskDependencyMap[Task->UniqueId]->bIsComplete = true;
-        }
-        PrintTaskGraph();
-
-        for (auto& Task : TaskList)
-        {
-            TAssert(TaskDependencyMap[Task->UniqueId]->bIsComplete);
-            delete Task;
-        }
-        return TaskDependencyMap.size();
-    }
-
-    TaskAllocator* TaskGraphManager::FindWork()
+    TGTaskNode* TaskGraphProxy::FindWork()
     {
         for (auto& Task : TaskList)
         {
-            if (TaskDependencyMap[Task->UniqueId]->bIsComplete)
+            if (TaskDependencyMap[Task->UniqueId]->State != ETaskState::Wait)
                 continue;
 				
             bool bHasPreposition = false;
             for (auto Pre : TaskDependencyMap[Task->UniqueId]->Preposition)
             {
-                if (!TaskDependencyMap[Pre]->bIsComplete)
+                if (TaskDependencyMap[Pre]->State != ETaskState::Completed)
                 {
                     bHasPreposition = true;
                     break;
@@ -71,20 +75,23 @@ namespace Thunder
             if (!bHasPreposition)
             {
                 LOG("FindWork: %s", Task->GetName().c_str());
+                //PrintTaskGraph();
                 return Task;
             }
         }
         return nullptr;
     }
 
-    void TaskGraphManager::PrintTaskGraph()
+    void TaskGraphProxy::PrintTaskGraph() const
     {
         TAssert(TaskList.size() == TaskDependencyMap.size());
         String report = "Task Graph has " + std::to_string(TaskList.size()) + " Tasks.";
         for (auto pair : TaskDependencyMap)
         {
-            report = report + " name: " + pair.second->Task->GetName().ToString() + ", bIsComplete: " + (pair.second->bIsComplete ? "1" : "0");
+            report = report + " UniqueId: " + std::to_string(pair.second->Task->UniqueId) + ", State: " + (pair.second->State == ETaskState::Wait ? "Wait" : (pair.second->State == ETaskState::Ready ?  "Ready" : "Completed" ));
         }
+        LOG(report.c_str());
     }
     
 }
+#pragma optimize("", on)

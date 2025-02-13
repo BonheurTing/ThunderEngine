@@ -2,84 +2,83 @@
 #include "Assertion.h"
 #include "CoreMinimal.h"
 #include "NameHandle.h"
+#include "Task.h"
+#include "TheadPool.h"
 #include "Templates/ThunderTemplates.h"
 
 
 namespace Thunder
 {
-    std::atomic<uint32> GTaskUniqueID = 0;
+	inline std::atomic<uint32> GTaskUniqueID = 0;
+	class ThreadPoolBase;
 
-    class TaskAllocator : public Noncopyable
-    {
-    public:
-        TaskAllocator(const String& InDebugName = "")
-            : DebugName(InDebugName)
-        {
-            UniqueId = GTaskUniqueID.fetch_add(1);
-        }
-        virtual  ~TaskAllocator() {}
+	class TGTaskNode : public ITask
+	{
+	public:
+		TGTaskNode(const String& InDebugName = "")
+			: DebugName(InDebugName)
+		{
+			UniqueId = GTaskUniqueID.fetch_add(1);
+		}
 
-        NameHandle GetName() const
-        {
-            return DebugName;
-        }
+		NameHandle GetName() const
+		{
+			return DebugName;
+		}
+		
+		uint32 UniqueId;
+	private:
+		NameHandle DebugName;
+	};
 
-        virtual void DoWork() = 0;
-	
-        uint32 UniqueId;
-
-    private:
-        NameHandle DebugName;
-    };
+	enum class ETaskState : uint8
+	{
+		Wait = 0,
+		Ready = 1,
+		Completed = 2
+	};
 
     struct FTaskTable
     {
-        FTaskTable(TaskAllocator* InTask)
+        FTaskTable(TGTaskNode* InTask)
             : Task(InTask)
         {}
         FTaskTable() = delete;
-        TaskAllocator* Task;
+        TGTaskNode* Task;
         std::vector<uint32> Preposition;
         std::vector<uint32> Postposition;
-        bool bIsComplete = false;
+        ETaskState State = ETaskState::Wait;//评估风险
     };
 
-	class TaskGraphManager
+	class TaskGraphProxy
 	{
 	public:
-		~TaskGraphManager()
+		TaskGraphProxy(ThreadPoolBase* InThreadPool)
+			: ThreadPool(InThreadPool) {}
+
+		~TaskGraphProxy()
 		{
-			WaitForComplete();
-			CloseHandle(Thread);
+			WaitForCompletion();
 		}
-		
-		void PushTask(TaskAllocator* Task, std::vector<uint32> PrepositionList = {});
 
-		uint32 CreateWorkerThread();
+		void PushTask(TGTaskNode* Task, std::vector<uint32> PrepositionList = {});
 
-		void WaitForComplete()
+		void Submit();
+
+		void WaitForCompletion() const
 		{
-			WaitForSingleObject(Thread, INFINITE);
+			ThreadPool->WaitForCompletion();
 		}
 	private:
-		static ::DWORD __stdcall ThreadProc(LPVOID pThis)
-		{
-			//LOG("ThreadProc");
-			TAssert(pThis);
-			auto* ThisThread = static_cast<TaskGraphManager*>(pThis);
-			return ThisThread->ExecuteImpl();
-		}
 		
-		uint32 ExecuteImpl();
+		TGTaskNode* FindWork();
 
-		TaskAllocator* FindWork();
-
-		void PrintTaskGraph();
+		void PrintTaskGraph() const;
 
 	private:
-		HANDLE Thread;
-		std::vector<TaskAllocator*> TaskList;
-		std::unordered_map<uint32, FTaskTable*> TaskDependencyMap; //
+		class ThreadPoolBase* ThreadPool {};
+		std::vector<TGTaskNode*> TaskList {};
+		std::unordered_map<uint32, FTaskTable*> TaskDependencyMap {};
 	};
 
 

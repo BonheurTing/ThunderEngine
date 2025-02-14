@@ -25,11 +25,11 @@ int main()
     //挂起
     {
         std::unique_lock<std::mutex> lock(GThunderEngineLock->mtx);
-        GThunderEngineLock->cv.wait(lock, []{ return GThunderEngineLock->ready; });   
+        GThunderEngineLock->cv.wait(lock, []{ return GThunderEngineLock->ready; });
     }
 
     LOG("exit");
-    
+
     return 0;
 }
 #pragma optimize("", on)

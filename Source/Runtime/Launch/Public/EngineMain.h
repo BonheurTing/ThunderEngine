@@ -68,10 +68,8 @@ namespace Thunder
 		{
 		}
 
-		void DoWork() override
-		{
-			LOG("Execute tick calculation with thread: %lu", __threadid());
-		}
+		void DoWork() override;
+		
 	};
 	
 	class GameThread //临时放在这

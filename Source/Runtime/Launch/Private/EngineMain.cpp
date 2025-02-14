@@ -14,6 +14,10 @@ namespace Thunder
     ThreadProxy* GRenderThread;
     ThreadProxy* GRHIThread;
     std::atomic<uint32> GFrameNumberGameThread = 0;
+    std::atomic<uint32> GFrameNumberRenderThread = 0;
+    std::atomic<uint32> GFrameNumberRHIThread = 0;
+    std::mutex GFrameMtx;
+    std::condition_variable GFrameCv;
     bool GIsRequestingExit = false;
     SimpleLock* GThunderEngineLock = nullptr;
 
@@ -22,25 +26,30 @@ namespace Thunder
         return GIsRequestingExit;
     }
 
+    void TickTask::DoWork()
+    {
+        LOG("Execute tick calculation with thread: %lu", __threadid());
+        GFrameNumberGameThread.fetch_add(1, std::memory_order_relaxed);
+        if (GFrameNumberGameThread >= 10)
+        {
+            GIsRequestingExit = true;
+        }
+    }
+
     void GameThread::EngineLoop()
     {
         while( !IsEngineExitRequested() )
         {
+            {
+                std::unique_lock<std::mutex> lock(GFrameMtx);
+                GFrameCv.wait(lock, []{ return GFrameNumberGameThread - GFrameNumberRenderThread <= 1; });
+            }
+
             GameMain();
 
             // push render command
             TTask<RenderingThread>* testRenderThreadTask = new TTask<RenderingThread>(GFrameNumberGameThread);
             GRenderThread->PushTask(testRenderThreadTask);
-            Sleep(100); //todo 是不是不该有
-            // rhi
-            // frame + 1
-            // cv wait (check frame)
-
-            GFrameNumberGameThread.fetch_add(1, std::memory_order_relaxed);
-            if (GFrameNumberGameThread >= 10)
-            {
-                GIsRequestingExit = true;
-            }
         }
 
         GThunderEngineLock->ready = true;
@@ -78,18 +87,26 @@ namespace Thunder
 
     void RenderingThread::RenderMain()
     {
+        {
+            std::unique_lock<std::mutex> lock(GFrameMtx);
+            GFrameCv.wait(lock, []{ return GFrameNumberRenderThread - GFrameNumberRHIThread <= 1; });
+        }
         
         LOG("Execute render thread in frame: %d with thread: %lu", FrameData, __threadid());
+        
+        GFrameNumberRenderThread.fetch_add(1, std::memory_order_relaxed);
+        GFrameCv.notify_all();
+
         // rhi thread
         TTask<RHIThreadTask>* testRHIThreadTask = new TTask<RHIThreadTask>(GFrameNumberGameThread);
         GRHIThread->PushTask(testRHIThreadTask);
-        Sleep(100); //todo 是不是不该有
     }
 
     void RHIThreadTask::RHIMain()
     {
         LOG("Execute rhi thread in frame: %d with thread: %lu", FrameData, __threadid());
-        //GFrameNumberGameThread.fetch_add(1, std::memory_order_relaxed);
+        GFrameNumberRHIThread.fetch_add(1, std::memory_order_relaxed);
+        GFrameCv.notify_all();
     }
 
     int32 EngineMain::FastInit()

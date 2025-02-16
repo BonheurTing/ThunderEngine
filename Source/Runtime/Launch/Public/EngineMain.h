@@ -9,9 +9,9 @@ namespace Thunder
 	{
 		std::mutex mtx;
 		std::condition_variable cv;
-		bool ready = false;
 	};
 
+	extern LAUNCH_API bool GIsRequestingExit;
 	extern LAUNCH_API SimpleLock* GThunderEngineLock;
 
 	class PhysicsTask : public TGTaskNode //临时放在这
@@ -30,7 +30,7 @@ namespace Thunder
 
 		void DoWork() override
 		{
-			LOG("Execute physical calculation with thread: %lu", __threadid());
+			LOG("Execute physical calculation(data: %d) with thread: %lu", Data, __threadid());
 		}
 	};
 
@@ -50,7 +50,7 @@ namespace Thunder
 
 		void DoWork() override
 		{
-			LOG("Execute clipping calculation with thread: %lu", __threadid());
+			LOG("Execute clipping calculation(data: %d) with thread: %lu", Data, __threadid());
 		}
 	};
 

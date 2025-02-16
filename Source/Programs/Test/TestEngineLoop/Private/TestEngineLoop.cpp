@@ -22,10 +22,14 @@ int main()
     GEngine->FastInit();
     GEngine->Run();
 
+    
+
     //挂起
     {
         std::unique_lock<std::mutex> lock(GThunderEngineLock->mtx);
-        GThunderEngineLock->cv.wait(lock, []{ return GThunderEngineLock->ready; });
+        GThunderEngineLock->cv.wait(lock, []{ 
+            return GIsRequestingExit;
+        });
     }
 
     LOG("exit");

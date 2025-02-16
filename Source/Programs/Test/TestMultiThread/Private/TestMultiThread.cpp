@@ -280,14 +280,41 @@ void TestTaskGraph()
 	WorkerThreadPool->Create(8, 96 * 1024);
 	
 	TaskGraphProxy* TaskGraph = new TaskGraphProxy(WorkerThreadPool);
-	
-	ExampleAsyncTask1* TaskA = new ExampleAsyncTask1(1, "TaskA");
-	ExampleAsyncTask1* TaskB = new ExampleAsyncTask1(2, "TaskB");
-	
-	TaskGraph->PushTask(TaskA);
-	TaskGraph->PushTask(TaskB, {TaskA->UniqueId});
 
-	TaskGraph->Submit();
+	// 测试1: 添加任务，执行
+	{
+		ExampleAsyncTask1* TaskA = new ExampleAsyncTask1(1, "TaskA");
+		ExampleAsyncTask1* TaskB = new ExampleAsyncTask1(2, "TaskB");
+		ExampleAsyncTask1* TaskC = new ExampleAsyncTask1(3, "TaskC");
+		ExampleAsyncTask1* TaskD = new ExampleAsyncTask1(4, "TaskD");
+		ExampleAsyncTask1* TaskE = new ExampleAsyncTask1(5, "TaskE");
+	
+	
+		TaskGraph->PushTask(TaskA);
+		TaskGraph->PushTask(TaskB, {TaskA->UniqueId});
+		TaskGraph->PushTask(TaskC, {TaskB->UniqueId});
+		TaskGraph->PushTask(TaskD);
+		TaskGraph->PushTask(TaskE, {TaskB->UniqueId, TaskD->UniqueId});
+
+		TaskGraph->Submit();
+	}
+	
+	// 测试1: 循环执行
+	int i = 3;
+	while (i-- > 0)
+	{
+		TaskGraph->Reset();
+
+		ExampleAsyncTask1* TaskA = new ExampleAsyncTask1(2023, "TaskA");
+		ExampleAsyncTask1* TaskB = new ExampleAsyncTask1(2024, "TaskB");
+		ExampleAsyncTask1* TaskC = new ExampleAsyncTask1(2025, "TaskC");
+
+		TaskGraph->PushTask(TaskA);
+		TaskGraph->PushTask(TaskB, {TaskA->UniqueId});
+		TaskGraph->PushTask(TaskC, {TaskB->UniqueId});
+		TaskGraph->Submit();
+	}
+	
 	TaskGraph->WaitForCompletion();
 }
 
@@ -298,9 +325,9 @@ int main()
 	GMalloc = new TMallocMinmalloc();
 	//TestWorkerThread(); // successful
 	//TestTFunction(); // failed
-	TestTask(); // successful
-	TestIThread(); // successful
-	TestThreadPool(); // successful
+	//TestTask(); // successful
+	//TestIThread(); // successful
+	//TestThreadPool(); // successful
 	TestTaskGraph(); // successful
 }
 

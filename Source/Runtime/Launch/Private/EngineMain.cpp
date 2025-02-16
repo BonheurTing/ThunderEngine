@@ -42,12 +42,6 @@ namespace Thunder
     {
         while( !IsEngineExitRequested() )
         {
-            if (GFrameNumberGameThread - GFrameNumberRenderThread > 1)
-            {
-                std::unique_lock<std::mutex> lock(GGameRenderLock->mtx);
-                GGameRenderLock->cv.wait(lock, []{ return GFrameNumberGameThread - GFrameNumberRenderThread <= 1; });
-            }
-
             GameMain();
 
             // push render command
@@ -63,19 +57,18 @@ namespace Thunder
 
     void GameThread::GameMain()
     {
+        TaskGraph->Reset(); //等待上一帧执行完
+
+        if (GFrameNumberGameThread - GFrameNumberRenderThread > 1)
+        {
+            std::unique_lock<std::mutex> lock(GGameRenderLock->mtx);
+            GGameRenderLock->cv.wait(lock, []{ return GFrameNumberGameThread - GFrameNumberRenderThread <= 1; });
+        }
+
         // game thread
         LOG("Execute game thread in frame: %d with thread: %lu", GFrameNumberGameThread.load(std::memory_order_relaxed), __threadid());
 
-        //debug
-        GFrameNumberGameThread.fetch_add(1, std::memory_order_relaxed);
-        if (GFrameNumberGameThread >= 10)
-        {
-            GIsRequestingExit = true;
-        }
-
-        
-
-        /*// physics
+        // physics
         PhysicsTask* TaskPhysics = new PhysicsTask(GFrameNumberGameThread, "PhysicsTask");
         // cull
         CullTask* TaskCull = new CullTask(GFrameNumberGameThread, "CullTask");
@@ -87,7 +80,7 @@ namespace Thunder
         TaskGraph->PushTask(TaskCull, {TaskPhysics->UniqueId});
         TaskGraph->PushTask(TaskTick, {TaskCull->UniqueId});
 
-        TaskGraph->Submit();*/
+        TaskGraph->Submit();
         //TaskGraph->WaitForCompletion();
     }
 

@@ -29,7 +29,7 @@ namespace Thunder
 	enum class ETaskState : uint8
 	{
 		Wait = 0,
-		Ready = 1,
+		Issued = 1,
 		Completed = 2
 	};
 
@@ -40,8 +40,8 @@ namespace Thunder
         {}
         FTaskTable() = delete;
         TGTaskNode* Task;
-        std::vector<uint32> Preposition;
-        std::vector<uint32> Postposition;
+        std::vector<uint32> Preposition {};
+        std::vector<uint32> Postposition {};
         ETaskState State = ETaskState::Wait;//评估风险
     };
 
@@ -60,11 +60,13 @@ namespace Thunder
 
 		void Submit();
 
-		void WaitForCompletion() const;
+		void Reset(); // 等待前序任务完成,重置TG
+
+		void WaitForCompletion() const; // 等待任务完成,且线程退出
 		
 	private:
 		
-		TGTaskNode* FindWork();
+		std::list<TGTaskNode*> FindWork();
 
 		void PrintTaskGraph() const;
 
@@ -72,6 +74,11 @@ namespace Thunder
 		class ThreadPoolBase* ThreadPool {};
 		std::vector<TGTaskNode*> TaskList {};
 		std::unordered_map<uint32, FTaskTable*> TaskDependencyMap {};
+
+		// cv
+		std::mutex mtx;
+		std::condition_variable cv;
+		std::atomic<uint32> TaskCount = 0;
 	};
 
 

@@ -100,12 +100,12 @@ namespace Thunder
 		{
 			while (true)
 			{
-				if (!bFlag.exchange(true, std::memory_order_acquire))
+				if (!bFlag.exchange(true, std::memory_order_acq_rel))
 				{
 					break;
 				}
 
-				while (bFlag.load(std::memory_order_relaxed))
+				while (bFlag.load(std::memory_order_acquire))
 				{
 					FPlatformProcess::CoreYield();
 				}
@@ -114,7 +114,7 @@ namespace Thunder
 
 		bool TryLock()
 		{
-			return !bFlag.exchange(true, std::memory_order_acquire);
+			return !bFlag.exchange(true, std::memory_order_acq_rel);
 		}
 
 		void Unlock()

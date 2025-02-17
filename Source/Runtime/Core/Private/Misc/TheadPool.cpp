@@ -143,7 +143,7 @@ namespace Thunder
 		ITask* CurrentWork;
 		if (ThreadPoolOwner)
 		{
-			while (!(ThreadPoolOwner->IsIdle() && TimeToDie.load(std::memory_order_relaxed)))
+			while (!(ThreadPoolOwner->IsIdle() && TimeToDie.load(std::memory_order_acquire)))
 			{
 				DoWorkEvent->Wait();
 				
@@ -167,7 +167,7 @@ namespace Thunder
 		}
 		else
 		{
-			while (!(QueuedTasks.IsEmpty() && TimeToDie.load(std::memory_order_relaxed)))
+			while (!(QueuedTasks.IsEmpty() && TimeToDie.load(std::memory_order_acquire)))
 			{
 				DoWorkEvent->Wait();
 
@@ -217,7 +217,7 @@ namespace Thunder
 	void ThreadProxy::WaitForCompletion()
 	{
 		// 线程标记
-		TimeToDie.store(true, std::memory_order_relaxed);
+		TimeToDie.store(true, std::memory_order_release);
 		// 触发Event
 		DoWorkEvent->Trigger();
 		// 等待完成

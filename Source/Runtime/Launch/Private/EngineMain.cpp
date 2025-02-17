@@ -31,8 +31,7 @@ namespace Thunder
     void TickTask::DoWork()
     {
         LOG("Execute tick calculation(data: %d) with thread: %lu", Data, __threadid());
-        GFrameNumberGameThread.fetch_add(1, std::memory_order_relaxed);
-        if (GFrameNumberGameThread >= 10)
+        if (GFrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) >= 9)
         {
             GIsRequestingExit = true;
         }
@@ -49,8 +48,6 @@ namespace Thunder
             GRenderThread->PushTask(testRenderThreadTask);
         }
 
-        //TaskGraph->WaitForCompletion();
-
         LOG("End GameThread Execute");
         GThunderEngineLock->cv.notify_all();
     }
@@ -59,21 +56,21 @@ namespace Thunder
     {
         TaskGraph->Reset(); //等待上一帧执行完
 
-        if (GFrameNumberGameThread - GFrameNumberRenderThread > 1)
+        if (GFrameNumberGameThread.load() - GFrameNumberRenderThread.load() > 1)
         {
             std::unique_lock<std::mutex> lock(GGameRenderLock->mtx);
-            GGameRenderLock->cv.wait(lock, []{ return GFrameNumberGameThread - GFrameNumberRenderThread <= 1; });
+            GGameRenderLock->cv.wait(lock, []{ return GFrameNumberGameThread.load() - GFrameNumberRenderThread.load() <= 1; });
         }
 
         // game thread
-        LOG("Execute game thread in frame: %d with thread: %lu", GFrameNumberGameThread.load(std::memory_order_relaxed), __threadid());
+        LOG("Execute game thread in frame: %d with thread: %lu", GFrameNumberGameThread.load(std::memory_order_acquire), __threadid());
 
         // physics
-        PhysicsTask* TaskPhysics = new PhysicsTask(GFrameNumberGameThread, "PhysicsTask");
+        PhysicsTask* TaskPhysics = new PhysicsTask(GFrameNumberGameThread.load(), "PhysicsTask");
         // cull
-        CullTask* TaskCull = new CullTask(GFrameNumberGameThread, "CullTask");
+        CullTask* TaskCull = new CullTask(GFrameNumberGameThread.load(), "CullTask");
         // tick
-        TickTask* TaskTick = new TickTask(GFrameNumberGameThread, "TickTask");
+        TickTask* TaskTick = new TickTask(GFrameNumberGameThread.load(), "TickTask");
 
         // Task Graph
         TaskGraph->PushTask(TaskPhysics);
@@ -81,12 +78,11 @@ namespace Thunder
         TaskGraph->PushTask(TaskTick, {TaskCull->UniqueId});
 
         TaskGraph->Submit();
-        //TaskGraph->WaitForCompletion();
     }
 
     void GameThread::Init()
     {
-        ThreadPoolBase* WorkerThreadPool = new ThreadPoolBase();
+        auto* WorkerThreadPool = new ThreadPoolBase();
         WorkerThreadPool->Create(8, 96 * 1024);
         TaskGraph = new TaskGraphProxy(WorkerThreadPool);
 
@@ -96,27 +92,27 @@ namespace Thunder
 
     void RenderingThread::RenderMain()
     {
-        if(GFrameNumberRenderThread - GFrameNumberRHIThread > 1)
+        if(GFrameNumberRenderThread.load() - GFrameNumberRHIThread.load() > 1)
         {
             std::unique_lock<std::mutex> lock(GRenderRHILock->mtx);
-            GRenderRHILock->cv.wait(lock, []{ return GFrameNumberRenderThread - GFrameNumberRHIThread <= 1; });
+            GRenderRHILock->cv.wait(lock, []{ return GFrameNumberRenderThread.load() - GFrameNumberRHIThread.load() <= 1; });
         }
         
-        LOG("Execute render thread in frame: %d with thread: %lu", GFrameNumberRenderThread.load(std::memory_order_relaxed), __threadid());
+        LOG("Execute render thread in frame: %d with thread: %lu", GFrameNumberRenderThread.load(std::memory_order_acquire), __threadid());
         
-        GFrameNumberRenderThread.fetch_add(1, std::memory_order_relaxed);
+        GFrameNumberRenderThread.fetch_add(1, std::memory_order_release);
         GGameRenderLock->cv.notify_all();
 
         // rhi thread
-        TTask<RHIThreadTask>* testRHIThreadTask = new TTask<RHIThreadTask>(0);
+        auto* testRHIThreadTask = new TTask<RHIThreadTask>(0);
         GRHIThread->PushTask(testRHIThreadTask);
     }
 
     void RHIThreadTask::RHIMain()
     {
-        LOG("Execute rhi thread in frame: %d with thread: %lu", GFrameNumberRHIThread.load(std::memory_order_relaxed), __threadid());
+        LOG("Execute rhi thread in frame: %d with thread: %lu", GFrameNumberRHIThread.load(std::memory_order_acquire), __threadid());
 
-        GFrameNumberRHIThread.fetch_add(1, std::memory_order_relaxed);
+        GFrameNumberRHIThread.fetch_add(1, std::memory_order_release);
         GRenderRHILock->cv.notify_all();
     }
 

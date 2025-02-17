@@ -13,7 +13,7 @@ namespace Thunder
 		TGTaskNode(const String& InDebugName = "")
 			: DebugName(InDebugName)
 		{
-			UniqueId = GTaskUniqueID.fetch_add(1);
+			UniqueId = GTaskUniqueID.fetch_add(1, std::memory_order_acq_rel);
 		}
 
 		NameHandle GetName() const
@@ -26,13 +26,6 @@ namespace Thunder
 		NameHandle DebugName;
 	};
 
-	enum class ETaskState : uint8
-	{
-		Wait = 0,
-		Issued = 1,
-		Completed = 2
-	};
-
     struct FTaskTable
     {
         FTaskTable(TGTaskNode* InTask)
@@ -40,9 +33,9 @@ namespace Thunder
         {}
         FTaskTable() = delete;
         TGTaskNode* Task;
-        std::vector<uint32> Preposition {};
-        std::vector<uint32> Postposition {};
-        ETaskState State = ETaskState::Wait;//评估风险
+        TArray<uint32> Predecessor {};
+        TArray<uint32> Successor {};
+    	std::atomic<uint32> PredecessorNum {0};
     };
 
 	class TaskGraphProxy
@@ -62,18 +55,14 @@ namespace Thunder
 
 		void Reset(); // 等待前序任务完成,重置TG
 
+	private:
+		
 		void WaitForCompletion() const; // 等待任务完成,且线程退出
-		
+	
 	private:
-		
-		std::list<TGTaskNode*> FindWork();
-
-		void PrintTaskGraph() const;
-
-	private:
-		class ThreadPoolBase* ThreadPool {};
-		std::vector<TGTaskNode*> TaskList {};
-		std::unordered_map<uint32, FTaskTable*> TaskDependencyMap {};
+		ThreadPoolBase* ThreadPool {};
+		TArray<TGTaskNode*> TaskList {};
+		THashMap<uint32, FTaskTable*> TaskDependencyMap {};
 
 		// cv
 		std::mutex mtx;

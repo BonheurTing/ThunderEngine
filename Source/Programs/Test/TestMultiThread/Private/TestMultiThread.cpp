@@ -315,7 +315,7 @@ void TestTaskGraph()
 		TaskGraph->Submit();
 	}
 	
-	TaskGraph->WaitForCompletion();
+	//TaskGraph->WaitForCompletion();
 }
 
 #pragma endregion
@@ -326,8 +326,8 @@ int main()
 	//TestWorkerThread(); // successful
 	//TestTFunction(); // failed
 	//TestTask(); // successful
-	//TestIThread(); // successful
-	//TestThreadPool(); // successful
+	TestIThread(); // successful
+	TestThreadPool(); // successful
 	TestTaskGraph(); // successful
 }
 

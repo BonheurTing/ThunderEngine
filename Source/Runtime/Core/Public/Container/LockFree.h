@@ -43,7 +43,7 @@ namespace Thunder
 
 		TLockFreeAllocOnceIndexedAllocator()
 		{
-			NextIndex.fetch_add(1, std::memory_order_relaxed);
+			NextIndex.fetch_add(1, std::memory_order_release);
 			for (uint32 Index = 0; Index < MaxBlocks; Index++)
 			{
 				Pages[Index] = nullptr;
@@ -52,7 +52,7 @@ namespace Thunder
 
 		uint32 Alloc(uint32 Count = 1)
 		{
-			const uint32 FirstItem = NextIndex.fetch_add(Count, std::memory_order_relaxed);
+			const uint32 FirstItem = NextIndex.fetch_add(Count, std::memory_order_acq_rel);
 			if (FirstItem + Count > MaxTotalItems)
 			{
 				TAssertf(false, "Consumed %d lock free links; there are no more.", MaxTotalItems);
@@ -71,7 +71,7 @@ namespace Thunder
 			}
 			uint32 BlockIndex = Index / ItemsPerPage;
 			uint32 SubIndex = Index % ItemsPerPage;
-			TAssert(Index < (uint32)NextIndex.load() && Index < MaxTotalItems && BlockIndex < MaxBlocks && Pages[BlockIndex]);
+			TAssert(Index < (uint32)NextIndex.load(std::memory_order_acquire) && Index < MaxTotalItems && BlockIndex < MaxBlocks && Pages[BlockIndex]);
 			return Pages[BlockIndex] + SubIndex;
 		}
 
@@ -80,7 +80,7 @@ namespace Thunder
 		{
 			uint32 BlockIndex = Index / ItemsPerPage;
 			uint32 SubIndex = Index % ItemsPerPage;
-			TAssert(Index && Index < (uint32)NextIndex.load() && Index < MaxTotalItems && BlockIndex < MaxBlocks);
+			TAssert(Index && Index < (uint32)NextIndex.load(std::memory_order_acquire) && Index < MaxTotalItems && BlockIndex < MaxBlocks);
 			if (!Pages[BlockIndex])
 			{
 				T* NewBlock = new (TMemory::Malloc(ItemsPerPage)) T{};

@@ -21,7 +21,7 @@ namespace Thunder
 			return DebugName;
 		}
 		
-		uint32 UniqueId;
+		mutable uint32 UniqueId;
 	private:
 		NameHandle DebugName;
 	};
@@ -49,7 +49,7 @@ namespace Thunder
 			WaitForCompletion();
 		}
 
-		void PushTask(TGTaskNode* Task, std::vector<uint32> PrepositionList = {});
+		void PushTask(TGTaskNode* Task, const TArray<uint32>& PrepositionList = {});
 
 		void Submit();
 

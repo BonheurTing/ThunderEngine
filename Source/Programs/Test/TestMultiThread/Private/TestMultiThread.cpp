@@ -253,7 +253,7 @@ void TestThreadPool()
 
 #pragma region TestTaskGraph
 
-class ExampleAsyncTask1 : public TGTaskNode
+class ExampleAsyncTask1 : public TaskGraphTask
 {
 public:
 
@@ -263,12 +263,13 @@ public:
 	}
 
 	ExampleAsyncTask1(int32 InExampleData, const String& InDebugName = "")
-		: TGTaskNode(InDebugName)
+		: TaskGraphTask(InDebugName)
 		, FrameData(InExampleData)
 	{
 	}
 
-	void DoWork()
+private:
+	void DoWorkInner() override
 	{
 		LOG("ExampleData Add 1: %d", FrameData + 1);
 	}
@@ -291,10 +292,10 @@ void TestTaskGraph()
 	
 	
 		TaskGraph->PushTask(TaskA);
-		TaskGraph->PushTask(TaskB, {TaskA->UniqueId});
-		TaskGraph->PushTask(TaskC, {TaskB->UniqueId});
+		TaskGraph->PushTask(TaskB, {TaskA});
+		TaskGraph->PushTask(TaskC, {TaskB});
 		TaskGraph->PushTask(TaskD);
-		TaskGraph->PushTask(TaskE, {TaskB->UniqueId, TaskD->UniqueId});
+		TaskGraph->PushTask(TaskE, {TaskB, TaskD});
 
 		TaskGraph->Submit();
 	}
@@ -310,8 +311,8 @@ void TestTaskGraph()
 		ExampleAsyncTask1* TaskC = new ExampleAsyncTask1(2025, "TaskC");
 
 		TaskGraph->PushTask(TaskA);
-		TaskGraph->PushTask(TaskB, {TaskA->UniqueId});
-		TaskGraph->PushTask(TaskC, {TaskB->UniqueId});
+		TaskGraph->PushTask(TaskB, {TaskA});
+		TaskGraph->PushTask(TaskC, {TaskB});
 		TaskGraph->Submit();
 	}
 	

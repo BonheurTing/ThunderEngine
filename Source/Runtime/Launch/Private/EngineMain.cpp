@@ -31,16 +31,15 @@ namespace Thunder
 
     void BusyWaiting(int32 i)
     {
-        return;
-        /*while(i-- > 0)
+        while(i-- > 0)
         {
-        }*/
+        }
     }
 
-    void TickTask::DoWork()
+    void TickTask::DoWorkInner()
     {
         LOG("Execute tick calculation(data: %d) with thread: %lu", Data, __threadid());
-        if (GFrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) >= 100000)
+        if (GFrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) >= 100)
         {
             GIsRequestingExit = true;
         }
@@ -90,8 +89,8 @@ namespace Thunder
 
         // Task Graph
         TaskGraph->PushTask(TaskPhysics);
-        TaskGraph->PushTask(TaskCull, {TaskPhysics->UniqueId});
-        TaskGraph->PushTask(TaskTick, {TaskCull->UniqueId});
+        TaskGraph->PushTask(TaskCull, {TaskPhysics});
+        TaskGraph->PushTask(TaskTick, {TaskCull});
 
         TaskGraph->Submit();
     }

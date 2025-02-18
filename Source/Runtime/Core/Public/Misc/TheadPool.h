@@ -70,24 +70,12 @@ namespace Thunder
 	protected:
 		LockFreeFIFOListBase<ITask, PLATFORM_CACHE_LINE_SIZE> QueuedWork {};
 		TArray<ThreadProxy*> QueuedThreads {};
-		TFunction<void(ITask*)> TaskCallBack {};
 	public:
 		ThreadPoolBase() = default;
 
 		~ThreadPoolBase()
 		{
 			Destroy();
-		}
-		void SetCallBack(TFunction<void(ITask*)>&& InFunc)
-		{
-			TaskCallBack = std::move(InFunc);
-		}
-		void OnCompleted(ITask* Task) const
-		{
-			if(TaskCallBack)
-			{
-				TaskCallBack(Task);
-			}
 		}
 		bool Create(uint32 InNumQueuedThreads, uint32 StackSize);
 		void Destroy(); //放弃执行任务，结束线程

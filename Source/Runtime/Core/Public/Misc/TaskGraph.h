@@ -4,37 +4,52 @@
 
 namespace Thunder
 {
-	inline std::atomic<uint32> GTaskUniqueID = 0;
+	struct TaskGraphNode;
 	class ThreadPoolBase;
 
-	class TGTaskNode : public ITask
+	class TaskGraphTask : public ITask
 	{
 	public:
-		TGTaskNode(const String& InDebugName = "")
-			: DebugName(InDebugName)
-		{
-			UniqueId = GTaskUniqueID.fetch_add(1, std::memory_order_acq_rel);
-		}
+		TaskGraphTask(const String& InDebugName = "")
+			: DebugName(InDebugName) {}
+
+		TaskGraphTask(TFunction<void(TaskGraphTask*)>&& InFunc, const String& InDebugName = "")
+			: CallBack(std::move(InFunc)), DebugName(InDebugName) {}
 
 		NameHandle GetName() const
 		{
 			return DebugName;
 		}
+
+		TaskGraphNode* GetOwner() const { return NodeOwner; }
+
+		void SetOwner(TaskGraphNode* InNode) { NodeOwner = InNode; }
+
+		void SetCallBack(TFunction<void(TaskGraphTask*)>&& InFunc) { CallBack = std::move(InFunc); }
+
+		virtual void DoWork() final
+		{
+			DoWorkInner();
+			CallBack(this);
+		}
 		
-		mutable uint32 UniqueId;
 	private:
+		virtual void DoWorkInner() = 0;
+
+		TaskGraphNode* NodeOwner {};
+		TFunction<void(TaskGraphTask*)> CallBack {};
 		NameHandle DebugName;
 	};
 
-    struct FTaskTable
+    struct TaskGraphNode
     {
-        FTaskTable(TGTaskNode* InTask)
+        TaskGraphNode(TaskGraphTask* InTask)
             : Task(InTask)
         {}
-        FTaskTable() = delete;
-        TGTaskNode* Task;
-        TArray<uint32> Predecessor {};
-        TArray<uint32> Successor {};
+        TaskGraphNode() = delete;
+        TaskGraphTask* Task {};
+        TArray<TaskGraphTask*> Predecessor {};
+        TArray<TaskGraphTask*> Successor {};
     	std::atomic<uint32> PredecessorNum {0};
     };
 
@@ -49,7 +64,7 @@ namespace Thunder
 			WaitForCompletion();
 		}
 
-		void PushTask(TGTaskNode* Task, const TArray<uint32>& PrepositionList = {});
+		void PushTask(TaskGraphTask* Task, const TArray<TaskGraphTask*>& PredecessorList = {});
 
 		void Submit();
 
@@ -61,8 +76,8 @@ namespace Thunder
 	
 	private:
 		ThreadPoolBase* ThreadPool {};
-		TArray<TGTaskNode*> TaskList {};
-		THashMap<uint32, FTaskTable*> TaskDependencyMap {};
+		TArray<TaskGraphNode*> TaskNodeList {};
+		//THashMap<uint32, TaskGraphNode*> NodeDependencyMap {};
 
 		// cv
 		std::mutex mtx;

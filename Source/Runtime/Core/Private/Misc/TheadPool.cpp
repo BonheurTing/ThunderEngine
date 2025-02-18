@@ -156,7 +156,6 @@ namespace Thunder
 					if(CurrentWork)
 					{
 						CurrentWork->DoWork();
-						ThreadPoolOwner->OnCompleted(CurrentWork);
 					}
 					else
 					{

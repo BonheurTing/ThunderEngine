@@ -14,7 +14,7 @@ namespace Thunder
 	extern LAUNCH_API bool GIsRequestingExit;
 	extern LAUNCH_API SimpleLock* GThunderEngineLock;
 
-	class PhysicsTask : public TGTaskNode //临时放在这
+	class PhysicsTask : public TaskGraphTask //临时放在这
 	{
 	public:
 		int32 Data;
@@ -23,18 +23,19 @@ namespace Thunder
 		}
 
 		PhysicsTask(int32 InPhysicsTaskData, const String& InDebugName = "")
-			: TGTaskNode(InDebugName)
+			: TaskGraphTask(InDebugName)
 			, Data(InPhysicsTaskData)
 		{
 		}
 
-		void DoWork() override
+	private:
+		void DoWorkInner() override
 		{
 			LOG("Execute physical calculation(data: %d) with thread: %lu", Data, __threadid());
 		}
 	};
 
-	class CullTask : public TGTaskNode //临时放在这
+	class CullTask : public TaskGraphTask //临时放在这
 	{
 	public:
 		int32 Data;
@@ -43,18 +44,19 @@ namespace Thunder
 		}
 
 		CullTask(int32 InCullTaskData, const String& InDebugName = "")
-			: TGTaskNode(InDebugName)
+			: TaskGraphTask(InDebugName)
 			, Data(InCullTaskData)
 		{
 		}
 
-		void DoWork() override
+	private:
+		void DoWorkInner() override
 		{
 			LOG("Execute clipping calculation(data: %d) with thread: %lu", Data, __threadid());
 		}
 	};
 
-	class TickTask : public TGTaskNode //临时放在这
+	class TickTask : public TaskGraphTask //临时放在这
 	{
 	public:
 		int32 Data;
@@ -63,12 +65,13 @@ namespace Thunder
 		}
 
 		TickTask(int32 InTickTaskData, const String& InDebugName = "")
-			: TGTaskNode(InDebugName)
+			: TaskGraphTask(InDebugName)
 			, Data(InTickTaskData)
 		{
 		}
 
-		void DoWork() override;
+	private:
+		void DoWorkInner() override;
 		
 	};
 	

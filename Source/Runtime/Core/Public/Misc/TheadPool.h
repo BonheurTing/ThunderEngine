@@ -90,6 +90,7 @@ namespace Thunder
 		void AddQueuedWork(ITask* InQueuedWork);
 		ITask* GetNextQueuedWork();
 		void WaitForCompletion(); //等待所有任务完成, 结束线程, debug用
+		void ParallelFor(TFunction<void(uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize);
 		void ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize);
 	};
 
@@ -103,10 +104,10 @@ namespace Thunder
 	
 	struct BoundingBox
 	{
-		float Top;
-		float Bottom;
-		float Left;
-		float Right;
+		float Top = 0.f;
+		float Bottom = 0.f;
+		float Left = 0.f;
+		float Right = 0.f;
 	};
 
 	inline bool CullObject(BoundingBox ObjectBounding)

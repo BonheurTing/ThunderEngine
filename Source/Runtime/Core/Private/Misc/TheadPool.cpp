@@ -108,13 +108,44 @@ namespace Thunder
 	}
 
 	// todo TFunction还是把类型写死了，最好能任意参数类型
-	void ThreadPoolBase::ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize)
+	void ThreadPoolBase::ParallelFor(TFunction<void(uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize) //接左值版本
 	{
 		class TaskBundle : public ITask
 		{
 		public:
-			TaskBundle(const TFunction<void(uint32, uint32)> & InFunction, uint32 InStart, uint32 InSize)
-			: Function(std::move(InFunction))
+			TaskBundle(TFunction<void(uint32, uint32)>* InFunction, uint32 InStart, uint32 InSize) //接受指针并存下来
+			: Function(InFunction)
+			, Head(InStart)
+			, Size(InSize)
+			{}
+
+			void DoWork() override
+			{
+				LOG("Execute Parallel Task Bundle");
+				(*Function)(Head, Size);
+			}
+		private:
+
+			TFunction<void(uint32, uint32)>* Function; //存TFunction指针，不用构造，只需8字节
+			uint32 Head;
+			uint32 Size;
+		};
+
+		for (uint32 i = 0; i < NumTask; i += BundleSize)
+		{
+			const auto BundleTask = new TaskBundle(&Body, i, BundleSize); //TaskBundle构造需要TFunction指针，因此传入地址；对于为什么ParallelFor用&接完这里还要&，想象接的是String& Body，TaskBundle如果不加&，就是把String类型给String*类型，无法匹配构造函数
+			AddQueuedWork(BundleTask);
+		}
+	}
+	
+	void ThreadPoolBase::ParallelFor(TFunction<void(uint32, uint32)>&& Body, uint32 NumTask, uint32 BundleSize) //接右值版本，入lambda表达式作为立即数，万能引用
+	{
+		class TaskBundle : public ITask
+		{
+		public:
+			TaskBundle(const TFunction<void(uint32, uint32)>& InFunction, uint32 InStart, uint32 InSize) //接引用
+			: Function(InFunction) //变量不是指针，免不了一次构造，注意TFunction的大小，是func一个指针大小(8字节)+capture data的大小；
+			//对于TestMultiThread.cpp的例子，capture data是一个lambda对象，其中capture了两个vector的引用，即两个指针，大小是16字节；那么一共24字节，对于capture数据较小的情况可以用这个方式
 			, Head(InStart)
 			, Size(InSize)
 			{}
@@ -126,14 +157,14 @@ namespace Thunder
 			}
 		private:
 
-			TFunction<void(uint32, uint32)> Function;
+			TFunction<void(uint32, uint32)> Function; //存Function值而不是指针，免不了构造
 			uint32 Head;
 			uint32 Size;
 		};
 
-		for (uint32 i=0; i < NumTask;i+=BundleSize)
+		for (uint32 i = 0; i < NumTask; i += BundleSize)
 		{
-			const auto BundleTask = new TaskBundle(std::move(Body), i, BundleSize);
+			const auto BundleTask = new TaskBundle(Body, i, BundleSize); //右值，此处是消亡值，直接传给构造函数
 			AddQueuedWork(BundleTask);
 		}
 	}

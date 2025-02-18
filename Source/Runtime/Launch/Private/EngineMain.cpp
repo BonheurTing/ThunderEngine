@@ -36,10 +36,26 @@ namespace Thunder
         }
     }
 
+    void PhysicsTask::DoWorkInner()
+    {
+        ZoneScoped;
+        BusyWaiting(100); //debug tracy
+        LOG("Execute physical calculation(data: %d) with thread: %lu", Data, __threadid());
+    }
+
+    void CullTask::DoWorkInner()
+    {
+        ZoneScoped;
+        BusyWaiting(100); //debug tracy
+        LOG("Execute clipping calculation(data: %d) with thread: %lu", Data, __threadid());
+    }
+
     void TickTask::DoWorkInner()
     {
+        ZoneScoped;
+        BusyWaiting(100); //debug tracy
         LOG("Execute tick calculation(data: %d) with thread: %lu", Data, __threadid());
-        if (GFrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) >= 100)
+        if (GFrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) >= 100000)
         {
             GIsRequestingExit = true;
         }
@@ -113,7 +129,7 @@ namespace Thunder
             GRenderRHILock->cv.wait(lock, []{ return GFrameNumberRenderThread.load() - GFrameNumberRHIThread.load() <= 1; });
         }
         ZoneScoped;
-        BusyWaiting(1000); //debug tracy
+        BusyWaiting(4000); //debug tracy
         
         LOG("Execute render thread in frame: %d with thread: %lu", GFrameNumberRenderThread.load(std::memory_order_acquire), __threadid());
         
@@ -128,7 +144,7 @@ namespace Thunder
     void RHIThreadTask::RHIMain()
     {
         ZoneScoped;
-        BusyWaiting(1000); //debug tracy
+        BusyWaiting(2000); //debug tracy
 
         LOG("Execute rhi thread in frame: %d with thread: %lu", GFrameNumberRHIThread.load(std::memory_order_acquire), __threadid());
 

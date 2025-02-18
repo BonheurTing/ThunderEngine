@@ -29,10 +29,7 @@ namespace Thunder
 		}
 
 	private:
-		void DoWorkInner() override
-		{
-			LOG("Execute physical calculation(data: %d) with thread: %lu", Data, __threadid());
-		}
+		void DoWorkInner() override;
 	};
 
 	class CullTask : public TaskGraphTask //临时放在这
@@ -50,10 +47,7 @@ namespace Thunder
 		}
 
 	private:
-		void DoWorkInner() override
-		{
-			LOG("Execute clipping calculation(data: %d) with thread: %lu", Data, __threadid());
-		}
+		void DoWorkInner() override;
 	};
 
 	class TickTask : public TaskGraphTask //临时放在这

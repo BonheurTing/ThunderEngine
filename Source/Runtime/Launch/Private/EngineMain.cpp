@@ -12,17 +12,20 @@
 
 namespace Thunder
 {
-    ThreadProxy* GGameThread;
-    ThreadProxy* GRenderThread;
-    ThreadProxy* GRHIThread;
-    std::atomic<uint32> GFrameNumberGameThread = 0;
-    std::atomic<uint32> GFrameNumberRenderThread = 0;
-    std::atomic<uint32> GFrameNumberRHIThread = 0;
-    SimpleLock* GGameRenderLock = nullptr;
-    SimpleLock* GRenderRHILock = nullptr;
+    ThreadProxy* GGameThread {};
+    ThreadProxy* GRenderThread {};
+    ThreadProxy* GRHIThread {};
+    std::atomic<uint32> GFrameNumberGameThread {0};
+    std::atomic<uint32> GFrameNumberRenderThread {0};
+    std::atomic<uint32> GFrameNumberRHIThread {0};
+    SimpleLock* GGameRenderLock {};
+    SimpleLock* GRenderRHILock {};
     
-    bool GIsRequestingExit = false;
-    SimpleLock* GThunderEngineLock = nullptr;
+    bool GIsRequestingExit {false};
+    SimpleLock* GThunderEngineLock {};
+
+    ThreadPoolBase* SyncWorkers {};
+    ThreadPoolBase* AsyncWorkers {};
 
     bool IsEngineExitRequested()
     {

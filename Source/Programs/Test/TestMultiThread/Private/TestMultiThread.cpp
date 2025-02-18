@@ -2,6 +2,7 @@
 #include "CommonUtilities.h"
 #include "HAL/Thread.h"
 #include "Memory/MallocMinmalloc.h"
+#include "Misc/ConcurrentBase.h"
 #include "Misc/TheadPool.h"
 #include "Module/ModuleManager.h"
 #include "Misc/Task.h"
@@ -210,6 +211,28 @@ public:
 	}
 };
 
+struct SimpleLock
+{
+	std::mutex mtx;
+	std::condition_variable cv;
+};
+
+class TaskCounter : public IOnCompleted
+{
+public:
+	TaskCounter(SimpleLock* inLock)
+		: Lock(inLock)
+	{
+	}
+	void OnCompleted() override
+	{
+		LOG("TaskCounter OnCompleted");
+		Lock->cv.notify_all();
+	}
+private:
+	SimpleLock* Lock;
+};
+
 void TestThreadPool()
 {
 
@@ -236,16 +259,25 @@ void TestThreadPool()
 			
 	std::vector<BoundingBox> ObjectsBounding(1024);
 	std::vector<bool> CullResult(1024);
-	
-	WorkerThreadPool->ParallelFor([&CullResult, &ObjectsBounding](uint32 bundleBegin, uint32 bundleSize)
+
+	const auto Lock = new SimpleLock();
+	auto* Dispatcher = new TaskCounter(Lock);
+	Dispatcher->Promise(1024);
+	WorkerThreadPool->ParallelFor([&CullResult, &ObjectsBounding, Dispatcher](uint32 bundleBegin, uint32 bundleSize)
 	{
 		for (int i = bundleBegin; i < bundleBegin + bundleSize; i++)
 		{
 			CullResult[i] = CullObject(ObjectsBounding[i]);
 			LOG("Execute CullResult[%d]", i);
+			Dispatcher->Notify();
 		}
 	}, 1024, 256);
 
+	{
+		std::unique_lock<std::mutex> lock(Lock->mtx);
+		Lock->cv.wait(lock, []{return true;});
+	}
+	
 	WorkerThreadPool->WaitForCompletion();
 }
 
@@ -327,9 +359,9 @@ int main()
 	//TestWorkerThread(); // successful
 	//TestTFunction(); // failed
 	//TestTask(); // successful
-	TestIThread(); // successful
+	//TestIThread(); // successful
 	TestThreadPool(); // successful
-	TestTaskGraph(); // successful
+	//TestTaskGraph(); // successful
 }
 
 

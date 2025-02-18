@@ -7,6 +7,18 @@
 
 namespace Thunder
 {
+	struct FPlatformMisc
+	{
+		FORCEINLINE static void MemoryBarrier() 
+		{
+#if PLATFORM_CPU_X86_FAMILY
+			_mm_sfence();
+#elif PLATFORM_CPU_ARM_FAMILY
+			__dmb(_ARM64_BARRIER_SY);
+#endif
+		}
+	};
+
 	struct FPlatformProcess
 	{
 		static CORE_API class IEvent* CreateSyncEvent(bool bIsManualReset = false);
@@ -20,6 +32,11 @@ namespace Thunder
 			return !DEFAULT_NO_THREADING;
 		}
 
+		static int32 NumberOfCores();
+
+		static int32 NumberOfLogicalProcessors();
+
+
 		static CORE_API class IThread* CreateRunnableThread();
 		
 		/**
@@ -32,18 +49,4 @@ namespace Thunder
 		
 	};
 
-	// temple
-	struct FPlatformMisc
-	{
-		FORCEINLINE static void MemoryBarrier() 
-		{
-#if PLATFORM_CPU_X86_FAMILY
-			_mm_sfence();
-#elif PLATFORM_CPU_ARM_FAMILY
-			__dmb(_ARM64_BARRIER_SY);
-#endif
-		}
-
-		static int32 NumberOfCores();
-	};
 }

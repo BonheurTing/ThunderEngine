@@ -45,7 +45,50 @@ namespace Thunder
             TLazySingleton<TEventPool<EEventMode::AutoReset>>::Get().ReturnToPool(Event);
         }
     }
-    
+
+    int32 FPlatformProcess::NumberOfCores()
+    {
+        SYSTEM_INFO sysInfo;
+        GetSystemInfo(&sysInfo);
+        return static_cast<int32>(sysInfo.dwNumberOfProcessors);
+    }
+
+    DWORD CountSetBits(ULONG_PTR bitMask) {
+        DWORD count = 0;
+        while (bitMask) {
+            count += bitMask & 1;
+            bitMask >>= 1;
+        }
+        return count;
+    }
+
+    int32 FPlatformProcess::NumberOfLogicalProcessors()
+    {
+        DWORD logicalProcessorCount = 0;
+        DWORD physicalCoreCount = 0;
+
+        // 获取缓冲区大小
+        DWORD bufferSize = 0;
+        GetLogicalProcessorInformation(nullptr, &bufferSize);
+
+        // 分配缓冲区
+        std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer(bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+        if (GetLogicalProcessorInformation(buffer.data(), &bufferSize)) {
+            for (const auto& info : buffer) {
+                if (info.Relationship == RelationProcessorCore) {
+                    // 每个物理核可能支持多个逻辑处理器（超线程）
+                    physicalCoreCount++;
+                    logicalProcessorCount += CountSetBits(info.ProcessorMask);
+                }
+            }
+        } else {
+            std::cerr << "获取处理器信息失败！" << std::endl;
+            return 1;
+        }
+
+        return static_cast<int32>(logicalProcessorCount);
+    }
+
     IThread* FPlatformProcess::CreateRunnableThread()
     {
         return new ThreadWindows(); //FWindowsPlatformProcess::
@@ -78,15 +121,4 @@ namespace Thunder
             ::Sleep(Milliseconds);
         }
     }
-
-
-    int32 FPlatformMisc::NumberOfCores()
-    {
-        int32 CoreCount = 0;
-        //QueryCpuInformation(GroupDesc, NumaNodeCount, NumCores, LogicalProcessorCount);
-        
-        return CoreCount;
-    }
-
-    
 }

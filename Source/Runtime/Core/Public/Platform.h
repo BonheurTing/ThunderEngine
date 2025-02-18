@@ -1,5 +1,8 @@
 #pragma once
 #include <intrin0.inl.h>
+#ifndef _TRELEASE
+#define _TRELEASE 0
+#endif
 
 namespace Thunder
 {

@@ -70,14 +70,17 @@ namespace Thunder
 	protected:
 		LockFreeFIFOListBase<ITask, PLATFORM_CACHE_LINE_SIZE> QueuedWork {};
 		TArray<ThreadProxy*> QueuedThreads {};
+
 	public:
-		ThreadPoolBase() = default;
+		ThreadPoolBase(uint32 InNumQueuedThreads, uint32 StackSize = 0)
+		{
+			Create(InNumQueuedThreads, StackSize);
+		}
 
 		~ThreadPoolBase()
 		{
 			Destroy();
 		}
-		bool Create(uint32 InNumQueuedThreads, uint32 StackSize);
 		void Destroy(); //放弃执行任务，结束线程
 		_NODISCARD_ int32 GetNumThreads() const
 		{
@@ -92,6 +95,9 @@ namespace Thunder
 		void WaitForCompletion(); //等待所有任务完成, 结束线程, debug用
 		void ParallelFor(TFunction<void(uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize);
 		void ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize);
+
+	private:
+		bool Create(uint32 InNumQueuedThreads, uint32 StackSize);
 	};
 
 

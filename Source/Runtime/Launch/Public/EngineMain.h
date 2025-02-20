@@ -13,6 +13,8 @@ namespace Thunder
 
 	extern LAUNCH_API bool GIsRequestingExit;
 	extern LAUNCH_API SimpleLock* GThunderEngineLock;
+	extern LAUNCH_API ThreadPoolBase* GSyncWorkers;
+	extern LAUNCH_API ThreadPoolBase* GAsyncWorkers;
 
 	class PhysicsTask : public TaskGraphTask //临时放在这
 	{
@@ -74,8 +76,7 @@ namespace Thunder
 	public:
 		friend class TTask<GameThread>;
 
-		GameThread(int32 InExampleData)
-		 : FrameData(InExampleData)
+		GameThread()
 		{
 			Init();
 		}
@@ -85,21 +86,25 @@ namespace Thunder
 			EngineLoop();
 		}
 	private:
-		void EngineLoop();
-		void GameMain();
 		void Init();
+		void EngineLoop();
+		void AsyncLoading();
+		void GameMain();
+		
 	private:
-		int32 FrameData;
-		TaskGraphProxy* TaskGraph;
+		TaskGraphProxy* TaskGraph {};
+
+		int ModelData[1024] { 0 };
+		bool ModelLoaded[1024] { false };
 	};
 
-	class RenderingThread //临时放在这
+	class RenderingThread //临时放在这 后续移到RenderCore
 	{
 	public:
 		friend class TTask<RenderingThread>;
 
 		int32 FrameData;
-		RenderingThread(): FrameData(0)
+		RenderingThread() : FrameData(0)
 		{
 		}
 
@@ -114,6 +119,7 @@ namespace Thunder
 		}
 	private:
 		void RenderMain();
+		void SimulatingAddingMeshBatch();
 	};
 
 	class RHIThreadTask //临时放在这
@@ -122,7 +128,7 @@ namespace Thunder
 		friend class TTask<RHIThreadTask>;
 
 		int32 FrameData;
-		RHIThreadTask(): FrameData(0)
+		RHIThreadTask() : FrameData(0)
 		{
 		}
 
@@ -137,6 +143,7 @@ namespace Thunder
 		}
 	private:
 		void RHIMain();
+		void DrawCall() {}
 	};
 	
 	class LAUNCH_API EngineMain

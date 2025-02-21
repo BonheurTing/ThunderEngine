@@ -88,7 +88,6 @@ namespace Thunder
 	private:
 		void Init();
 		void EngineLoop();
-		void AsyncLoading();
 		void GameMain();
 		
 	private:

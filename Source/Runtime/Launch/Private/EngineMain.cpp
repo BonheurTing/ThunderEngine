@@ -87,19 +87,32 @@ namespace Thunder
 
     void GameThread::EngineLoop()
     {
-        AsyncLoading();
-        
         while (!IsEngineExitRequested())
         {
             FrameMark;
 
-            // 每帧打印加载情况
-            int LoadingCount = 0;
-            for (const bool i : ModelLoaded)
+            uint32 LoadingSignal = GFrameNumberGameThread.load(std::memory_order_acquire) % 400;
+            if (LoadingSignal == 0)
             {
-                if(!i) LoadingCount++;
+                uint32 LoadingIndex = GFrameNumberGameThread.load(std::memory_order_acquire) / 400;
+                GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 ModelIndex, uint32 dummy)
+                {
+                        ZoneScopedN("AsyncLoading");
+                        BusyWaiting(100000);
+                        ModelLoaded[LoadingIndex * 8 + ModelIndex] = true;
+                        ModelData[LoadingIndex * 8 + ModelIndex] = static_cast<int>(ModelIndex) * 100;
+                        // LOG("Model %d is loaded", i);
+                }, 8, 1);
             }
-            LOG("There are %d models left to load", LoadingCount);
+
+            // 每帧打印加载情况
+            for (int i = 0; i < 1024; i++)
+            {
+                if (ModelLoaded[i])
+                {
+                    LOG("Model %d is loaded with data: %d", i, ModelData[i]);
+                }
+            }
 
             GameMain();
 
@@ -110,20 +123,6 @@ namespace Thunder
 
         LOG("End GameThread Execute");
         GThunderEngineLock->cv.notify_all();
-    }
-
-    void GameThread::AsyncLoading()
-    {
-        GAsyncWorkers->ParallelFor([this](uint32 bundleBegin, uint32 bundleSize)
-        {
-            for (uint32 i = bundleBegin; i < bundleBegin + bundleSize; i++)
-            {
-                ZoneScopedN("AsyncLoading");
-                ModelLoaded[i] = true;
-                ModelData[i] = static_cast<int>(i) * 100;
-                // LOG("Model %d is loaded", i);
-            }
-        }, 1024, 128);
     }
 
     void GameThread::GameMain()

@@ -13,40 +13,42 @@ namespace Thunder
 		TaskGraphTask(const String& InDebugName = "")
 			: DebugName(InDebugName) {}
 
-		TaskGraphTask(TFunction<void(TaskGraphTask*)>&& InFunc, const String& InDebugName = "")
-			: CallBack(std::move(InFunc)), DebugName(InDebugName) {}
-
-		NameHandle GetName() const
+		_NODISCARD_ NameHandle GetName() const
 		{
 			return DebugName;
 		}
 
-		TaskGraphNode* GetOwner() const { return NodeOwner; }
+		_NODISCARD_ TaskGraphNode* GetOwner() const { return NodeOwner; }
 
 		void SetOwner(TaskGraphNode* InNode) { NodeOwner = InNode; }
-
-		void SetCallBack(TFunction<void(TaskGraphTask*)>&& InFunc) { CallBack = std::move(InFunc); }
 
 		virtual void DoWork() final
 		{
 			DoWorkInner();
-			CallBack(this);
+			OnCompleted(this);
 		}
 		
 	private:
 		virtual void DoWorkInner() = 0;
+		static void OnCompleted(const TaskGraphTask* CompletedTask);
 
 		TaskGraphNode* NodeOwner {};
-		TFunction<void(TaskGraphTask*)> CallBack {};
 		NameHandle DebugName;
 	};
 
     struct TaskGraphNode
     {
-        TaskGraphNode(TaskGraphTask* InTask)
-            : Task(InTask)
+        TaskGraphNode(class TaskGraphProxy* InOwner, TaskGraphTask* InTask)
+            : TaskGraphOwner(InOwner), Task(InTask)
         {}
+
+    	~TaskGraphNode()
+        {
+        	TMemory::Free(Task);
+        }
+
         TaskGraphNode() = delete;
+    	TaskGraphProxy* TaskGraphOwner {};
         TaskGraphTask* Task {};
         TArray<TaskGraphTask*> Predecessor {};
         TArray<TaskGraphTask*> Successor {};
@@ -70,6 +72,10 @@ namespace Thunder
 
 		void Reset(); // 等待前序任务完成,重置TG
 
+		void TriggerNextWork(ITask* Task) const;
+
+		void TryNotify();
+
 	private:
 		
 		void WaitForCompletion() const; // 等待任务完成,且线程退出
@@ -77,7 +83,6 @@ namespace Thunder
 	private:
 		ThreadPoolBase* ThreadPool {};
 		TArray<TaskGraphNode*> TaskNodeList {};
-		//THashMap<uint32, TaskGraphNode*> NodeDependencyMap {};
 
 		// cv
 		std::mutex mtx;
@@ -85,7 +90,4 @@ namespace Thunder
 		std::atomic<uint32> TaskCount = 0;
 	};
 
-
-
-    
 }

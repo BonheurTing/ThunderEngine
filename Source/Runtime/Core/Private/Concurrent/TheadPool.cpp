@@ -1,11 +1,11 @@
 
 #pragma optimize("", off)
-#include "Misc/TheadPool.h"
+#include "Concurrent/TheadPool.h"
 #include <future>
-#include "Misc/Task.h"
+#include "Concurrent/Task.h"
 #include "Container.h"
 #include "Misc/LazySingleton.h"
-#include "Misc/Lock.h"
+#include "Concurrent/Lock.h"
 
 namespace Thunder
 {
@@ -19,10 +19,6 @@ namespace Thunder
 			return Priority < Other.Priority;
 		}
 	};
-
-
-	
-
 
 	bool ThreadPoolBase::Create(uint32 InNumQueuedThreads, uint32 StackSize)
 	{

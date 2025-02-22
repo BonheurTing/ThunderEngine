@@ -2,11 +2,11 @@
 #include "CommonUtilities.h"
 #include "HAL/Thread.h"
 #include "Memory/MallocMinmalloc.h"
-#include "Misc/ConcurrentBase.h"
-#include "Misc/TheadPool.h"
+#include "Concurrent/ConcurrentBase.h"
+#include "Concurrent/TheadPool.h"
 #include "Module/ModuleManager.h"
-#include "Misc/Task.h"
-#include "Misc/TaskGraph.h"
+#include "Concurrent/Task.h"
+#include "Concurrent/TaskGraph.h"
 #include "Templates/FunctionMy.h"
 
 using namespace Thunder;
@@ -17,6 +17,33 @@ std::queue<std::string> taskQueue; // 任务队列
 std::mutex mtx;                    // 互斥锁，保护任务队列
 std::condition_variable cv;        // 条件变量，用于线程同步
 bool stop = false;                 // 标志位，用于停止子线程
+
+void TestLock()
+{
+	SpinLock GTestSpintLock;
+	SharedLock GTestSharedLock;
+	RecursiveLock GTestRecursiveLock;
+	{
+		auto guard = GTestSpintLock.Guard();
+		// Do something
+	}
+	{
+		TLockGuard<SpinLock> guard(GTestSpintLock);
+		// Do something
+	}
+	{
+		auto guard = GTestSharedLock.Read();
+		// ...
+	}
+	{
+		auto guard = GTestSharedLock.Write();
+		// ...
+	}
+	{
+		auto guard = GTestRecursiveLock.Guard();
+		// ...
+	}
+}
 
 // 子线程函数
 void WorkerThread() {
@@ -123,6 +150,38 @@ void TestTFunction()
 
 #pragma region TestTask
 
+// 存储TFunction的任务，需要能接任意类型的TFunction，需要存储TFunction的参数类型，如用指针，或者模板template<typename T1, T2...>, 当前写法只能存储TFunction<void()>
+class FTask : public ITask
+{
+public:
+	FTask(const TFunction<void()> InFunction)
+		: Function(InFunction)
+	{}
+
+	void DoWork() override { Function(); }
+private:
+
+	TFunction<void()> Function;
+};
+
+// 直接继承ITask接口的类型
+class ExampleInheritedTask : public ITask
+{
+public:
+	ExampleInheritedTask(int InData)
+		: Data(InData)
+	{
+	}
+
+	void DoWork() override
+	{
+		LOG("Execute ExampleInheritedTask(Data: %d) with thread: %lu", Data, __threadid());
+	}
+	void Abandon() override {}
+private:
+	int Data;
+};
+
 class ExampleTask
 {
 public:
@@ -220,17 +279,17 @@ struct SimpleLock
 class TaskCounter : public IOnCompleted
 {
 public:
-	TaskCounter(SimpleLock* inLock)
-		: Lock(inLock)
+	TaskCounter(IEvent* inEvent)
+			: Event(inEvent)
 	{
 	}
 	void OnCompleted() override
 	{
 		LOG("TaskCounter OnCompleted");
-		Lock->cv.notify_all();
+		Event->Trigger();
 	}
 private:
-	SimpleLock* Lock;
+	IEvent* Event{};
 };
 
 void TestThreadPool()
@@ -259,8 +318,8 @@ void TestThreadPool()
 	std::vector<BoundingBox> ObjectsBounding(1024);
 	std::vector<bool> CullResult(1024);
 
-	const auto Lock = new SimpleLock();
-	auto* Dispatcher = new TaskCounter(Lock);
+	const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+	auto* Dispatcher = new TaskCounter(DoWorkEvent);
 	Dispatcher->Promise(1024);
 	WorkerThreadPool->ParallelFor([&CullResult, &ObjectsBounding, Dispatcher](uint32 bundleBegin, uint32 bundleSize)
 	{
@@ -272,12 +331,7 @@ void TestThreadPool()
 		}
 	}, 1024, 256);
 
-	{
-		std::unique_lock<std::mutex> lock(Lock->mtx);
-		Lock->cv.wait(lock, []{return false;}); //会锁住，先不管
-	}
-	
-	//WorkerThreadPool->WaitForCompletion();
+	DoWorkEvent->Wait();
 }
 
 #pragma endregion
@@ -354,6 +408,7 @@ void TestTaskGraph()
 int main()
 {
 	GMalloc = new TMallocMinmalloc();
+	TestLock();
 	//TestWorkerThread(); // successful
 	//TestTFunction(); // failed
 	//TestTask(); // successful

@@ -121,4 +121,19 @@ namespace Thunder
             ::Sleep(Milliseconds);
         }
     }
+
+    void FPlatformProcess::BusyWaiting(int32 us)
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        volatile int x = 0; // 使用 volatile 防止优化
+        while (true) {
+            auto now = std::chrono::high_resolution_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - start).count();
+            if (elapsed >= us) {
+                break;
+            }
+            ++x; // 忙等待
+            FPlatformProcess::CoreYield();
+        }
+    }
 }

@@ -6,7 +6,6 @@
 
 namespace Thunder
 {
-	class IMalloc;
 	
 	class CORE_API CoreModule : public IModule
 	{
@@ -18,7 +17,7 @@ namespace Thunder
 		void ShutDown() override;
 
 	private:
-		IMalloc* MemoryAllocator;
+		class IMalloc* MemoryAllocator;
 		TRefCountPtr<FileManager> FileManagerInstance;
 		TRefCountPtr<ConfigManager> ConfigManagerInstance;
 	};

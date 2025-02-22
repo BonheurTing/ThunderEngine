@@ -7,17 +7,6 @@
 
 namespace Thunder
 {
-	struct FPlatformMisc
-	{
-		FORCEINLINE static void MemoryBarrier() 
-		{
-#if PLATFORM_CPU_X86_FAMILY
-			_mm_sfence();
-#elif PLATFORM_CPU_ARM_FAMILY
-			__dmb(_ARM64_BARRIER_SY);
-#endif
-		}
-	};
 
 	struct FPlatformProcess
 	{
@@ -46,6 +35,17 @@ namespace Thunder
 		static CORE_API void CoreYield();
 
 		static CORE_API void Sleep( float Seconds );
+
+		static CORE_API void BusyWaiting(int32 us);
+
+		FORCEINLINE static void MemoryBarrier() 
+		{
+#if PLATFORM_CPU_X86_FAMILY
+			_mm_sfence();
+#elif PLATFORM_CPU_ARM_FAMILY
+			__dmb(_ARM64_BARRIER_SY);
+#endif
+		}
 		
 	};
 

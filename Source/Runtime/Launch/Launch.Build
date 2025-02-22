@@ -6,7 +6,3 @@ set(PublicDependencyModuleList
     D3D11RHI
 	D3D12RHI
 )
-
-set(PublicThirdPartyIncludeList
-    ThirdParty/TracyClient
-)

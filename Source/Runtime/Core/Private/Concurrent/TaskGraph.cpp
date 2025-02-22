@@ -1,39 +1,47 @@
 #pragma optimize("", off)
-#include "Misc/TaskGraph.h"
-
-#include <ranges>
-
-#include "Misc/TheadPool.h"
+#include "Concurrent/TaskGraph.h"
+#include "Concurrent/TheadPool.h"
 
 namespace Thunder
 {
+    void TaskGraphTask::OnCompleted(const TaskGraphTask* CompletedTask)
+    {
+        if (const auto CompletedNode = CompletedTask->GetOwner())
+        {
+            for (const auto SuccessorTask : CompletedNode->Successor)
+            {
+                if (const auto SucNode = SuccessorTask->GetOwner())
+                {
+                    if(SucNode->PredecessorNum.fetch_sub(1, std::memory_order_acq_rel) == 1)
+                    {
+                        SucNode->TaskGraphOwner->TriggerNextWork(SuccessorTask);
+                    }
+                }
+            }
+
+            CompletedNode->TaskGraphOwner->TryNotify();
+        }
+    }
+
+    void TaskGraphProxy::TriggerNextWork(ITask* Task) const
+    {
+        ThreadPool->AddQueuedWork(Task);
+    }
+
+    void TaskGraphProxy::TryNotify()
+    {
+        if (TaskCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+        {
+            cv.notify_all();
+        }
+    }
+
     void TaskGraphProxy::PushTask(TaskGraphTask* Task, const TArray<TaskGraphTask*>& PredecessorList)
     {
-        const auto NewNode = new TaskGraphNode(Task);
+        const auto NewNode = new (TMemory::Malloc<TaskGraphNode>()) TaskGraphNode(this, Task);
         NewNode->Predecessor = PredecessorList;
         NewNode->PredecessorNum.store(static_cast<uint32>(PredecessorList.size()), std::memory_order_release);
         Task->SetOwner(NewNode);
-        Task->SetCallBack([&](TaskGraphTask* CompletedTask)
-        {
-            if (const auto CompletedNode = CompletedTask->GetOwner())
-            {
-                for (const auto SuccessorTask : CompletedNode->Successor)
-                {
-                    if (const auto SucNode = SuccessorTask->GetOwner())
-                    {
-                        if(SucNode->PredecessorNum.fetch_sub(1, std::memory_order_acq_rel) == 1)
-                        {
-                            ThreadPool->AddQueuedWork(SuccessorTask);
-                        }
-                    }
-                }
-
-                if (TaskCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
-                {
-                    cv.notify_all();
-                }
-            }
-        });
 
         for (const auto PredecessorTask : PredecessorList)
         {
@@ -68,10 +76,7 @@ namespace Thunder
         for (auto Node : TaskNodeList)
         {
             TAssert(Node->PredecessorNum.load(std::memory_order_acquire) == 0);
-            delete Node->Task;
-            Node->Task = nullptr;
-            delete Node;
-            Node = nullptr;
+            TMemory::Free(Node);
         }
         TaskNodeList.clear();
     }

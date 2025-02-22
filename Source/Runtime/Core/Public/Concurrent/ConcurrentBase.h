@@ -31,4 +31,16 @@ namespace Thunder
 	private:
 		std::atomic<int> Counter{ 0 };
 	};
+
+	class TaskDispatcher : public IOnCompleted
+	{
+	public:
+		TaskDispatcher(class IEvent* inEvent)
+			: Event(inEvent) {}
+
+		void OnCompleted() override;
+
+	private:
+		IEvent* Event{};
+	};
 }

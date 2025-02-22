@@ -4,6 +4,7 @@ set(LinkMode SHARED)
 set(PublicThirdPartyIncludeList
     ThirdParty/Mimalloc/include
     ThirdParty/rapidjson/include
+    ThirdParty/TracyClient
 )
 
 set(PrivateThirdPartyIncludeList

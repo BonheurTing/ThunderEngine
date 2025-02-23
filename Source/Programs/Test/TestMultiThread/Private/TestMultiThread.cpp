@@ -7,6 +7,7 @@
 #include "Module/ModuleManager.h"
 #include "Concurrent/Task.h"
 #include "Concurrent/TaskGraph.h"
+#include "Concurrent/TaskScheduler.h"
 #include "Templates/FunctionMy.h"
 
 using namespace Thunder;
@@ -221,14 +222,14 @@ void TestTask()
 
 #pragma endregion
 
-void TestIThread()
+/*void TestIThread()
 {
 	// 测试1: 创建线程，执行任务
 	{
 		const auto testAsyncTask = new (TMemory::Malloc<TTask<ExampleTask>>()) TTask<ExampleTask>(2025);
 
 		const auto testThreadProxy1 = new ThreadProxy(); //后面考虑分单个线程还是线程池的情况
-		testThreadProxy1->CreateSingleThread();
+		testThreadProxy1->CreatePhysicalThread();
 		testThreadProxy1->PushTask(testAsyncTask);
 
 		testThreadProxy1->WaitForCompletion(); // 线程结束
@@ -237,7 +238,7 @@ void TestIThread()
 	// 测试2: 创建线程，连续派发任务，执行任务
 	{
 		const auto testThreadProxy2 = new ThreadProxy();
-		testThreadProxy2->CreateSingleThread();
+		testThreadProxy2->CreatePhysicalThread();
 
 		for (int i = 0; i < 5; i++)
 		{
@@ -247,7 +248,7 @@ void TestIThread()
 		
 		testThreadProxy2->WaitForCompletion(); // 线程结束
 	}
-}
+}*/
 
 #pragma region TestThreadPool
 
@@ -292,7 +293,7 @@ private:
 	IEvent* Event{};
 };
 
-void TestThreadPool()
+/*void TestThreadPool()
 {
 
 	ThreadPoolBase* WorkerThreadPool = new ThreadPoolBase(8, 96 * 1024);
@@ -332,7 +333,7 @@ void TestThreadPool()
 	}, 1024, 256);
 
 	DoWorkEvent->Wait();
-}
+}*/
 
 #pragma endregion
 
@@ -362,9 +363,11 @@ private:
 
 void TestTaskGraph()
 {
-	ThreadPoolBase* WorkerThreadPool = new ThreadPoolBase(8, 96 * 1024);
-	
-	TaskGraphProxy* TaskGraph = new TaskGraphProxy(WorkerThreadPool);
+	const auto TaskScheduler = new PooledTaskScheduler();
+	const auto WorkerThreadPool = new ThreadPoolBase(8, 96 * 1024);
+	WorkerThreadPool->AttachToScheduler(TaskScheduler);
+
+	const auto TaskGraph = new TaskGraphProxy(TaskScheduler);
 
 	// 测试1: 添加任务，执行
 	{
@@ -382,14 +385,14 @@ void TestTaskGraph()
 		TaskGraph->PushTask(TaskE, {TaskB, TaskD});
 
 		TaskGraph->Submit();
+		TaskGraph->WaitAndReset();
+		
 	}
 	
 	// 测试1: 循环执行
-	int i = 3;
+	int i = 5;
 	while (i-- > 0)
 	{
-		TaskGraph->Reset();
-
 		ExampleAsyncTask1* TaskA = new ExampleAsyncTask1(2023, "TaskA");
 		ExampleAsyncTask1* TaskB = new ExampleAsyncTask1(2024, "TaskB");
 		ExampleAsyncTask1* TaskC = new ExampleAsyncTask1(2025, "TaskC");
@@ -398,9 +401,8 @@ void TestTaskGraph()
 		TaskGraph->PushTask(TaskB, {TaskA});
 		TaskGraph->PushTask(TaskC, {TaskB});
 		TaskGraph->Submit();
+		TaskGraph->WaitAndReset();
 	}
-	
-	//TaskGraph->WaitForCompletion();
 }
 
 #pragma endregion
@@ -408,13 +410,13 @@ void TestTaskGraph()
 int main()
 {
 	GMalloc = new TMallocMinmalloc();
-	TestLock();
+	//TestLock();
 	//TestWorkerThread(); // successful
 	//TestTFunction(); // failed
 	//TestTask(); // successful
 	//TestIThread(); // successful
-	TestThreadPool(); // successful
-	//TestTaskGraph(); // successful
+	//TestThreadPool(); // successful
+	TestTaskGraph(); // successful
 }
 
 

@@ -13,7 +13,6 @@ namespace Thunder
 
 using namespace Thunder;
 
-
 int main()
 {
     //Fast Init
@@ -23,6 +22,8 @@ int main()
     GEngine->Run();
 
     EngineMain::EngineExitSignal->Wait();
+
+    GEngine->Exit();
 
     LOG("exit");
 

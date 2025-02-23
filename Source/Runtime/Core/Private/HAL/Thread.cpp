@@ -1,4 +1,7 @@
 #include "HAL/Thread.h"
+
+#include <ranges>
+
 #include "Assertion.h"
 #include "PlatformProcess.h"
 
@@ -33,6 +36,21 @@ IThread* IThread::Create(class ThreadProxy* InProxy, uint32 InStackSize, const S
     return NewThread;
 }
 
+
+ThreadManager::~ThreadManager()
+{
+    for (auto& ThreadToDestroy : Threads)
+    {
+        TMemory::Destroy(ThreadToDestroy);
+    }
+    Threads.clear();
+    
+    for (auto& ThreadPoolToDestroy : ThreadPools)
+    {
+        TMemory::Destroy(ThreadPoolToDestroy);
+    }
+    ThreadPools.clear();
+}
 
 ThreadManager& ThreadManager::Get()
 {

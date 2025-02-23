@@ -4,9 +4,6 @@
 
 namespace Thunder
 {
-	struct TaskGraphNode;
-	class ThreadPoolBase;
-
 	class TaskGraphTask : public ITask
 	{
 	public:
@@ -18,7 +15,7 @@ namespace Thunder
 			return DebugName;
 		}
 
-		_NODISCARD_ TaskGraphNode* GetOwner() const { return NodeOwner; }
+		_NODISCARD_ struct TaskGraphNode* GetOwner() const { return NodeOwner; }
 
 		void SetOwner(TaskGraphNode* InNode) { NodeOwner = InNode; }
 
@@ -58,30 +55,25 @@ namespace Thunder
 	class TaskGraphProxy
 	{
 	public:
-		TaskGraphProxy(ThreadPoolBase* InThreadPool)
-			: ThreadPool(InThreadPool) {}
+		TaskGraphProxy(class PooledTaskScheduler* InThreadPool)
+			: PooledThread(InThreadPool) {}
 
-		~TaskGraphProxy()
-		{
-			WaitForCompletion();
-		}
+		~TaskGraphProxy() = default;
 
 		void PushTask(TaskGraphTask* Task, const TArray<TaskGraphTask*>& PredecessorList = {});
 
 		void Submit();
 
-		void Reset(); // 等待前序任务完成,重置TG
+		void WaitAndReset(); // 等待前序任务完成,重置TG
 
 		void TriggerNextWork(ITask* Task) const;
 
 		void TryNotify();
 
-	private:
-		
-		void WaitForCompletion() const; // 等待任务完成,且线程退出
+		void DebugSpot() const;
 	
 	private:
-		ThreadPoolBase* ThreadPool {};
+		PooledTaskScheduler* PooledThread {};
 		TArray<TaskGraphNode*> TaskNodeList {};
 
 		// cv

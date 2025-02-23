@@ -4,10 +4,6 @@
 
 namespace Thunder
 {
-	extern class ThreadProxy* GGameThread;
-	extern ThreadProxy* GRenderThread;
-	extern ThreadProxy* GRHIThread;
-	
 	class LAUNCH_API EngineMain
     {
     public:
@@ -15,9 +11,10 @@ namespace Thunder
 
 		~EngineMain();
 
-		int32 FastInit();
+        void FastInit();
     	bool RHIInit(EGfxApiType type);
 		int32 Run();
+        void Exit();
 
 		static bool IsRequestingExit;
 		static class IEvent* EngineExitSignal;

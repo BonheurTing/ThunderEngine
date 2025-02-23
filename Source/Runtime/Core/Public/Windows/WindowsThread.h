@@ -65,7 +65,6 @@ class ThreadWindows : public IThread
 	{
 		TAssert(pThis);
 		auto* ThisThread = static_cast<ThreadWindows*>(pThis);
-		ThreadManager::Get().AddThread(ThisThread->GetThreadID(), ThisThread);
 		return ThisThread->Run();
 	}
 
@@ -77,7 +76,7 @@ public:
 		if (Thread)
 		{
 			// 子类析构函数调用虚函数，很不推荐，一定要用的话，需要注意不能访问子类成员，子类此时可能已经析构了
-			Kill(true);
+			ThreadWindows::Kill(true);
 		}
 	}
 

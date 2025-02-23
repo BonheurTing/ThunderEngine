@@ -7,14 +7,13 @@
 #include "ParallelRendering.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
+#include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
 #include "Memory/MallocMinmalloc.h"
 
 namespace Thunder
 {
-    ThreadProxy* GGameThread {};
-    ThreadProxy* GRenderThread {};
-    ThreadProxy* GRHIThread {};
+    
     bool EngineMain::IsRequestingExit = false;
     IEvent* EngineMain::EngineExitSignal = FPlatformProcess::GetSyncEventFromPool();
 
@@ -27,21 +26,12 @@ namespace Thunder
         }
     }
 
-    int32 EngineMain::FastInit()
+    void EngineMain::FastInit()
     {
         GMalloc = new TMallocMinmalloc();
         ModuleManager::GetInstance()->LoadModule<CoreModule>();
-    
-        //创建三个线程
-        GGameThread = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy();
-        GGameThread->CreateSingleThread(4096, "GameThread");
 
-        GRenderThread = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy();
-        GRenderThread->CreateSingleThread(4096, "RenderThread");
-
-        GRHIThread = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy();
-        GRHIThread->CreateSingleThread(4096, "RHIThread");
-        return 0;
+        TaskSchedulerManager::StartUp();
     }
 
     bool EngineMain::RHIInit(EGfxApiType type)
@@ -69,13 +59,19 @@ namespace Thunder
     int32 EngineMain::Run()
     {
         auto* GameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
-        GGameThread->PushTask(GameThreadTask);
+        GGameScheduler->PushTask(GameThreadTask);
 
-        GGameThread->WaitForCompletion();
-        GRenderThread->WaitForCompletion();
-        GRHIThread->WaitForCompletion();
+        GGameScheduler->WaitForCompletionAndThreadExit();
+        GRenderScheduler->WaitForCompletionAndThreadExit();
+        GRHIScheduler->WaitForCompletionAndThreadExit();
 
         return 0;
+    }
+
+    void EngineMain::Exit()
+    {
+        TaskSchedulerManager::ShutDown();
+        ModuleManager::GetInstance()->UnloadModule<CoreModule>();
     }
 }
 

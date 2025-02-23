@@ -6,209 +6,96 @@
 #include "Container.h"
 #include "Misc/LazySingleton.h"
 #include "Concurrent/Lock.h"
+#include "Concurrent/TaskScheduler.h"
+#include "Misc/TraceProfile.h"
 
 namespace Thunder
 {
-	struct PriorityQueueTask
+
+	ThreadProxy::~ThreadProxy()
 	{
-		ITask* Task;
-		ETaskPriority Priority;
-
-		bool operator<(const PriorityQueueTask& Other) const
+		if (Thread)
 		{
-			return Priority < Other.Priority;
+			WaitForCompletion();
+			// 回收线程同步Event
+			FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
+			DoWorkEvent = nullptr;
+			delete Thread;
+			Thread = nullptr;
 		}
-	};
+	}
 
-	bool ThreadPoolBase::Create(uint32 InNumQueuedThreads, uint32 StackSize)
+	uint32 ThreadProxy::GetThreadId() const
 	{
-		bool ret = true;
+		return Thread ? Thread->GetThreadID() : 0;
+	}
 
-		TAssert(QueuedThreads.empty());
-		while (!QueuedWork.IsEmpty())
+	NameHandle ThreadProxy::GetThreadName() const
+	{
+		return Thread ? Thread->GetName() : NameHandle();
+	}
+
+	void ThreadProxy::AttachToScheduler(IScheduler* InScheduler)
+	{
+		TAssert(InScheduler != nullptr);
 		{
-			QueuedWork.Pop();
-		}
-		
-		for (uint32 Count = 0; Count < InNumQueuedThreads && ret == true; Count++)
-		{
-			const auto pThread = new ThreadProxy();
-			const String ThreadName = "WorkerThread_" + std::to_string(Count);
-			if (pThread->CreateWithThreadPool(this, StackSize))
+			SchedulersSharedLock.Read();
+			if (AttachedSchedulers.contains(InScheduler))
 			{
-				TAssert(pThread);
-				QueuedThreads.push_back(pThread);
-			}
-			else
-			{
-				ret = false;
-				delete pThread;
-				break;
+				return;
 			}
 		}
-
-		if (ret == false)
+		InScheduler->AttachToThread(this);
 		{
-			Destroy();
-		}
-
-		return ret;
-	}
-
-	void ThreadPoolBase::Destroy()
-	{
-		while (!QueuedWork.IsEmpty())
-		{
-			const auto WorkItem = QueuedWork.Pop();
-			WorkItem->Abandon();
-		}
-
-		for (const auto& QueuedThread : QueuedThreads)
-		{
-			QueuedThread->KillThread();
-			delete QueuedThread;
-		}
-		TArray<ThreadProxy*> Empty;
-		QueuedThreads.swap(Empty);
-	}
-	
-
-	void ThreadPoolBase::AddQueuedWork(ITask* InQueuedWork)
-	{
-		TAssert(InQueuedWork != nullptr);
-
-		QueuedWork.Push(InQueuedWork);
-
-		for(const auto Thread : QueuedThreads)
-		{
-			Thread->Resume();
+			SchedulersSharedLock.Write();
+			AttachedSchedulers.emplace(InScheduler);
 		}
 	}
 
-	ITask* ThreadPoolBase::GetNextQueuedWork()
+	void ThreadProxy::DetachFromScheduler(IScheduler* InScheduler)
 	{
-		ITask* Work = nullptr;
-		if (!QueuedWork.IsEmpty())
+		TAssert(InScheduler != nullptr);
 		{
-			Work = QueuedWork.Pop();
-		}
-		return Work;
-	}
-
-	void ThreadPoolBase::WaitForCompletion()
-	{
-		for (const auto Thread : QueuedThreads)
-		{
-			Thread->WaitForCompletion();
-		}
-	}
-
-	// todo TFunction还是把类型写死了，最好能任意参数类型
-	void ThreadPoolBase::ParallelFor(TFunction<void(uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize) //接左值版本
-	{
-		class TaskBundle : public ITask
-		{
-		public:
-			TaskBundle(TFunction<void(uint32, uint32)>* InFunction, uint32 InStart, uint32 InSize) //接受指针并存下来
-			: Function(InFunction)
-			, Head(InStart)
-			, Size(InSize)
-			{}
-
-			void DoWork() override
+			SchedulersSharedLock.Read();
+			if (!AttachedSchedulers.contains(InScheduler))
 			{
-				LOG("Execute Parallel Task Bundle");
-				(*Function)(Head, Size);
+				return;
 			}
-		private:
-
-			TFunction<void(uint32, uint32)>* Function; //存TFunction指针，不用构造，只需8字节
-			uint32 Head;
-			uint32 Size;
-		};
-
-		for (uint32 i = 0; i < NumTask; i += BundleSize)
-		{
-			const auto BundleTask = new TaskBundle(&Body, i, BundleSize); //TaskBundle构造需要TFunction指针，因此传入地址；对于为什么ParallelFor用&接完这里还要&，想象接的是String& Body，TaskBundle如果不加&，就是把String类型给String*类型，无法匹配构造函数
-			AddQueuedWork(BundleTask);
 		}
-	}
-	
-	void ThreadPoolBase::ParallelFor(TFunction<void(uint32, uint32)>&& Body, uint32 NumTask, uint32 BundleSize) //接右值版本，入lambda表达式作为立即数，万能引用
-	{
-		class TaskBundle : public ITask
+		InScheduler->DetachFromThread(this);
 		{
-		public:
-			TaskBundle(const TFunction<void(uint32, uint32)>& InFunction, uint32 InStart, uint32 InSize) //接引用
-			: Function(InFunction) //变量不是指针，免不了一次构造，注意TFunction的大小，是func一个指针大小(8字节)+capture data的大小；
-			//对于TestMultiThread.cpp的例子，capture data是一个lambda对象，其中capture了两个vector的引用，即两个指针，大小是16字节；那么一共24字节，对于capture数据较小的情况可以用这个方式
-			, Head(InStart)
-			, Size(InSize)
-			{}
-
-			void DoWork() override
-			{
-				LOG("Execute Parallel Task Bundle");
-				Function(Head, Size);
-			}
-		private:
-
-			TFunction<void(uint32, uint32)> Function; //存Function值而不是指针，免不了构造
-			uint32 Head;
-			uint32 Size;
-		};
-
-		for (uint32 i = 0; i < NumTask; i += BundleSize)
-		{
-			const auto BundleTask = new TaskBundle(Body, i, BundleSize); //右值，此处是消亡值，直接传给构造函数
-			AddQueuedWork(BundleTask);
+			SchedulersSharedLock.Write();
+			AttachedSchedulers.erase(InScheduler);
 		}
 	}
 
 	uint32 ThreadProxy::Run()
 	{
-		ITask* CurrentWork;
-		if (ThreadPoolOwner)
-		{
-			while (!(ThreadPoolOwner->IsIdle() && TimeToDie.load(std::memory_order_acquire)))
-			{
-				DoWorkEvent->Wait();
-				
-				TAssert(QueuedTasks.IsEmpty());
+		ThunderTracyCSetThreadName(GetThreadName().c_str());
 
-				int32 NumOfFailed = SUSPEND_THRESHOLD;
-				while (NumOfFailed > 0)
+		while (!(TimeToDie.load(std::memory_order_acquire) && NoWorkToRun()))
+		{
+			DoWorkEvent->Wait();
+
+			int32 NumOfFailed = SUSPEND_THRESHOLD;
+			while (NumOfFailed > 0)
+			{
+				bool bHasWork = false;
 				{
-					CurrentWork = ThreadPoolOwner->GetNextQueuedWork();
-					if(CurrentWork)
+					SchedulersSharedLock.Read();
+					for (const auto Scheduler: AttachedSchedulers)
 					{
-						CurrentWork->DoWork();
-					}
-					else
-					{
-						NumOfFailed--;
+						if (ITask* CurrentWork = Scheduler->GetNextQueuedWork())
+						{
+							bHasWork = true;
+							NumOfFailed = SUSPEND_THRESHOLD;
+							CurrentWork->DoWork();
+						}
 					}
 				}
-			}
-		}
-		else
-		{
-			while (!(QueuedTasks.IsEmpty() && TimeToDie.load(std::memory_order_acquire)))
-			{
-				DoWorkEvent->Wait();
-
-				int32 NumOfFailed = SUSPEND_THRESHOLD;
-				while (NumOfFailed > 0)
+				if (!bHasWork)
 				{
-					if (!QueuedTasks.IsEmpty())
-					{
-						CurrentWork = QueuedTasks.Pop();
-						CurrentWork->DoWork();
-					}
-					else
-					{
-						NumOfFailed--;
-					}
+					NumOfFailed--;
 				}
 			}
 		}
@@ -216,7 +103,7 @@ namespace Thunder
 		return 0;
 	}
 
-	bool ThreadProxy::CreateSingleThread(uint32 InStackSize, const String& InThreadName)
+	bool ThreadProxy::CreatePhysicalThread(uint32 InStackSize, const String& InThreadName)
 	{
 		TAssert(ThreadPoolOwner == nullptr);
 		TAssert(DoWorkEvent == nullptr);
@@ -230,13 +117,18 @@ namespace Thunder
 		return true;
 	}
 
-	bool ThreadProxy::CreateWithThreadPool(class ThreadPoolBase* InPool,uint32 InStackSize)
+	bool ThreadProxy::NoWorkToRun()
 	{
-		ThreadPoolOwner = InPool;
-		DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-		Thread = IThread::Create(this, InStackSize);
-		TAssert(DoWorkEvent);
-		TAssert(Thread);
+		{
+			SchedulersSharedLock.Read();
+			for (const auto Scheduler : AttachedSchedulers)
+			{
+				if (!Scheduler->IsEmptyWork())
+				{
+					return false;
+				}
+			}
+		}
 		return true;
 	}
 
@@ -250,15 +142,60 @@ namespace Thunder
 		Thread->WaitForCompletion();
 	}
 
-	bool ThreadProxy::KillThread()
+	ThreadPoolBase::ThreadPoolBase(uint32 ThreadsNum, uint32 StackSize, const String& ThreadNamePrefix)
 	{
-		WaitForCompletion();
-		// 回收线程同步Event
-		FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
-		DoWorkEvent = nullptr;
-		delete Thread;
-		Thread = nullptr;
-		return true;
+		for (uint32 Count = 0; Count < ThreadsNum; Count++)
+		{
+			if (auto pThread = new ThreadProxy(StackSize, ThreadNamePrefix + "_" + std::to_string(Count)))
+			{
+				pThread->SetThreadPoolOwner(this);
+				Threads.push_back(pThread);
+			}
+			else
+			{
+				Destroy();
+				break;
+			}
+		}
+		ThreadManager::Get().AddThreadPool(this);
+	}
+
+	void ThreadPoolBase::Destroy()
+	{
+		/*
+		for (auto Thread : Threads)
+		{
+			if (Thread)
+			{
+				delete Thread;
+				Thread = nullptr;
+			}
+		}
+		TArray<ThreadProxy*> Empty;
+		Threads.swap(Empty);
+		*/
+	}
+
+	void ThreadPoolBase::AttachToScheduler(IScheduler* InScheduler) const
+	{
+		for (const auto Thread : Threads)
+		{
+			Thread->AttachToScheduler(InScheduler);
+		}
+	}
+
+	void ThreadPoolBase::AttachToScheduler(int32 Index, IScheduler* InScheduler) const
+	{
+		TAssert(Index < static_cast<int32>(Threads.size()));
+		Threads[Index]->AttachToScheduler(InScheduler);
+	}
+
+	void ThreadPoolBase::WaitForCompletion() const
+	{
+		for (const auto Thread : Threads)
+		{
+			Thread->WaitForCompletion();
+		}
 	}
     
 }

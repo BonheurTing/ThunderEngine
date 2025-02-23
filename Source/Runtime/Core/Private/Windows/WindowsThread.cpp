@@ -19,10 +19,6 @@ uint32 ThreadWindows::Run()
 bool ThreadWindows::Kill(bool bShouldWait)
 {
     TAssert(Thread && "Did you forget to call Create()?");
-    if (Proxy)
-    {
-        Proxy->Stop();
-    }
     if (bShouldWait)
     {
         // 等待线程完成。不能直接用TerminateThread()杀死线程，因为它可能和正常运行的线程共享互斥锁，导致别人死锁
@@ -62,6 +58,7 @@ bool ThreadWindows::CreateInternal(ThreadProxy* InProxy, uint32 InStackSize, con
          * CreateThread时挂起了，所以此处resume
          **/
         ResumeThread(Thread);
+	    ThreadManager::Get().AddThread(Proxy);
     }
 
     return Thread != nullptr;

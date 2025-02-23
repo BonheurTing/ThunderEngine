@@ -1,5 +1,7 @@
 #pragma optimize("", off)
 #include "Concurrent/TaskGraph.h"
+
+#include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
 
 namespace Thunder
@@ -15,17 +17,19 @@ namespace Thunder
                     if(SucNode->PredecessorNum.fetch_sub(1, std::memory_order_acq_rel) == 1)
                     {
                         SucNode->TaskGraphOwner->TriggerNextWork(SuccessorTask);
+                        SucNode->TaskGraphOwner->DebugSpot();
                     }
                 }
             }
 
             CompletedNode->TaskGraphOwner->TryNotify();
+            CompletedNode->TaskGraphOwner->DebugSpot();
         }
     }
 
     void TaskGraphProxy::TriggerNextWork(ITask* Task) const
     {
-        ThreadPool->AddQueuedWork(Task);
+        PooledThread->PushTask(Task);
     }
 
     void TaskGraphProxy::TryNotify()
@@ -34,6 +38,11 @@ namespace Thunder
         {
             cv.notify_all();
         }
+    }
+
+    void TaskGraphProxy::DebugSpot() const
+    {
+        //LOG("PooledTaskScheduler is empty work = %s", PooledThread->IsEmptyWork() ? "True" : "False");
     }
 
     void TaskGraphProxy::PushTask(TaskGraphTask* Task, const TArray<TaskGraphTask*>& PredecessorList)
@@ -51,6 +60,7 @@ namespace Thunder
             }
         }
         TaskNodeList.push_back(NewNode);
+        DebugSpot();
     }
 
     void TaskGraphProxy::Submit()
@@ -61,17 +71,21 @@ namespace Thunder
         {
             if (Node->Predecessor.empty())
             {
-                ThreadPool->AddQueuedWork(Node->Task);
+                PooledThread->PushTask(Node->Task);
             }
         }
     }
 
-    void TaskGraphProxy::Reset()
+    void TaskGraphProxy::WaitAndReset()
     {
-        if (TaskCount.load(std::memory_order_acquire) > 0)
+        DebugSpot();
         {
             std::unique_lock<std::mutex> lock(mtx);
-            cv.wait(lock, [this]{ return TaskCount.load(std::memory_order_acquire) == 0; });
+            if (TaskCount.load(std::memory_order_acquire) > 0)
+            {
+                DebugSpot();
+                cv.wait(lock, [this]{ return TaskCount.load(std::memory_order_acquire) == 0; });
+            }
         }
         for (auto Node : TaskNodeList)
         {
@@ -79,12 +93,7 @@ namespace Thunder
             TMemory::Free(Node);
         }
         TaskNodeList.clear();
+        DebugSpot();
     }
-
-    void TaskGraphProxy::WaitForCompletion() const
-    {
-        ThreadPool->WaitForCompletion();
-    }
-    
 }
 #pragma optimize("", on)

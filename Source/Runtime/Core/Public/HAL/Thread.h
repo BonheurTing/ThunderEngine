@@ -2,18 +2,17 @@
 #include "Container.h"
 #include "NameHandle.h"
 #include "Platform.h"
-#include "HAL/Event.h"
+#include "Concurrent/TheadPool.h"
 
 namespace Thunder
 {
-    class ThreadProxy;
 
 //线程基类，本身不包含线程，可以根据平台API创建线程；是一个接口，用于管理可运行线程的生命周期
 class IThread
 {
 public:
     // 工厂方法，用于创建具有指定堆栈大小和线程优先级的线程
-    static IThread* Create(ThreadProxy* InProxy, uint32 InStackSize = 0, const String& InThreadName = "");
+    static IThread* Create(class ThreadProxy* InProxy, uint32 InStackSize = 0, const String& InThreadName = "");
 
     // 告知线程暂停执行或恢复执行
     virtual void Suspend( bool bShouldPause = true ) = 0;
@@ -25,6 +24,7 @@ public:
     virtual void WaitForCompletion() = 0;
 
     uint32 GetThreadID() const { return ThreadID; }
+    NameHandle GetName() const { return DebugName; }
 
     IThread() {}
 
@@ -44,8 +44,12 @@ protected:
 class ThreadManager
 {
 public:
-
-    CORE_API void AddThread(uint32 ThreadId, IThread* Thread) {}
+    ~ThreadManager();
+    CORE_API void AddThread(ThreadProxy* Thread) { TAssert(Thread); Threads.push_back(Thread); }
+    CORE_API void AddThreadPool(class ThreadPoolBase* InThreadPool) { ThreadPools.push_back(InThreadPool); }
     static CORE_API ThreadManager& Get();
+private:
+    TArray<ThreadProxy*> Threads;
+    TArray<ThreadPoolBase*> ThreadPools;
 };
 }

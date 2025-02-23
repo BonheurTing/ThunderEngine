@@ -3,6 +3,7 @@
 #include "SimulatedTasks.h"
 #include "Memory/MallocMinmalloc.h"
 #include "Concurrent/ConcurrentBase.h"
+#include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
 #include "HAL/Event.h"
 #include "Misc/TraceProfile.h"
@@ -22,16 +23,12 @@ namespace Thunder
         std::condition_variable RenderRHICV; // RenderThread 和 RHIThread 的条件变量
     };
     static FrameState* GFrameState;
-    ThreadPoolBase* GSyncWorkers {};
-    ThreadPoolBase* GAsyncWorkers {};
     
     void GameTask::Init()
     {
         const auto ThreadNum = FPlatformProcess::NumberOfLogicalProcessors();
-        TAssert(GSyncWorkers == nullptr && GAsyncWorkers == nullptr);
 
-        GSyncWorkers = new (TMemory::Malloc<ThreadPoolBase>()) ThreadPoolBase(ThreadNum > 3 ? (ThreadNum - 3) : ThreadNum, 96 * 1024);
-        GAsyncWorkers = new (TMemory::Malloc<ThreadPoolBase>()) ThreadPoolBase(4, 96 * 1024);
+        TaskSchedulerManager::InitWorkerThread();
 
         TaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
 
@@ -57,7 +54,7 @@ namespace Thunder
 
             // push render command
             const auto RenderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>(0);
-            GRenderThread->PushTask(RenderThreadTask);
+            GRenderScheduler->PushTask(RenderThreadTask);
         }
 
         LOG("End GameThread Execute");
@@ -91,7 +88,6 @@ namespace Thunder
 
     void GameTask::GameMain()
     {
-        ThunderTracyCSetThreadName("GameThread")
         ThunderZoneScopedN("GameMain");
 
         {
@@ -123,7 +119,7 @@ namespace Thunder
 
         TaskGraph->Submit();
         
-        TaskGraph->Reset();
+        TaskGraph->WaitAndReset();
     }
 
     void RenderingTask::RenderMain()
@@ -138,7 +134,6 @@ namespace Thunder
             }
         }
 
-        ThunderTracyCSetThreadName("RenderThread")
         ThunderZoneScopedN("RenderMain");
         
         LOG("Execute render thread in frame: %d with thread: %lu", GFrameState->FrameNumberRenderThread.load(), __threadid());
@@ -150,7 +145,7 @@ namespace Thunder
 
         // rhi thread
         auto* RHIThreadTask = new (TMemory::Malloc<TTask<RHITask>>()) TTask<RHITask>(0);
-        GRHIThread->PushTask(RHIThreadTask);
+        GRHIScheduler->PushTask(RHIThreadTask);
     }
 
     void RenderingTask::SimulatingAddingMeshBatch()
@@ -162,7 +157,7 @@ namespace Thunder
         while (i-- > 0)
         {
             auto* Task = new (TMemory::Malloc<SimulatedAddMeshBatchTask>()) SimulatedAddMeshBatchTask(Dispatcher);
-            GSyncWorkers->AddQueuedWork(Task);
+            GSyncWorkers->PushTask(Task);
         }
         DoWorkEvent->Wait();
         FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
@@ -170,7 +165,6 @@ namespace Thunder
 
     void RHITask::RHIMain()
     {
-        ThunderTracyCSetThreadName("RHIThread")
         ThunderZoneScopedN("RHIMain");
 
         LOG("Execute rhi thread in frame: %d with thread: %lu", GFrameState->FrameNumberRHIThread.load(), __threadid());
@@ -182,7 +176,7 @@ namespace Thunder
         while (i-- > 0)
         {
             auto* Task = new (TMemory::Malloc<SimulatedPopulateCommandList>()) SimulatedPopulateCommandList(Dispatcher);
-            GSyncWorkers->AddQueuedWork(Task);
+            GSyncWorkers->PushTask(Task);
         }
         DoWorkEvent->Wait();
         FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);

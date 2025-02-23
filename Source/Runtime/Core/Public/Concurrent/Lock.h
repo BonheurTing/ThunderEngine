@@ -160,26 +160,30 @@ namespace Thunder
 
 	class SharedLock
 	{
+		void ReadLock()
+		{
+			Mutex.lock_shared();
+		}
+
+		void WriteLock()
+		{
+			Mutex.lock();
+		}
+
+		void ReadUnlock()
+		{
+			Mutex.unlock_shared();
+		}
+
+		void WriteUnlock()
+		{
+			Mutex.unlock();
+		}
+
+		friend class TRWLockGuard<SharedLock>;
+
 		public:
-			void ReadLock()
-			{
-				Mutex.lock_shared();
-			}
-
-			void WriteLock()
-			{
-				Mutex.lock();
-			}
-
-			void ReadUnlock()
-			{
-				Mutex.unlock_shared();
-			}
-
-			void WriteUnlock()
-			{
-				Mutex.unlock();
-			}
+			
 
 			TRWLockGuard<SharedLock> Read()
 			{

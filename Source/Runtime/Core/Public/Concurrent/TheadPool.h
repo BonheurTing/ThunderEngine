@@ -8,118 +8,74 @@
 namespace Thunder
 {
 	/************************ 任务 ************************************/
-	enum class ETaskPriority : uint8
-	{
-	    High,
-	    Normal,
-	    Low,
-	    Num
-	};
-
-	class ITask;
-	
-	/************************ 任务 ************************************/
 	#define SUSPEND_THRESHOLD 50 
 	//单个线程管理者
 	class ThreadProxy
 	{
-	private:
-	    // 控制线程挂起唤醒等
-		IEvent* DoWorkEvent {};
-
-		std::atomic<bool> TimeToDie { false };
-
-		IThread* Thread {};
-		
-		class ThreadPoolBase* ThreadPoolOwner {};
-
-		//todo PaddingForCacheContention如何设置, 可以看UE的TaskGraphTest.cpp测试用例
-		LockFreeFIFOListBase<ITask, 8> QueuedTasks {}; // Thread 使用 
-	
 	public:
-		ThreadProxy() = default;
-		~ThreadProxy()
+		ThreadProxy(uint32 InStackSize, const String& InThreadName = "")
 		{
-			if (DoWorkEvent)
-			{
-				KillThread();
-			}
+			CreatePhysicalThread(InStackSize, InThreadName);
 		}
-		void Stop() {}
-		void Resume() { DoWorkEvent->Trigger(); }
+		~ThreadProxy();
+
+		void SetThreadPoolOwner(class ThreadPoolBase* InPool) { ThreadPoolOwner = InPool; }
+		_NODISCARD_ uint32 GetThreadId() const;
+		_NODISCARD_ NameHandle GetThreadName() const;
+
+		//多线程安全
+		//friend class PooledTaskScheduler;
+		void AttachToScheduler(class IScheduler* InScheduler);
+		void DetachFromScheduler(IScheduler* InScheduler);
+
+		//线程控制
+		void Suspend() const { DoWorkEvent->Reset(); }
+		void Resume() const { DoWorkEvent->Trigger(); }
 		uint32 Run();
-		bool CreateSingleThread(uint32 InStackSize = 0, const String& InThreadName = "");
-		uint32 GetThreadId() const { return Thread ? Thread->GetThreadID() : 0; }
-		void PushTask(ITask* InTask) //不保证下一个执行
-		{
-			QueuedTasks.Push(InTask);
-			DoWorkEvent->Trigger();
-		}
 		void WaitForCompletion(); // 线程结束
-		bool KillThread();
+
 	private:
+		bool CreatePhysicalThread(uint32 InStackSize = 0, const String& InThreadName = "");
+		bool NoWorkToRun();
 		
-		friend class ThreadPoolBase;
-		bool CreateWithThreadPool(class ThreadPoolBase* InPool,uint32 InStackSize = 0);
+	private:
+		IEvent* DoWorkEvent {}; //控制线程挂起唤醒等状态
+		std::atomic<bool> TimeToDie { false }; //线程结束标志
+		IThread* Thread {}; //实际物理线程
+		ThreadPoolBase* ThreadPoolOwner {};
+		TSet<IScheduler*> AttachedSchedulers {};
+		SharedLock SchedulersSharedLock;
 	};
 	
 	/************************ 线程池 ************************************/
 
 	class ThreadPoolBase
 	{
-	protected:
-		LockFreeFIFOListBase<ITask, PLATFORM_CACHE_LINE_SIZE> QueuedWork {};
-		TArray<ThreadProxy*> QueuedThreads {};
-
 	public:
-		ThreadPoolBase(uint32 InNumQueuedThreads, uint32 StackSize = 0)
-		{
-			Create(InNumQueuedThreads, StackSize);
-		}
+		ThreadPoolBase(uint32 ThreadsNum, uint32 StackSize, const String& ThreadNamePrefix = "");
 
 		~ThreadPoolBase()
 		{
 			Destroy();
 		}
-		void Destroy(); //放弃执行任务，结束线程
 		_NODISCARD_ int32 GetNumThreads() const
 		{
-			return static_cast<int32>(QueuedThreads.size());
+			return static_cast<int32>(Threads.size());
 		}
-		_NODISCARD_ bool IsIdle() const
+		_NODISCARD_ ThreadProxy* GetThread(int32 Index) const
 		{
-			return QueuedWork.IsEmpty();
+			TAssert(Index < static_cast<int32>(Threads.size()));
+			return Threads[Index];
 		}
-		void AddQueuedWork(ITask* InQueuedWork);
-		ITask* GetNextQueuedWork();
-		void WaitForCompletion(); //等待所有任务完成, 结束线程, debug用
-		void ParallelFor(TFunction<void(uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize);
-		void ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize);
+
+		void AttachToScheduler(IScheduler* InScheduler) const;
+		void AttachToScheduler(int32 Index, IScheduler* InScheduler) const;
+
+		void WaitForCompletion() const; //等待所有任务完成, 结束线程, debug用
 
 	private:
-		bool Create(uint32 InNumQueuedThreads, uint32 StackSize);
+		void Destroy(); //放弃执行任务，结束线程
+		TArray<ThreadProxy*> Threads {};
 	};
-
-
-
-	
-
-
-
-	/************************ 测试用 ************************************/
-	
-	struct BoundingBox
-	{
-		float Top = 0.f;
-		float Bottom = 0.f;
-		float Left = 0.f;
-		float Right = 0.f;
-	};
-
-	inline bool CullObject(BoundingBox ObjectBounding)
-	{
-		return true;
-	}
-	
 }
 

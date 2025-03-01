@@ -159,6 +159,7 @@ int main()
 
 
     //exit
+    MainEntry.~EngineMain();
     switch (rhiType)
     {
     case EGfxApiType::D3D12:

@@ -146,34 +146,18 @@ namespace Thunder
 	{
 		for (uint32 Count = 0; Count < ThreadsNum; Count++)
 		{
-			if (auto pThread = new ThreadProxy(StackSize, ThreadNamePrefix + "_" + std::to_string(Count)))
+			if (auto pThread = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(StackSize, ThreadNamePrefix + "_" + std::to_string(Count)))
 			{
 				pThread->SetThreadPoolOwner(this);
 				Threads.push_back(pThread);
 			}
 			else
 			{
-				Destroy();
+				TAssert(false);
 				break;
 			}
 		}
 		ThreadManager::Get().AddThreadPool(this);
-	}
-
-	void ThreadPoolBase::Destroy()
-	{
-		/*
-		for (auto Thread : Threads)
-		{
-			if (Thread)
-			{
-				delete Thread;
-				Thread = nullptr;
-			}
-		}
-		TArray<ThreadProxy*> Empty;
-		Threads.swap(Empty);
-		*/
 	}
 
 	void ThreadPoolBase::AttachToScheduler(IScheduler* InScheduler) const

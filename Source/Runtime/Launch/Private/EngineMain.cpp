@@ -28,7 +28,6 @@ namespace Thunder
 
     void EngineMain::FastInit()
     {
-        GMalloc = new TMallocMinmalloc();
         ModuleManager::GetInstance()->LoadModule<CoreModule>();
 
         TaskSchedulerManager::StartUp();

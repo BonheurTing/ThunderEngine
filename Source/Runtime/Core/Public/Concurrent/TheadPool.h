@@ -54,10 +54,6 @@ namespace Thunder
 	public:
 		ThreadPoolBase(uint32 ThreadsNum, uint32 StackSize, const String& ThreadNamePrefix = "");
 
-		~ThreadPoolBase()
-		{
-			Destroy();
-		}
 		_NODISCARD_ int32 GetNumThreads() const
 		{
 			return static_cast<int32>(Threads.size());
@@ -74,7 +70,6 @@ namespace Thunder
 		void WaitForCompletion() const; //等待所有任务完成, 结束线程, debug用
 
 	private:
-		void Destroy(); //放弃执行任务，结束线程
 		TArray<ThreadProxy*> Threads {};
 	};
 }

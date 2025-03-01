@@ -1,4 +1,4 @@
-#pragma onece
+#pragma once
 #include "BasicDefinition.h"
 #include "Container.h"
 #include "Lock.h"

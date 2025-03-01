@@ -363,8 +363,8 @@ private:
 
 void TestTaskGraph()
 {
-	const auto TaskScheduler = new PooledTaskScheduler();
-	const auto WorkerThreadPool = new ThreadPoolBase(8, 96 * 1024);
+	const auto TaskScheduler = new (TMemory::Malloc<PooledTaskScheduler>()) PooledTaskScheduler();
+	const auto WorkerThreadPool = new (TMemory::Malloc<ThreadPoolBase>()) ThreadPoolBase(8, 96 * 1024);
 	WorkerThreadPool->AttachToScheduler(TaskScheduler);
 
 	const auto TaskGraph = new TaskGraphProxy(TaskScheduler);

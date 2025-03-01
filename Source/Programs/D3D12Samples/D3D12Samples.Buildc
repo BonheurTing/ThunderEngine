@@ -1,0 +1,18 @@
+set(ModuleName D3D12Samples)
+set(LinkMode EXECUTABLE)
+set(IsEexcutableWindows True)
+set(PublicDependencyModuleList
+    D3D12RHI
+)
+set(PrivateThirdPartyIncludeList
+    ThirdParty/Windows/DirectX/include
+    ThirdParty/Windows/D3DX12/include
+)
+set(PrivateThirdPartyPathList
+    ThirdParty/Windows/DirectX/Lib/x86
+)
+set(PrivateThirdPartyNameList
+    d3d12.lib
+    dxgi.lib
+    d3dcompiler.lib
+)

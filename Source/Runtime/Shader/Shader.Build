@@ -4,3 +4,13 @@ set(LinkMode SHARED)
 set(PublicDependencyModuleList
     Core
 )
+
+set(PrivateThirdPartyPathList
+    #ThirdParty/Windows/DXCompiler/lib
+    #ThirdParty/Windows/DXCompiler/bin
+)
+
+set(PrivateThirdPartyNameList
+    d3dcompiler.lib
+    dxcompiler.lib
+)

@@ -1,30 +1,54 @@
 #pragma once
-#include <cstdint>
-#include <intsafe.h>
-class TRHICommandList;
+#include "CoreMinimal.h"
+#include "RHI.h"
+#include "RHIResource.h"
 
-struct D3D12_COMMAND_QUEUE_DESC;
-#define TCommandQueueDesc D3D12_COMMAND_QUEUE_DESC
-class ID3D12CommandQueue;
-#define TCommandQueue ID3D12CommandQueue
-class ID3D12Fence;
-class IDXGISwapChain3;
-class RHITexture;
-
-class TRHIContext
+namespace Thunder
 {
-public:
-    
-    virtual void Execute(TRHICommandList *CommandListsPtr) = 0;
+    class RHICommandContext : public RefCountedObject
+    {
+    public:
+        virtual ~RHICommandContext() = default;
+        virtual void BeginEvent(const String& eventName) {} //todo pix event runtime
+        virtual void EndEvent() {}
+    	virtual void SetMarker(const String& markerName) {}
 
-    virtual UINT GetFrameIndex() = 0;
+    	// Clear
+    	virtual void ClearDepthStencilView(RHIDepthStencilView* dsv, ERHIClearFlags clearFlags, float depthValue, uint8 stencilValue) = 0;
+    	virtual void ClearRenderTargetView(RHIRenderTargetView* rtv, TVector4f clearColor) = 0;
+    	virtual void ClearState(TRHIPipelineState* pso) = 0;
+    	virtual void ClearUnorderedAccessViewUint(RHIResource* resource, TVector4u clearValue) = 0;
+    	virtual void ClearUnorderedAccessViewFloat(RHIResource* resource, TVector4f clearValue) = 0;
 
-    virtual int GetBuffer(UINT Index, RHITexture** OutBuffer) = 0;
+    	// Set
+		virtual void SetIndexBuffer(RHIIndexBufferRef indexBuffer) = 0;
+    	virtual void SetPrimitiveTopology(ERHIPrimitive type) = 0;
+    	virtual void SetVertexBuffer(uint32 slot, uint32 numViews, RHIVertexBufferRef vertexBuffer) = 0;
+    	virtual void SetBlendFactor(TVector4f const& blendFactor) = 0;
+    	virtual void SetRenderTarget(uint32 numRT, TArray<RHIRenderTargetView*> rtvs, RHIDepthStencilView* dsv = nullptr) = 0;
+    	virtual void SetScissorRects(TArray<RHIRect*> rects) = 0;
+    	virtual void SetViewports(TArray<RHIViewport*> viewports) = 0;
+    	virtual void SetPipelineState(TRHIPipelineState* pso) = 0;
+    	
+    	// Copy
+    	virtual void CopyBufferRegion(RHIResource* dst, uint64 dstOffset, RHIResource* src, uint64 srcOffset, uint64 numBytes) = 0;
+    	virtual void CopyTextureRegion(RHIResource* dst, uint32 dstMip, RHIResource* src, uint32 srcMip, const RHITextureCopyRegion* copyRegion) = 0;
+    	virtual void CopyResource(RHIResource* dst, RHIResource* src) = 0;
+    	virtual void DiscardResource(RHIResource* resource, TArray<RHIRect> const& rects) = 0;
+    	virtual void ResolveSubresource(RHIResource* dst, uint32 dstSubId, RHIResource* src, uint32 srcSubId) = 0; // Resolve multi-sampled texture to non-multi-sampled texture
+    	
+    	
+    	// Draw
+		virtual void Dispatch(uint32 threadGroupCountX, uint32 threadGroupCountY, uint32 threadGroupCountZ) = 0;
+    	virtual void DrawIndexedInstanced(uint32 indexCountPerInstance, uint32 instanceCount, uint32 startIndexLocation, int32 baseVertexLocation, uint32 startInstanceLocation) = 0;
+    	virtual void DrawInstanced(uint32 vertexCountPerInstance, uint32 instanceCount, uint32 startVertexLocation, uint32 startInstanceLocation) = 0;
+    	virtual void ExecuteIndirect() {} // Indirect Drawing for gpu driven rendering
+    	
+    	// Misc
+    	virtual void Close() = 0;
+    	virtual void Reset() = 0;
+    	virtual void ResourceBarrier() {} //todo
+    };
 
-    // synchronization objects
-    virtual void CreateSynchronizationObjects() = 0;
-    
-    virtual UINT WaitForPreviousFrame() = 0;
-    
-    virtual void TempDestroy() = 0;
-};
+	using RHICommandContextRef = TRefCountPtr<RHICommandContext>;
+}

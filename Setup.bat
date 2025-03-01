@@ -1,11 +1,13 @@
+@echo off
+rmdir /s /q ".\Intermediate\Build"
+mkdir ".\Intermediate\Build"
 cd ./Intermediate/Build
-cmake --clean
-cmake ../..
+cmake -A x64 ../..
 echo Config finished...
-pause
-cmake --build .
-echo Build finished...
-pause
-cmake --install . --config Debug
-echo Install finished...
-pause
+rem pause
+rem cmake --build .
+rem echo Build finished...
+rem pause
+rem cmake --install . --config Debug
+rem echo Install finished...
+rem pause

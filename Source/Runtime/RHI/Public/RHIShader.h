@@ -1,12 +1,16 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 
-class RHIShader
+namespace Thunder
 {
-public:
-	RHIShader() = delete;
-	RHIShader(BinaryData inShader) : SharedFunction(inShader) {}
-	~RHIShader() {}
-private:
-	BinaryData SharedFunction;
-};
+	class RHIShader
+    {
+    public:
+    	RHIShader() = delete;
+    	RHIShader(BinaryData inShader) : SharedFunction(inShader) {}
+    	~RHIShader() {}
+    private:
+    	BinaryData SharedFunction;
+    };
+}
+

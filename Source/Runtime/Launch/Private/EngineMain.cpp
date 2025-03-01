@@ -1,22 +1,78 @@
+#pragma optimize("", off)
 #include "EngineMain.h"
-#include "D3D12RHI.h"
-#include "D3D11RHI.h"
+#include "SimulatedTasks.h"
+#include "CoreModule.h"
+#include "D3D12RHIModule.h"
+#include "D3D11RHIModule.h"
+#include "ParallelRendering.h"
+#include "ShaderCompiler.h"
+#include "ShaderModule.h"
+#include "Concurrent/TaskScheduler.h"
+#include "Concurrent/TheadPool.h"
+#include "Memory/MallocMinmalloc.h"
 
-bool EngineMain::RHIInit(ERHIType type)
+namespace Thunder
 {
-    switch (type)
+    
+    bool EngineMain::IsRequestingExit = false;
+    IEvent* EngineMain::EngineExitSignal = FPlatformProcess::GetSyncEventFromPool();
+
+    EngineMain::~EngineMain()
     {
-        case ERHIType::D3D12:
+        if (EngineExitSignal)
         {
-            GDynamicRHI = new D3D12DynamicRHI();
-            return GDynamicRHI != nullptr ? true : false;
+            FPlatformProcess::ReturnSyncEventToPool(EngineExitSignal);
+            EngineExitSignal = nullptr;
         }
-        case ERHIType::D3D11:
+    }
+
+    void EngineMain::FastInit()
+    {
+        GMalloc = new TMallocMinmalloc();
+        ModuleManager::GetInstance()->LoadModule<CoreModule>();
+
+        TaskSchedulerManager::StartUp();
+    }
+
+    bool EngineMain::RHIInit(EGfxApiType type)
+    {
+        ShaderModule::GetModule()->InitShaderCompiler(type);
+        switch (type)
         {
-            GDynamicRHI = new D3D11DynamicRHI();
-            return GDynamicRHI != nullptr ? true : false;
+            case EGfxApiType::D3D12:
+            {
+                ModuleManager::GetInstance()->LoadModule<TD3D12RHIModule>();
+                break;
+            }
+            case EGfxApiType::D3D11:
+            {
+                ModuleManager::GetInstance()->LoadModule<TD3D11RHIModule>();
+                break;
+            }
+            case EGfxApiType::Invalid:
+                return false;
         }
-        default:
-            return false;
+        
+        return true;
+    }
+
+    int32 EngineMain::Run()
+    {
+        auto* GameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
+        GGameScheduler->PushTask(GameThreadTask);
+
+        GGameScheduler->WaitForCompletionAndThreadExit();
+        GRenderScheduler->WaitForCompletionAndThreadExit();
+        GRHIScheduler->WaitForCompletionAndThreadExit();
+
+        return 0;
+    }
+
+    void EngineMain::Exit()
+    {
+        TaskSchedulerManager::ShutDown();
+        ModuleManager::GetInstance()->UnloadModule<CoreModule>();
     }
 }
+
+#pragma optimize("", on)

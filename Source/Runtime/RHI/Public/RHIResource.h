@@ -3,164 +3,202 @@
 #include "RHI.h"
 #include "CoreMinimal.h"
 #include "RHI.export.h"
+#include "Templates/RefCounting.h"
 
-class RHI_API RHIResource
+namespace Thunder
 {
-public:
-    RHIResource(RHIResourceDescriptor const& desc) : Desc(desc) {}
-    virtual void* GetShaderResourceView() { return nullptr; }
-    virtual void* GetUnorderedAccessView() { return nullptr; }
-    virtual void* GetRenderTargetView() { return nullptr; }
-    virtual void* GetDepthStencilView() { return nullptr; }
-    virtual void* GetResource() { return nullptr; }
-protected:
-    RHIResourceDescriptor Desc = {};
-};
-
-
-class RHIBuffer : public RHIResource
-{
-public:
-    RHIBuffer(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
+    class ShaderCombination;
     
-};
+    typedef TRefCountPtr<RHIConstantBufferView> RHIConstantBufferViewRef;
+    typedef TRefCountPtr<RHIShaderResourceView> RHIShaderResourceViewRef;
+    typedef TRefCountPtr<RHIUnorderedAccessView> RHIUnorderedAccessViewRef;
+    typedef TRefCountPtr<RHIRenderTargetView> RHIRenderTargetViewRef;
+    typedef TRefCountPtr<RHIDepthStencilView> RHIDepthStencilViewRef;
 
-/**
- * \brief texture
- */
-
-class RHITexture : public RHIResource
-{
-public:
-    RHITexture(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
-};
-
-class RHITexture1D : public RHITexture
-{
-public:
-    RHITexture1D(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
-};
-
-class RHITexture2D : public RHITexture
-{
-public:
-    RHITexture2D(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
-};
-
-class RHITexture2DArray : public RHITexture
-{
-public:
-    RHITexture2DArray(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
-};
-
-class RHITexture3D : public RHITexture
-{
-public:
-    RHITexture3D(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
-};
-
-/**
- * \brief buffer
- */
- class RHIVertexBuffer : public RHIBuffer
-{
-public:
-    RHIVertexBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
-};
-
-class RHIIndexBuffer : public RHIBuffer
-{
-public:
-    RHIIndexBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
-};
-
-class RHIStructuredBuffer : public RHIBuffer
-{
-public:
-    RHIStructuredBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
-};
-
-class RHIConstantBuffer : public RHIBuffer
-{
-public:
-    RHIConstantBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
-};
-
-//
-// Shader bindings
-//
-
-class RHIInputLayout : public RHIResource
-{
-public:
-    virtual bool GetInitializer(class InputLayoutInitializerRHI& init) { return false; }
-};
-
-class RHIVertexDeclaration : public RHIResource
-{
-public:
-    virtual bool GetInitializer(class VertexDeclarationInitializerRHI& init) { return false; }
-};
-
-class RHIRootSignature : public RHIResource
-{
     
-};
+    class RHI_API RHIResource : public RefCountedObject
+    {
+    public:
+        RHIResource(RHIResourceDescriptor const& desc) : Desc(desc) {}
+        virtual ~RHIResource() = default;
 
+        _NODISCARD_ virtual void* GetResource() const = 0;
+        _NODISCARD_ const RHIResourceDescriptor* GetResourceDescriptor() const { return &Desc; }
+        void SetSRV(RHIShaderResourceView* view)
+        {
+            SRV = view;
+        }
+        void SetUAV(RHIUnorderedAccessView* view)
+        {
+            UAV = view;
+        }
 
-//
-// State blocks npv_
-//
+        _NODISCARD_ RHIShaderResourceViewRef GetSRV() const { return SRV; }
+        _NODISCARD_ RHIUnorderedAccessViewRef GetUAV() const { return UAV; }
 
-class RHIRasterizerState
-{
-public:
-    RHIRasterizerState(){}
-    virtual bool GetInitializer(struct RasterizerStateInitializerRHI& init) { return false; }
-};
-
-class RHIDepthStencilState
-{
-public:
-    RHIDepthStencilState(){}
-    virtual bool GetInitializer(struct DepthStencilStateInitializerRHI& init) { return false; }
-};
-
-class RHIBlendState
-{
-public:
-    RHIBlendState(){}
-    virtual bool GetInitializer(class BlendStateInitializerRHI& init) { return false; }
-};
-
-class RHIDevice
-{
-public:
-    RHIDevice(){}
+    protected:
+        RHIResourceDescriptor Desc = {};
+        RHIShaderResourceViewRef SRV;
+        RHIUnorderedAccessViewRef UAV;
+    };
     
-};
+    class RHIBuffer : public RHIResource
+    {
+    public:
+        RHIBuffer(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
+        
+        void SetCBV(RHIConstantBufferView* view)
+        {
+            CBV = view;
+        }
+        
+        _NODISCARD_ virtual RHIConstantBufferViewRef GetCBV() const { return CBV; }
+    protected:
+        RHIConstantBufferViewRef CBV;
+    };
+    
+    /**
+     * \brief texture
+     */
+    
+    class RHITexture : public RHIResource
+    {
+    public:
+        RHITexture(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
 
+        void SetRTV(RHIRenderTargetView* view)
+        {
+            RTV = view;
+        }
+        void SetDSV(RHIDepthStencilView* view)
+        {
+            DSV = view;
+        }
+        
+        _NODISCARD_ virtual RHIRenderTargetViewRef GetRTV() const { return RTV; }
+        _NODISCARD_ virtual RHIDepthStencilViewRef GetDSV() const { return DSV; }
+    protected:
+        RHIRenderTargetViewRef RTV;
+        RHIDepthStencilViewRef DSV;
+    };
+    
+    class RHITexture1D : public RHITexture
+    {
+    public:
+        RHITexture1D(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
+    };
+    
+    class RHITexture2D : public RHITexture
+    {
+    public:
+        RHITexture2D(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
+    };
+    
+    class RHITexture2DArray : public RHITexture
+    {
+    public:
+        RHITexture2DArray(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
+    };
+    
+    class RHITexture3D : public RHITexture
+    {
+    public:
+        RHITexture3D(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
+    };
+    
+    /**
+     * \brief buffer
+     */
+     class RHIVertexBuffer : public RHIBuffer
+    {
+    public:
+        RHIVertexBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
+    };
+    
+    class RHIIndexBuffer : public RHIBuffer
+    {
+    public:
+        RHIIndexBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
+    };
+    
+    class RHIStructuredBuffer : public RHIBuffer
+    {
+    public:
+        RHIStructuredBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
+    };
+    
+    class RHIConstantBuffer : public RHIBuffer
+    {
+    public:
+        RHIConstantBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
+    };
 
-typedef int RHIVertexShader;
-typedef int RHIPixelShader;
+    //
+    // Pipeline state
+    //
 
+    class TRHIPipelineState : public RefCountedObject
+    {
+    public:
+        TRHIPipelineState(ERHIPipelineStateType type) : PipelineStateType(type) {}
+        virtual ~TRHIPipelineState() = default;
+        _NODISCARD_ virtual void* GetPipelineState() const { return nullptr; }
+        _NODISCARD_ ERHIPipelineStateType GetPipelineStateType() const { return PipelineStateType; }
+        
+    private:
+        ERHIPipelineStateType PipelineStateType;
+    };
+    
+    class TRHIGraphicsPipelineState : public TRHIPipelineState
+    {
+    public:
+        TRHIGraphicsPipelineState(const TGraphicsPipelineStateDescriptor& desc) :
+            TRHIPipelineState(ERHIPipelineStateType::Graphics), PipelineStateDesc(desc) {}
+    private:
+        TGraphicsPipelineStateDescriptor PipelineStateDesc;
+    };
 
+    class TRHIComputePipelineState : public TRHIPipelineState
+    {
+    public:
+        TRHIComputePipelineState(const TComputePipelineStateDescriptor& desc) :
+            TRHIPipelineState(ERHIPipelineStateType::Compute), PipelineStateDesc(desc) {}
+    private:
+        TComputePipelineStateDescriptor PipelineStateDesc;
+    };
 
+    //
+    // State blocks npv_
+    //
+    
+    class RHIDevice : public RefCountedObject
+    {
+    public:
+        RHIDevice(){}
+    };
 
-////// REF
-typedef RefCountPtr<RHIDevice> RHIDeviceRef;
-typedef RefCountPtr<RHIRasterizerState> RHIRasterizerStateRef;
-typedef RefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
-typedef RefCountPtr<RHIBlendState> RHIBlendStateRef;
-typedef RefCountPtr<RHIInputLayout> RHIInputLayoutRef;
-typedef RefCountPtr<RHIVertexDeclaration> RHIVertexDeclarationRef;
-typedef RefCountPtr<RHIVertexShader> RHIVertexShaderRef;
-typedef RefCountPtr<RHIPixelShader> RHIPixelShaderRef;
-typedef RefCountPtr<RHIVertexBuffer> RHIVertexBufferRef;
-typedef RefCountPtr<RHIIndexBuffer> RHIIndexBufferRef;
-typedef RefCountPtr<RHIStructuredBuffer> RHIStructuredBufferRef;
-typedef RefCountPtr<RHIConstantBuffer> RHIConstantBufferRef;
-typedef RefCountPtr<RHITexture1D> RHITexture1DRef;
-typedef RefCountPtr<RHITexture2D> RHITexture2DRef;
-typedef RefCountPtr<RHITexture2DArray> RHITexture2DArrayRef;
-typedef RefCountPtr<RHITexture3D> RHITexture3DRef;
+    class RHIViewport
+    {
+    public:
+        virtual ~RHIViewport() = default;
+        _NODISCARD_ virtual const void* GetViewPort() const = 0;
+    };
+
+    ////// REF
+    typedef TRefCountPtr<RHIDevice> RHIDeviceRef;
+    typedef TRefCountPtr<RHIBlendState> RHIBlendStateRef;
+    typedef TRefCountPtr<RHIRasterizerState> RHIRasterizerStateRef;
+    typedef TRefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
+    typedef TRefCountPtr<RHIVertexDeclarationDescriptor> RHIVertexDeclarationRef;
+    typedef TRefCountPtr<TRHIGraphicsPipelineState> RHGraphicsPipelineStateIRef;    
+    typedef TRefCountPtr<RHISampler> RHISamplerRef;
+    typedef TRefCountPtr<RHIFence> RHIFenceRef;
+    typedef TRefCountPtr<RHIVertexBuffer> RHIVertexBufferRef;
+    typedef TRefCountPtr<RHIIndexBuffer> RHIIndexBufferRef;
+    typedef TRefCountPtr<RHIStructuredBuffer> RHIStructuredBufferRef;
+    typedef TRefCountPtr<RHIConstantBuffer> RHIConstantBufferRef;
+    typedef TRefCountPtr<RHITexture1D> RHITexture1DRef;
+    typedef TRefCountPtr<RHITexture2D> RHITexture2DRef;
+    typedef TRefCountPtr<RHITexture2DArray> RHITexture2DArrayRef;
+    typedef TRefCountPtr<RHITexture3D> RHITexture3DRef;
+}

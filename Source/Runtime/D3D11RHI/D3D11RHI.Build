@@ -4,12 +4,6 @@ set(PublicDependencyModuleList
     RHI
 )
 
-set(PrivateThirdPartyIncludeList
-    ThirdParty/Windows/DirectX/include
-)
-set(PrivateThirdPartyPathList
-    ThirdParty/Windows/DirectX/Lib/x86
-)
 set(PrivateThirdPartyNameList
     d3d11.lib
     dxgi.lib

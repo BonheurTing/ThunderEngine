@@ -1,7 +1,10 @@
 # move sln file
 macro(MoveMSVCSolutionFile)
     set(SolutionBinaryPath ${CMAKE_SOURCE_DIR}/Intermediate/Build/${PROJECT_NAME}.sln)
+    message("=========================================================")
+    message("SolutionBinaryPath = \"${SolutionBinaryPath}\"")
     if(EXISTS ${SolutionBinaryPath})
+        message("Exists")
         # Load solution file from bin-dir and change the relative references to 
         # project files so that the in memory copy is as if it had been built in 
         # the source dir.
@@ -18,12 +21,20 @@ macro(MoveMSVCSolutionFile)
         set(SlnOutPath ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}.sln)
         set(OldContent "")
         if(EXISTS ${SlnOutPath})
+            message("1")
             file(READ ${SlnOutPath} OldContent)
         endif()
         if(NOT OldContent STREQUAL SlnContent)
+            message("2")
             file(WRITE ${SlnOutPath} ${SlnContent})
         endif()
+    else()
+        message("Not exists")
+        file(GLOB_RECURSE TestDirList "${CMAKE_SOURCE_DIR}/Intermediate/Build/*")
+   #      message("${TestDirList}")
+        message("Fail to find ${SolutionBinaryPath}")
     endif()
+    message("=========================================================")
 endmacro()
 
 # link module
@@ -59,6 +70,9 @@ macro(ResetConfigureValue)
     set(PrivateThirdPartyIncludeList) # 第三方库 dll lib include
     set(PrivateThirdPartyNameList)
     set(PrivateThirdPartyPathList)
+    set(PublicThirdPartyIncludeList) # 第三方库 dll lib include
+    set(PublicThirdPartyNameList)
+    set(PublicThirdPartyPathList)
     #eastl submakelist 源码编译的第三方库
     # 第三方库像ue一样有build文件，依赖的适合感知不到来源
     # 第三方库的导出
@@ -186,6 +200,19 @@ macro(BuildModule)
             endforeach()
             foreach(ImportName IN LISTS PrivateThirdPartyNameList)
                 target_link_libraries(${ModuleName} PRIVATE ${ImportName})
+            endforeach()
+        endif()
+        foreach(IncludePath IN LISTS PublicThirdPartyIncludeList)
+            target_include_directories(${ModuleName} PUBLIC ${SourceDirectoryPath}/${IncludePath})
+            list(APPEND HeaderFilesList ${SourceDirectoryPath}/${IncludePath})
+        endforeach()
+        if(PublicThirdPartyNameList)
+            foreach(FindPath IN LISTS PublicThirdPartyPathList)
+                #message("${SourceDirectoryPath}/${FindPath}")
+                target_link_directories(${ModuleName} PUBLIC ${SourceDirectoryPath}/${FindPath})
+            endforeach()
+            foreach(ImportName IN LISTS PublicThirdPartyNameList)
+                target_link_libraries(${ModuleName} PUBLIC ${ImportName})
             endforeach()
         endif()
     endforeach()

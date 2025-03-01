@@ -2,9 +2,12 @@
 
 #include <iostream>
 #include "Platform.h"
-#include "RefCount.h"
+#include "Container.h"
+#include "Vector.h"
 #include "NameHandle.h"
 #include "BasicDefinition.h"
+#include <ranges>
+#include <intsafe.h>
 
-#include <wrl.h>
-using namespace Microsoft::WRL;
+#include "Windows/WindowsPlatform.h"
+#include "Memory/MemoryBase.h"

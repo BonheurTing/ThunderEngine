@@ -1,47 +1,66 @@
 #pragma once
 
-#include "DynamicRHI.h"
+#include "IDynamicRHI.h"
 #include "d3d12.h"
+#include "D3D12DescriptorHeap.h"
 
-class D3D12RHI_API D3D12DynamicRHI : public DynamicRHI
+namespace Thunder
 {
-public:
-    D3D12DynamicRHI();
-    virtual ~D3D12DynamicRHI() = default;
+    //class TD3D12DescriptorHeap;
     
-/////// RHI Methods
-    RHIDeviceRef RHICreateDevice() override;
+    class D3D12RHI_API D3D12DynamicRHI : public IDynamicRHI
+    {
+    public:
+        D3D12DynamicRHI();
+        
+    /////// RHI Methods
+        RHIDeviceRef RHICreateDevice() override;
 
-    RHIRasterizerStateRef RHICreateRasterizerState(const RasterizerStateInitializerRHI& Initializer) override;
+        RHICommandContextRef RHICreateCommandContext() override;
+        
+        TRHIGraphicsPipelineState* RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer) override;
+        
+        void RHICreateComputePipelineState() override;
 
-    RHIDepthStencilStateRef RHICreateDepthStencilState(const DepthStencilStateInitializerRHI& Initializer) override;
+       void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) override;
+        
+        void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) override;
+        
+        void RHICreateUnorderedAccessView(RHIResource& resource, const RHIViewDescriptor& desc) override;
+        
+        void RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc) override;
+        
+        void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) override;
 
-    RHIBlendStateRef RHICreateBlendState(const BlendStateInitializerRHI& Initializer) override;
+        RHISamplerRef RHICreateSampler(const RHISamplerDescriptor& desc) override;
 
-    RHIInputLayoutRef RHICreateInputLayout(const RHIInputLayoutDescriptor& initializer) override;
-
-    RHIVertexDeclarationRef RHICreateVertexDeclaration(const VertexDeclarationInitializerRHI& Elements) override;
-
-    RHIPixelShaderRef RHICreatePixelShader() override;
-
-    RHIVertexShaderRef RHICreateVertexShader() override;
-
-    RHIVertexBufferRef RHICreateVertexBuffer(const RHIResourceDescriptor& desc) override;
+        RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) override;
     
-    RHIIndexBufferRef RHICreateIndexBuffer(const RHIResourceDescriptor& desc) override;
-
-    RHIStructuredBufferRef RHICreateStructuredBuffer(const RHIResourceDescriptor& desc) override;
-
-    RHIConstantBufferRef RHICreateConstantBuffer(const RHIResourceDescriptor& desc) override;
-
-    RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc) override;
-
-    RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc) override;
-
-    RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc) override;
-
-    RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc) override;
+        RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+        
+        RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EResourceUsageFlags usage, void *resourceData = nullptr) override;
     
-private:
-    ComPtr<ID3D12Device> Device;
-};
+        RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+    
+        RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+    
+        RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+    
+        RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+    
+        RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+    
+        RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+
+        bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId) override;
+    
+    private:
+        ComPtr<ID3D12Device> Device;
+
+        // descriptor heap
+        TRefCountPtr<TD3D12DescriptorHeap> CommonDescriptorHeap; //cbv srv uav
+        TRefCountPtr<TD3D12DescriptorHeap> RTVDescriptorHeap;
+        TRefCountPtr<TD3D12DescriptorHeap> DSVDescriptorHeap;
+        TRefCountPtr<TD3D12DescriptorHeap> SamplerDescriptorHeap;
+    };
+}

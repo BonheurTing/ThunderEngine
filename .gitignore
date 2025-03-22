@@ -27,9 +27,16 @@
 *.ipa
 *.sln
 *.user
+*.exe
 
 # git
 *.patch
+
+# flex/bison
+*.output
+*.yy.c
+*.tab.c
+*.tab.h
 
 .idea/
 .vs/

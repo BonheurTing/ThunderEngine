@@ -12,6 +12,8 @@ void yyerror(char *);
 		;
 			
 	line: define CR  {printf("YES\n");}
+		| error { yyerrok; yyclearin;}
+		;
 		
 	define: DEF_INT VAR END
 		| DEF_DOUBLE VAR END
@@ -26,7 +28,7 @@ void yyerror(char *);
 %%
 
 void yyerror(char *str){
-    fprintf(stderr,"error:%s\n",str);
+    printf("ERROR: %s\n",str);
 }
 
 int yywrap(){

@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+extern FILE *yyin;
  
 // 符号表：存储变量名和值
 #define MAX_VARS 100
@@ -217,9 +219,27 @@ void yyerror(char *str){
     printf("ERROR: %s\n",str);
 }
 
-int main() {
-    printf("Enter expression: \n");
-    yyparse();
+int main(int argc, char *argv[]) {
+    if (argc == 1)
+    {
+        yyparse();
+    }
+    else if (argc == 3 && strcmp(argv[1], "-f") == 0)
+    {
+        yyin = fopen(argv[2], "r");
+        if (!yyin)
+        {
+            yyerror("open failed");
+            return 0;
+        }
+        yyparse();
+        fclose(yyin);
+    }
+    else
+    {
+        yyerror("undefined parameter");
+        return 0;
+    }
     printSymbolTable();
     return 0;
 }

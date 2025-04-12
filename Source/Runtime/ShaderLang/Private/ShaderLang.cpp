@@ -1,8 +1,11 @@
+
+
 /**
 * 使用情景1：希望场景中画一个opaque球，一个translucent球
 * 美术：创建一个mesh球; 创建myopaque.tsf; 创建一个材质mymaterial1，挂myopaque.tsf
 */
 //myopaque.tsf
+/* %%
 Shader "myopaque"
 {
     Properties
@@ -31,12 +34,13 @@ Shader "myopaque"
         }
     }
 }
-
+%% */
 /**
 * 使用情景2：希望场景中画一个translucent球, 用双pass实现
 * 美术：创建一个mesh球; 创建mytranslucent.tsf; 创建一个材质mymaterial2，挂mytranslucent.tsf
 */
 //mytranslucent.tsf
+/* &&
 Shader "mytranslucent"
 {
     Properties
@@ -72,11 +76,13 @@ Shader "mytranslucent"
         }
     }
 }
+&&*/
 
 /**
 * 使用情景3：实现vxgi的gi渲染算法
 */
 //vxgi.tsf
+/* && 
 Shader "VXGI"
 {
     Properties
@@ -115,8 +121,10 @@ Shader "VXGI"
         void frag_lighting(v2f) {}
     }
 }
+&&*/
 
 //RDG.h
+/* && 
 class IRDGPass
 {
     virtual Render() = 0;
@@ -179,3 +187,4 @@ void Render()
     }
     ...
 }
+&&*/

@@ -5,7 +5,7 @@ import time
 import re
 
 if __name__ == "__main__":
-    os.system(".\Setup.bat")
+    os.system(".\InitializeInternal.bat")
     time.sleep(5)
     solution_file_name = ".\\Intermediate\\Build\\ThunderEditor.sln"
     if os.path.exists(solution_file_name):

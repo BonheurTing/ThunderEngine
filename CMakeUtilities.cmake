@@ -134,8 +134,6 @@ macro(BuildModule)
         #target_compile_definitions(foo PUBLIC FOO)
     endforeach()
 
-    
-
     foreach(BuildFile IN LISTS BuildFileList)
         ResetConfigureValue()
         include(${BuildFile})

@@ -1,11 +1,13 @@
 %{
 #include "../Public/AstNode.h"
+#include <cstdio>
 
 extern FILE *yyin;
 extern int yylex(void);
 void yyerror(const char *);
 void ThunderParse(const char* str);
 
+ASTNode *root;
 %}
 
 %locations
@@ -15,71 +17,128 @@ void ThunderParse(const char* str);
     char *strVal;
     struct ASTNode *astNode;
 }
- 
-%token <intVal> NUMBER
+
+%token <strVal> TYPE_INT TYPE_FLOAT TYPE_VOID
 %token <strVal> IDENTIFIER
+%token <intVal> INT_LITERAL
+%token RETURN
 %token ADD SUB MUL DIV
-%token LPAREN RPAREN EOL ASSIGN
-%type <astNode> exp term factor program
- 
+%token ASSIGN
+%token SEMICOLON COMMA
+%token LPAREN RPAREN LBRACE RBRACE
+
+%type <astNode> program function func_signature param_list param type
+%type <astNode> statement_list statement var_decl assignment func_ret
+%type <astNode> primary_expr expression
+/* %type <astNode> binary_expr */
+
 %right ASSIGN
 %left ADD SUB
 %left MUL DIV
-%nonassoc EOL
+%nonassoc SEMICOLON
  
 %%
- 
-program : exp EOL { 
-            $$ = $1; 
-            $$->value = evaluateNode($1); 
-            printf("Result: %d\n", $$->value); 
-            printAST($1, 0); 
-        }
-        | program exp EOL { 
-            $$ = $2; 
-            $$->value = evaluateNode($2); 
-            printf("Result: %d\n", $$->value); 
-            printAST($2, 0); 
-        }
-        | error { yyerrok; yyclearin;}
-        ;
- 
-exp     : term { $$ = $1; $$->value = evaluateNode($1); }
-        | exp ADD term { 
-            $$ = createNode(NODE_ADD, 0, NULL, $1, $3); 
-            $$->value = evaluateNode($1) + evaluateNode($3); 
-        }
-        | exp SUB term { 
-            $$ = createNode(NODE_SUB, 0, NULL, $1, $3); 
-            $$->value = evaluateNode($1) - evaluateNode($3); 
-        }
-        | IDENTIFIER ASSIGN exp {
-            set_variable_value($1, evaluateNode($3)); 
-            $$ = createNode(NODE_ASSIGN, 0, strdup($1), NULL, $3);
-            $$->value = $3->value;
-        }
-        ;
- 
-term    : factor { $$ = $1; $$->value = evaluateNode($1); }
-        | term MUL factor { 
-            $$ = createNode(NODE_MUL, 0, NULL, $1, $3); 
-            $$->value = evaluateNode($1) * evaluateNode($3); 
-        }
-        | term DIV factor { 
-            $$ = createNode(NODE_DIV, 0, NULL, $1, $3); 
-            $$->value = evaluateNode($1) / evaluateNode($3); 
-        }
-        ;
- 
-factor  : NUMBER { $$ = createNode(NODE_NUMBER, $1, NULL, NULL, NULL); }
-        | IDENTIFIER { 
-            $$ = createNode(NODE_IDENTIFIER, get_variable_value($1), strdup($1), NULL, NULL); 
-        }
-        | LPAREN exp RPAREN { 
-            $$ = createNode(NODE_PAREN, 0, NULL, $2, NULL); 
-            $$->value = evaluateNode($2); 
-        }
-        ;
+
+program:
+    function {root = $1;}
+    ;
+
+function:
+    func_signature LBRACE statement_list RBRACE {
+        $$ = create_function_node($1, $3);
+    }
+    ;
+
+func_signature:
+    type IDENTIFIER LPAREN param_list RPAREN {
+        $$ = create_func_signature_node($1, $2, $4);
+    }
+    ;
+
+param_list:
+    /* empty */ {
+        $$ = create_param_list_node();
+    }
+    | param_list COMMA param {
+        add_param_to_list($1, $3);
+        $$ = $1;
+    }
+    | param {
+        $$ = create_param_list_node();
+        add_param_to_list($$, $1);
+    }
+    ;
+
+param:
+    type IDENTIFIER {
+        $$ = create_param_node($1, $2);
+    }
+    ;
+
+type:
+    TYPE_INT { $$ = create_type_node(TP_INT); }
+    | TYPE_FLOAT { $$ = create_type_node(TP_FLOAT); }
+    | TYPE_VOID { $$ = create_type_node(TP_VOID); }
+    ;
+
+statement_list:
+    /* empty */ {
+        $$ = create_statement_list_node();
+    }
+    | statement_list statement {
+        add_statement_to_list($1, $2);
+        $$ = $1;
+    }
+    ;
+
+statement:
+    var_decl SEMICOLON { $$ = create_statement_node($1, Stat_DECLARE); }
+    | assignment SEMICOLON { $$ = create_statement_node($1, Stat_ASSIGN); }
+    | func_ret SEMICOLON { $$ = create_statement_node($1, Stat_RETURN); }
+    ;
+
+var_decl:
+    type IDENTIFIER {
+        $$ = create_var_decl_node($1, $2, NULL);
+    }
+    | type IDENTIFIER ASSIGN expression {
+        $$ = create_var_decl_node($1, $2, $4);
+    }
+    ;
+
+assignment:
+    IDENTIFIER ASSIGN expression {
+        $$ = create_assignment_node($1, $3);
+    }
+    ;
+
+func_ret:
+    RETURN expression {
+        $$ = create_return_node($2);
+    }
+    ;
+
+expression:
+    primary_expr { $$ = $1; }
+    | expression ADD expression {
+        $$ = create_binary_op_node(OP_ADD, $1, $3);
+    }
+    | expression SUB expression {
+        $$ = create_binary_op_node(OP_SUB, $1, $3);
+    }
+    | expression MUL expression {
+        $$ = create_binary_op_node(OP_MUL, $1, $3);
+    }
+    | expression DIV expression {
+        $$ = create_binary_op_node(OP_DIV, $1, $3);
+    }
+    ;
+
+primary_expr:
+    INT_LITERAL { $$ = create_int_literal_node($1); }
+    | IDENTIFIER { $$ = create_identifier_node($1); }
+    | LPAREN expression RPAREN { $$ = $2; }
+    ;
  
 %%
 
@@ -97,5 +156,5 @@ void ThunderParse(const char* str)
     yyparse();
     fclose(yyin); // 关闭输入文件
 
-    printSymbolTable();
+    print_ast(root, 0);
 }

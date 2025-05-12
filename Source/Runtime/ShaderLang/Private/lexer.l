@@ -1,6 +1,4 @@
 
-%option never-interactive
-
 %{
 #define YY_NO_UNISTD_H   //阻止自动包含 <unistd.h>, 因为windows平台上不是标准 C/C++ 头文件
 
@@ -28,24 +26,44 @@ void yyerror(const char *);
 //
 %}
 
+%option never-interactive
 %option debug
+/*强制使用批处理模式，适用于yyin = fopen(...)*/
 %option batch
 
 
 %%
 
-[0-9]+        { yylval.intVal = atoi(yytext); return NUMBER; }
-[a-zA-Z][a-zA-Z0-9]* { yylval.strVal = strdup(yytext); return IDENTIFIER; }  // 变量
-"\n"    { return EOL; }
-[ \t]+  { /* 忽略空白字符 */ }
-"+"     { return ADD; }
-"-"     { return SUB; }
-"*"     { return MUL; }
-"/"     { return DIV; }
-"("     { return LPAREN; }
-")"     { return RPAREN; }
-"="     { return ASSIGN; }
-.       { fprintf(stderr, "lexical error at line %d: unexpected character '%s'\n", yylloc.first_line, yytext); return yytext[0]; }
+"int"       { return TYPE_INT; }
+"float"     { return TYPE_FLOAT; }
+"void"      { return TYPE_VOID; }
+"return"    { return RETURN; }
+
+[a-zA-Z_][a-zA-Z0-9_]* {
+    yylval.strVal = strdup(yytext);
+    return IDENTIFIER;
+}
+
+[0-9]+      {
+    yylval.intVal = atoi(yytext);
+    return INT_LITERAL;
+}
+
+"+"         { return ADD; }
+"-"         { return SUB; }
+"*"         { return MUL; }
+"/"         { return DIV; }
+"="         { return ASSIGN; }
+";"         { return SEMICOLON; }
+","         { return COMMA; }
+"("         { return LPAREN; }
+")"         { return RPAREN; }
+"{"         { return LBRACE; }
+"}"         { return RBRACE; }
+
+[ \t\n]     ; // 忽略空白字符
+
+.           { yyerror("Invalid character"); }
  
 %%
  

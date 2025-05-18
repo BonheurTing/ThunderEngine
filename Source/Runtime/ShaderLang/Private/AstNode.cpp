@@ -1,5 +1,6 @@
 #pragma optimize("", off)
 #include "AstNode.h"
+#include "Assertion.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -18,71 +19,210 @@ static const char* get_type_name(VarType type) {
     }
 }
 
-ASTNode* create_function_node(ASTNode* signature, ASTNode* body) {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_FUNCTION;
-    node->Signature = signature;
-    node->Body = body;
+void ASTNode::GenerateDXIL()
+{
+    // ASTNodeAdd
+    /*mLeft.GenerateDXIL();
+    mRight.GenerateDXIL();
+    std::string outResult += "LD EAX " + mLeft.Result();
+    outResult += "LD EBX " + mRight.Result();
+    outResult += "ADD EAX EBX";*/
+}
+
+#pragma region PRINT_AST
+
+void print_ast(ASTNode* nodeRoot)
+{
+    nodeRoot->PrintAST(0);
+}
+
+void ASTNode::PrintAST(int indent)
+{
+    print_blank(indent);
+}
+
+void ASTNodeFunction::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+    printf("Function:\n");
+    Signature->PrintAST(indent + 1);
+    Body->PrintAST(indent + 1);
+}
+
+void ASTNodeFuncSignature::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+    printf("Signature:\n");
+    print_blank(indent + 1);
+    printf("FuncName: %s\n", FuncName);
+    print_blank(indent + 1);
+    printf("ReturnType: %s\n", get_type_name(ReturnType));
+    Params->PrintAST(indent + 1);
+}
+
+void ASTNodeParamList::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+    printf("ParamList(Count %d):\n", ParamCount);
+    ParamsHead->PrintAST(indent + 1);
+}
+
+void ASTNodeParam::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+    printf("Param { Type : %s; Name : %s }\n", get_type_name(ParamType), ParamName);
+    if (NextParam != nullptr) {
+        NextParam->PrintAST(indent);
+    }
+}
+
+void ASTNodeStatementList::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+    printf("StatementList:\n");
+    StatementsHead->PrintAST(indent + 1);
+}
+
+void ASTNodeStatement::PrintAST(int indent)
+{
+    TAssert(StatContent, "StatContent is null");
+    ASTNode::PrintAST(indent);
+    StatContent->PrintAST(indent);
+    if (NextStatement != nullptr)
+    {
+        NextStatement->PrintAST(indent);
+    }
+}
+
+void ASTNodeVarDeclaration::PrintAST(int indent)
+{
+    printf("VarDecl: {\n");
+    print_blank(indent + 1);
+    printf("Type : %s; Name : %s\n", get_type_name(VarDelType), VarName);
+    if (DelExpression != nullptr)
+    {
+        DelExpression->PrintAST(indent + 1);
+    }
+    print_blank(indent);
+    printf("}\n");
+}
+
+void ASTNodeAssignment::PrintAST(int indent)
+{
+    printf("Assignment: {\n");
+    print_blank(indent + 1);
+    printf("%s = \n", lhs);
+    rhs->PrintAST(indent + 1);
+    print_blank(indent);
+    printf("}\n");
+}
+
+void ASTNodeReturn::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+}
+
+void ASTNodeExpression::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+    printf("Expression:\n");
+}
+
+void ASTNodeBinaryOperation::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+    printf("BinaryOp: ");
+    switch (op) {
+    case OP_ADD: printf("+\n"); break;
+    case OP_SUB: printf("-\n"); break;
+    case OP_MUL: printf("*\n"); break;
+    case OP_DIV: printf("/\n"); break;
+    }
+    left->PrintAST(indent + 1);
+    right->PrintAST(indent + 1);
+}
+
+void ASTNodeIdentifier::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+    printf("Identifier: %s\n", Identifier);
+}
+
+void ASTNodeInteger::PrintAST(int indent)
+{
+    ASTNode::PrintAST(indent);
+    printf("Integer: %d\n", IntValue);
+}
+
+#pragma endregion
+
+#pragma region CREATE_AST_NODE
+
+ASTNode* create_function_node(ASTNode* signature, ASTNode* body)
+{
+    TAssert(signature != nullptr && signature->type == NODE_FUNC_SIGNATURE, "Signature node type is not correct");
+    TAssert(body != nullptr && body->type == NODE_STATEMENT_LIST, "Body node type is not correct");
+
+    const auto node = new ASTNodeFunction;
+    node->Signature = static_cast<ASTNodeFuncSignature*>(signature);
+    node->Body = static_cast<ASTNodeStatementList*>(body);
     return node;
 }
 
-ASTNode* create_func_signature_node(const ASTNode* returnTypeNode, const char *name, ASTNode* params) {
-    if (returnTypeNode == nullptr || returnTypeNode->type != NODE_TYPE) {
-        fprintf(stderr, "Error: Invalid return type node for function signature.\n");
-        return nullptr;
-    }
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_FUNC_SIGNATURE;
-    node->ReturnType = returnTypeNode->ParamType;
+ASTNode* create_func_signature_node(const ASTNode* returnTypeNode, const char *name, ASTNode* params)
+{
+    TAssert(returnTypeNode != nullptr && returnTypeNode->type == NODE_TYPE, "Return type node type is not correct");
+    TAssert(params != nullptr && params->type == NODE_PARAM_LIST, "Params node type is not correct");
+
+    const auto node = new ASTNodeFuncSignature;
+    node->ReturnType = static_cast<const ASTNodeType*>(returnTypeNode)->ParamType;
     node->FuncName = strdup(name);
     node->Params = params;
     return node;
 }
 
-ASTNode* create_param_list_node() {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_PARAM_LIST;
+ASTNode* create_param_list_node()
+{
+    const auto node = new ASTNodeParamList;
     node->ParamCount = 0;
     node->ParamsHead = nullptr;
     node->ParamsTail = nullptr;
     return node;
 }
 
-void add_param_to_list(ASTNode* list, ASTNode* param) {
-    // check if the list and param are valid
-    const bool isValid = list != nullptr && param != nullptr && 
-                  (list->type == NODE_PARAM_LIST) && (param->type == NODE_PARAM);
-    if (!isValid) {
-        fprintf(stderr, "Error: Attempting to add non-parameter or to non-parameter list node.\n");
-        return;
+void add_param_to_list(ASTNode* list, ASTNode* param)
+{
+    TAssert(list != nullptr && list->type == NODE_PARAM_LIST, "List node type is not correct");
+    TAssert(param != nullptr && param->type == NODE_PARAM, "Param node type is not correct");
+
+    if(const auto paramList = static_cast<ASTNodeParamList*>(list))
+    {
+        if(paramList->ParamCount == 0)
+        {
+            paramList->ParamsHead = static_cast<ASTNodeParam*>(param);
+            paramList->ParamsTail = static_cast<ASTNodeParam*>(param);
+        } else {
+            paramList->ParamsTail->NextParam = static_cast<ASTNodeParam*>(param);
+            paramList->ParamsTail = static_cast<ASTNodeParam*>(param);
+        }
+        paramList->ParamCount++;
     }
-    // add param to the list
-    if (list->ParamsHead == nullptr && list->ParamsTail == nullptr) {
-        list->ParamsHead = param;
-        list->ParamsTail = param;
-    } else {
-        list->ParamsTail->NextParam = param;
-        list->ParamsTail = param;
-    }
-    list->ParamCount++;
 }
 
-ASTNode* create_param_node(const ASTNode* typeNode, const char *name) {
-    if(typeNode == nullptr || typeNode->type != NODE_TYPE) {
-        fprintf(stderr, "Error: Invalid type node for parameter.\n");
-        return nullptr;
-    }
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_PARAM;
-    node->ParamType = typeNode->ParamType;
+ASTNode* create_param_node(const ASTNode* typeNode, const char *name)
+{
+    TAssert(typeNode != nullptr && typeNode->type == NODE_TYPE, "Type node type is not correct");
+
+    const auto node = new ASTNodeParam;
+    node->ParamType = static_cast<const ASTNodeType*>(typeNode)->ParamType;
     node->ParamName = strdup(name);
     node->NextParam = nullptr;
     return node;
 }
 
-ASTNode* create_statement_list_node() {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_STATEMENT_LIST;
+ASTNode* create_statement_list_node()
+{
+    const auto node = new ASTNodeStatementList;
     node->StatementsHead = nullptr;
     node->StatementsTail = nullptr;
     return node;
@@ -90,41 +230,42 @@ ASTNode* create_statement_list_node() {
 
 void add_statement_to_list(ASTNode* list, ASTNode* stmt)
 {
-    if (list == nullptr || stmt == nullptr || list->type != NODE_STATEMENT_LIST) {
-        fprintf(stderr, "Error: Attempting to add statement or to non-statement list node.\n");
-        return;
-    }
-    if (list->StatementsHead == nullptr && list->StatementsTail == nullptr) {
-        list->StatementsHead = stmt;
-        list->StatementsTail = stmt;
-    } else {
-        list->StatementsTail->NextStatement = stmt;
-        list->StatementsTail = stmt;
+    TAssert(list != nullptr && list->type == NODE_STATEMENT_LIST, "List node type is not correct");
+    TAssert(stmt != nullptr && stmt->type == NODE_STATEMENT, "Statement node type is not correct");
+
+    if(const auto stmtList = static_cast<ASTNodeStatementList*>(list); const auto newStmt = static_cast<ASTNodeStatement*>(stmt))
+    {
+        if (stmtList->StatementsHead == nullptr && stmtList->StatementsTail == nullptr) {
+            stmtList->StatementsHead = newStmt;
+            stmtList->StatementsTail = newStmt;
+        } else {
+            stmtList->StatementsTail->NextStatement = newStmt;
+            stmtList->StatementsTail = newStmt;
+        }
     }
 }
 
 ASTNode* create_statement_node(ASTNode* statContent, StatType type)
 {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_STATEMENT;
+    const auto node = new ASTNodeStatement;
     node->StatNodeType = type;
     node->StatContent = statContent;
-    node->NextParam = nullptr;
+    node->NextStatement = nullptr;
     return node;
 }
 
 ASTNode* create_var_decl_node(const ASTNode* typeNode, char *name, ASTNode* init_expr) {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_VAR_DECL;
-    node->VarDelType = typeNode->ParamType;
+    TAssert(typeNode != nullptr && typeNode->type == NODE_TYPE, "Type node type is not correct");
+
+    const auto node = new ASTNodeVarDeclaration;
+    node->VarDelType = static_cast<const ASTNodeType*>(typeNode)->ParamType;
     node->VarName = strdup(name);
     node->DelExpression = init_expr;
     return node;
 }
 
 ASTNode* create_assignment_node(char *lhs, ASTNode* rhs) {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_ASSIGNMENT;
+    const auto node = new ASTNodeAssignment;
     node->lhs = strdup(lhs);
     node->rhs = rhs;
     return node;
@@ -132,157 +273,42 @@ ASTNode* create_assignment_node(char *lhs, ASTNode* rhs) {
 
 ASTNode* create_return_node(ASTNode* expr)
 {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_RETURN;
+    const auto node = new ASTNodeReturn;
     node->RetValue = expr;
     return node;
 }
 
 ASTNode* create_expression_node() {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_EXPRESSION;
-    return node;
-}
-
-ASTNode* create_type_node(VarType type) {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_TYPE;
-    node->ParamType = type; // 复用param_type字段
-    return node;
-}
-
-ASTNode* create_identifier_node(char *name) {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_IDENTIFIER;
-    node->string_value = strdup(name);
-    return node;
-}
-
-ASTNode* create_int_literal_node(int value) {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_INT_LITERAL;
-    node->int_value = value;
+    const auto node = new ASTNodeExpression;
     return node;
 }
 
 ASTNode* create_binary_op_node(BinaryOp op, ASTNode* left, ASTNode* right) {
-    const auto node = static_cast<ASTNode*>(malloc(sizeof(ASTNode)));
-    node->type = NODE_BINARY_OP;
+    const auto node = new ASTNodeBinaryOperation;
     node->op = op;
     node->left = left;
     node->right = right;
     return node;
 }
 
-void print_ast(ASTNode* node, int indent) {
-    if (!node) return;
-    print_blank(indent);
-
-    switch (node->type)
-    {
-    case NODE_FUNCTION:
-    {
-        printf("Function:\n");
-        print_ast(node->Signature, indent + 1);
-        print_ast(node->Body, indent + 1);
-        break;
-    }
-            
-    case NODE_FUNC_SIGNATURE:
-    {
-        printf("Signature:\n");
-        print_blank(indent + 1);
-        printf("FuncName: %s\n", node->FuncName);
-        print_blank(indent + 1);
-        printf("ReturnType: %s\n", get_type_name(node->ReturnType));
-        print_ast(node->Params, indent + 1);
-        break;
-    }
-
-    case NODE_PARAM_LIST:
-    {
-        printf("ParamList(Count %d):\n", node->ParamCount);
-        print_ast(node->ParamsHead, indent + 1);
-        break;
-    }
-
-    case NODE_PARAM:
-    {
-        printf("Param { Type : %s; Name : %s }\n", get_type_name(node->ParamType), node->ParamName);
-        print_ast(node->NextParam, indent);
-        break;
-    }
-
-    case NODE_STATEMENT_LIST:
-    {
-        printf("StatementList:\n");
-        print_ast(node->StatementsHead, indent + 1);
-        break;
-    }
-
-    case NODE_STATEMENT:
-    {
-        print_ast(node->StatContent, indent);
-        print_ast(node->NextStatement, indent);
-        break;
-    }
-
-    case NODE_VAR_DECL:
-    {
-        printf("VarDecl: {\n");
-        print_blank(indent * 2 + 1);
-        printf("Type : %s; Name : %s\n", get_type_name(node->VarDelType), node->VarName);
-        print_ast(node->DelExpression, indent * 2 + 1);
-        print_blank(indent * 2);
-        printf("}\n");
-        break;
-    }
-            
-    case NODE_ASSIGNMENT:
-    {
-        printf("Assignment: {\n");
-        print_blank(indent * 2 + 1);
-        printf("%s = \n", node->lhs);
-        print_ast(node->rhs, indent * 2 + 1);
-        print_blank(indent * 2);
-        printf("}\n");
-        break;
-    }
-
-    case NODE_EXPRESSION:
-    {
-        printf("Expression:\n");
-        break;
-    }
-            
-    case NODE_BINARY_OP:
-    {
-        printf("BinaryOp: ");
-        switch (node->op) {
-        case OP_ADD: printf("+\n"); break;
-        case OP_SUB: printf("-\n"); break;
-        case OP_MUL: printf("*\n"); break;
-        case OP_DIV: printf("/\n"); break;
-        }
-        print_ast(node->left, indent + 1);
-        print_ast(node->right, indent + 1);
-        break;
-    }
-            
-    case NODE_INT_LITERAL:
-    {
-        printf("IntLiteral: %d\n", node->int_value);
-        break;
-    }
-            
-    case NODE_IDENTIFIER:
-    {
-        printf("Identifier: %s\n", node->string_value);
-        break;
-    }
-            
-    default:
-        printf("Unknown node type\n");
-    }
+ASTNode* create_type_node(VarType type) {
+    const auto node = new ASTNodeType;
+    node->ParamType = type; // 复用param_type字段
+    return node;
 }
+
+ASTNode* create_identifier_node(char *name) {
+    const auto node = new ASTNodeIdentifier;
+    node->Identifier = strdup(name);
+    return node;
+}
+
+ASTNode* create_int_literal_node(int value) {
+    const auto node = new ASTNodeInteger;
+    node->IntValue = value;
+    return node;
+}
+
+#pragma endregion
+
 #pragma optimize("", on)

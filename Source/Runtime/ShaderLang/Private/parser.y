@@ -1,3 +1,4 @@
+
 %{
 #include "../Public/AstNode.h"
 #include <cstdio>
@@ -156,5 +157,5 @@ void ThunderParse(const char* str)
     yyparse();
     fclose(yyin); // 关闭输入文件
 
-    print_ast(root, 0);
+    print_ast(root);
 }

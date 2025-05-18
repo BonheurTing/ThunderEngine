@@ -1,6 +1,10 @@
 set(ModuleName ShaderLang)
 set(LinkMode SHARED)
 
+set(PublicDependencyModuleList
+	Core
+)
+
 set(PrivateThirdPartyIncludeList
     ThirdParty/FlexBison
 )

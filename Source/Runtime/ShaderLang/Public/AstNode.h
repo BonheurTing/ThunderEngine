@@ -1,5 +1,8 @@
 #pragma once
-#include <string>
+#include "Container.h"
+
+namespace Thunder
+{
 
 typedef enum {
     NODE_FUNCTION,
@@ -14,8 +17,7 @@ typedef enum {
     NODE_EXPRESSION,
     NODE_TYPE,
     NODE_IDENTIFIER,
-    NODE_INTEGER,
-    NODE_BINARY_OP
+    NODE_INTEGER
 } NodeType;
 
 typedef enum
@@ -46,10 +48,10 @@ public:
     ASTNode(NodeType type) : type(type) {}
     virtual ~ASTNode() = default;
 
-    virtual void PrintAST(int indent);
-    virtual void GenerateHLSL(std::string& outResult) {}
+    virtual void GenerateHLSL(String& outResult) {}
     virtual void GenerateDXIL();
-    
+    virtual void PrintAST(int indent);
+
 public:
     NodeType type;
 };
@@ -58,6 +60,8 @@ class ASTNodeFunction : public ASTNode
 {
 public:
     ASTNodeFunction() : ASTNode(NODE_FUNCTION) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     class ASTNodeFuncSignature* Signature = nullptr;
@@ -68,6 +72,8 @@ class ASTNodeFuncSignature : public ASTNode
 {
 public:
     ASTNodeFuncSignature() : ASTNode(NODE_FUNC_SIGNATURE) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     VarType ReturnType = TP_UNDEFINED;
@@ -79,6 +85,8 @@ class ASTNodeParamList : public ASTNode
 {
 public:
     ASTNodeParamList() : ASTNode(NODE_PARAM_LIST) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     int ParamCount = 0;
@@ -90,6 +98,8 @@ class ASTNodeParam : public ASTNode
 {
 public:
     ASTNodeParam() : ASTNode(NODE_PARAM) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     VarType ParamType = TP_UNDEFINED;
@@ -101,6 +111,8 @@ class ASTNodeStatementList : public ASTNode
 {
 public:
     ASTNodeStatementList() : ASTNode(NODE_STATEMENT_LIST) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     class ASTNodeStatement* StatementsHead = nullptr;
@@ -111,6 +123,8 @@ class ASTNodeStatement : public ASTNode
 {
 public:
     ASTNodeStatement() : ASTNode(NODE_STATEMENT) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     StatType StatNodeType = Stat_UNDEFINED;
@@ -122,6 +136,8 @@ class ASTNodeVarDeclaration : public ASTNode
 {
 public:
     ASTNodeVarDeclaration() : ASTNode(NODE_VAR_DECLARATION) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     VarType VarDelType = TP_UNDEFINED;
@@ -133,6 +149,8 @@ class ASTNodeAssignment : public ASTNode
 {
 public:
     ASTNodeAssignment() : ASTNode(NODE_ASSIGNMENT) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     char* lhs = nullptr;
@@ -143,23 +161,26 @@ class ASTNodeReturn : public ASTNode
 {
 public:
     ASTNodeReturn() : ASTNode(NODE_RETURN) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
-    ASTNode* RetValue = nullptr;
+    class ASTNodeExpression* RetValue = nullptr;
 };
 
 class ASTNodeExpression : public ASTNode
 {
 public:
     ASTNodeExpression() : ASTNode(NODE_EXPRESSION) {}
-    void PrintAST(int indent) override;
 public:
 };
 
-class ASTNodeBinaryOperation : public ASTNode
+class ASTNodeBinaryOperation : public ASTNodeExpression
 {
 public:
-    ASTNodeBinaryOperation() : ASTNode(NODE_BINARY_OP) {}
+    ASTNodeBinaryOperation() {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     BinaryOp op = OP_ADD;
@@ -179,6 +200,8 @@ class ASTNodeIdentifier : public ASTNode
 {
 public:
     ASTNodeIdentifier() : ASTNode(NODE_IDENTIFIER) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     char* Identifier = nullptr;
@@ -188,6 +211,8 @@ class ASTNodeInteger : public ASTNode
 {
 public:
     ASTNodeInteger() : ASTNode(NODE_INTEGER) {}
+
+    void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
     int IntValue = 0;
@@ -209,4 +234,6 @@ ASTNode* create_binary_op_node(BinaryOp op, ASTNode* left, ASTNode* right);
 ASTNode* create_type_node(VarType type);
 ASTNode* create_identifier_node(char* name);
 ASTNode* create_int_literal_node(int value);
-void print_ast(ASTNode* nodeRoot);
+void post_process_ast(ASTNode* nodeRoot);
+
+}

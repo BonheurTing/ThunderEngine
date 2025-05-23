@@ -4,14 +4,17 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <string>
+
+namespace Thunder
+{
 
 static void print_blank(int indent) {
     for (int i = 0; i < indent; i++) printf("  ");
 }
 
 static const char* get_type_name(VarType type) {
-    switch (type) {
+    switch (type)
+    {
         case TP_INT: return "int";
         case TP_FLOAT: return "float";
         case TP_VOID: return "void";
@@ -29,12 +32,125 @@ void ASTNode::GenerateDXIL()
     outResult += "ADD EAX EBX";*/
 }
 
-#pragma region PRINT_AST
+#pragma region HLSL
 
-void print_ast(ASTNode* nodeRoot)
+void ASTNodeFunction::GenerateHLSL(std::string& outResult)
 {
-    nodeRoot->PrintAST(0);
+    String funcSignature;
+    Signature->GenerateHLSL(funcSignature);
+    String funcBody;
+    Body->GenerateHLSL(funcBody);
+    outResult += funcSignature + "{\n" + funcBody + "}\n";
 }
+
+void ASTNodeFuncSignature::GenerateHLSL(String& outResult)
+{
+    String paramList;
+    if (Params != nullptr)
+    {
+        Params->GenerateHLSL(paramList);
+    }
+    const String returnType = get_type_name(ReturnType);
+    outResult += returnType + " " + FuncName + "(" + paramList + ");\n";
+}
+
+void ASTNodeParamList::GenerateHLSL(String& outResult)
+{
+    if (ParamsHead != nullptr)
+    {
+        ParamsHead->GenerateHLSL(outResult);
+    }
+}
+
+void ASTNodeParam::GenerateHLSL(String& outResult)
+{
+    const String typeName = get_type_name(ParamType);
+    outResult += typeName + " " + ParamName;
+    if (NextParam != nullptr)
+    {
+        outResult += ", ";
+        NextParam->GenerateHLSL(outResult);
+    }
+}
+
+void ASTNodeStatementList::GenerateHLSL(String& outResult)
+{
+    if (StatementsHead != nullptr)
+    {
+        StatementsHead->GenerateHLSL(outResult);
+    }
+}
+
+void ASTNodeStatement::GenerateHLSL(String& outResult)
+{
+    if (StatContent != nullptr)
+    {
+        StatContent->GenerateHLSL(outResult);
+    }
+    if (NextStatement != nullptr)
+    {
+        NextStatement->GenerateHLSL(outResult);
+    }
+}
+
+void ASTNodeVarDeclaration::GenerateHLSL(String& outResult)
+{
+    const String typeName = get_type_name(VarDelType);
+    outResult += typeName + " " + VarName;
+    if (DelExpression != nullptr)
+    {
+        outResult += " = ";
+        DelExpression->GenerateHLSL(outResult);
+    }
+    outResult += ";\n";
+}
+
+void ASTNodeAssignment::GenerateHLSL(String& outResult)
+{
+    outResult += String(lhs) + " = ";
+    TAssert(rhs != nullptr, "Assignment rhs is null");
+    rhs->GenerateHLSL(outResult);
+    outResult += ";\n";
+}
+
+void ASTNodeReturn::GenerateHLSL(String& outResult)
+{
+    outResult += "return ";
+    if (RetValue != nullptr)
+    {
+        RetValue->GenerateHLSL(outResult);
+    }
+    outResult += ";\n";
+}
+
+void ASTNodeBinaryOperation::GenerateHLSL(String& outResult)
+{
+    TAssert(left != nullptr && right != nullptr, "Binary operation left or right is null");
+    outResult += "(";
+    left->GenerateHLSL(outResult);
+    switch (op) {
+    case OP_ADD: outResult += " + "; break;
+    case OP_SUB: outResult += " - "; break;
+    case OP_MUL: outResult += " * "; break;
+    case OP_DIV: outResult += " / "; break;
+    }
+    right->GenerateHLSL(outResult);
+    outResult += ")";
+}
+
+void ASTNodeIdentifier::GenerateHLSL(String& outResult)
+{
+    outResult += Identifier;
+}
+
+void ASTNodeInteger::GenerateHLSL(String& outResult)
+{
+    outResult += std::to_string(IntValue);
+}
+
+#pragma endregion
+
+#pragma region PRINT_AST
 
 void ASTNode::PrintAST(int indent)
 {
@@ -112,6 +228,7 @@ void ASTNodeAssignment::PrintAST(int indent)
     printf("Assignment: {\n");
     print_blank(indent + 1);
     printf("%s = \n", lhs);
+    TAssert(rhs != nullptr, "Assignment rhs is null");
     rhs->PrintAST(indent + 1);
     print_blank(indent);
     printf("}\n");
@@ -120,16 +237,12 @@ void ASTNodeAssignment::PrintAST(int indent)
 void ASTNodeReturn::PrintAST(int indent)
 {
     ASTNode::PrintAST(indent);
-}
-
-void ASTNodeExpression::PrintAST(int indent)
-{
-    ASTNode::PrintAST(indent);
-    printf("Expression:\n");
+    //todo
 }
 
 void ASTNodeBinaryOperation::PrintAST(int indent)
 {
+    TAssert(left != nullptr && right != nullptr, "Binary operation left or right is null");
     ASTNode::PrintAST(indent);
     printf("BinaryOp: ");
     switch (op) {
@@ -273,8 +386,9 @@ ASTNode* create_assignment_node(char *lhs, ASTNode* rhs) {
 
 ASTNode* create_return_node(ASTNode* expr)
 {
+    TAssert(expr != nullptr && expr->type == NODE_EXPRESSION, "Return expression is null");
     const auto node = new ASTNodeReturn;
-    node->RetValue = expr;
+    node->RetValue = static_cast<ASTNodeExpression*>(expr);
     return node;
 }
 
@@ -311,4 +425,14 @@ ASTNode* create_int_literal_node(int value) {
 
 #pragma endregion
 
+void post_process_ast(ASTNode* nodeRoot)
+{
+    nodeRoot->PrintAST(0);
+    printf("\n");
+    String outHlsl;
+    nodeRoot->GenerateHLSL(outHlsl);
+    printf("generate hlsl\n%s", outHlsl.c_str());
+}
+    
+}
 #pragma optimize("", on)

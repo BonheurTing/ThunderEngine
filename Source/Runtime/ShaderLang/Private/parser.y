@@ -3,6 +3,8 @@
 #include "../Public/AstNode.h"
 #include <cstdio>
 
+using namespace Thunder;
+
 extern FILE *yyin;
 extern int yylex(void);
 void yyerror(const char *);
@@ -157,5 +159,5 @@ void ThunderParse(const char* str)
     yyparse();
     fclose(yyin); // 关闭输入文件
 
-    print_ast(root);
+    post_process_ast(root);
 }

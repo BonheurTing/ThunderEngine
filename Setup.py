@@ -5,6 +5,7 @@ import time
 import re
 
 if __name__ == "__main__":
+    os.system(".\GenerateShaderCompiler.bat")
     os.system(".\InitializeInternal.bat")
     time.sleep(5)
     solution_file_name = ".\\Intermediate\\Build\\ThunderEditor.sln"

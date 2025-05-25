@@ -1,5 +1,6 @@
 #pragma once
 #include "Container.h"
+#include "NameHandle.h"
 
 namespace Thunder
 {
@@ -77,7 +78,7 @@ public:
     void PrintAST(int indent) override;
 public:
     VarType ReturnType = TP_UNDEFINED;
-    char* FuncName = nullptr;
+    NameHandle FuncName = nullptr;
     ASTNode* Params = nullptr;
 };
 
@@ -103,7 +104,7 @@ public:
     void PrintAST(int indent) override;
 public:
     VarType ParamType = TP_UNDEFINED;
-    char* ParamName = nullptr;
+    NameHandle ParamName = nullptr;
     ASTNodeParam*  NextParam = nullptr;
 };
 
@@ -141,7 +142,7 @@ public:
     void PrintAST(int indent) override;
 public:
     VarType VarDelType = TP_UNDEFINED;
-    char* VarName = nullptr;
+    NameHandle VarName = nullptr;
     ASTNode* DelExpression = nullptr;
 };
 
@@ -153,7 +154,7 @@ public:
     void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
-    char* lhs = nullptr;
+    NameHandle lhs = nullptr;
     ASTNode* rhs = nullptr;
 };
 
@@ -204,7 +205,7 @@ public:
     void GenerateHLSL(String& outResult) override;
     void PrintAST(int indent) override;
 public:
-    char* Identifier = nullptr;
+    NameHandle Identifier = nullptr;
 };
 
 class ASTNodeInteger : public ASTNode
@@ -226,13 +227,13 @@ ASTNode* create_param_node(const ASTNode* typeNode, const char* name);
 ASTNode* create_statement_list_node();
 void add_statement_to_list(ASTNode* list, ASTNode* stmt);
 ASTNode* create_statement_node(ASTNode* statContent, StatType type);
-ASTNode* create_var_decl_node(const ASTNode* typeNode, char* name, ASTNode* init_expr);
-ASTNode* create_assignment_node(char* lhs, ASTNode* rhs);
+ASTNode* create_var_decl_node(const ASTNode* typeNode, const char* name, ASTNode* init_expr);
+ASTNode* create_assignment_node(const char* lhs, ASTNode* rhs);
 ASTNode* create_return_node(ASTNode* expr);
 ASTNode* create_expression_node();
 ASTNode* create_binary_op_node(BinaryOp op, ASTNode* left, ASTNode* right);
 ASTNode* create_type_node(VarType type);
-ASTNode* create_identifier_node(char* name);
+ASTNode* create_identifier_node(const char* name);
 ASTNode* create_int_literal_node(int value);
 void post_process_ast(ASTNode* nodeRoot);
 

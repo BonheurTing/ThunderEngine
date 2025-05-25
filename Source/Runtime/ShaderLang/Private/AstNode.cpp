@@ -1,9 +1,8 @@
 #pragma optimize("", off)
 #include "AstNode.h"
 #include "Assertion.h"
-
-#include <cstdio>
-#include <cstdlib>
+#include "ShaderCompiler.h"
+#include "Templates/RefCounting.h"
 
 namespace Thunder
 {
@@ -18,8 +17,9 @@ static const char* get_type_name(VarType type) {
         case TP_INT: return "int";
         case TP_FLOAT: return "float";
         case TP_VOID: return "void";
-        default: return "unknown";
+        case TP_UNDEFINED: return "unknown";
     }
+    return nullptr;
 }
 
 void ASTNode::GenerateDXIL()
@@ -51,7 +51,7 @@ void ASTNodeFuncSignature::GenerateHLSL(String& outResult)
         Params->GenerateHLSL(paramList);
     }
     const String returnType = get_type_name(ReturnType);
-    outResult += returnType + " " + FuncName + "(" + paramList + ");\n";
+    outResult += returnType + " " + FuncName.ToString() + "(" + paramList + ")\n";
 }
 
 void ASTNodeParamList::GenerateHLSL(String& outResult)
@@ -65,7 +65,7 @@ void ASTNodeParamList::GenerateHLSL(String& outResult)
 void ASTNodeParam::GenerateHLSL(String& outResult)
 {
     const String typeName = get_type_name(ParamType);
-    outResult += typeName + " " + ParamName;
+    outResult += typeName + " " + ParamName.ToString();
     if (NextParam != nullptr)
     {
         outResult += ", ";
@@ -96,7 +96,7 @@ void ASTNodeStatement::GenerateHLSL(String& outResult)
 void ASTNodeVarDeclaration::GenerateHLSL(String& outResult)
 {
     const String typeName = get_type_name(VarDelType);
-    outResult += typeName + " " + VarName;
+    outResult += typeName + " " + VarName.ToString();
     if (DelExpression != nullptr)
     {
         outResult += " = ";
@@ -107,7 +107,7 @@ void ASTNodeVarDeclaration::GenerateHLSL(String& outResult)
 
 void ASTNodeAssignment::GenerateHLSL(String& outResult)
 {
-    outResult += String(lhs) + " = ";
+    outResult += lhs.ToString() + " = ";
     TAssert(rhs != nullptr, "Assignment rhs is null");
     rhs->GenerateHLSL(outResult);
     outResult += ";\n";
@@ -140,7 +140,7 @@ void ASTNodeBinaryOperation::GenerateHLSL(String& outResult)
 
 void ASTNodeIdentifier::GenerateHLSL(String& outResult)
 {
-    outResult += Identifier;
+    outResult += Identifier.ToString();
 }
 
 void ASTNodeInteger::GenerateHLSL(String& outResult)
@@ -170,7 +170,7 @@ void ASTNodeFuncSignature::PrintAST(int indent)
     ASTNode::PrintAST(indent);
     printf("Signature:\n");
     print_blank(indent + 1);
-    printf("FuncName: %s\n", FuncName);
+    printf("FuncName: %s\n", FuncName.c_str());
     print_blank(indent + 1);
     printf("ReturnType: %s\n", get_type_name(ReturnType));
     Params->PrintAST(indent + 1);
@@ -180,13 +180,16 @@ void ASTNodeParamList::PrintAST(int indent)
 {
     ASTNode::PrintAST(indent);
     printf("ParamList(Count %d):\n", ParamCount);
-    ParamsHead->PrintAST(indent + 1);
+    if (ParamsHead != nullptr)
+    {
+        ParamsHead->PrintAST(indent + 1);
+    }
 }
 
 void ASTNodeParam::PrintAST(int indent)
 {
     ASTNode::PrintAST(indent);
-    printf("Param { Type : %s; Name : %s }\n", get_type_name(ParamType), ParamName);
+    printf("Param { Type : %s; Name : %s }\n", get_type_name(ParamType), ParamName.c_str());
     if (NextParam != nullptr) {
         NextParam->PrintAST(indent);
     }
@@ -214,7 +217,7 @@ void ASTNodeVarDeclaration::PrintAST(int indent)
 {
     printf("VarDecl: {\n");
     print_blank(indent + 1);
-    printf("Type : %s; Name : %s\n", get_type_name(VarDelType), VarName);
+    printf("Type : %s; Name : %s\n", get_type_name(VarDelType), VarName.c_str());
     if (DelExpression != nullptr)
     {
         DelExpression->PrintAST(indent + 1);
@@ -227,7 +230,7 @@ void ASTNodeAssignment::PrintAST(int indent)
 {
     printf("Assignment: {\n");
     print_blank(indent + 1);
-    printf("%s = \n", lhs);
+    printf("%s = \n", lhs.c_str());
     TAssert(rhs != nullptr, "Assignment rhs is null");
     rhs->PrintAST(indent + 1);
     print_blank(indent);
@@ -236,8 +239,19 @@ void ASTNodeAssignment::PrintAST(int indent)
 
 void ASTNodeReturn::PrintAST(int indent)
 {
-    ASTNode::PrintAST(indent);
-    //todo
+    printf("Assignment: {\n");
+    print_blank(indent + 1);
+    printf("return \n");
+    if (RetValue != nullptr)
+    {
+        RetValue->PrintAST(indent + 1);
+    }
+    else
+    {
+        printf(";\n");
+    }
+    print_blank(indent);
+    printf("}\n");
 }
 
 void ASTNodeBinaryOperation::PrintAST(int indent)
@@ -258,7 +272,7 @@ void ASTNodeBinaryOperation::PrintAST(int indent)
 void ASTNodeIdentifier::PrintAST(int indent)
 {
     ASTNode::PrintAST(indent);
-    printf("Identifier: %s\n", Identifier);
+    printf("Identifier: %s\n", Identifier.c_str());
 }
 
 void ASTNodeInteger::PrintAST(int indent)
@@ -289,7 +303,7 @@ ASTNode* create_func_signature_node(const ASTNode* returnTypeNode, const char *n
 
     const auto node = new ASTNodeFuncSignature;
     node->ReturnType = static_cast<const ASTNodeType*>(returnTypeNode)->ParamType;
-    node->FuncName = strdup(name);
+    node->FuncName = name;
     node->Params = params;
     return node;
 }
@@ -328,7 +342,7 @@ ASTNode* create_param_node(const ASTNode* typeNode, const char *name)
 
     const auto node = new ASTNodeParam;
     node->ParamType = static_cast<const ASTNodeType*>(typeNode)->ParamType;
-    node->ParamName = strdup(name);
+    node->ParamName = name;
     node->NextParam = nullptr;
     return node;
 }
@@ -367,26 +381,26 @@ ASTNode* create_statement_node(ASTNode* statContent, StatType type)
     return node;
 }
 
-ASTNode* create_var_decl_node(const ASTNode* typeNode, char *name, ASTNode* init_expr) {
+ASTNode* create_var_decl_node(const ASTNode* typeNode, const char *name, ASTNode* init_expr) {
     TAssert(typeNode != nullptr && typeNode->type == NODE_TYPE, "Type node type is not correct");
 
     const auto node = new ASTNodeVarDeclaration;
     node->VarDelType = static_cast<const ASTNodeType*>(typeNode)->ParamType;
-    node->VarName = strdup(name);
+    node->VarName = name;
     node->DelExpression = init_expr;
     return node;
 }
 
-ASTNode* create_assignment_node(char *lhs, ASTNode* rhs) {
+ASTNode* create_assignment_node(const char *lhs, ASTNode* rhs) {
     const auto node = new ASTNodeAssignment;
-    node->lhs = strdup(lhs);
+    node->lhs = lhs;
     node->rhs = rhs;
     return node;
 }
 
 ASTNode* create_return_node(ASTNode* expr)
 {
-    TAssert(expr != nullptr && expr->type == NODE_EXPRESSION, "Return expression is null");
+    TAssert(expr != nullptr, "Return expression is null");
     const auto node = new ASTNodeReturn;
     node->RetValue = static_cast<ASTNodeExpression*>(expr);
     return node;
@@ -411,9 +425,9 @@ ASTNode* create_type_node(VarType type) {
     return node;
 }
 
-ASTNode* create_identifier_node(char *name) {
+ASTNode* create_identifier_node(const char *name) {
     const auto node = new ASTNodeIdentifier;
-    node->Identifier = strdup(name);
+    node->Identifier = name;
     return node;
 }
 
@@ -432,6 +446,19 @@ void post_process_ast(ASTNode* nodeRoot)
     String outHlsl;
     nodeRoot->GenerateHLSL(outHlsl);
     printf("generate hlsl\n%s", outHlsl.c_str());
+
+    BinaryData ByteCode;
+    const TRefCountPtr<ICompiler> ShaderCompiler = new DXCCompiler();
+    ShaderCompiler->Compile(nullptr, outHlsl, outHlsl.size(), {}, "", "foo", "ps_6_0", ByteCode);
+    if (ByteCode.Data != nullptr)
+    {
+        printf("ByteCode Size: %d\n", static_cast<int32>(ByteCode.Size));
+        TMemory::Destroy(ByteCode.Data);
+    }
+    else
+    {
+        printf("ByteCode is null\n");
+    }
 }
     
 }

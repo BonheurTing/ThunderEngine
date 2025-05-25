@@ -32,8 +32,7 @@ ASTNode *root;
 
 %type <astNode> program function func_signature param_list param type
 %type <astNode> statement_list statement var_decl assignment func_ret
-%type <astNode> primary_expr expression
-/* %type <astNode> binary_expr */
+%type <astNode> expression primary_expr binary_expr priority_expr
 
 %right ASSIGN
 %left ADD SUB
@@ -79,9 +78,9 @@ param:
     ;
 
 type:
-    TYPE_INT { $$ = create_type_node(TP_INT); }
-    | TYPE_FLOAT { $$ = create_type_node(TP_FLOAT); }
-    | TYPE_VOID { $$ = create_type_node(TP_VOID); }
+    TYPE_INT { $$ = create_type_node(EVarType::TP_INT); }
+    | TYPE_FLOAT { $$ = create_type_node(EVarType::TP_FLOAT); }
+    | TYPE_VOID { $$ = create_type_node(EVarType::TP_VOID); }
     ;
 
 statement_list:
@@ -95,54 +94,62 @@ statement_list:
     ;
 
 statement:
-    var_decl SEMICOLON { $$ = create_statement_node($1, Stat_DECLARE); }
-    | assignment SEMICOLON { $$ = create_statement_node($1, Stat_ASSIGN); }
-    | func_ret SEMICOLON { $$ = create_statement_node($1, Stat_RETURN); }
+    var_decl { $$ = create_statement_node($1, EStatType::Stat_DECLARE); }
+    | assignment { $$ = create_statement_node($1, EStatType::Stat_ASSIGN); }
+    | func_ret { $$ = create_statement_node($1, EStatType::Stat_RETURN); }
     ;
 
 var_decl:
-    type IDENTIFIER {
-        $$ = create_var_decl_node($1, $2, NULL);
+    type IDENTIFIER SEMICOLON {
+        $$ = create_var_decl_node($1, $2, nullptr);
     }
-    | type IDENTIFIER ASSIGN expression {
+    | type IDENTIFIER ASSIGN expression SEMICOLON {
         $$ = create_var_decl_node($1, $2, $4);
     }
     ;
 
 assignment:
-    IDENTIFIER ASSIGN expression {
+    IDENTIFIER ASSIGN expression SEMICOLON {
         $$ = create_assignment_node($1, $3);
     }
     ;
 
 func_ret:
-    RETURN expression {
+    RETURN expression SEMICOLON {
         $$ = create_return_node($2);
     }
     ;
 
 expression:
     primary_expr { $$ = $1; }
-    | expression ADD expression {
-        $$ = create_binary_op_node(OP_ADD, $1, $3);
-    }
-    | expression SUB expression {
-        $$ = create_binary_op_node(OP_SUB, $1, $3);
-    }
-    | expression MUL expression {
-        $$ = create_binary_op_node(OP_MUL, $1, $3);
-    }
-    | expression DIV expression {
-        $$ = create_binary_op_node(OP_DIV, $1, $3);
-    }
+    | priority_expr { $$ = $1; }
+    | binary_expr { $$ = $1; }
     ;
 
 primary_expr:
     INT_LITERAL { $$ = create_int_literal_node($1); }
     | IDENTIFIER { $$ = create_identifier_node($1); }
-    | LPAREN expression RPAREN { $$ = $2; }
     ;
- 
+
+priority_expr:
+    LPAREN /* empty */ RPAREN {$$ = create_priority_node(nullptr); }
+    | LPAREN expression RPAREN { $$ = create_priority_node($2); }
+    ;
+
+binary_expr:
+    expression ADD expression {
+        $$ = create_binary_op_node(EBinaryOp::OP_ADD, $1, $3);
+    }
+    | expression SUB expression {
+        $$ = create_binary_op_node(EBinaryOp::OP_SUB, $1, $3);
+    }
+    | expression MUL expression {
+        $$ = create_binary_op_node(EBinaryOp::OP_MUL, $1, $3);
+    }
+    | expression DIV expression {
+        $$ = create_binary_op_node(EBinaryOp::OP_DIV, $1, $3);
+    }
+    ;
 %%
 
 void yyerror(const char* str){

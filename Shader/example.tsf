@@ -1,14 +1,7 @@
-int foo(int x, float y) {
+int main(int x, float y) {
     int a;
     int b = 10;
     a = x + 5;
     b = a * y;
-}
-
-void foo2(int x)
-{
-}
-
-int foo1()
-{
+    return b;
 }

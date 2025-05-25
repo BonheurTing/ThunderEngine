@@ -94,9 +94,9 @@ statement_list:
     ;
 
 statement:
-    var_decl { $$ = create_statement_node($1, EStatType::Stat_DECLARE); }
-    | assignment { $$ = create_statement_node($1, EStatType::Stat_ASSIGN); }
-    | func_ret { $$ = create_statement_node($1, EStatType::Stat_RETURN); }
+    var_decl { $$ = $1; }
+    | assignment { $$ = $1; }
+    | func_ret { $$ = $1; }
     ;
 
 var_decl:

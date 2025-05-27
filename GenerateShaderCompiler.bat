@@ -1,10 +1,10 @@
 @echo off
+set FLEXBISON_BINARY_DIR=.\Source\ThirdParty\FlexBison
+set SHADERLANG_WORKSPACE=.\Source\Runtime\ShaderLang
+
 echo -- Generate C++ Files for Shader Parser using Flex/Bison
 rmdir /s /q %SHADERLANG_WORKSPACE%\Generated
 mkdir %SHADERLANG_WORKSPACE%\Generated
-
-set FLEXBISON_BINARY_DIR=.\Source\ThirdParty\FlexBison
-set SHADERLANG_WORKSPACE=.\Source\Runtime\ShaderLang
 
 echo -- Check the Flex/Bison version
 %FLEXBISON_BINARY_DIR%\win_bison.exe --version

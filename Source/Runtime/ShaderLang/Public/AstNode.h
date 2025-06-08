@@ -4,7 +4,6 @@
 
 namespace Thunder
 {
-
     enum class EBasalNodeType : uint8
     {
         NODE_FUNCTION,
@@ -19,10 +18,10 @@ namespace Thunder
 
     enum class EStatementType : uint8
     {
-        Stat_DECLARE,
-        Stat_ASSIGN,
-        Stat_RETURN,
-        Stat_UNDEFINED
+        STAT_DECLARE,
+        STAT_ASSIGN,
+        STAT_RETURN,
+        STAT_UNDEFINED
     };
 
     enum class EExpressionType : uint8
@@ -51,169 +50,176 @@ namespace Thunder
         OP_UNDEFINED
     };
 
-    class ASTNode
+    struct parse_node
+    {
+        int intVal;
+        char *strVal;
+        class ast_node *astNode;
+    };
+
+    class ast_node
     {
     public:
-        ASTNode(EBasalNodeType type) : Type(type) {}
-        virtual ~ASTNode() = default;
+        ast_node(EBasalNodeType type) : Type(type) {}
+        virtual ~ast_node() = default;
 
-        virtual void GenerateHLSL(String& outResult) = 0;
+        virtual void GenerateHLSL(String& outResult) {};
         virtual void GenerateDXIL();
-        virtual void PrintAST(int indent) = 0;
+        virtual void PrintAST(int indent) {};
 
     public:
         EBasalNodeType Type;
     };
 
-    class ASTNodeFunction : public ASTNode
+    class ast_node_function : public ast_node
     {
     public:
-        ASTNodeFunction() : ASTNode(EBasalNodeType::NODE_FUNCTION) {}
+        ast_node_function() : ast_node(EBasalNodeType::NODE_FUNCTION) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        class ASTNodeFuncSignature* Signature = nullptr;
-        class ASTNodeStatementList* Body = nullptr;
+        class ast_node_func_signature* Signature = nullptr;
+        class ast_node_statement_list* Body = nullptr;
     };
 
-    class ASTNodeFuncSignature : public ASTNode
+    class ast_node_func_signature : public ast_node
     {
     public:
-        ASTNodeFuncSignature() : ASTNode(EBasalNodeType::NODE_FUNC_SIGNATURE) {}
+        ast_node_func_signature() : ast_node(EBasalNodeType::NODE_FUNC_SIGNATURE) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        class ASTNodeType* ReturnType = nullptr;
+        class ast_node_type* ReturnType = nullptr;
         NameHandle FuncName = nullptr;
-        class ASTNodeParamList* Params = nullptr;
+        class ast_node_param_list* Params = nullptr;
     };
 
-    class ASTNodeParamList : public ASTNode
+    class ast_node_param_list : public ast_node
     {
     public:
-        ASTNodeParamList() : ASTNode(EBasalNodeType::NODE_PARAM_LIST) {}
+        ast_node_param_list() : ast_node(EBasalNodeType::NODE_PARAM_LIST) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
         int ParamCount = 0;
-        class ASTNodeParam* ParamsHead = nullptr;
-        ASTNodeParam* ParamsTail = nullptr;
+        class ast_node_param* ParamsHead = nullptr;
+        ast_node_param* ParamsTail = nullptr;
     };
 
-    class ASTNodeParam : public ASTNode
+    class ast_node_param : public ast_node
     {
     public:
-        ASTNodeParam() : ASTNode(EBasalNodeType::NODE_PARAM) {}
+        ast_node_param() : ast_node(EBasalNodeType::NODE_PARAM) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        ASTNodeType* ParamType = nullptr;
+        ast_node_type* ParamType = nullptr;
         NameHandle ParamName = nullptr;
-        ASTNodeParam*  NextParam = nullptr;
+        ast_node_param*  NextParam = nullptr;
     };
 
-    class ASTNodeStatementList : public ASTNode
+    class ast_node_statement_list : public ast_node
     {
     public:
-        ASTNodeStatementList() : ASTNode(EBasalNodeType::NODE_STATEMENT_LIST) {}
+        ast_node_statement_list() : ast_node(EBasalNodeType::NODE_STATEMENT_LIST) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        class ASTNodeStatement* StatementsHead = nullptr;
-        ASTNodeStatement* StatementsTail = nullptr;
+        class ast_node_statement* StatementsHead = nullptr;
+        ast_node_statement* StatementsTail = nullptr;
     };
 
-    class ASTNodeStatement : public ASTNode
+    class ast_node_statement : public ast_node
     {
     public:
-        ASTNodeStatement(EStatementType statType)
-        : ASTNode(EBasalNodeType::NODE_STATEMENT), StatNodeType(statType) {}
+        ast_node_statement(EStatementType statType)
+        : ast_node(EBasalNodeType::NODE_STATEMENT), StatNodeType(statType) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
         EStatementType StatNodeType;
-        ASTNodeStatement* NextStatement = nullptr;
+        ast_node_statement* NextStatement = nullptr;
     };
 
-    class ASTNodeVarDeclaration : public ASTNodeStatement
+    class ast_node_var_declaration : public ast_node_statement
     {
     public:
-        ASTNodeVarDeclaration() : ASTNodeStatement(EStatementType::Stat_DECLARE) {}
+        ast_node_var_declaration() : ast_node_statement(EStatementType::STAT_DECLARE) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        ASTNodeType* VarDelType = nullptr;
+        ast_node_type* VarDelType = nullptr;
         NameHandle VarName = nullptr;
-        class ASTNodeExpression* DelExpression = nullptr;
+        class ast_node_expression* DelExpression = nullptr;
     };
 
-    class ASTNodeAssignment : public ASTNodeStatement
+    class ast_node_assignment : public ast_node_statement
     {
     public:
-        ASTNodeAssignment() : ASTNodeStatement(EStatementType::Stat_ASSIGN) {}
+        ast_node_assignment() : ast_node_statement(EStatementType::STAT_ASSIGN) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
         NameHandle LhsVar = nullptr;
-        ASTNodeExpression* RhsExpression = nullptr;
+        ast_node_expression* RhsExpression = nullptr;
     };
 
-    class ASTNodeReturn : public ASTNodeStatement
+    class ast_node_return : public ast_node_statement
     {
     public:
-        ASTNodeReturn() : ASTNodeStatement(EStatementType::Stat_RETURN) {}
+        ast_node_return() : ast_node_statement(EStatementType::STAT_RETURN) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        ASTNodeExpression* RetValue = nullptr;
+        ast_node_expression* RetValue = nullptr;
     };
 
-    class ASTNodeExpression : public ASTNode
+    class ast_node_expression : public ast_node
     {
     public:
-        ASTNodeExpression(EExpressionType exprType)
-            : ASTNode(EBasalNodeType::NODE_EXPRESSION), ExprType(exprType) {}
+        ast_node_expression(EExpressionType exprType)
+            : ast_node(EBasalNodeType::NODE_EXPRESSION), ExprType(exprType) {}
     public:
         EExpressionType ExprType;
     };
 
-    class ASTNodeBinaryOperation : public ASTNodeExpression
+    class ast_node_binary_operation : public ast_node_expression
     {
     public:
-        ASTNodeBinaryOperation() : ASTNodeExpression (EExpressionType::EXPR_BINARY_OP) {}
+        ast_node_binary_operation() : ast_node_expression (EExpressionType::EXPR_BINARY_OP) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
         EBinaryOp op = EBinaryOp::OP_UNDEFINED;
-        ASTNodeExpression* left = nullptr;
-        ASTNodeExpression* right = nullptr;
+        ast_node_expression* left = nullptr;
+        ast_node_expression* right = nullptr;
     };
 
-    class ASTNodePriority : public ASTNodeExpression
+    class ast_node_priority : public ast_node_expression
     {
     public:
-        ASTNodePriority() : ASTNodeExpression(EExpressionType::EXPR_PRIORITY) {}
+        ast_node_priority() : ast_node_expression(EExpressionType::EXPR_PRIORITY) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        ASTNodeExpression * Content = nullptr;
+        ast_node_expression * Content = nullptr;
     };
 
-    class ASTNodeIdentifier : public ASTNodeExpression
+    class ast_node_identifier : public ast_node_expression
     {
     public:
-        ASTNodeIdentifier() : ASTNodeExpression(EExpressionType::EXPR_IDENTIFIER) {}
+        ast_node_identifier() : ast_node_expression(EExpressionType::EXPR_IDENTIFIER) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -221,10 +227,10 @@ namespace Thunder
         NameHandle Identifier = nullptr;
     };
 
-    class ASTNodeInteger : public ASTNodeExpression
+    class ast_node_integer : public ast_node_expression
     {
     public:
-        ASTNodeInteger() : ASTNodeExpression(EExpressionType::EXPR_INTEGER) {}
+        ast_node_integer() : ast_node_expression(EExpressionType::EXPR_INTEGER) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -232,10 +238,10 @@ namespace Thunder
         int IntValue = 0;
     };
 
-    class ASTNodeType : public ASTNode
+    class ast_node_type : public ast_node
     {
     public:
-        ASTNodeType() : ASTNode(EBasalNodeType::NODE_TYPE) {}
+        ast_node_type() : ast_node(EBasalNodeType::NODE_TYPE) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -243,21 +249,21 @@ namespace Thunder
         EVarType ParamType = EVarType::TP_UNDEFINED;
     };
 
-    ASTNode* create_function_node(ASTNode* signature, ASTNode* body);
-    ASTNode* create_func_signature_node(ASTNode* returnTypeNode, const char* name, ASTNode* params);
-    ASTNode* create_param_list_node();
-    void add_param_to_list(ASTNode* list, ASTNode* param);
-    ASTNode* create_param_node(ASTNode* typeNode, const char* name);
-    ASTNode* create_statement_list_node();
-    void add_statement_to_list(ASTNode* list, ASTNode* stmt);
-    ASTNode* create_var_decl_node(ASTNode* typeNode, const char* name, ASTNode* init_expr);
-    ASTNode* create_assignment_node(const char* lhs, ASTNode* rhs);
-    ASTNode* create_return_node(ASTNode* expr);
-    ASTNode* create_binary_op_node(EBinaryOp op, ASTNode* left, ASTNode* right);
-    ASTNode* create_priority_node(ASTNode* expr);
-    ASTNode* create_identifier_node(const char* name);
-    ASTNode* create_int_literal_node(int value);
-    ASTNode* create_type_node(EVarType type);
-    void post_process_ast(ASTNode* nodeRoot);
+    ast_node* create_function_node(ast_node* signature, ast_node* body);
+    ast_node* create_func_signature_node(ast_node* returnTypeNode, const char* name, ast_node* params);
+    ast_node* create_param_list_node();
+    void add_param_to_list(ast_node* list, ast_node* param);
+    ast_node* create_param_node(ast_node* typeNode, const char* name);
+    ast_node* create_statement_list_node();
+    void add_statement_to_list(ast_node* list, ast_node* stmt);
+    ast_node* create_var_decl_node(ast_node* typeNode, const char* name, ast_node* init_expr);
+    ast_node* create_assignment_node(const char* lhs, ast_node* rhs);
+    ast_node* create_return_node(ast_node* expr);
+    ast_node* create_binary_op_node(EBinaryOp op, ast_node* left, ast_node* right);
+    ast_node* create_priority_node(ast_node* expr);
+    ast_node* create_identifier_node(const char* name);
+    ast_node* create_int_literal_node(int value);
+    ast_node* create_type_node(EVarType type);
+    void post_process_ast(ast_node* nodeRoot);
 
 }

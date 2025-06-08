@@ -22,7 +22,7 @@ namespace Thunder
         return nullptr;
     }
 
-    void ASTNode::GenerateDXIL()
+    void ast_node::GenerateDXIL()
     {
         // ASTNodeAdd
         /*mLeft.GenerateDXIL();
@@ -34,7 +34,7 @@ namespace Thunder
 
 #pragma region HLSL
 
-    void ASTNodeFunction::GenerateHLSL(std::string& outResult)
+    void ast_node_function::GenerateHLSL(std::string& outResult)
     {
         String funcSignature;
         Signature->GenerateHLSL(funcSignature);
@@ -43,7 +43,7 @@ namespace Thunder
         outResult += funcSignature + "{\n" + funcBody + "}\n";
     }
 
-    void ASTNodeFuncSignature::GenerateHLSL(String& outResult)
+    void ast_node_func_signature::GenerateHLSL(String& outResult)
     {
         String paramList;
         if (Params != nullptr)
@@ -54,7 +54,7 @@ namespace Thunder
         outResult += " " + FuncName.ToString() + "(" + paramList + ")\n";
     }
 
-    void ASTNodeParamList::GenerateHLSL(String& outResult)
+    void ast_node_param_list::GenerateHLSL(String& outResult)
     {
         if (ParamsHead != nullptr)
         {
@@ -62,7 +62,7 @@ namespace Thunder
         }
     }
 
-    void ASTNodeParam::GenerateHLSL(String& outResult)
+    void ast_node_param::GenerateHLSL(String& outResult)
     {
         ParamType->GenerateHLSL(outResult);
         outResult += " " + ParamName.ToString();
@@ -73,7 +73,7 @@ namespace Thunder
         }
     }
 
-    void ASTNodeStatementList::GenerateHLSL(String& outResult)
+    void ast_node_statement_list::GenerateHLSL(String& outResult)
     {
         if (StatementsHead != nullptr)
         {
@@ -81,7 +81,7 @@ namespace Thunder
         }
     }
 
-    void ASTNodeStatement::GenerateHLSL(String& outResult)
+    void ast_node_statement::GenerateHLSL(String& outResult)
     {
         if (NextStatement != nullptr)
         {
@@ -89,7 +89,7 @@ namespace Thunder
         }
     }
 
-    void ASTNodeVarDeclaration::GenerateHLSL(String& outResult)
+    void ast_node_var_declaration::GenerateHLSL(String& outResult)
     {
         VarDelType->GenerateHLSL(outResult);
         outResult += " " + VarName.ToString();
@@ -99,19 +99,19 @@ namespace Thunder
             DelExpression->GenerateHLSL(outResult);
         }
         outResult += ";\n";
-        ASTNodeStatement::GenerateHLSL(outResult);
+        ast_node_statement::GenerateHLSL(outResult);
     }
 
-    void ASTNodeAssignment::GenerateHLSL(String& outResult)
+    void ast_node_assignment::GenerateHLSL(String& outResult)
     {
         outResult += LhsVar.ToString() + " = ";
         TAssertf(RhsExpression != nullptr, "Assignment rhs is null");
         RhsExpression->GenerateHLSL(outResult);
         outResult += ";\n";
-        ASTNodeStatement::GenerateHLSL(outResult);
+        ast_node_statement::GenerateHLSL(outResult);
     }
 
-    void ASTNodeReturn::GenerateHLSL(String& outResult)
+    void ast_node_return::GenerateHLSL(String& outResult)
     {
         outResult += "return ";
         if (RetValue != nullptr)
@@ -119,10 +119,10 @@ namespace Thunder
             RetValue->GenerateHLSL(outResult);
         }
         outResult += ";\n";
-        ASTNodeStatement::GenerateHLSL(outResult);
+        ast_node_statement::GenerateHLSL(outResult);
     }
 
-    void ASTNodeBinaryOperation::GenerateHLSL(String& outResult)
+    void ast_node_binary_operation::GenerateHLSL(String& outResult)
     {
         TAssertf(left != nullptr && right != nullptr, "Binary operation left or right is null");
         //outResult += "(";
@@ -138,7 +138,7 @@ namespace Thunder
         //outResult += ")";
     }
 
-    void ASTNodePriority::GenerateHLSL(String& outResult)
+    void ast_node_priority::GenerateHLSL(String& outResult)
     {
         outResult += "( ";
         if (Content != nullptr)
@@ -148,17 +148,17 @@ namespace Thunder
         outResult += " )";
     }
 
-    void ASTNodeIdentifier::GenerateHLSL(String& outResult)
+    void ast_node_identifier::GenerateHLSL(String& outResult)
     {
         outResult += Identifier.ToString();
     }
 
-    void ASTNodeInteger::GenerateHLSL(String& outResult)
+    void ast_node_integer::GenerateHLSL(String& outResult)
     {
         outResult += std::to_string(IntValue);
     }
 
-    void ASTNodeType::GenerateHLSL(String& outResult)
+    void ast_node_type::GenerateHLSL(String& outResult)
     {
         outResult += get_type_name(ParamType);
     }
@@ -167,7 +167,7 @@ namespace Thunder
 
     #pragma region PRINT_AST
 
-    void ASTNodeFunction::PrintAST(int indent)
+    void ast_node_function::PrintAST(int indent)
     {
         print_blank(indent);
         printf("Function:\n");
@@ -175,7 +175,7 @@ namespace Thunder
         Body->PrintAST(indent + 1);
     }
 
-    void ASTNodeFuncSignature::PrintAST(int indent)
+    void ast_node_func_signature::PrintAST(int indent)
     {
         print_blank(indent);
         printf("Signature:\n");
@@ -188,7 +188,7 @@ namespace Thunder
         Params->PrintAST(indent + 1);
     }
 
-    void ASTNodeParamList::PrintAST(int indent)
+    void ast_node_param_list::PrintAST(int indent)
     {
         print_blank(indent);
         printf("ParamList(Count %d):\n", ParamCount);
@@ -198,7 +198,7 @@ namespace Thunder
         }
     }
 
-    void ASTNodeParam::PrintAST(int indent)
+    void ast_node_param::PrintAST(int indent)
     {
         print_blank(indent);
         printf("Param { ");
@@ -209,14 +209,14 @@ namespace Thunder
         }
     }
 
-    void ASTNodeStatementList::PrintAST(int indent)
+    void ast_node_statement_list::PrintAST(int indent)
     {
         print_blank(indent);
         printf("StatementList:\n");
         StatementsHead->PrintAST(indent + 1);
     }
 
-    void ASTNodeStatement::PrintAST(int indent)
+    void ast_node_statement::PrintAST(int indent)
     {
         if (NextStatement != nullptr)
         {
@@ -224,7 +224,7 @@ namespace Thunder
         }
     }
 
-    void ASTNodeVarDeclaration::PrintAST(int indent)
+    void ast_node_var_declaration::PrintAST(int indent)
     {
         print_blank(indent);
         printf("VarDecl: {\n");
@@ -236,10 +236,10 @@ namespace Thunder
         }
         print_blank(indent);
         printf("}\n");
-        ASTNodeStatement::PrintAST(indent);
+        ast_node_statement::PrintAST(indent);
     }
 
-    void ASTNodeAssignment::PrintAST(int indent)
+    void ast_node_assignment::PrintAST(int indent)
     {
         print_blank(indent);
         printf("Assignment: {\n");
@@ -249,10 +249,10 @@ namespace Thunder
         RhsExpression->PrintAST(indent + 1);
         print_blank(indent);
         printf("}\n");
-        ASTNodeStatement::PrintAST(indent);
+        ast_node_statement::PrintAST(indent);
     }
 
-    void ASTNodeReturn::PrintAST(int indent)
+    void ast_node_return::PrintAST(int indent)
     {
         print_blank(indent);
         printf("return: { \n");
@@ -266,10 +266,10 @@ namespace Thunder
         }
         print_blank(indent);
         printf("}\n");
-        ASTNodeStatement::PrintAST(indent);
+        ast_node_statement::PrintAST(indent);
     }
 
-    void ASTNodeBinaryOperation::PrintAST(int indent)
+    void ast_node_binary_operation::PrintAST(int indent)
     {
         TAssertf(left != nullptr && right != nullptr, "Binary operation left or right is null");
         print_blank(indent);
@@ -285,7 +285,7 @@ namespace Thunder
         right->PrintAST(indent + 1);
     }
 
-    void ASTNodePriority::PrintAST(int indent)
+    void ast_node_priority::PrintAST(int indent)
     {
         print_blank(indent);
         printf("Priority: (\n");
@@ -297,19 +297,19 @@ namespace Thunder
         printf(")\n");
     }
 
-    void ASTNodeIdentifier::PrintAST(int indent)
+    void ast_node_identifier::PrintAST(int indent)
     {
         print_blank(indent);
         printf("IdentifierName: %s\n", Identifier.c_str());
     }
 
-    void ASTNodeInteger::PrintAST(int indent)
+    void ast_node_integer::PrintAST(int indent)
     {
         print_blank(indent);
         printf("Integer: %d\n", IntValue);
     }
 
-    void ASTNodeType::PrintAST(int indent)
+    void ast_node_type::PrintAST(int indent)
     {
         print_blank(indent);
         printf("Type: %s", get_type_name(ParamType));
@@ -319,82 +319,82 @@ namespace Thunder
 
 #pragma region CREATE_AST_NODE
 
-    ASTNode* create_function_node(ASTNode* signature, ASTNode* body)
+    ast_node* create_function_node(ast_node* signature, ast_node* body)
     {
         TAssertf(signature != nullptr && signature->Type == EBasalNodeType::NODE_FUNC_SIGNATURE, "Signature node type is not correct");
         TAssertf(body != nullptr && body->Type == EBasalNodeType::NODE_STATEMENT_LIST, "Body node type is not correct");
 
-        const auto node = new ASTNodeFunction;
-        node->Signature = static_cast<ASTNodeFuncSignature*>(signature);
-        node->Body = static_cast<ASTNodeStatementList*>(body);
+        const auto node = new ast_node_function;
+        node->Signature = static_cast<ast_node_func_signature*>(signature);
+        node->Body = static_cast<ast_node_statement_list*>(body);
         return node;
     }
 
-    ASTNode* create_func_signature_node(ASTNode* returnTypeNode, const char *name, ASTNode* params)
+    ast_node* create_func_signature_node(ast_node* returnTypeNode, const char *name, ast_node* params)
     {
         TAssertf(returnTypeNode != nullptr && returnTypeNode->Type == EBasalNodeType::NODE_TYPE, "Return type node type is not correct");
         TAssertf(params != nullptr && params->Type == EBasalNodeType::NODE_PARAM_LIST, "Params node type is not correct");
 
-        const auto node = new ASTNodeFuncSignature;
-        node->ReturnType = static_cast<ASTNodeType*>(returnTypeNode);
+        const auto node = new ast_node_func_signature;
+        node->ReturnType = static_cast<ast_node_type*>(returnTypeNode);
         node->FuncName = name;
-        node->Params = static_cast<ASTNodeParamList*>(params);
+        node->Params = static_cast<ast_node_param_list*>(params);
         return node;
     }
 
-    ASTNode* create_param_list_node()
+    ast_node* create_param_list_node()
     {
-        const auto node = new ASTNodeParamList;
+        const auto node = new ast_node_param_list;
         node->ParamCount = 0;
         node->ParamsHead = nullptr;
         node->ParamsTail = nullptr;
         return node;
     }
 
-    void add_param_to_list(ASTNode* list, ASTNode* param)
+    void add_param_to_list(ast_node* list, ast_node* param)
     {
         TAssertf(list != nullptr && list->Type == EBasalNodeType::NODE_PARAM_LIST, "List node type is not correct");
         TAssertf(param != nullptr && param->Type == EBasalNodeType::NODE_PARAM, "Param node type is not correct");
 
-        if (const auto paramList = static_cast<ASTNodeParamList*>(list))
+        if (const auto paramList = static_cast<ast_node_param_list*>(list))
         {
             if (paramList->ParamCount == 0)
             {
-                paramList->ParamsHead = static_cast<ASTNodeParam*>(param);
-                paramList->ParamsTail = static_cast<ASTNodeParam*>(param);
+                paramList->ParamsHead = static_cast<ast_node_param*>(param);
+                paramList->ParamsTail = static_cast<ast_node_param*>(param);
             } else {
-                paramList->ParamsTail->NextParam = static_cast<ASTNodeParam*>(param);
-                paramList->ParamsTail = static_cast<ASTNodeParam*>(param);
+                paramList->ParamsTail->NextParam = static_cast<ast_node_param*>(param);
+                paramList->ParamsTail = static_cast<ast_node_param*>(param);
             }
             paramList->ParamCount++;
         }
     }
 
-    ASTNode* create_param_node(ASTNode* typeNode, const char *name)
+    ast_node* create_param_node(ast_node* typeNode, const char *name)
     {
         TAssertf(typeNode != nullptr && typeNode->Type == EBasalNodeType::NODE_TYPE, "Type node type is not correct");
 
-        const auto node = new ASTNodeParam;
-        node->ParamType = static_cast<ASTNodeType*>(typeNode);
+        const auto node = new ast_node_param;
+        node->ParamType = static_cast<ast_node_type*>(typeNode);
         node->ParamName = name;
         node->NextParam = nullptr;
         return node;
     }
 
-    ASTNode* create_statement_list_node()
+    ast_node* create_statement_list_node()
     {
-        const auto node = new ASTNodeStatementList;
+        const auto node = new ast_node_statement_list;
         node->StatementsHead = nullptr;
         node->StatementsTail = nullptr;
         return node;
     }
 
-    void add_statement_to_list(ASTNode* list, ASTNode* stmt)
+    void add_statement_to_list(ast_node* list, ast_node* stmt)
     {
         TAssertf(list != nullptr && list->Type == EBasalNodeType::NODE_STATEMENT_LIST, "List node type is not correct");
         TAssertf(stmt != nullptr && stmt->Type == EBasalNodeType::NODE_STATEMENT, "Statement node type is not correct");
 
-        if (const auto stmtList = static_cast<ASTNodeStatementList*>(list); const auto newStmt = static_cast<ASTNodeStatement*>(stmt))
+        if (const auto stmtList = static_cast<ast_node_statement_list*>(list); const auto newStmt = static_cast<ast_node_statement*>(stmt))
         {
             if (stmtList->StatementsHead == nullptr && stmtList->StatementsTail == nullptr) {
                 stmtList->StatementsHead = newStmt;
@@ -406,83 +406,83 @@ namespace Thunder
         }
     }
 
-    ASTNode* create_var_decl_node(ASTNode* typeNode, const char *name, ASTNode* init_expr)
+    ast_node* create_var_decl_node(ast_node* typeNode, const char *name, ast_node* init_expr)
     {
         TAssertf(typeNode != nullptr && typeNode->Type == EBasalNodeType::NODE_TYPE, "Type node type is not correct");
 
-        const auto node = new ASTNodeVarDeclaration;
-        node->VarDelType = static_cast<ASTNodeType*>(typeNode);
+        const auto node = new ast_node_var_declaration;
+        node->VarDelType = static_cast<ast_node_type*>(typeNode);
         node->VarName = name;
         if (init_expr != nullptr)
         {
             TAssertf(init_expr->Type == EBasalNodeType::NODE_EXPRESSION, "Init expression node type is not correct");
-            node->DelExpression = static_cast<ASTNodeExpression*>(init_expr);
+            node->DelExpression = static_cast<ast_node_expression*>(init_expr);
         }
         return node;
     }
 
-    ASTNode* create_assignment_node(const char *lhs, ASTNode* rhs)
+    ast_node* create_assignment_node(const char *lhs, ast_node* rhs)
     {
         TAssertf(rhs != nullptr && rhs->Type == EBasalNodeType::NODE_EXPRESSION, "Assignment rhs is null");
 
-        const auto node = new ASTNodeAssignment;
+        const auto node = new ast_node_assignment;
         node->LhsVar = lhs;
-        node->RhsExpression = static_cast<ASTNodeExpression*>(rhs);
+        node->RhsExpression = static_cast<ast_node_expression*>(rhs);
         return node;
     }
 
-    ASTNode* create_return_node(ASTNode* expr)
+    ast_node* create_return_node(ast_node* expr)
     {
         TAssertf(expr != nullptr && expr->Type == EBasalNodeType::NODE_EXPRESSION, "Return expression is null");
-        const auto node = new ASTNodeReturn;
-        node->RetValue = static_cast<ASTNodeExpression*>(expr);
+        const auto node = new ast_node_return;
+        node->RetValue = static_cast<ast_node_expression*>(expr);
         return node;
     }
 
-    ASTNode* create_binary_op_node(EBinaryOp op, ASTNode* left, ASTNode* right)
+    ast_node* create_binary_op_node(EBinaryOp op, ast_node* left, ast_node* right)
     {
         TAssertf(left != nullptr && left->Type == EBasalNodeType::NODE_EXPRESSION, "Binary operation left is null");
         TAssertf(right != nullptr && right->Type == EBasalNodeType::NODE_EXPRESSION, "Binary operation right is null");
 
-        const auto node = new ASTNodeBinaryOperation;
+        const auto node = new ast_node_binary_operation;
         node->op = op;
-        node->left = static_cast<ASTNodeExpression*>(left);
-        node->right = static_cast<ASTNodeExpression*>(right);
+        node->left = static_cast<ast_node_expression*>(left);
+        node->right = static_cast<ast_node_expression*>(right);
         return node;
     }
 
-    ASTNode* create_priority_node(ASTNode* expr)
+    ast_node* create_priority_node(ast_node* expr)
     {
-        const auto node = new ASTNodePriority;
+        const auto node = new ast_node_priority;
         if (expr)
         {
             TAssert(expr->Type == EBasalNodeType::NODE_EXPRESSION);
-            node->Content = static_cast<ASTNodeExpression*>(expr);
+            node->Content = static_cast<ast_node_expression*>(expr);
         }
         return node;
     }
 
-    ASTNode* create_type_node(EVarType type) {
-        const auto node = new ASTNodeType;
+    ast_node* create_type_node(EVarType type) {
+        const auto node = new ast_node_type;
         node->ParamType = type; // 复用param_type字段
         return node;
     }
 
-    ASTNode* create_identifier_node(const char *name) {
-        const auto node = new ASTNodeIdentifier;
+    ast_node* create_identifier_node(const char *name) {
+        const auto node = new ast_node_identifier;
         node->Identifier = name;
         return node;
     }
 
-    ASTNode* create_int_literal_node(int value) {
-        const auto node = new ASTNodeInteger;
+    ast_node* create_int_literal_node(int value) {
+        const auto node = new ast_node_integer;
         node->IntValue = value;
         return node;
     }
 
 #pragma endregion
 
-    void post_process_ast(ASTNode* nodeRoot)
+    void post_process_ast(ast_node* nodeRoot)
     {
         nodeRoot->PrintAST(0);
         printf("\n");

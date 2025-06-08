@@ -1,27 +1,38 @@
 
 %{
 #include "../Public/AstNode.h"
+#include "../Public/ShaderLang.h"
 #include <cstdio>
 
+
 using namespace Thunder;
+void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 
-extern FILE *yyin;
-extern int yylex(void);
-void yyerror(const char *);
-void ThunderParse(const char* str);
+extern void lexer_constructor(struct shader_lang_state *state, const char* text);
+extern void lexer_lexer_dtor(struct shader_lang_state *state);
+extern int yyparse(struct shader_lang_state *state);
 
-ASTNode *root;
+void ThunderParse(const char* text);
+
+ast_node *root;
+shader_lang_state *sl_state;
+
+#define YYLEX_PARAM sl_state->scanner
+#define YYLTYPE parse_location
+#define YYSTYPE parse_node
+
+
+int yylex(YYSTYPE *, parse_location*, void*);
+
 %}
 
 %locations
 
-%union {
-    int intVal;
-    char *strVal;
-    struct ASTNode *astNode;
-}
+%define api.pure
+%lex-param			{ void* sl_state->scanner }
+%parse-param		{ struct shader_lang_state *state }
 
-%token <strVal> TYPE_INT TYPE_FLOAT TYPE_VOID
+%token TYPE_INT TYPE_FLOAT TYPE_VOID
 %token <strVal> IDENTIFIER
 %token <intVal> INT_LITERAL
 %token RETURN
@@ -152,19 +163,17 @@ binary_expr:
     ;
 %%
 
-void yyerror(const char* str){
-    printf("ERROR: %s\n",str);
+
+
+void yyerror(parse_location *loc, shader_lang_state* st, const char* msg){
+    printf("ERROR: %s\n",msg);
 }
 
-void ThunderParse(const char* str)
+void ThunderParse(const char* text)
 {
-    yyin = fopen(str, "r");
-    if (!yyin) {
-        perror("无法打开输入文件");
-        return;
-    }
-    yyparse();
-    fclose(yyin); // 关闭输入文件
-
+    sl_state = new shader_lang_state();
+    lexer_constructor(sl_state, text);
+    yyparse(sl_state);
     post_process_ast(root);
+	lexer_lexer_dtor(sl_state);
 }

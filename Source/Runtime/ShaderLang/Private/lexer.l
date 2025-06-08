@@ -1,36 +1,47 @@
 
 %{
-#define YY_NO_UNISTD_H   //阻止自动包含 <unistd.h>, 因为windows平台上不是标准 C/C++ 头文件
+#include "../Public/AstNode.h"
+#include "../Public/ShaderLang.h"
+using namespace Thunder;
 
 #include "parser.tab.h"
-#include <string.h>
-#include <stdlib.h>
 
 #define YY_USER_ACTION \
-    yylloc.first_line = yylloc.last_line; \
-    yylloc.first_column = yylloc.last_column; \
-    for (int i = 0; yytext[i]; i++) { \
-    if (yytext[i] == '\n') { \
-        yylloc.last_line++; \
-        yylloc.last_column = 0; \
-    } else { \
-        yylloc.last_column++; \
-    } \
-    }
+	do { \
+		yylloc->first_source = 1; \
+		yylloc->last_source = 1; \
+		yylloc->first_line = yylineno; \
+		yylloc->last_line = yylineno; \
+		yylloc->first_column = yycolumn; \
+		yycolumn += (int)yyleng; \
+		yylloc->last_column = yycolumn; \
+	} while(0);
 
-void yyerror(const char *);
 
-/*告诉 Flex 不要依赖 unistd.h*/
-//%option nounistd
-/*禁用 yywrap 功能，有时也能避免 isatty 依赖*/
-//
+#define YY_USER_INIT \
+	do { \
+		yylineno = 1; \
+		yycolumn = 1; \
+	} while(0)
+
+#define YYLTYPE parse_location
+
+#define YYSTYPE parse_node
+
+void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
+
 %}
 
+/* 使生成的词法分析器是可重入的，即可以同时有多个实例 */
+%option reentrant
+/* 生成与Bison协同工作的接口，特别是使`yylex`函数的签名包含一个额外的参数 */
+%option bison-bridge
+%option bison-locations noyywrap nounistd
 %option never-interactive
 %option debug
-/*强制使用批处理模式，适用于yyin = fopen(...)*/
-%option batch
-
+/*强制使用批处理模式，适用于yyin = fopen(...) %option batch */
+/*%option prefix="thunder_"*/
+%option extra-type="struct shader_lang_state *"
 
 %%
 
@@ -40,12 +51,12 @@ void yyerror(const char *);
 "return"    { return RETURN; }
 
 [a-zA-Z_][a-zA-Z0-9_]* {
-    yylval.strVal = strdup(yytext);
+    yylval->strVal = strdup(yytext);
     return IDENTIFIER;
 }
 
 [0-9]+      {
-    yylval.intVal = atoi(yytext);
+    yylval->intVal = atoi(yytext);
     return INT_LITERAL;
 }
 
@@ -63,11 +74,16 @@ void yyerror(const char *);
 
 [ \t\n]     ; // 忽略空白字符
 
-.           { yyerror("Invalid character"); }
+.           { /*yyerror("Invalid character");*/ }
  
 %%
- 
-int yywrap()
+
+void lexer_constructor(struct shader_lang_state *state, const char* text)
 {
-    return 1; /*1结束，0继续*/
+	yylex_init_extra(state, &state->scanner);
+	yy_scan_string(text, state->scanner);
+}
+void lexer_lexer_dtor(struct shader_lang_state *state)
+{
+	yylex_destroy(state->scanner);
 }

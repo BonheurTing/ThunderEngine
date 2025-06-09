@@ -6,15 +6,15 @@
 namespace Thunder
 {
 	
-	enum class EBasalNodeType : uint8;
+	enum class basal_ast_node_type : uint8;
 
 	enum class enum_symbol_type : uint8
 	{
-		Variable,   // 变量
-		FUNCTION,   // 函数
-		TYPE,       // 类型
-		CONSTANT,   // 常量
-		UNDEFINED  // 未定义符号
+		variable,   // 变量
+		function,   // 函数
+		type,       // 类型
+		constant,   // 常量
+		undefined  // 未定义符号
 	};
 
 	struct shader_lang_symbol
@@ -79,38 +79,33 @@ namespace Thunder
 	struct shader_lang_state
 	{
 		// 词法/语法分析器状态
-		void *scanner = nullptr;		// Flex词法分析器上下文
-		void *parser = nullptr;		// Bison语法分析器状态
+		void *scanner = nullptr;	// Flex词法分析器上下文
+		//void *parser = nullptr;		// Bison语法分析器状态
 
 		// 符号表
-		TMap<String, shader_lang_symbol> SymbolTable = {};
+		TMap<String, shader_lang_symbol> symbol_table = {};
 		
 		/* 抽象语法树 */
-		class ast_node* AstRoot;		// AST根节点
+		class ast_node* ast_root = nullptr;	// AST根节点
 
 		/* 错误处理 */
-		char* ErrorMessage;	// 错误信息
+		//char* error_message;	// 错误信息
 
 		/* 词法/语法分析器扩展数据 */
-		int CurrentLine;           // 当前行号
-		int CurrentColumn;         // 当前列号
-		const char* CurrentFile;   // 当前文件名
+		//int current_line;           // 当前行号
+		//int current_column;         // 当前列号
+		//const char* current_file;   // 当前文件名
 	};
 
 	/* 初始化/销毁 */
-	void ParserDestroy(shader_lang_state* state);
 
 	/* 状态机API */
-	int ParserParse(shader_lang_state *state);
 
 	/* 作用域管理 */
 
 	/* 符号表操作 */
 
 	/* AST构建 */
-	ast_node* AstCreateNode(EBasalNodeType type, int lineNo);
-	void AstAddChild(ast_node *parent, ast_node *child);
-	void AstFree(ast_node *node);
 	
 
 	/* 调试日志 */

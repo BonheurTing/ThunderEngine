@@ -14,7 +14,6 @@ extern int yyparse(struct shader_lang_state *state);
 
 void ThunderParse(const char* text);
 
-ast_node *root;
 shader_lang_state *sl_state;
 
 #define YYLEX_PARAM sl_state->scanner
@@ -33,17 +32,17 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %parse-param		{ struct shader_lang_state *state }
 
 %token TYPE_INT TYPE_FLOAT TYPE_VOID
-%token <strVal> IDENTIFIER
-%token <intVal> INT_LITERAL
+%token <str_val> IDENTIFIER
+%token <int_val> INT_LITERAL
 %token RETURN
 %token ADD SUB MUL DIV
 %token ASSIGN
 %token SEMICOLON COMMA
 %token LPAREN RPAREN LBRACE RBRACE
 
-%type <astNode> program function func_signature param_list param type
-%type <astNode> statement_list statement var_decl assignment func_ret
-%type <astNode> expression primary_expr binary_expr priority_expr
+%type <token> program function func_signature param_list param type
+%type <token> statement_list statement var_decl assignment func_ret
+%type <token> expression primary_expr binary_expr priority_expr
 
 %right ASSIGN
 %left ADD SUB
@@ -53,7 +52,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %%
 
 program:
-    function {root = $1;}
+    function {sl_state->ast_root = $1;}
     ;
 
 function:
@@ -89,9 +88,9 @@ param:
     ;
 
 type:
-    TYPE_INT { $$ = create_type_node(EVarType::TP_INT); }
-    | TYPE_FLOAT { $$ = create_type_node(EVarType::TP_FLOAT); }
-    | TYPE_VOID { $$ = create_type_node(EVarType::TP_VOID); }
+    TYPE_INT { $$ = create_type_node(var_type::tp_int); }
+    | TYPE_FLOAT { $$ = create_type_node(var_type::tp_float); }
+    | TYPE_VOID { $$ = create_type_node(var_type::tp_void); }
     ;
 
 statement_list:
@@ -149,16 +148,16 @@ priority_expr:
 
 binary_expr:
     expression ADD expression {
-        $$ = create_binary_op_node(EBinaryOp::OP_ADD, $1, $3);
+        $$ = create_binary_op_node(binary_op::add, $1, $3);
     }
     | expression SUB expression {
-        $$ = create_binary_op_node(EBinaryOp::OP_SUB, $1, $3);
+        $$ = create_binary_op_node(binary_op::sub, $1, $3);
     }
     | expression MUL expression {
-        $$ = create_binary_op_node(EBinaryOp::OP_MUL, $1, $3);
+        $$ = create_binary_op_node(binary_op::mul, $1, $3);
     }
     | expression DIV expression {
-        $$ = create_binary_op_node(EBinaryOp::OP_DIV, $1, $3);
+        $$ = create_binary_op_node(binary_op::div, $1, $3);
     }
     ;
 %%
@@ -174,6 +173,6 @@ void ThunderParse(const char* text)
     sl_state = new shader_lang_state();
     lexer_constructor(sl_state, text);
     yyparse(sl_state);
-    post_process_ast(root);
+    post_process_ast(sl_state->ast_root);
 	lexer_lexer_dtor(sl_state);
 }

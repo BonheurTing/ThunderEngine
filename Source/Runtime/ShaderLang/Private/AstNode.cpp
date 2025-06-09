@@ -11,13 +11,13 @@ namespace Thunder
         for (int i = 0; i < indent; i++) printf("  ");
     }
 
-    static const char* get_type_name(EVarType type) {
+    static const char* get_type_name(var_type type) {
         switch (type)
         {
-            case EVarType::TP_INT: return "int";
-            case EVarType::TP_FLOAT: return "float";
-            case EVarType::TP_VOID: return "void";
-            case EVarType::TP_UNDEFINED: return "unknown";
+            case var_type::tp_int: return "int";
+            case var_type::tp_float: return "float";
+            case var_type::tp_void: return "void";
+            case var_type::undefined: return "unknown";
         }
         return nullptr;
     }
@@ -128,11 +128,11 @@ namespace Thunder
         //outResult += "(";
         left->GenerateHLSL(outResult);
         switch (op) {
-        case EBinaryOp::OP_ADD: outResult += " + "; break;
-        case EBinaryOp::OP_SUB: outResult += " - "; break;
-        case EBinaryOp::OP_MUL: outResult += " * "; break;
-        case EBinaryOp::OP_DIV: outResult += " / "; break;
-        case EBinaryOp::OP_UNDEFINED: break;
+        case binary_op::add: outResult += " + "; break;
+        case binary_op::sub: outResult += " - "; break;
+        case binary_op::mul: outResult += " * "; break;
+        case binary_op::div: outResult += " / "; break;
+        case binary_op::undefined: break;
         }
         right->GenerateHLSL(outResult);
         //outResult += ")";
@@ -275,11 +275,11 @@ namespace Thunder
         print_blank(indent);
         printf("BinaryOp: ");
         switch (op) {
-        case EBinaryOp::OP_ADD: printf("+\n"); break;
-        case EBinaryOp::OP_SUB: printf("-\n"); break;
-        case EBinaryOp::OP_MUL: printf("*\n"); break;
-        case EBinaryOp::OP_DIV: printf("/\n"); break;
-        case EBinaryOp::OP_UNDEFINED: break;
+        case binary_op::add: printf("+\n"); break;
+        case binary_op::sub: printf("-\n"); break;
+        case binary_op::mul: printf("*\n"); break;
+        case binary_op::div: printf("/\n"); break;
+        case binary_op::undefined: break;
         }
         left->PrintAST(indent + 1);
         right->PrintAST(indent + 1);
@@ -321,8 +321,8 @@ namespace Thunder
 
     ast_node* create_function_node(ast_node* signature, ast_node* body)
     {
-        TAssertf(signature != nullptr && signature->Type == EBasalNodeType::NODE_FUNC_SIGNATURE, "Signature node type is not correct");
-        TAssertf(body != nullptr && body->Type == EBasalNodeType::NODE_STATEMENT_LIST, "Body node type is not correct");
+        TAssertf(signature != nullptr && signature->Type == basal_ast_node_type::func_signature, "Signature node type is not correct");
+        TAssertf(body != nullptr && body->Type == basal_ast_node_type::statement_list, "Body node type is not correct");
 
         const auto node = new ast_node_function;
         node->Signature = static_cast<ast_node_func_signature*>(signature);
@@ -332,8 +332,8 @@ namespace Thunder
 
     ast_node* create_func_signature_node(ast_node* returnTypeNode, const char *name, ast_node* params)
     {
-        TAssertf(returnTypeNode != nullptr && returnTypeNode->Type == EBasalNodeType::NODE_TYPE, "Return type node type is not correct");
-        TAssertf(params != nullptr && params->Type == EBasalNodeType::NODE_PARAM_LIST, "Params node type is not correct");
+        TAssertf(returnTypeNode != nullptr && returnTypeNode->Type == basal_ast_node_type::type, "Return type node type is not correct");
+        TAssertf(params != nullptr && params->Type == basal_ast_node_type::param_list, "Params node type is not correct");
 
         const auto node = new ast_node_func_signature;
         node->ReturnType = static_cast<ast_node_type*>(returnTypeNode);
@@ -353,8 +353,8 @@ namespace Thunder
 
     void add_param_to_list(ast_node* list, ast_node* param)
     {
-        TAssertf(list != nullptr && list->Type == EBasalNodeType::NODE_PARAM_LIST, "List node type is not correct");
-        TAssertf(param != nullptr && param->Type == EBasalNodeType::NODE_PARAM, "Param node type is not correct");
+        TAssertf(list != nullptr && list->Type == basal_ast_node_type::param_list, "List node type is not correct");
+        TAssertf(param != nullptr && param->Type == basal_ast_node_type::param, "Param node type is not correct");
 
         if (const auto paramList = static_cast<ast_node_param_list*>(list))
         {
@@ -372,7 +372,7 @@ namespace Thunder
 
     ast_node* create_param_node(ast_node* typeNode, const char *name)
     {
-        TAssertf(typeNode != nullptr && typeNode->Type == EBasalNodeType::NODE_TYPE, "Type node type is not correct");
+        TAssertf(typeNode != nullptr && typeNode->Type == basal_ast_node_type::type, "Type node type is not correct");
 
         const auto node = new ast_node_param;
         node->ParamType = static_cast<ast_node_type*>(typeNode);
@@ -391,8 +391,8 @@ namespace Thunder
 
     void add_statement_to_list(ast_node* list, ast_node* stmt)
     {
-        TAssertf(list != nullptr && list->Type == EBasalNodeType::NODE_STATEMENT_LIST, "List node type is not correct");
-        TAssertf(stmt != nullptr && stmt->Type == EBasalNodeType::NODE_STATEMENT, "Statement node type is not correct");
+        TAssertf(list != nullptr && list->Type == basal_ast_node_type::statement_list, "List node type is not correct");
+        TAssertf(stmt != nullptr && stmt->Type == basal_ast_node_type::statement, "Statement node type is not correct");
 
         if (const auto stmtList = static_cast<ast_node_statement_list*>(list); const auto newStmt = static_cast<ast_node_statement*>(stmt))
         {
@@ -408,14 +408,14 @@ namespace Thunder
 
     ast_node* create_var_decl_node(ast_node* typeNode, const char *name, ast_node* init_expr)
     {
-        TAssertf(typeNode != nullptr && typeNode->Type == EBasalNodeType::NODE_TYPE, "Type node type is not correct");
+        TAssertf(typeNode != nullptr && typeNode->Type == basal_ast_node_type::type, "Type node type is not correct");
 
         const auto node = new ast_node_var_declaration;
         node->VarDelType = static_cast<ast_node_type*>(typeNode);
         node->VarName = name;
         if (init_expr != nullptr)
         {
-            TAssertf(init_expr->Type == EBasalNodeType::NODE_EXPRESSION, "Init expression node type is not correct");
+            TAssertf(init_expr->Type == basal_ast_node_type::expression, "Init expression node type is not correct");
             node->DelExpression = static_cast<ast_node_expression*>(init_expr);
         }
         return node;
@@ -423,7 +423,7 @@ namespace Thunder
 
     ast_node* create_assignment_node(const char *lhs, ast_node* rhs)
     {
-        TAssertf(rhs != nullptr && rhs->Type == EBasalNodeType::NODE_EXPRESSION, "Assignment rhs is null");
+        TAssertf(rhs != nullptr && rhs->Type == basal_ast_node_type::expression, "Assignment rhs is null");
 
         const auto node = new ast_node_assignment;
         node->LhsVar = lhs;
@@ -433,16 +433,16 @@ namespace Thunder
 
     ast_node* create_return_node(ast_node* expr)
     {
-        TAssertf(expr != nullptr && expr->Type == EBasalNodeType::NODE_EXPRESSION, "Return expression is null");
+        TAssertf(expr != nullptr && expr->Type == basal_ast_node_type::expression, "Return expression is null");
         const auto node = new ast_node_return;
         node->RetValue = static_cast<ast_node_expression*>(expr);
         return node;
     }
 
-    ast_node* create_binary_op_node(EBinaryOp op, ast_node* left, ast_node* right)
+    ast_node* create_binary_op_node(binary_op op, ast_node* left, ast_node* right)
     {
-        TAssertf(left != nullptr && left->Type == EBasalNodeType::NODE_EXPRESSION, "Binary operation left is null");
-        TAssertf(right != nullptr && right->Type == EBasalNodeType::NODE_EXPRESSION, "Binary operation right is null");
+        TAssertf(left != nullptr && left->Type == basal_ast_node_type::expression, "Binary operation left is null");
+        TAssertf(right != nullptr && right->Type == basal_ast_node_type::expression, "Binary operation right is null");
 
         const auto node = new ast_node_binary_operation;
         node->op = op;
@@ -456,13 +456,13 @@ namespace Thunder
         const auto node = new ast_node_priority;
         if (expr)
         {
-            TAssert(expr->Type == EBasalNodeType::NODE_EXPRESSION);
+            TAssert(expr->Type == basal_ast_node_type::expression);
             node->Content = static_cast<ast_node_expression*>(expr);
         }
         return node;
     }
 
-    ast_node* create_type_node(EVarType type) {
+    ast_node* create_type_node(var_type type) {
         const auto node = new ast_node_type;
         node->ParamType = type; // 复用param_type字段
         return node;

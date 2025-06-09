@@ -51,12 +51,12 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 "return"    { return RETURN; }
 
 [a-zA-Z_][a-zA-Z0-9_]* {
-    yylval->strVal = strdup(yytext);
+    yylval->str_val = strdup(yytext);
     return IDENTIFIER;
 }
 
 [0-9]+      {
-    yylval->intVal = atoi(yytext);
+    yylval->int_val = atoi(yytext);
     return INT_LITERAL;
 }
 

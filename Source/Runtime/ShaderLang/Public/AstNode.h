@@ -4,63 +4,63 @@
 
 namespace Thunder
 {
-    enum class EBasalNodeType : uint8
+    enum class basal_ast_node_type : uint8
     {
-        NODE_FUNCTION,
-        NODE_FUNC_SIGNATURE,
-        NODE_PARAM_LIST,
-        NODE_PARAM,
-        NODE_STATEMENT_LIST,
-        NODE_STATEMENT,
-        NODE_EXPRESSION,
-        NODE_TYPE
+        function,
+        func_signature,
+        param_list,
+        param,
+        statement_list,
+        statement,
+        expression,
+        type
     };
 
-    enum class EStatementType : uint8
+    enum class statement_type : uint8
     {
-        STAT_DECLARE,
-        STAT_ASSIGN,
-        STAT_RETURN,
-        STAT_UNDEFINED
+        declare,
+        assign,
+        return_,
+        undefined
     };
 
-    enum class EExpressionType : uint8
+    enum class expression_type : uint8
     {
-        EXPR_BINARY_OP,
-        EXPR_PRIORITY,
-        EXPR_IDENTIFIER,
-        EXPR_INTEGER,
-        EXPR_UNDEFINED
+        binary_op,
+        priority,
+        identifier,
+        integer,
+        undefined
     };
 
-    enum class EVarType : uint8
+    enum class var_type : uint8
     {
-        TP_INT,
-        TP_FLOAT,
-        TP_VOID,
-        TP_UNDEFINED
+        tp_int,
+        tp_float,
+        tp_void,
+        undefined
     };
 
-    enum class EBinaryOp : uint8
+    enum class binary_op : uint8
     {
-        OP_ADD,
-        OP_SUB,
-        OP_MUL,
-        OP_DIV,
-        OP_UNDEFINED
+        add,
+        sub,
+        mul,
+        div,
+        undefined
     };
 
     struct parse_node
     {
-        int intVal;
-        char *strVal;
-        class ast_node *astNode;
+        int int_val;
+        char *str_val;
+        class ast_node *token;
     };
 
     class ast_node
     {
     public:
-        ast_node(EBasalNodeType type) : Type(type) {}
+        ast_node(basal_ast_node_type type) : Type(type) {}
         virtual ~ast_node() = default;
 
         virtual void GenerateHLSL(String& outResult) {};
@@ -68,13 +68,13 @@ namespace Thunder
         virtual void PrintAST(int indent) {};
 
     public:
-        EBasalNodeType Type;
+        basal_ast_node_type Type;
     };
 
     class ast_node_function : public ast_node
     {
     public:
-        ast_node_function() : ast_node(EBasalNodeType::NODE_FUNCTION) {}
+        ast_node_function() : ast_node(basal_ast_node_type::function) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -86,7 +86,7 @@ namespace Thunder
     class ast_node_func_signature : public ast_node
     {
     public:
-        ast_node_func_signature() : ast_node(EBasalNodeType::NODE_FUNC_SIGNATURE) {}
+        ast_node_func_signature() : ast_node(basal_ast_node_type::func_signature) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -99,7 +99,7 @@ namespace Thunder
     class ast_node_param_list : public ast_node
     {
     public:
-        ast_node_param_list() : ast_node(EBasalNodeType::NODE_PARAM_LIST) {}
+        ast_node_param_list() : ast_node(basal_ast_node_type::param_list) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -112,7 +112,7 @@ namespace Thunder
     class ast_node_param : public ast_node
     {
     public:
-        ast_node_param() : ast_node(EBasalNodeType::NODE_PARAM) {}
+        ast_node_param() : ast_node(basal_ast_node_type::param) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -125,7 +125,7 @@ namespace Thunder
     class ast_node_statement_list : public ast_node
     {
     public:
-        ast_node_statement_list() : ast_node(EBasalNodeType::NODE_STATEMENT_LIST) {}
+        ast_node_statement_list() : ast_node(basal_ast_node_type::statement_list) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -137,20 +137,20 @@ namespace Thunder
     class ast_node_statement : public ast_node
     {
     public:
-        ast_node_statement(EStatementType statType)
-        : ast_node(EBasalNodeType::NODE_STATEMENT), StatNodeType(statType) {}
+        ast_node_statement(statement_type statType)
+        : ast_node(basal_ast_node_type::statement), StatNodeType(statType) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        EStatementType StatNodeType;
+        statement_type StatNodeType;
         ast_node_statement* NextStatement = nullptr;
     };
 
     class ast_node_var_declaration : public ast_node_statement
     {
     public:
-        ast_node_var_declaration() : ast_node_statement(EStatementType::STAT_DECLARE) {}
+        ast_node_var_declaration() : ast_node_statement(statement_type::declare) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -163,7 +163,7 @@ namespace Thunder
     class ast_node_assignment : public ast_node_statement
     {
     public:
-        ast_node_assignment() : ast_node_statement(EStatementType::STAT_ASSIGN) {}
+        ast_node_assignment() : ast_node_statement(statement_type::assign) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -175,7 +175,7 @@ namespace Thunder
     class ast_node_return : public ast_node_statement
     {
     public:
-        ast_node_return() : ast_node_statement(EStatementType::STAT_RETURN) {}
+        ast_node_return() : ast_node_statement(statement_type::return_) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -186,21 +186,21 @@ namespace Thunder
     class ast_node_expression : public ast_node
     {
     public:
-        ast_node_expression(EExpressionType exprType)
-            : ast_node(EBasalNodeType::NODE_EXPRESSION), ExprType(exprType) {}
+        ast_node_expression(expression_type exprType)
+            : ast_node(basal_ast_node_type::expression), ExprType(exprType) {}
     public:
-        EExpressionType ExprType;
+        expression_type ExprType;
     };
 
     class ast_node_binary_operation : public ast_node_expression
     {
     public:
-        ast_node_binary_operation() : ast_node_expression (EExpressionType::EXPR_BINARY_OP) {}
+        ast_node_binary_operation() : ast_node_expression (expression_type::binary_op) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        EBinaryOp op = EBinaryOp::OP_UNDEFINED;
+        binary_op op = binary_op::undefined;
         ast_node_expression* left = nullptr;
         ast_node_expression* right = nullptr;
     };
@@ -208,7 +208,7 @@ namespace Thunder
     class ast_node_priority : public ast_node_expression
     {
     public:
-        ast_node_priority() : ast_node_expression(EExpressionType::EXPR_PRIORITY) {}
+        ast_node_priority() : ast_node_expression(expression_type::priority) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -219,7 +219,7 @@ namespace Thunder
     class ast_node_identifier : public ast_node_expression
     {
     public:
-        ast_node_identifier() : ast_node_expression(EExpressionType::EXPR_IDENTIFIER) {}
+        ast_node_identifier() : ast_node_expression(expression_type::identifier) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -230,7 +230,7 @@ namespace Thunder
     class ast_node_integer : public ast_node_expression
     {
     public:
-        ast_node_integer() : ast_node_expression(EExpressionType::EXPR_INTEGER) {}
+        ast_node_integer() : ast_node_expression(expression_type::integer) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
@@ -241,12 +241,12 @@ namespace Thunder
     class ast_node_type : public ast_node
     {
     public:
-        ast_node_type() : ast_node(EBasalNodeType::NODE_TYPE) {}
+        ast_node_type() : ast_node(basal_ast_node_type::type) {}
 
         void GenerateHLSL(String& outResult) override;
         void PrintAST(int indent) override;
     public:
-        EVarType ParamType = EVarType::TP_UNDEFINED;
+        var_type ParamType = var_type::undefined;
     };
 
     ast_node* create_function_node(ast_node* signature, ast_node* body);
@@ -259,11 +259,11 @@ namespace Thunder
     ast_node* create_var_decl_node(ast_node* typeNode, const char* name, ast_node* init_expr);
     ast_node* create_assignment_node(const char* lhs, ast_node* rhs);
     ast_node* create_return_node(ast_node* expr);
-    ast_node* create_binary_op_node(EBinaryOp op, ast_node* left, ast_node* right);
+    ast_node* create_binary_op_node(binary_op op, ast_node* left, ast_node* right);
     ast_node* create_priority_node(ast_node* expr);
     ast_node* create_identifier_node(const char* name);
     ast_node* create_int_literal_node(int value);
-    ast_node* create_type_node(EVarType type);
+    ast_node* create_type_node(var_type type);
     void post_process_ast(ast_node* nodeRoot);
 
 }

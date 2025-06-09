@@ -95,6 +95,11 @@ namespace Thunder
 		//int current_line;           // 当前行号
 		//int current_column;         // 当前列号
 		//const char* current_file;   // 当前文件名
+
+		/* 符号表管理 */
+		void insert_symbol_table(const String& name, enum_symbol_type type);
+		void validate_symbol(const String& name, enum_symbol_type type);
+
 	};
 
 	/* 初始化/销毁 */

@@ -63,6 +63,7 @@ function:
 
 func_signature:
     type IDENTIFIER LPAREN param_list RPAREN {
+        sl_state->insert_symbol_table($2, enum_symbol_type::function);
         $$ = create_func_signature_node($1, $2, $4);
     }
     ;
@@ -83,6 +84,7 @@ param_list:
 
 param:
     type IDENTIFIER {
+        sl_state->insert_symbol_table($2, enum_symbol_type::variable);
         $$ = create_param_node($1, $2);
     }
     ;
@@ -111,15 +113,18 @@ statement:
 
 var_decl:
     type IDENTIFIER SEMICOLON {
+        sl_state->insert_symbol_table($2, enum_symbol_type::variable);
         $$ = create_var_decl_node($1, $2, nullptr);
     }
     | type IDENTIFIER ASSIGN expression SEMICOLON {
+        sl_state->insert_symbol_table($2, enum_symbol_type::variable);
         $$ = create_var_decl_node($1, $2, $4);
     }
     ;
 
 assignment:
     IDENTIFIER ASSIGN expression SEMICOLON {
+        sl_state->validate_symbol($1, enum_symbol_type::variable);
         $$ = create_assignment_node($1, $3);
     }
     ;

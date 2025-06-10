@@ -43,13 +43,6 @@ namespace Thunder
 		all
 	};
 
-	enum class enum_error_level : uint8
-	{
-		error,
-		warning,
-		undefined
-	};
-
 	struct parse_location
 	{
 		int first_line;
@@ -97,8 +90,11 @@ namespace Thunder
 		//const char* current_file;   // 当前文件名
 
 		/* 符号表管理 */
-		void insert_symbol_table(const String& name, enum_symbol_type type);
-		void validate_symbol(const String& name, enum_symbol_type type);
+		void insert_symbol_table(const String& name, enum_symbol_type type, const parse_location* loc);
+		void evaluate_symbol(const String& name, enum_symbol_type type, const parse_location* loc) const;
+
+		/* 错误处理 */
+		static void debug_log(const String& msg, const parse_location* loc);
 
 	};
 

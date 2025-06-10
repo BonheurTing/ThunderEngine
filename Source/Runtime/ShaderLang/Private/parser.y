@@ -19,6 +19,25 @@ shader_lang_state *sl_state;
 #define YYLEX_PARAM sl_state->scanner
 #define YYLTYPE parse_location
 #define YYSTYPE parse_node
+#define YYLLOC_DEFAULT(Current, Rhs, N)                                \
+	do                                                                 \
+	  if (N)                                                           \
+		{                                                              \
+		  int i = 1, j = N;                                            \
+		  while(YYRHSLOC(Rhs, i).is_null() && i < N) i += 1;           \
+		  while(YYRHSLOC(Rhs, j).is_null() && j > i) j -= 1;           \
+		  (Current).first_line   = YYRHSLOC(Rhs, i).first_line;        \
+		  (Current).first_column = YYRHSLOC(Rhs, i).first_column;      \
+		  (Current).first_source = YYRHSLOC(Rhs, i).first_source;      \
+		  (Current).last_line    = YYRHSLOC(Rhs, j).last_line;         \
+		  (Current).last_column  = YYRHSLOC(Rhs, j).last_column;       \
+		  (Current).last_source  = YYRHSLOC(Rhs, j).last_source;       \
+		}                                                              \
+	  else                                                             \
+		{                                                              \
+		  (Current).set_null();                                        \
+		}                                                              \
+	while (0)
 
 
 int yylex(YYSTYPE *, parse_location*, void*);
@@ -26,6 +45,14 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %}
 
 %locations
+%initial-action {
+   @$.first_line = 1;
+   @$.first_column = 1;
+   @$.first_source = 0;
+   @$.last_line = 1;
+   @$.last_column = 1;
+   @$.last_source = 0;
+}
 
 %define api.pure
 %lex-param			{ void* sl_state->scanner }
@@ -63,7 +90,7 @@ function:
 
 func_signature:
     type IDENTIFIER LPAREN param_list RPAREN {
-        sl_state->insert_symbol_table($2, enum_symbol_type::function);
+        sl_state->insert_symbol_table($2, enum_symbol_type::function, &yylloc);
         $$ = create_func_signature_node($1, $2, $4);
     }
     ;
@@ -84,7 +111,7 @@ param_list:
 
 param:
     type IDENTIFIER {
-        sl_state->insert_symbol_table($2, enum_symbol_type::variable);
+        sl_state->insert_symbol_table($2, enum_symbol_type::variable, &yylloc);
         $$ = create_param_node($1, $2);
     }
     ;
@@ -113,18 +140,18 @@ statement:
 
 var_decl:
     type IDENTIFIER SEMICOLON {
-        sl_state->insert_symbol_table($2, enum_symbol_type::variable);
+        sl_state->insert_symbol_table($2, enum_symbol_type::variable, &yylloc);
         $$ = create_var_decl_node($1, $2, nullptr);
     }
     | type IDENTIFIER ASSIGN expression SEMICOLON {
-        sl_state->insert_symbol_table($2, enum_symbol_type::variable);
+        sl_state->insert_symbol_table($2, enum_symbol_type::variable, &yylloc);
         $$ = create_var_decl_node($1, $2, $4);
     }
     ;
 
 assignment:
     IDENTIFIER ASSIGN expression SEMICOLON {
-        sl_state->validate_symbol($1, enum_symbol_type::variable);
+        sl_state->evaluate_symbol($1, enum_symbol_type::variable, &yylloc);
         $$ = create_assignment_node($1, $3);
     }
     ;

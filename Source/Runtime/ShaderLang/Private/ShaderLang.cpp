@@ -10,18 +10,18 @@ namespace Thunder
 		"inline", "sizeof"
 	};
 
-	void shader_lang_state::insert_symbol_table(const String& name, enum_symbol_type type)
+	void shader_lang_state::insert_symbol_table(const String& name, enum_symbol_type type, const parse_location* loc)
 	{
 		if (reserved_word_list.contains(name))
 		{
 			// 错误处理：不能使用保留字作为符号名
-			DebugLog(this, enum_debug_level::error, "Cannot use reserved word as symbol name:", 0);
+			debug_log("Cannot use reserved word as symbol name:" + name, loc);
 			return;
 		}
 		if (symbol_table.contains(name))
 		{
 			// 错误处理：符号已存在
-			DebugLog(this, enum_debug_level::error, "Symbol already exists: ", 0);
+			debug_log("Symbol already exists: " + name, loc);
 		}
 		else
 		{
@@ -29,22 +29,28 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::validate_symbol(const String& name, enum_symbol_type type)
+	void shader_lang_state::evaluate_symbol(const String& name, enum_symbol_type type, const parse_location* loc) const
 	{
 		if (reserved_word_list.contains(name))
 		{
 			// 错误处理：不能使用保留字作为符号名
-			DebugLog(this, enum_debug_level::error, "Cannot use reserved word as symbol name: ", 0);
+			debug_log("Cannot use reserved word as symbol name: " + name, loc);
 			return;
 		}
 		if (!symbol_table.contains(name))
 		{
-			DebugLog(this, enum_debug_level::error, "Symbol not found: ", 0);
+			debug_log("Symbol not found: " + name, loc);
 		}
 	}
 
-	void DebugLog(shader_lang_state* state, enum_debug_level debugLevel, const char* message, int lineNo)
+	const char* get_file(int file_id)
 	{
-		printf("%s\n", message);
+		return "";
+	}
+
+	void shader_lang_state::debug_log(const String& msg, const parse_location* loc)
+	{
+		printf("Parsing error with <%s> : line %d col %d  Message : %s\n",
+			get_file(loc->first_source), loc->first_line, loc->first_column, msg.c_str());
 	}
 }

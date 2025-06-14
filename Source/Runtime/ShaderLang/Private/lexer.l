@@ -45,34 +45,50 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 /*%option prefix="thunder_"*/
 %option extra-type="struct shader_lang_state *"
 
+TEXCOORD				TEXCOORD[N|0-9]
+
+TARGETS					[0-7]
+SV_TARGET				SV_Target{TARGETS}?
+
 %%
 
-"int"       { return TYPE_INT; }
-"float"     { return TYPE_FLOAT; }
-"void"      { return TYPE_VOID; }
-"return"    { return RETURN; }
+SV_Position 	{ return TOKEN_SV; }
+{TEXCOORD}  	{ return TOKEN_SV; }
+{SV_TARGET} 	{ return TOKEN_SV; }
+
+"Shader"		{ return TOKEN_SHADER; }
+"Properties"	{ return TOKEN_PROPERTIES; }
+"SubShader"		{ return TOKEN_SUBSHADER; }
+
+"int"       	{ return TOKEN_INT; }
+"float"     	{ return TOKEN_FLOAT; }
+"void"      	{ return TOKEN_VOID; }
+"return"    	{ return TOKEN_RETURN; }
+"struct"		{ return TOKEN_STRUCT; }
 
 [a-zA-Z_][a-zA-Z0-9_]* {
-    yylval->str_val = strdup(yytext);
-    return IDENTIFIER;
-}
+					yylval->str_val = strdup(yytext);
+					return IDENTIFIER;
+				}
 
-[0-9]+      {
-    yylval->int_val = atoi(yytext);
-    return INT_LITERAL;
-}
+[0-9]+      	{
+					yylval->int_val = atoi(yytext);
+					return INT_LITERAL;
+				}
 
-"+"         { return ADD; }
-"-"         { return SUB; }
-"*"         { return MUL; }
-"/"         { return DIV; }
-"="         { return ASSIGN; }
-";"         { return SEMICOLON; }
-","         { return COMMA; }
-"("         { return LPAREN; }
-")"         { return RPAREN; }
-"{"         { return LBRACE; }
-"}"         { return RBRACE; }
+"+"         	{ return ADD; }
+"-"         	{ return SUB; }
+"*"         	{ return MUL; }
+"/"         	{ return DIV; }
+"="         	{ return ASSIGN; }
+":"				{ return COLON; }
+";"         	{ return SEMICOLON; }
+","         	{ return COMMA; }
+"("         	{ return LPAREN; }
+")"         	{ return RPAREN; }
+"{"         	{ return LBRACE; }
+"}"         	{ return RBRACE; }
+"\""			{ return QUOTE; }
 
 [ \t\n]     ; // 忽略空白字符
 

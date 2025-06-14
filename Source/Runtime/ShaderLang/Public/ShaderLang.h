@@ -81,40 +81,20 @@ namespace Thunder
 		/* 抽象语法树 */
 		class ast_node* ast_root = nullptr;	// AST根节点
 
-		/* 错误处理 */
-		//char* error_message;	// 错误信息
-
-		/* 词法/语法分析器扩展数据 */
-		//int current_line;           // 当前行号
-		//int current_column;         // 当前列号
-		//const char* current_file;   // 当前文件名
-
 		/* 符号表管理 */
 		void insert_symbol_table(const String& name, enum_symbol_type type, const parse_location* loc);
 		void evaluate_symbol(const String& name, enum_symbol_type type, const parse_location* loc) const;
+
+		/* 作用域管理 */
+
+		/* 类型系统 */
+		//DataType* type_infer(ShaderParseState* state, ASTNode* expr) { return nullptr;}    // 类型推断
 
 		/* 错误处理 */
 		static void debug_log(const String& msg, const parse_location* loc);
 
 	};
 
-	/* 初始化/销毁 */
-
-	/* 状态机API */
-
-	/* 作用域管理 */
-
-	/* 符号表操作 */
-
-	/* AST构建 */
 	
-
-	/* 调试日志 */
-	void DebugLog(shader_lang_state *state, enum_debug_level debugLevel, const char* message, int lineNo);
-
-	/* 类型系统 */
-	//DataType* type_infer(ShaderParseState* state, ASTNode* expr) { return nullptr;}    // 类型推断
-
-
 	
 }

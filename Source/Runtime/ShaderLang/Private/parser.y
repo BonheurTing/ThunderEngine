@@ -14,7 +14,7 @@ extern int yyparse(struct shader_lang_state *state);
 
 void ThunderParse(const char* text);
 
-shader_lang_state *sl_state;
+shader_lang_state *sl_state = nullptr;
 
 #define YYLEX_PARAM sl_state->scanner
 #define YYLTYPE parse_location
@@ -58,16 +58,21 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %lex-param			{ void* sl_state->scanner }
 %parse-param		{ struct shader_lang_state *state }
 
-%token TYPE_INT TYPE_FLOAT TYPE_VOID
+/* %token 用于声明 终结符（terminal/token），即词法分析器（lexer/flex）返回的词法单元。
+它可以指定该 token 的语义值类型（通过 <...> 指定 %union 的成员） */
+%token TOKEN_SV
+%token TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER
+%token TOKEN_INT TOKEN_FLOAT TOKEN_VOID TOKEN_RETURN TOKEN_STRUCT
 %token <str_val> IDENTIFIER
 %token <int_val> INT_LITERAL
-%token RETURN
 %token ADD SUB MUL DIV
-%token ASSIGN
-%token SEMICOLON COMMA
+%token ASSIGN COLON SEMICOLON COMMA QUOTE
 %token LPAREN RPAREN LBRACE RBRACE
 
-%type <token> program function func_signature param_list param type
+/* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
+%type <token> arrchive_definition properties_definition pass_definition stage_definition struct_definition function_definition
+%type <token> program passes pass_content func_signature param_list param type
+%type <token> struct_members struct_member
 %type <token> statement_list statement var_decl assignment func_ret
 %type <token> expression primary_expr binary_expr priority_expr
 
@@ -79,10 +84,59 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %%
 
 program:
-    function {sl_state->ast_root = $1;}
+    arrchive_definition {sl_state->ast_root = $1;}
     ;
 
-function:
+arrchive_definition:
+    TOKEN_SHADER QUOTE IDENTIFIER QUOTE LBRACE properties_definition passes RBRACE {
+        $$ = $7;
+    }
+    ;
+
+properties_definition:
+    TOKEN_PROPERTIES LBRACE /*TODO*/ RBRACE
+    ;
+
+passes:
+    pass_definition {
+        $$ = $1;
+    }
+    | passes pass_definition
+    ;
+
+pass_definition:
+    TOKEN_SUBSHADER LBRACE pass_content RBRACE{
+        $$ = $3;
+    }
+    ;
+
+pass_content:
+    stage_definition{
+        $$ = $1;
+    }
+    ;
+
+stage_definition:
+    function_definition{
+        $$ = $1;
+    }
+    ;
+
+struct_definition:
+    TOKEN_STRUCT IDENTIFIER LBRACE struct_members RBRACE SEMICOLON
+    ;
+
+struct_members:
+    struct_member
+    | struct_members struct_member
+    ;
+
+struct_member:
+    param SEMICOLON
+    | param COLON TOKEN_SV SEMICOLON
+    ;
+
+function_definition:
     func_signature LBRACE statement_list RBRACE {
         $$ = create_function_node($1, $3);
     }
@@ -117,9 +171,9 @@ param:
     ;
 
 type:
-    TYPE_INT { $$ = create_type_node(var_type::tp_int); }
-    | TYPE_FLOAT { $$ = create_type_node(var_type::tp_float); }
-    | TYPE_VOID { $$ = create_type_node(var_type::tp_void); }
+    TOKEN_INT { $$ = create_type_node(var_type::tp_int); }
+    | TOKEN_FLOAT { $$ = create_type_node(var_type::tp_float); }
+    | TOKEN_VOID { $$ = create_type_node(var_type::tp_void); }
     ;
 
 statement_list:
@@ -157,7 +211,7 @@ assignment:
     ;
 
 func_ret:
-    RETURN expression SEMICOLON {
+    TOKEN_RETURN expression SEMICOLON {
         $$ = create_return_node($2);
     }
     ;

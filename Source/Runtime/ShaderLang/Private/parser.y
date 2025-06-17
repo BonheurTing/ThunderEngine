@@ -1,4 +1,5 @@
 
+
 %{
 #include "../Public/AstNode.h"
 #include "../Public/ShaderLang.h"
@@ -44,6 +45,8 @@ int yylex(YYSTYPE *, parse_location*, void*);
 
 %}
 
+%define api.pure full
+
 %locations
 %initial-action {
    @$.first_line = 1;
@@ -54,7 +57,6 @@ int yylex(YYSTYPE *, parse_location*, void*);
    @$.last_source = 0;
 }
 
-%define api.pure
 %lex-param			{ void* sl_state->scanner }
 %parse-param		{ struct shader_lang_state *state }
 
@@ -71,7 +73,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 
 /* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
 %type <token> arrchive_definition properties_definition pass_definition stage_definition struct_definition function_definition
-%type <token> program passes pass_content func_signature param_list param type
+%type <token> program passes pass_content function_signature param_list param type
 %type <token> struct_members struct_member
 %type <token> statement_list statement var_decl assignment func_ret
 %type <token> expression primary_expr binary_expr priority_expr
@@ -111,8 +113,9 @@ pass_definition:
     ;
 
 pass_content:
-    stage_definition{
-        $$ = $1;
+    struct_definition stage_definition{
+        
+        $$ = $2;
     }
     ;
 
@@ -123,7 +126,12 @@ stage_definition:
     ;
 
 struct_definition:
-    TOKEN_STRUCT IDENTIFIER LBRACE struct_members RBRACE SEMICOLON
+    TOKEN_STRUCT IDENTIFIER LBRACE {
+        sl_state->parsing_struct_begin($2, &yylloc);
+    }
+    struct_members RBRACE SEMICOLON {
+        $$ = sl_state->parsing_struct_end();
+    }
     ;
 
 struct_members:
@@ -132,17 +140,21 @@ struct_members:
     ;
 
 struct_member:
-    param SEMICOLON
-    | param COLON TOKEN_SV SEMICOLON
+    type IDENTIFIER SEMICOLON {
+        sl_state->add_struct_member($1, $2, &yylloc);
+    }
+    | type IDENTIFIER COLON TOKEN_SV SEMICOLON {
+        sl_state->add_struct_member($1, $2, &yylloc); /* todo: parse sv */
+    }
     ;
 
 function_definition:
-    func_signature LBRACE statement_list RBRACE {
+    function_signature LBRACE statement_list RBRACE {
         $$ = create_function_node($1, $3);
     }
     ;
 
-func_signature:
+function_signature:
     type IDENTIFIER LPAREN param_list RPAREN {
         sl_state->insert_symbol_table($2, enum_symbol_type::function, &yylloc);
         $$ = create_func_signature_node($1, $2, $4);
@@ -171,9 +183,9 @@ param:
     ;
 
 type:
-    TOKEN_INT { $$ = create_type_node(var_type::tp_int); }
-    | TOKEN_FLOAT { $$ = create_type_node(var_type::tp_float); }
-    | TOKEN_VOID { $$ = create_type_node(var_type::tp_void); }
+    TOKEN_INT { $$ = create_type_node(enum_var_type::tp_int); }
+    | TOKEN_FLOAT { $$ = create_type_node(enum_var_type::tp_float); }
+    | TOKEN_VOID { $$ = create_type_node(enum_var_type::tp_void); }
     ;
 
 statement_list:
@@ -234,20 +246,19 @@ priority_expr:
 
 binary_expr:
     expression ADD expression {
-        $$ = create_binary_op_node(binary_op::add, $1, $3);
+        $$ = create_binary_op_node(enum_binary_op::add, $1, $3);
     }
     | expression SUB expression {
-        $$ = create_binary_op_node(binary_op::sub, $1, $3);
+        $$ = create_binary_op_node(enum_binary_op::sub, $1, $3);
     }
     | expression MUL expression {
-        $$ = create_binary_op_node(binary_op::mul, $1, $3);
+        $$ = create_binary_op_node(enum_binary_op::mul, $1, $3);
     }
     | expression DIV expression {
-        $$ = create_binary_op_node(binary_op::div, $1, $3);
+        $$ = create_binary_op_node(enum_binary_op::div, $1, $3);
     }
     ;
 %%
-
 
 
 void yyerror(parse_location *loc, shader_lang_state* st, const char* msg){

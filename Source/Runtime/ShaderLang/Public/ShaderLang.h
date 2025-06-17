@@ -1,16 +1,18 @@
 #pragma once
 
+#include "AstNode.h"
 #include "Container.h"
 #include "Platform.h"
 
 namespace Thunder
 {
 	
-	enum class basal_ast_node_type : uint8;
+	enum class enum_ast_node_type : uint8;
 
 	enum class enum_symbol_type : uint8
 	{
 		variable,   // 变量
+		structure,  // 结构体
 		function,   // 函数
 		type,       // 类型
 		constant,   // 常量
@@ -80,6 +82,15 @@ namespace Thunder
 		
 		/* 抽象语法树 */
 		class ast_node* ast_root = nullptr;	// AST根节点
+
+		/* 状态机运行时上下文 */
+		ast_node_struct* current_structure = nullptr;
+		ast_node_function* current_function = nullptr;
+
+		/* 上下文管理 */
+		void parsing_struct_begin(const String& name, const parse_location* loc);
+		ast_node_struct* parsing_struct_end();
+		void add_struct_member(ast_node* type, const String& name, const parse_location* loc);
 
 		/* 符号表管理 */
 		void insert_symbol_table(const String& name, enum_symbol_type type, const parse_location* loc);

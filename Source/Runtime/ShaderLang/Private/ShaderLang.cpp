@@ -10,6 +10,32 @@ namespace Thunder
 		"inline", "sizeof"
 	};
 
+	void shader_lang_state::parsing_struct_begin(const String& name, const parse_location* loc)
+	{
+		insert_symbol_table(name, enum_symbol_type::structure, loc);
+		current_structure = new ast_node_struct(name);
+	}
+
+	ast_node_struct* shader_lang_state::parsing_struct_end()
+	{
+		ast_node_struct* dummy = current_structure;
+		current_structure = nullptr;
+		return dummy;
+	}
+
+	void shader_lang_state::add_struct_member(ast_node* type, const String& name, const parse_location* loc)
+	{
+		insert_symbol_table(name, enum_symbol_type::variable, loc);
+		if (current_structure)
+		{
+			current_structure->add_member(name);
+		}
+		else
+		{
+			debug_log("No current structure to add member to.", loc);
+		}
+	}
+
 	void shader_lang_state::insert_symbol_table(const String& name, enum_symbol_type type, const parse_location* loc)
 	{
 		if (reserved_word_list.contains(name))

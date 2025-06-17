@@ -11,22 +11,22 @@ namespace Thunder
         for (int i = 0; i < indent; i++) printf("  ");
     }
 
-    static const char* get_type_name(var_type type) {
+    static const char* get_type_name(enum_var_type type) {
         switch (type)
         {
-            case var_type::tp_int: return "int";
-            case var_type::tp_float: return "float";
-            case var_type::tp_void: return "void";
-            case var_type::undefined: return "unknown";
+            case enum_var_type::tp_int: return "int";
+            case enum_var_type::tp_float: return "float";
+            case enum_var_type::tp_void: return "void";
+            case enum_var_type::undefined: return "unknown";
         }
         return nullptr;
     }
 
-    void ast_node::GenerateDXIL()
+    void ast_node::generate_dxil()
     {
         // ASTNodeAdd
-        /*mLeft.GenerateDXIL();
-        mRight.GenerateDXIL();
+        /*mLeft.generate_dxil();
+        mRight.generate_dxil();
         std::string outResult += "LD EAX " + mLeft.Result();
         outResult += "LD EBX " + mRight.Result();
         outResult += "ADD EAX EBX";*/
@@ -34,131 +34,131 @@ namespace Thunder
 
 #pragma region HLSL
 
-    void ast_node_function::GenerateHLSL(std::string& outResult)
+    void ast_node_function::generate_hlsl(std::string& outResult)
     {
         String funcSignature;
-        Signature->GenerateHLSL(funcSignature);
+        signature->generate_hlsl(funcSignature);
         String funcBody;
-        Body->GenerateHLSL(funcBody);
+        body->generate_hlsl(funcBody);
         outResult += funcSignature + "{\n" + funcBody + "}\n";
     }
 
-    void ast_node_func_signature::GenerateHLSL(String& outResult)
+    void ast_node_func_signature::generate_hlsl(String& outResult)
     {
         String paramList;
-        if (Params != nullptr)
+        if (params != nullptr)
         {
-            Params->GenerateHLSL(paramList);
+            params->generate_hlsl(paramList);
         }
-        ReturnType->GenerateHLSL(outResult);
-        outResult += " " + FuncName.ToString() + "(" + paramList + ")\n";
+        return_type->generate_hlsl(outResult);
+        outResult += " " + func_name.ToString() + "(" + paramList + ")\n";
     }
 
-    void ast_node_param_list::GenerateHLSL(String& outResult)
+    void ast_node_param_list::generate_hlsl(String& outResult)
     {
-        if (ParamsHead != nullptr)
+        if (params_head != nullptr)
         {
-            ParamsHead->GenerateHLSL(outResult);
+            params_head->generate_hlsl(outResult);
         }
     }
 
-    void ast_node_param::GenerateHLSL(String& outResult)
+    void ast_node_param::generate_hlsl(String& outResult)
     {
-        ParamType->GenerateHLSL(outResult);
-        outResult += " " + ParamName.ToString();
-        if (NextParam != nullptr)
+        param_type->generate_hlsl(outResult);
+        outResult += " " + param_name.ToString();
+        if (next_param != nullptr)
         {
             outResult += ", ";
-            NextParam->GenerateHLSL(outResult);
+            next_param->generate_hlsl(outResult);
         }
     }
 
-    void ast_node_statement_list::GenerateHLSL(String& outResult)
+    void ast_node_statement_list::generate_hlsl(String& outResult)
     {
-        if (StatementsHead != nullptr)
+        if (statements_head != nullptr)
         {
-            StatementsHead->GenerateHLSL(outResult);
+            statements_head->generate_hlsl(outResult);
         }
     }
 
-    void ast_node_statement::GenerateHLSL(String& outResult)
+    void ast_node_statement::generate_hlsl(String& outResult)
     {
         if (NextStatement != nullptr)
         {
-            NextStatement->GenerateHLSL(outResult);
+            NextStatement->generate_hlsl(outResult);
         }
     }
 
-    void ast_node_var_declaration::GenerateHLSL(String& outResult)
+    void ast_node_var_declaration::generate_hlsl(String& outResult)
     {
-        VarDelType->GenerateHLSL(outResult);
+        VarDelType->generate_hlsl(outResult);
         outResult += " " + VarName.ToString();
         if (DelExpression != nullptr)
         {
             outResult += " = ";
-            DelExpression->GenerateHLSL(outResult);
+            DelExpression->generate_hlsl(outResult);
         }
         outResult += ";\n";
-        ast_node_statement::GenerateHLSL(outResult);
+        ast_node_statement::generate_hlsl(outResult);
     }
 
-    void ast_node_assignment::GenerateHLSL(String& outResult)
+    void ast_node_assignment::generate_hlsl(String& outResult)
     {
         outResult += LhsVar.ToString() + " = ";
         TAssertf(RhsExpression != nullptr, "Assignment rhs is null");
-        RhsExpression->GenerateHLSL(outResult);
+        RhsExpression->generate_hlsl(outResult);
         outResult += ";\n";
-        ast_node_statement::GenerateHLSL(outResult);
+        ast_node_statement::generate_hlsl(outResult);
     }
 
-    void ast_node_return::GenerateHLSL(String& outResult)
+    void ast_node_return::generate_hlsl(String& outResult)
     {
         outResult += "return ";
         if (RetValue != nullptr)
         {
-            RetValue->GenerateHLSL(outResult);
+            RetValue->generate_hlsl(outResult);
         }
         outResult += ";\n";
-        ast_node_statement::GenerateHLSL(outResult);
+        ast_node_statement::generate_hlsl(outResult);
     }
 
-    void ast_node_binary_operation::GenerateHLSL(String& outResult)
+    void ast_node_binary_operation::generate_hlsl(String& outResult)
     {
         TAssertf(left != nullptr && right != nullptr, "Binary operation left or right is null");
         //outResult += "(";
-        left->GenerateHLSL(outResult);
+        left->generate_hlsl(outResult);
         switch (op) {
-        case binary_op::add: outResult += " + "; break;
-        case binary_op::sub: outResult += " - "; break;
-        case binary_op::mul: outResult += " * "; break;
-        case binary_op::div: outResult += " / "; break;
-        case binary_op::undefined: break;
+        case enum_binary_op::add: outResult += " + "; break;
+        case enum_binary_op::sub: outResult += " - "; break;
+        case enum_binary_op::mul: outResult += " * "; break;
+        case enum_binary_op::div: outResult += " / "; break;
+        case enum_binary_op::undefined: break;
         }
-        right->GenerateHLSL(outResult);
+        right->generate_hlsl(outResult);
         //outResult += ")";
     }
 
-    void ast_node_priority::GenerateHLSL(String& outResult)
+    void ast_node_priority::generate_hlsl(String& outResult)
     {
         outResult += "( ";
         if (Content != nullptr)
         {
-            Content->GenerateHLSL(outResult);
+            Content->generate_hlsl(outResult);
         }
         outResult += " )";
     }
 
-    void ast_node_identifier::GenerateHLSL(String& outResult)
+    void ast_node_identifier::generate_hlsl(String& outResult)
     {
         outResult += Identifier.ToString();
     }
 
-    void ast_node_integer::GenerateHLSL(String& outResult)
+    void ast_node_integer::generate_hlsl(String& outResult)
     {
         outResult += std::to_string(IntValue);
     }
 
-    void ast_node_type::GenerateHLSL(String& outResult)
+    void ast_node_type::generate_hlsl(String& outResult)
     {
         outResult += get_type_name(ParamType);
     }
@@ -167,98 +167,98 @@ namespace Thunder
 
     #pragma region PRINT_AST
 
-    void ast_node_function::PrintAST(int indent)
+    void ast_node_function::print_ast(int indent)
     {
         print_blank(indent);
         printf("Function:\n");
-        Signature->PrintAST(indent + 1);
-        Body->PrintAST(indent + 1);
+        signature->print_ast(indent + 1);
+        body->print_ast(indent + 1);
     }
 
-    void ast_node_func_signature::PrintAST(int indent)
+    void ast_node_func_signature::print_ast(int indent)
     {
         print_blank(indent);
         printf("Signature:\n");
         print_blank(indent + 1);
-        printf("FuncName: %s\n", FuncName.c_str());
+        printf("FuncName: %s\n", func_name.c_str());
         print_blank(indent + 1);
         printf("Return");
-        ReturnType->PrintAST(0);
+        return_type->print_ast(0);
         printf("\n");
-        Params->PrintAST(indent + 1);
+        params->print_ast(indent + 1);
     }
 
-    void ast_node_param_list::PrintAST(int indent)
+    void ast_node_param_list::print_ast(int indent)
     {
         print_blank(indent);
-        printf("ParamList(Count %d):\n", ParamCount);
-        if (ParamsHead != nullptr)
+        printf("ParamList(Count %d):\n", param_count);
+        if (params_head != nullptr)
         {
-            ParamsHead->PrintAST(indent + 1);
+            params_head->print_ast(indent + 1);
         }
     }
 
-    void ast_node_param::PrintAST(int indent)
+    void ast_node_param::print_ast(int indent)
     {
         print_blank(indent);
         printf("Param { ");
-        ParamType->PrintAST(0);
-        printf("; Name : %s }\n", ParamName.c_str());
-        if (NextParam != nullptr) {
-            NextParam->PrintAST(indent);
+        param_type->print_ast(0);
+        printf("; Name : %s }\n", param_name.c_str());
+        if (next_param != nullptr) {
+            next_param->print_ast(indent);
         }
     }
 
-    void ast_node_statement_list::PrintAST(int indent)
+    void ast_node_statement_list::print_ast(int indent)
     {
         print_blank(indent);
         printf("StatementList:\n");
-        StatementsHead->PrintAST(indent + 1);
+        statements_head->print_ast(indent + 1);
     }
 
-    void ast_node_statement::PrintAST(int indent)
+    void ast_node_statement::print_ast(int indent)
     {
         if (NextStatement != nullptr)
         {
-            NextStatement->PrintAST(indent);
+            NextStatement->print_ast(indent);
         }
     }
 
-    void ast_node_var_declaration::PrintAST(int indent)
+    void ast_node_var_declaration::print_ast(int indent)
     {
         print_blank(indent);
         printf("VarDecl: {\n");
-        VarDelType->PrintAST(indent + 1);
+        VarDelType->print_ast(indent + 1);
         printf("; Name : %s\n", VarName.c_str());
         if (DelExpression != nullptr)
         {
-            DelExpression->PrintAST(indent + 1);
+            DelExpression->print_ast(indent + 1);
         }
         print_blank(indent);
         printf("}\n");
-        ast_node_statement::PrintAST(indent);
+        ast_node_statement::print_ast(indent);
     }
 
-    void ast_node_assignment::PrintAST(int indent)
+    void ast_node_assignment::print_ast(int indent)
     {
         print_blank(indent);
         printf("Assignment: {\n");
         print_blank(indent + 1);
         printf("%s = \n", LhsVar.c_str());
         TAssertf(RhsExpression != nullptr, "Assignment rhs is null");
-        RhsExpression->PrintAST(indent + 1);
+        RhsExpression->print_ast(indent + 1);
         print_blank(indent);
         printf("}\n");
-        ast_node_statement::PrintAST(indent);
+        ast_node_statement::print_ast(indent);
     }
 
-    void ast_node_return::PrintAST(int indent)
+    void ast_node_return::print_ast(int indent)
     {
         print_blank(indent);
         printf("return: { \n");
         if (RetValue != nullptr)
         {
-            RetValue->PrintAST(indent + 1);
+            RetValue->print_ast(indent + 1);
         }
         else
         {
@@ -266,50 +266,50 @@ namespace Thunder
         }
         print_blank(indent);
         printf("}\n");
-        ast_node_statement::PrintAST(indent);
+        ast_node_statement::print_ast(indent);
     }
 
-    void ast_node_binary_operation::PrintAST(int indent)
+    void ast_node_binary_operation::print_ast(int indent)
     {
         TAssertf(left != nullptr && right != nullptr, "Binary operation left or right is null");
         print_blank(indent);
         printf("BinaryOp: ");
         switch (op) {
-        case binary_op::add: printf("+\n"); break;
-        case binary_op::sub: printf("-\n"); break;
-        case binary_op::mul: printf("*\n"); break;
-        case binary_op::div: printf("/\n"); break;
-        case binary_op::undefined: break;
+        case enum_binary_op::add: printf("+\n"); break;
+        case enum_binary_op::sub: printf("-\n"); break;
+        case enum_binary_op::mul: printf("*\n"); break;
+        case enum_binary_op::div: printf("/\n"); break;
+        case enum_binary_op::undefined: break;
         }
-        left->PrintAST(indent + 1);
-        right->PrintAST(indent + 1);
+        left->print_ast(indent + 1);
+        right->print_ast(indent + 1);
     }
 
-    void ast_node_priority::PrintAST(int indent)
+    void ast_node_priority::print_ast(int indent)
     {
         print_blank(indent);
         printf("Priority: (\n");
         if (Content != nullptr)
         {
-            Content->PrintAST(indent + 1);
+            Content->print_ast(indent + 1);
         }
         print_blank(indent);
         printf(")\n");
     }
 
-    void ast_node_identifier::PrintAST(int indent)
+    void ast_node_identifier::print_ast(int indent)
     {
         print_blank(indent);
         printf("IdentifierName: %s\n", Identifier.c_str());
     }
 
-    void ast_node_integer::PrintAST(int indent)
+    void ast_node_integer::print_ast(int indent)
     {
         print_blank(indent);
         printf("Integer: %d\n", IntValue);
     }
 
-    void ast_node_type::PrintAST(int indent)
+    void ast_node_type::print_ast(int indent)
     {
         print_blank(indent);
         printf("Type: %s", get_type_name(ParamType));
@@ -321,83 +321,83 @@ namespace Thunder
 
     ast_node* create_function_node(ast_node* signature, ast_node* body)
     {
-        TAssertf(signature != nullptr && signature->Type == basal_ast_node_type::func_signature, "Signature node type is not correct");
-        TAssertf(body != nullptr && body->Type == basal_ast_node_type::statement_list, "Body node type is not correct");
+        TAssertf(signature != nullptr && signature->Type == enum_ast_node_type::func_signature, "Signature node type is not correct");
+        TAssertf(body != nullptr && body->Type == enum_ast_node_type::statement_list, "Body node type is not correct");
 
         const auto node = new ast_node_function;
-        node->Signature = static_cast<ast_node_func_signature*>(signature);
-        node->Body = static_cast<ast_node_statement_list*>(body);
+        node->signature = static_cast<ast_node_func_signature*>(signature);
+        node->body = static_cast<ast_node_statement_list*>(body);
         return node;
     }
 
     ast_node* create_func_signature_node(ast_node* returnTypeNode, const char *name, ast_node* params)
     {
-        TAssertf(returnTypeNode != nullptr && returnTypeNode->Type == basal_ast_node_type::type, "Return type node type is not correct");
-        TAssertf(params != nullptr && params->Type == basal_ast_node_type::param_list, "Params node type is not correct");
+        TAssertf(returnTypeNode != nullptr && returnTypeNode->Type == enum_ast_node_type::type, "Return type node type is not correct");
+        TAssertf(params != nullptr && params->Type == enum_ast_node_type::param_list, "Params node type is not correct");
 
         const auto node = new ast_node_func_signature;
-        node->ReturnType = static_cast<ast_node_type*>(returnTypeNode);
-        node->FuncName = name;
-        node->Params = static_cast<ast_node_param_list*>(params);
+        node->return_type = static_cast<ast_node_type*>(returnTypeNode);
+        node->func_name = name;
+        node->params = static_cast<ast_node_param_list*>(params);
         return node;
     }
 
     ast_node* create_param_list_node()
     {
         const auto node = new ast_node_param_list;
-        node->ParamCount = 0;
-        node->ParamsHead = nullptr;
-        node->ParamsTail = nullptr;
+        node->param_count = 0;
+        node->params_head = nullptr;
+        node->params_tail = nullptr;
         return node;
     }
 
     void add_param_to_list(ast_node* list, ast_node* param)
     {
-        TAssertf(list != nullptr && list->Type == basal_ast_node_type::param_list, "List node type is not correct");
-        TAssertf(param != nullptr && param->Type == basal_ast_node_type::param, "Param node type is not correct");
+        TAssertf(list != nullptr && list->Type == enum_ast_node_type::param_list, "List node type is not correct");
+        TAssertf(param != nullptr && param->Type == enum_ast_node_type::param, "Param node type is not correct");
 
         if (const auto paramList = static_cast<ast_node_param_list*>(list))
         {
-            if (paramList->ParamCount == 0)
+            if (paramList->param_count == 0)
             {
-                paramList->ParamsHead = static_cast<ast_node_param*>(param);
-                paramList->ParamsTail = static_cast<ast_node_param*>(param);
+                paramList->params_head = static_cast<ast_node_param*>(param);
+                paramList->params_tail = static_cast<ast_node_param*>(param);
             } else {
-                paramList->ParamsTail->NextParam = static_cast<ast_node_param*>(param);
-                paramList->ParamsTail = static_cast<ast_node_param*>(param);
+                paramList->params_tail->next_param = static_cast<ast_node_param*>(param);
+                paramList->params_tail = static_cast<ast_node_param*>(param);
             }
-            paramList->ParamCount++;
+            paramList->param_count++;
         }
     }
 
     ast_node* create_param_node(ast_node* typeNode, const char *name)
     {
-        TAssertf(typeNode != nullptr && typeNode->Type == basal_ast_node_type::type, "Type node type is not correct");
+        TAssertf(typeNode != nullptr && typeNode->Type == enum_ast_node_type::type, "Type node type is not correct");
 
         const auto node = new ast_node_param;
-        node->ParamType = static_cast<ast_node_type*>(typeNode);
-        node->ParamName = name;
-        node->NextParam = nullptr;
+        node->param_type = static_cast<ast_node_type*>(typeNode);
+        node->param_name = name;
+        node->next_param = nullptr;
         return node;
     }
 
     ast_node* create_statement_list_node()
     {
         const auto node = new ast_node_statement_list;
-        node->StatementsHead = nullptr;
+        node->statements_head = nullptr;
         node->StatementsTail = nullptr;
         return node;
     }
 
     void add_statement_to_list(ast_node* list, ast_node* stmt)
     {
-        TAssertf(list != nullptr && list->Type == basal_ast_node_type::statement_list, "List node type is not correct");
-        TAssertf(stmt != nullptr && stmt->Type == basal_ast_node_type::statement, "Statement node type is not correct");
+        TAssertf(list != nullptr && list->Type == enum_ast_node_type::statement_list, "List node type is not correct");
+        TAssertf(stmt != nullptr && stmt->Type == enum_ast_node_type::statement, "Statement node type is not correct");
 
         if (const auto stmtList = static_cast<ast_node_statement_list*>(list); const auto newStmt = static_cast<ast_node_statement*>(stmt))
         {
-            if (stmtList->StatementsHead == nullptr && stmtList->StatementsTail == nullptr) {
-                stmtList->StatementsHead = newStmt;
+            if (stmtList->statements_head == nullptr && stmtList->StatementsTail == nullptr) {
+                stmtList->statements_head = newStmt;
                 stmtList->StatementsTail = newStmt;
             } else {
                 stmtList->StatementsTail->NextStatement = newStmt;
@@ -408,14 +408,14 @@ namespace Thunder
 
     ast_node* create_var_decl_node(ast_node* typeNode, const char *name, ast_node* init_expr)
     {
-        TAssertf(typeNode != nullptr && typeNode->Type == basal_ast_node_type::type, "Type node type is not correct");
+        TAssertf(typeNode != nullptr && typeNode->Type == enum_ast_node_type::type, "Type node type is not correct");
 
         const auto node = new ast_node_var_declaration;
         node->VarDelType = static_cast<ast_node_type*>(typeNode);
         node->VarName = name;
         if (init_expr != nullptr)
         {
-            TAssertf(init_expr->Type == basal_ast_node_type::expression, "Init expression node type is not correct");
+            TAssertf(init_expr->Type == enum_ast_node_type::expression, "Init expression node type is not correct");
             node->DelExpression = static_cast<ast_node_expression*>(init_expr);
         }
         return node;
@@ -423,7 +423,7 @@ namespace Thunder
 
     ast_node* create_assignment_node(const char *lhs, ast_node* rhs)
     {
-        TAssertf(rhs != nullptr && rhs->Type == basal_ast_node_type::expression, "Assignment rhs is null");
+        TAssertf(rhs != nullptr && rhs->Type == enum_ast_node_type::expression, "Assignment rhs is null");
 
         const auto node = new ast_node_assignment;
         node->LhsVar = lhs;
@@ -433,16 +433,16 @@ namespace Thunder
 
     ast_node* create_return_node(ast_node* expr)
     {
-        TAssertf(expr != nullptr && expr->Type == basal_ast_node_type::expression, "Return expression is null");
+        TAssertf(expr != nullptr && expr->Type == enum_ast_node_type::expression, "Return expression is null");
         const auto node = new ast_node_return;
         node->RetValue = static_cast<ast_node_expression*>(expr);
         return node;
     }
 
-    ast_node* create_binary_op_node(binary_op op, ast_node* left, ast_node* right)
+    ast_node* create_binary_op_node(enum_binary_op op, ast_node* left, ast_node* right)
     {
-        TAssertf(left != nullptr && left->Type == basal_ast_node_type::expression, "Binary operation left is null");
-        TAssertf(right != nullptr && right->Type == basal_ast_node_type::expression, "Binary operation right is null");
+        TAssertf(left != nullptr && left->Type == enum_ast_node_type::expression, "Binary operation left is null");
+        TAssertf(right != nullptr && right->Type == enum_ast_node_type::expression, "Binary operation right is null");
 
         const auto node = new ast_node_binary_operation;
         node->op = op;
@@ -456,13 +456,13 @@ namespace Thunder
         const auto node = new ast_node_priority;
         if (expr)
         {
-            TAssert(expr->Type == basal_ast_node_type::expression);
+            TAssert(expr->Type == enum_ast_node_type::expression);
             node->Content = static_cast<ast_node_expression*>(expr);
         }
         return node;
     }
 
-    ast_node* create_type_node(var_type type) {
+    ast_node* create_type_node(enum_var_type type) {
         const auto node = new ast_node_type;
         node->ParamType = type; // 复用param_type字段
         return node;
@@ -484,10 +484,10 @@ namespace Thunder
 
     void post_process_ast(ast_node* nodeRoot)
     {
-        nodeRoot->PrintAST(0);
+        nodeRoot->print_ast(0);
         printf("\n");
         String outHlsl;
-        nodeRoot->GenerateHLSL(outHlsl);
+        nodeRoot->generate_hlsl(outHlsl);
         printf("-------generate hlsl-------\n%s", outHlsl.c_str());
 
         printf("\n-------DXCompiler-------\n");

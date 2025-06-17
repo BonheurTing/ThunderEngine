@@ -5,6 +5,11 @@ Shader "TestShader"
     }
     SubShader
     {
+        struct appdata {
+            int vertex;
+            float uv : TEXCOORD0;
+        };
+
         int frag(int x, float y) {
             int a;
             int b = 10;

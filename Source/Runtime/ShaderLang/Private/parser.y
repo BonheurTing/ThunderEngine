@@ -103,7 +103,9 @@ passes:
     pass_definition {
         $$ = $1;
     }
-    | passes pass_definition
+    | passes pass_definition {
+        $$ = $2;
+    }
     ;
 
 pass_definition:
@@ -114,8 +116,7 @@ pass_definition:
 
 pass_content:
     struct_definition stage_definition{
-        
-        $$ = $2;
+        $$ = create_pass_node($1, $2);
     }
     ;
 
@@ -135,7 +136,9 @@ struct_definition:
     ;
 
 struct_members:
-    struct_member
+    struct_member {
+        $$ = $1;
+    }
     | struct_members struct_member
     ;
 
@@ -144,7 +147,7 @@ struct_member:
         sl_state->add_struct_member($1, $2, &yylloc);
     }
     | type IDENTIFIER COLON TOKEN_SV SEMICOLON {
-        sl_state->add_struct_member($1, $2, &yylloc); /* todo: parse sv */
+        sl_state->add_struct_member($1, $2, &yylloc);  /* todo: parse sv */
     }
     ;
 

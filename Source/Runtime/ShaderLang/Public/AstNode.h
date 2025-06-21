@@ -6,6 +6,7 @@ namespace Thunder
 {
     enum class enum_ast_node_type : uint8
     {
+        pass,
         structure,
         function,
         func_signature,
@@ -81,14 +82,25 @@ namespace Thunder
         enum_ast_node_type Type;
     };
 
+    class ast_node_pass : public ast_node
+    {
+    public:
+        ast_node_pass() : ast_node(enum_ast_node_type::pass) {}
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    public:
+        class ast_node_struct* struct_node = nullptr;
+        class ast_node_function* stage_node = nullptr;
+    };
+
     class ast_node_struct : public ast_node
     {
     public:
         ast_node_struct(const String& name)
         : ast_node(enum_ast_node_type::structure), struct_name(name) {}
 
-        void generate_hlsl(String& outResult) override {};
-        void print_ast(int indent) override {};
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
         void add_member(const String& name)
         {
             member_names.push_back(name);
@@ -276,6 +288,7 @@ namespace Thunder
         enum_var_type ParamType = enum_var_type::undefined;
     };
 
+    ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
     ast_node* create_function_node(ast_node* signature, ast_node* body);
     ast_node* create_func_signature_node(ast_node* returnTypeNode, const char* name, ast_node* params);
     ast_node* create_param_list_node();

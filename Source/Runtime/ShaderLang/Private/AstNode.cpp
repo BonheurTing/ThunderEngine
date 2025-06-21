@@ -33,7 +33,28 @@ namespace Thunder
     }
 
 #pragma region HLSL
-
+    void ast_node_pass::generate_hlsl(String& outResult)
+    {
+        if (struct_node != nullptr)
+        {
+            struct_node->generate_hlsl(outResult);
+        }
+        if (stage_node != nullptr)
+        {
+            stage_node->generate_hlsl(outResult);
+        }
+    }
+    
+    void ast_node_struct::generate_hlsl(String& outResult)
+    {
+        outResult += "struct " + struct_name.ToString() + " {\n";
+        for (const auto& member : member_names)
+        {
+            outResult += "    " + member + ";\n";
+        }
+        outResult += "};\n";
+    }
+    
     void ast_node_function::generate_hlsl(std::string& outResult)
     {
         String funcSignature;
@@ -163,9 +184,36 @@ namespace Thunder
         outResult += get_type_name(ParamType);
     }
 
-    #pragma endregion
+#pragma endregion
 
-    #pragma region PRINT_AST
+#pragma region PRINT_AST
+
+    void ast_node_pass::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("Pass:\n");
+        if (struct_node != nullptr)
+        {
+            struct_node->print_ast(indent + 1);
+        }
+        if (stage_node != nullptr)
+        {
+            stage_node->print_ast(indent + 1);
+        }
+    }
+
+    void ast_node_struct::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("Struct: %s\n", struct_name.ToString().c_str());
+        print_blank(indent + 1);
+        printf("Members:\n");
+        for (const auto& member : member_names)
+        {
+            print_blank(indent + 2);
+            printf("%s;\n", member.c_str());
+        }
+    }
 
     void ast_node_function::print_ast(int indent)
     {
@@ -318,6 +366,16 @@ namespace Thunder
 #pragma endregion
 
 #pragma region CREATE_AST_NODE
+
+    ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node)
+    {
+        TAssertf(struct_node != nullptr && struct_node->Type == enum_ast_node_type::structure, "Struct node type is not correct");
+        TAssertf(stage_node != nullptr && stage_node->Type == enum_ast_node_type::function, "Stage node type is not correct");
+        const auto node = new ast_node_pass;
+        node->struct_node = static_cast<ast_node_struct*>(struct_node);
+        node->stage_node = static_cast<ast_node_function*>(stage_node);
+        return node;
+    }
 
     ast_node* create_function_node(ast_node* signature, ast_node* body)
     {

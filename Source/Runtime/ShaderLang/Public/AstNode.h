@@ -6,6 +6,8 @@ namespace Thunder
 {
     enum class enum_ast_node_type : uint8
     {
+        type,
+        variable,
         pass,
         structure,
         function,
@@ -14,17 +16,7 @@ namespace Thunder
         param,
         statement_list,
         statement,
-        expression,
-        type
-    };
-
-    enum class enum_struct_type : uint8
-    {
-        variable,   // 变量
-        function,   // 函数
-        type,       // 类型
-        constant,   // 常量
-        undefined   // 未定义符号
+        expression
     };
 
     enum class enum_statement_type : uint8
@@ -105,6 +97,37 @@ namespace Thunder
         enum_ast_node_type Type;
     };
 
+    // 类型基类，类型相关的用法都在这里
+    class ast_node_type : public ast_node
+    {
+    public:
+        ast_node_type() : ast_node(enum_ast_node_type::type) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    public:
+        enum_basic_type param_type : 4 = enum_basic_type::undefined;
+        enum_texture_type texture_type : 4 = enum_texture_type::texture_unknown;
+
+        bool is_semantic : 1 = false; // 是否是shader语义
+    };
+
+    // 变量基类，包含参数变量，局部变量，全局变量，shader semantic等
+    class ast_node_variable : public ast_node
+    {
+    public:
+        ast_node_variable(const String& name)
+            : ast_node(enum_ast_node_type::variable), name(name) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    public:
+        ast_node_type* type = nullptr;
+        NameHandle name = nullptr;
+        NameHandle semantic = nullptr; // 用于存储shader语义
+        String value; // 用于存储常量值或默认值
+    };
+
     class ast_node_pass : public ast_node
     {
     public:
@@ -112,25 +135,25 @@ namespace Thunder
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     public:
-        class ast_node_struct* struct_node = nullptr;
-        class ast_node_function* stage_node = nullptr;
+        class ast_node_struct* structure = nullptr;
+        class ast_node_function* stage = nullptr;
     };
 
     class ast_node_struct : public ast_node
     {
     public:
         ast_node_struct(const String& name)
-        : ast_node(enum_ast_node_type::structure), struct_name(name) {}
+        : ast_node(enum_ast_node_type::structure), name(name) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
-        void add_member(const String& name)
+        void add_member(ast_node_variable* name)
         {
-            member_names.push_back(name);
+            members.push_back(name);
         }
     public:
-        NameHandle struct_name = nullptr;
-        TArray<String> member_names;
+        NameHandle name = nullptr;
+        TArray<ast_node_variable*> members;
     };
 
     class ast_node_function : public ast_node
@@ -278,6 +301,7 @@ namespace Thunder
         ast_node_expression * Content = nullptr;
     };
 
+    //todo: 终结符，待删除
     class ast_node_identifier : public ast_node_expression
     {
     public:
@@ -289,6 +313,7 @@ namespace Thunder
         NameHandle Identifier = nullptr;
     };
 
+    //todo: 终结符，待删除
     class ast_node_integer : public ast_node_expression
     {
     public:
@@ -300,18 +325,7 @@ namespace Thunder
         int IntValue = 0;
     };
 
-    class ast_node_type : public ast_node
-    {
-    public:
-        ast_node_type() : ast_node(enum_ast_node_type::type) {}
-
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
-    public:
-        enum_basic_type ParamType : 4 = enum_basic_type::undefined;
-        
-    };
-
+    ast_node* create_type_node(enum_basic_type type);
     ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
     ast_node* create_function_node(ast_node* signature, ast_node* body);
     ast_node* create_func_signature_node(ast_node* returnTypeNode, const char* name, ast_node* params);
@@ -327,6 +341,5 @@ namespace Thunder
     ast_node* create_priority_node(ast_node* expr);
     ast_node* create_identifier_node(const char* name);
     ast_node* create_int_literal_node(int value);
-    ast_node* create_type_node(enum_basic_type type);
     void post_process_ast(ast_node* nodeRoot);
 }

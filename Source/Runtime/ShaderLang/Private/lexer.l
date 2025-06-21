@@ -81,9 +81,18 @@ SV_TARGET				SV_Target{TARGETS}?
 {TEXTURE}		{ return TYPE_TEXTURE; }
 {SAMPLER}		{ return TYPE_SAMPLER; }
 
-SV_Position 	{ return TOKEN_SV; }
-{TEXCOORD}  	{ return TOKEN_SV; }
-{SV_TARGET} 	{ return TOKEN_SV; }
+SV_Position 	{
+					yylval->str_val = strdup(yytext);
+					return TOKEN_SV;
+				}
+{TEXCOORD}  	{
+					yylval->str_val = strdup(yytext);
+					return TOKEN_SV;
+				}
+{SV_TARGET} 	{
+					yylval->str_val = strdup(yytext);
+					return TOKEN_SV;
+				}
 
 "Shader"		{ return TOKEN_SHADER; }
 "Properties"	{ return TOKEN_PROPERTIES; }

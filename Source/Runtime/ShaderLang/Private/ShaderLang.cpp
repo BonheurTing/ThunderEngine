@@ -1,4 +1,6 @@
 #include "ShaderLang.h"
+
+#include "Assertion.h"
 #include "AstNode.h"
 
 namespace Thunder
@@ -23,16 +25,38 @@ namespace Thunder
 		return dummy;
 	}
 
-	void shader_lang_state::add_struct_member(ast_node* type, const String& name, const parse_location* loc)
+	void shader_lang_state::add_struct_member(ast_node* type, const String& name, const String& modifier, const parse_location* loc)
 	{
+		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
+			"add_struct_member called with invalid type node.");
+		
 		insert_symbol_table(name, enum_symbol_type::variable, loc);
+
+		const auto variable = new ast_node_variable(name);
+		variable->type = static_cast<ast_node_type*>(type);
+		if(variable->type->is_semantic)
+		{
+			variable->semantic = modifier;
+		}
+
 		if (current_structure)
 		{
-			current_structure->add_member(name);
+			current_structure->add_member(variable);
 		}
 		else
 		{
 			debug_log("No current structure to add member to.", loc);
+		}
+	}
+
+	void shader_lang_state::bind_modifier(ast_node* type, const String& modifier, const parse_location* loc)
+	{
+		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
+			"bind_modifier called with invalid type node.");
+
+		if (const auto type_node = static_cast<ast_node_type*>(type))
+		{
+			type_node->is_semantic = true;
 		}
 	}
 

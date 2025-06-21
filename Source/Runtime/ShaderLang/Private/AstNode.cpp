@@ -35,25 +35,41 @@ namespace Thunder
     }
 
 #pragma region HLSL
+
+    void ast_node_type::generate_hlsl(String& outResult)
+    {
+        outResult += get_type_name(param_type);
+    }
+
+    void ast_node_variable::generate_hlsl(String& outResult)
+    {
+        type->generate_hlsl(outResult);
+        outResult += " " + name.ToString();
+        if (type->is_semantic)
+        {
+            outResult += " : " + semantic.ToString();
+        }
+        outResult += ";\n";
+    }
+
     void ast_node_pass::generate_hlsl(String& outResult)
     {
-        if (struct_node != nullptr)
+        if (structure != nullptr)
         {
-            struct_node->generate_hlsl(outResult);
+            structure->generate_hlsl(outResult);
         }
-        if (stage_node != nullptr)
+        if (stage != nullptr)
         {
-            stage_node->generate_hlsl(outResult);
+            stage->generate_hlsl(outResult);
         }
     }
     
     void ast_node_struct::generate_hlsl(String& outResult)
     {
-        outResult += "struct " + struct_name.ToString() + " {\n";
-        for (const auto& member : member_names)
+        outResult += "struct " + name.ToString() + " {\n";
+        for (const auto& member : members)
         {
-            sl_state->evaluate_symbol(member, enum_symbol_type::variable, nullptr);
-            outResult += "    " + member + ";\n";
+            member->generate_hlsl(outResult);
         }
         outResult += "};\n";
     }
@@ -182,39 +198,49 @@ namespace Thunder
         outResult += std::to_string(IntValue);
     }
 
-    void ast_node_type::generate_hlsl(String& outResult)
-    {
-        outResult += get_type_name(ParamType);
-    }
-
 #pragma endregion
 
 #pragma region PRINT_AST
+    void ast_node_type::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("Type: %s", get_type_name(param_type));
+    }
+
+    void ast_node_variable::print_ast(int indent)
+    {
+        type->print_ast(indent);
+        printf(" Name: %s", name.ToString().c_str());
+        if (type->is_semantic)
+        {
+            printf(" Semantic: %s", semantic.ToString().c_str());
+        }
+        printf("\n");
+    }
 
     void ast_node_pass::print_ast(int indent)
     {
         print_blank(indent);
         printf("Pass:\n");
-        if (struct_node != nullptr)
+        if (structure != nullptr)
         {
-            struct_node->print_ast(indent + 1);
+            structure->print_ast(indent + 1);
         }
-        if (stage_node != nullptr)
+        if (stage != nullptr)
         {
-            stage_node->print_ast(indent + 1);
+            stage->print_ast(indent + 1);
         }
     }
 
     void ast_node_struct::print_ast(int indent)
     {
         print_blank(indent);
-        printf("Struct: %s\n", struct_name.ToString().c_str());
+        printf("Struct: %s\n", name.ToString().c_str());
         print_blank(indent + 1);
         printf("Members:\n");
-        for (const auto& member : member_names)
+        for (const auto& member : members)
         {
-            print_blank(indent + 2);
-            printf("%s;\n", member.c_str());
+            member->print_ast(indent + 2);
         }
     }
 
@@ -360,23 +386,22 @@ namespace Thunder
         printf("Integer: %d\n", IntValue);
     }
 
-    void ast_node_type::print_ast(int indent)
-    {
-        print_blank(indent);
-        printf("Type: %s", get_type_name(ParamType));
-    }
-
 #pragma endregion
 
 #pragma region CREATE_AST_NODE
+    ast_node* create_type_node(enum_basic_type type) {
+        const auto node = new ast_node_type;
+        node->param_type = type; // 复用param_type字段
+        return node;
+    }
 
     ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node)
     {
         TAssertf(struct_node != nullptr && struct_node->Type == enum_ast_node_type::structure, "Struct node type is not correct");
         TAssertf(stage_node != nullptr && stage_node->Type == enum_ast_node_type::function, "Stage node type is not correct");
         const auto node = new ast_node_pass;
-        node->struct_node = static_cast<ast_node_struct*>(struct_node);
-        node->stage_node = static_cast<ast_node_function*>(stage_node);
+        node->structure = static_cast<ast_node_struct*>(struct_node);
+        node->stage = static_cast<ast_node_function*>(stage_node);
         return node;
     }
 
@@ -520,12 +545,6 @@ namespace Thunder
             TAssert(expr->Type == enum_ast_node_type::expression);
             node->Content = static_cast<ast_node_expression*>(expr);
         }
-        return node;
-    }
-
-    ast_node* create_type_node(enum_basic_type type) {
-        const auto node = new ast_node_type;
-        node->ParamType = type; // 复用param_type字段
         return node;
     }
 

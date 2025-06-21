@@ -89,7 +89,9 @@ namespace Thunder
 		/* 上下文管理 */
 		void parsing_struct_begin(const String& name, const parse_location* loc);
 		ast_node_struct* parsing_struct_end();
-		void add_struct_member(ast_node* type, const String& name, const parse_location* loc);
+		void add_struct_member(ast_node* type, const String& name, const String& modifier, const parse_location* loc);
+		void bind_modifier(ast_node* type, const String& modifier, const parse_location* loc);
+
 
 		/* 符号表管理 */
 		void insert_symbol_table(const String& name, enum_symbol_type type, const parse_location* loc);

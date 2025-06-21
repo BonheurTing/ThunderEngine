@@ -1,6 +1,5 @@
 #pragma once
 
-#include "AstNode.h"
 #include "Container.h"
 #include "Platform.h"
 
@@ -84,8 +83,8 @@ namespace Thunder
 		class ast_node* ast_root = nullptr;	// AST根节点
 
 		/* 状态机运行时上下文 */
-		ast_node_struct* current_structure = nullptr;
-		ast_node_function* current_function = nullptr;
+		class ast_node_struct* current_structure = nullptr;
+		class ast_node_function* current_function = nullptr;
 
 		/* 上下文管理 */
 		void parsing_struct_begin(const String& name, const parse_location* loc);
@@ -105,7 +104,5 @@ namespace Thunder
 		static void debug_log(const String& msg, const parse_location* loc);
 
 	};
-
-	
-	
+	extern shader_lang_state* sl_state;
 }

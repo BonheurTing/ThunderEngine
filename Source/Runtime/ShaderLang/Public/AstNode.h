@@ -44,13 +44,36 @@ namespace Thunder
         undefined
     };
 
-    enum class enum_var_type : uint8
+    enum class enum_basic_type : uint8
     {
         tp_int,
         tp_float,
         tp_void,
+        tp_bool,
+        tp_struct,
+        tp_buffer,
+        tp_texture,
+        tp_sampler,
         undefined
     };
+    static_assert(static_cast<size_t>(enum_basic_type::undefined) <= 16, "enum basic type check.");
+
+    enum class enum_texture_type : uint8
+    {
+        texture1d,
+        texture2d,
+        texture3d,
+        texture_cube,
+        texture1d_array,
+        texture2d_array,
+        texture2d_ms,
+        texture2d_ms_array,
+        texture_cube_array,
+        
+        texture_sampler,
+        texture_unknown
+    };
+    static_assert(static_cast<size_t>(enum_texture_type::texture_unknown) <= 16, "enum texture type check.");
 
     enum class enum_binary_op : uint8
     {
@@ -285,7 +308,8 @@ namespace Thunder
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     public:
-        enum_var_type ParamType = enum_var_type::undefined;
+        enum_basic_type ParamType : 4 = enum_basic_type::undefined;
+        
     };
 
     ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
@@ -303,7 +327,6 @@ namespace Thunder
     ast_node* create_priority_node(ast_node* expr);
     ast_node* create_identifier_node(const char* name);
     ast_node* create_int_literal_node(int value);
-    ast_node* create_type_node(enum_var_type type);
+    ast_node* create_type_node(enum_basic_type type);
     void post_process_ast(ast_node* nodeRoot);
-
 }

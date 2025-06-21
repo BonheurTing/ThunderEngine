@@ -45,12 +45,41 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 /*%option prefix="thunder_"*/
 %option extra-type="struct shader_lang_state *"
 
+BVECTOR					bool[1-4]
+IVECTOR					int[1-4]
+UVECTOR					uint[1-4]
+HVECTOR					half[1-4]
+FVECTOR					float[1-4]
+DVECTOR					double[1-4]
+
+VECTOR					{BVECTOR}|{IVECTOR}|{UVECTOR}|{HVECTOR}|{FVECTOR}|{DVECTOR}
+
+BMATRIX					bool[1-4]x[1-4]
+IMATRIX					int[1-4]x[1-4]
+UMATRIX					uint[1-4]x[1-4]
+HMATRIX					half[1-4]x[1-4]
+FMATRIX					float[1-4]x[1-4]
+DMATRIX					double[1-4]x[1-4]
+
+MATRIX					{BMATRIX}|{IMATRIX}|{UMATRIX}|{HMATRIX}|{FMATRIX}|{DMATRIX}
+
+TEXTURE_TAIL			((1D)(Array)?)|((2D)(MS)?(Array)?)|(3D)|((Cube)(Array)?)
+SAMPLER_TAIL			(1D)|(2D)|(3D)|(CUBE)|(_state)|(State)|(ComparisonState)
+
+TEXTURE					(t|T)exture{TEXTURE_TAIL}
+SAMPLER					(s|S)ampler{SAMPLER_TAIL}
+
 TEXCOORD				TEXCOORD[N|0-9]
 
 TARGETS					[0-7]
 SV_TARGET				SV_Target{TARGETS}?
 
 %%
+
+{VECTOR}		{ return TYPE_VECTOR; }
+{MATRIX}		{ return TYPE_MATRIX; }
+{TEXTURE}		{ return TYPE_TEXTURE; }
+{SAMPLER}		{ return TYPE_SAMPLER; }
 
 SV_Position 	{ return TOKEN_SV; }
 {TEXCOORD}  	{ return TOKEN_SV; }
@@ -60,9 +89,9 @@ SV_Position 	{ return TOKEN_SV; }
 "Properties"	{ return TOKEN_PROPERTIES; }
 "SubShader"		{ return TOKEN_SUBSHADER; }
 
-"int"       	{ return TOKEN_INT; }
-"float"     	{ return TOKEN_FLOAT; }
-"void"      	{ return TOKEN_VOID; }
+"int"       	{ return TYPE_INT; }
+"float"     	{ return TYPE_FLOAT; }
+"void"      	{ return TYPE_VOID; }
 "return"    	{ return TOKEN_RETURN; }
 "struct"		{ return TOKEN_STRUCT; }
 

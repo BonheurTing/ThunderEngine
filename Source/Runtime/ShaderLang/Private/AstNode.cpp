@@ -1,23 +1,25 @@
 #pragma optimize("", off)
 #include "AstNode.h"
+#include "ShaderLang.h"
 #include "Assertion.h"
 #include "ShaderCompiler.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder
 {
+    shader_lang_state* sl_state = nullptr;
 
     static void print_blank(int indent) {
         for (int i = 0; i < indent; i++) printf("  ");
     }
 
-    static const char* get_type_name(enum_var_type type) {
+    static const char* get_type_name(enum_basic_type type) {
         switch (type)
         {
-            case enum_var_type::tp_int: return "int";
-            case enum_var_type::tp_float: return "float";
-            case enum_var_type::tp_void: return "void";
-            case enum_var_type::undefined: return "unknown";
+            case enum_basic_type::tp_int: return "int";
+            case enum_basic_type::tp_float: return "float";
+            case enum_basic_type::tp_void: return "void";
+            case enum_basic_type::undefined: return "unknown";
         }
         return nullptr;
     }
@@ -50,6 +52,7 @@ namespace Thunder
         outResult += "struct " + struct_name.ToString() + " {\n";
         for (const auto& member : member_names)
         {
+            sl_state->evaluate_symbol(member, enum_symbol_type::variable, nullptr);
             outResult += "    " + member + ";\n";
         }
         outResult += "};\n";
@@ -520,7 +523,7 @@ namespace Thunder
         return node;
     }
 
-    ast_node* create_type_node(enum_var_type type) {
+    ast_node* create_type_node(enum_basic_type type) {
         const auto node = new ast_node_type;
         node->ParamType = type; // 复用param_type字段
         return node;

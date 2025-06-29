@@ -96,14 +96,12 @@ namespace Thunder
     struct token_data : public parse_location
     {
         int token_id;
-        const char* text;
+        String text;
         size_t length;
     };
 
     struct parse_node
     {
-        int int_val;
-        char *str_val;
         token_data token;
         class ast_node* node;
     };
@@ -173,11 +171,11 @@ namespace Thunder
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
-        void add_member(ast_node_variable* name)
+        void add_member(ast_node_variable* mem)
         {
-            members.push_back(name);
+            members.push_back(mem);
         }
-    public:
+    private:
         NameHandle name = nullptr;
         TArray<ast_node_variable*> members;
     };
@@ -185,13 +183,30 @@ namespace Thunder
     class ast_node_function : public ast_node
     {
     public:
-        ast_node_function() : ast_node(enum_ast_node_type::function) {}
+        ast_node_function(const String& name)
+        : ast_node(enum_ast_node_type::function), func_name(name) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
-    public:
-        class ast_node_func_signature* signature = nullptr;
-        class ast_node_statement_list* body = nullptr;
+        void set_return_type(ast_node_type* ret_type)
+        {
+            return_type = ret_type;
+        }
+        void add_parameter(ast_node_variable* param)
+        {
+            params.push_back(param);
+        }
+        void set_body(class ast_node_statement_list* body_statements)
+        {
+            body = body_statements;
+        }
+    private:
+        // func_signature
+        ast_node_type* return_type = nullptr;
+        NameHandle func_name = nullptr;
+        TArray<ast_node_variable*> params;
+        // body
+        class ast_node_statement_list* body;
     };
 
     class ast_node_func_signature : public ast_node
@@ -352,21 +367,20 @@ namespace Thunder
     };
 
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);
-    ast_node* create_type_node(const token_data&  type_info);
+    ast_node* create_type_node(const token_data& type_info);
     ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
-    ast_node* create_function_node(ast_node* signature, ast_node* body);
     ast_node* create_func_signature_node(ast_node* returnTypeNode, const char* name, ast_node* params);
     ast_node* create_param_list_node();
     void add_param_to_list(ast_node* list, ast_node* param);
     ast_node* create_param_node(ast_node* typeNode, const char* name);
     ast_node* create_statement_list_node();
     void add_statement_to_list(ast_node* list, ast_node* stmt);
-    ast_node* create_var_decl_node(ast_node* typeNode, const char* name, ast_node* init_expr);
-    ast_node* create_assignment_node(const char* lhs, ast_node* rhs);
+    ast_node* create_var_decl_node(ast_node* typeNode, const token_data& name, ast_node* init_expr);
+    ast_node* create_assignment_node(const token_data& lhs, ast_node* rhs);
     ast_node* create_return_node(ast_node* expr);
     ast_node* create_binary_op_node(enum_binary_op op, ast_node* left, ast_node* right);
     ast_node* create_priority_node(ast_node* expr);
-    ast_node* create_identifier_node(const char* name);
-    ast_node* create_int_literal_node(int value);
+    ast_node* create_identifier_node(const token_data& name);
+    ast_node* create_int_literal_node(const token_data& value);
     void post_process_ast(ast_node* nodeRoot);
 }

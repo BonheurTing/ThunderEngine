@@ -49,7 +49,7 @@ namespace Thunder
         case enum_basic_type::tp_matrix: out_name = type_name.ToString(); break;
         case enum_basic_type::tp_texture: out_name = type_name.ToString(); break;
         case enum_basic_type::tp_sampler: out_name = type_name.ToString(); break;
-        case enum_basic_type::undefined: break;
+        default: break;
         }
         outResult += out_name;
     }
@@ -62,7 +62,6 @@ namespace Thunder
         {
             outResult += " : " + semantic.ToString();
         }
-        outResult += ";\n";
     }
 
     void ast_node_pass::generate_hlsl(String& outResult)
@@ -83,14 +82,27 @@ namespace Thunder
         for (const auto& member : members)
         {
             member->generate_hlsl(outResult);
+            outResult += ";\n";
         }
         outResult += "};\n";
     }
     
     void ast_node_function::generate_hlsl(std::string& outResult)
     {
+        String paramList;
+        for (const auto& param : params)
+        {
+            if (!paramList.empty())
+            {
+                paramList += ", ";
+            }
+            param->generate_hlsl(paramList);
+        }
+
         String funcSignature;
-        signature->generate_hlsl(funcSignature);
+        return_type->generate_hlsl(funcSignature);
+        funcSignature += " " + func_name.ToString() + "(" + paramList + ")\n";
+
         String funcBody;
         body->generate_hlsl(funcBody);
         outResult += funcSignature + "{\n" + funcBody + "}\n";
@@ -261,7 +273,20 @@ namespace Thunder
     {
         print_blank(indent);
         printf("Function:\n");
-        signature->print_ast(indent + 1);
+        print_blank(indent);
+        printf("Signature:\n");
+        print_blank(indent + 1);
+        printf("FuncName: %s\n", func_name.c_str());
+        print_blank(indent + 1);
+        printf("Return");
+        return_type->print_ast(0);
+        printf("\n");
+        print_blank(indent + 1);
+        printf("ParamList(Count %d):\n", static_cast<int>(params.size()));
+        for(const auto& param : params)
+        {
+            param->print_ast(indent + 2);
+        }
         body->print_ast(indent + 1);
     }
 
@@ -437,6 +462,15 @@ namespace Thunder
         case TYPE_MATRIX:
             node->param_type = enum_basic_type::tp_matrix;
             break;
+        case TYPE_INT:
+            node->param_type = enum_basic_type::tp_int;
+            break;
+        case TYPE_FLOAT:
+            node->param_type = enum_basic_type::tp_float;
+            break;
+        case TYPE_VOID:
+            node->param_type = enum_basic_type::tp_void;
+            break;
         default:
             break;
         }
@@ -451,17 +485,6 @@ namespace Thunder
         const auto node = new ast_node_pass;
         node->structure = static_cast<ast_node_struct*>(struct_node);
         node->stage = static_cast<ast_node_function*>(stage_node);
-        return node;
-    }
-
-    ast_node* create_function_node(ast_node* signature, ast_node* body)
-    {
-        TAssertf(signature != nullptr && signature->Type == enum_ast_node_type::func_signature, "Signature node type is not correct");
-        TAssertf(body != nullptr && body->Type == enum_ast_node_type::statement_list, "Body node type is not correct");
-
-        const auto node = new ast_node_function;
-        node->signature = static_cast<ast_node_func_signature*>(signature);
-        node->body = static_cast<ast_node_statement_list*>(body);
         return node;
     }
 
@@ -541,13 +564,13 @@ namespace Thunder
         }
     }
 
-    ast_node* create_var_decl_node(ast_node* typeNode, const char *name, ast_node* init_expr)
+    ast_node* create_var_decl_node(ast_node* typeNode, const token_data& name, ast_node* init_expr)
     {
         TAssertf(typeNode != nullptr && typeNode->Type == enum_ast_node_type::type, "Type node type is not correct");
-
+        TAssert(name.token_id == IDENTIFIER);
         const auto node = new ast_node_var_declaration;
         node->VarDelType = static_cast<ast_node_type*>(typeNode);
-        node->VarName = name;
+        node->VarName = name.text;
         if (init_expr != nullptr)
         {
             TAssertf(init_expr->Type == enum_ast_node_type::expression, "Init expression node type is not correct");
@@ -556,12 +579,12 @@ namespace Thunder
         return node;
     }
 
-    ast_node* create_assignment_node(const char *lhs, ast_node* rhs)
+    ast_node* create_assignment_node(const token_data& lhs, ast_node* rhs)
     {
         TAssertf(rhs != nullptr && rhs->Type == enum_ast_node_type::expression, "Assignment rhs is null");
-
+        TAssert(lhs.token_id == IDENTIFIER);
         const auto node = new ast_node_assignment;
-        node->LhsVar = lhs;
+        node->LhsVar = lhs.text;
         node->RhsExpression = static_cast<ast_node_expression*>(rhs);
         return node;
     }
@@ -597,15 +620,19 @@ namespace Thunder
         return node;
     }
 
-    ast_node* create_identifier_node(const char *name) {
+    ast_node* create_identifier_node(const token_data& name)
+    {
+        TAssert(name.token_id == IDENTIFIER);
         const auto node = new ast_node_identifier;
-        node->Identifier = name;
+        node->Identifier = name.text;
         return node;
     }
 
-    ast_node* create_int_literal_node(int value) {
+    ast_node* create_int_literal_node(const token_data& value)
+    {
+        TAssert(value.token_id == INT_LITERAL);
         const auto node = new ast_node_integer;
-        node->IntValue = value;
+        node->IntValue = std::stoi(value.text);
         return node;
     }
 

@@ -72,15 +72,18 @@ namespace Thunder
 		class ast_node_function* current_function = nullptr;
 
 		/* 上下文管理 */
-		void parsing_struct_begin(const String& name, const class parse_location* loc);
+		void parsing_struct_begin(const token_data& name, const class parse_location* loc);
 		ast_node_struct* parsing_struct_end();
-		void add_struct_member(ast_node* type, const String& name, const struct token_data& modifier, const parse_location* loc);
+		void add_struct_member(ast_node* type, const token_data& name, const struct token_data& modifier, const parse_location* loc);
 		void bind_modifier(ast_node* type, const token_data& modifier, const parse_location* loc);
-
+		void parsing_function_begin(ast_node* type, const token_data& name, const parse_location* loc);
+		ast_node_function* parsing_function_end();
+		void add_function_param(ast_node* type, const token_data& name, const parse_location* loc);
+		void set_function_body(ast_node* body, const parse_location* loc);
 
 		/* 符号表管理 */
-		void insert_symbol_table(const String& name, enum_symbol_type type, const parse_location* loc);
-		void evaluate_symbol(const String& name, enum_symbol_type type, const parse_location* loc) const;
+		void insert_symbol_table(const token_data& sym, enum_symbol_type type, const parse_location* loc);
+		void evaluate_symbol(const token_data&  name, enum_symbol_type type, const parse_location* loc) const;
 
 		/* 作用域管理 */
 

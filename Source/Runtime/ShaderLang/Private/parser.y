@@ -62,9 +62,9 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TOKEN_SV
 %token <token> TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER
 %token TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
-%token TYPE_INT TYPE_FLOAT TYPE_VOID
-%token <str_val> IDENTIFIER
-%token <int_val> INT_LITERAL
+%token <token> TYPE_INT TYPE_FLOAT TYPE_VOID
+%token <token> IDENTIFIER
+%token <token> INT_LITERAL
 %token ADD SUB MUL DIV
 %token ASSIGN COLON SEMICOLON COMMA QUOTE 
 %token LPAREN RPAREN LBRACE RBRACE
@@ -75,7 +75,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <node> arrchive_definition properties_definition pass_definition stage_definition struct_definition function_definition
 %type <node> program passes pass_content function_signature param_list param
 %type <node> struct_members struct_member
-%type <node> statement_list statement var_decl assignment func_ret
+%type <node> function_body statement_list statement var_decl assignment func_ret
 %type <node> expression primary_expr binary_expr priority_expr
 
 %right ASSIGN
@@ -117,9 +117,7 @@ pass_content:
     ;
 
 stage_definition:
-    function_definition{
-        $$ = $1;
-    }
+    function_definition
     ;
 
 struct_definition:
@@ -149,36 +147,28 @@ struct_member:
     ;
 
 function_definition:
-    function_signature LBRACE statement_list RBRACE {
-        $$ = create_function_node($1, $3);
+    type IDENTIFIER LPAREN {
+        sl_state->parsing_function_begin($1, $2, &yylloc);
+    }
+    param_list RPAREN LBRACE function_body RBRACE {
+        $$ = sl_state->parsing_function_end();
     }
     ;
 
 function_signature:
-    type IDENTIFIER LPAREN param_list RPAREN {
-        sl_state->insert_symbol_table($2, enum_symbol_type::function, &yylloc);
-        $$ = create_func_signature_node($1, $2, $4);
-    }
+    type IDENTIFIER LPAREN param_list RPAREN
     ;
 
 param_list:
     /* empty */ {
-        $$ = create_param_list_node();
     }
-    | param_list COMMA param {
-        add_param_to_list($1, $3);
-        $$ = $1;
-    }
-    | param {
-        $$ = create_param_list_node();
-        add_param_to_list($$, $1);
-    }
+    | param_list COMMA param
+    | param
     ;
 
 param:
     type IDENTIFIER {
-        sl_state->insert_symbol_table($2, enum_symbol_type::variable, &yylloc);
-        $$ = create_param_node($1, $2);
+        sl_state->add_function_param($1, $2, &yylloc);
     }
     ;
 
@@ -190,6 +180,12 @@ primitive_types:
 type:
     primitive_types {
         $$ = create_type_node($1);
+    }
+    ;
+
+function_body:
+    statement_list {
+        sl_state->set_function_body($1, &yylloc);
     }
     ;
 

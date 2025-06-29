@@ -83,41 +83,23 @@ SV_TARGET				SV_Target{TARGETS}?
 {TEXTURE}		{ return TOKENIZE(TYPE_TEXTURE); }
 {SAMPLER}		{ return TOKENIZE(TYPE_SAMPLER); }
 
-POSITION[0-7]?	{
-					return TOKENIZE(TOKEN_SV);
-				}
-SV_Position 	{
-					//yylval->str_val = strdup(yytext);
-					return TOKENIZE(TOKEN_SV);
-				}
-{TEXCOORD}  	{
-					//yylval->str_val = strdup(yytext);
-					return TOKENIZE(TOKEN_SV);
-				}
-{SV_TARGET} 	{
-					//yylval->str_val = strdup(yytext);
-					return TOKENIZE(TOKEN_SV);
-				}
+POSITION[0-7]?	{ return TOKENIZE(TOKEN_SV); }
+SV_Position 	{ return TOKENIZE(TOKEN_SV); }
+{TEXCOORD}  	{ return TOKENIZE(TOKEN_SV); }
+{SV_TARGET} 	{ return TOKENIZE(TOKEN_SV); }
 
 "Shader"		{ return TOKEN_SHADER; }
 "Properties"	{ return TOKEN_PROPERTIES; }
 "SubShader"		{ return TOKEN_SUBSHADER; }
 
-"int"       	{ return TYPE_INT; }
-"float"     	{ return TYPE_FLOAT; }
-"void"      	{ return TYPE_VOID; }
+"int"       	{ return TOKENIZE(TYPE_INT); }
+"float"     	{ return TOKENIZE(TYPE_FLOAT); }
+"void"      	{ return TOKENIZE(TYPE_VOID); }
 "return"    	{ return TOKEN_RETURN; }
 "struct"		{ return TOKEN_STRUCT; }
 
-[a-zA-Z_][a-zA-Z0-9_]* {
-					yylval->str_val = strdup(yytext);
-					return IDENTIFIER;
-				}
-
-[0-9]+      	{
-					yylval->int_val = atoi(yytext);
-					return INT_LITERAL;
-				}
+[a-zA-Z_][a-zA-Z0-9_]* { return TOKENIZE(IDENTIFIER); }
+[0-9]+      	{ return TOKENIZE(INT_LITERAL); }
 
 "+"         	{ return ADD; }
 "-"         	{ return SUB; }

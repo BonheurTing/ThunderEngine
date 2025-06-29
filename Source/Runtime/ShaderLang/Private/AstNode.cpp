@@ -4,6 +4,7 @@
 #include "Assertion.h"
 #include "ShaderCompiler.h"
 #include "Templates/RefCounting.h"
+#include "../Generated/parser.tab.h"
 
 namespace Thunder
 {
@@ -38,7 +39,19 @@ namespace Thunder
 
     void ast_node_type::generate_hlsl(String& outResult)
     {
-        outResult += get_type_name(param_type);
+        String out_name = "";
+        switch (param_type)
+        {
+        case enum_basic_type::tp_int: out_name = "int"; break;
+        case enum_basic_type::tp_float: out_name = "float"; break;
+        case enum_basic_type::tp_void: out_name = "void"; break;
+        case enum_basic_type::tp_vector: out_name = type_name.ToString(); break;
+        case enum_basic_type::tp_matrix: out_name = type_name.ToString(); break;
+        case enum_basic_type::tp_texture: out_name = type_name.ToString(); break;
+        case enum_basic_type::tp_sampler: out_name = type_name.ToString(); break;
+        case enum_basic_type::undefined: break;
+        }
+        outResult += out_name;
     }
 
     void ast_node_variable::generate_hlsl(String& outResult)
@@ -388,10 +401,46 @@ namespace Thunder
 
 #pragma endregion
 
+    int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token)
+    {
+        t.token_id = token;
+        t.text = text;
+        t.length = text_len;
+
+        t.first_line = loc->first_line;
+        t.first_column = loc->first_column;
+        t.first_source = loc->first_source;
+        t.last_line = loc->last_line;
+        t.last_column = loc->last_column;
+        t.last_source = loc->last_source;
+
+        return t.token_id;
+    }
+
 #pragma region CREATE_AST_NODE
-    ast_node* create_type_node(enum_basic_type type) {
+    
+    ast_node* create_type_node(const token_data& type_info) {
         const auto node = new ast_node_type;
-        node->param_type = type; // 复用param_type字段
+        node->type_name = type_info.text;
+
+        switch (type_info.token_id)
+        {
+        case TYPE_TEXTURE:
+            node->param_type = enum_basic_type::tp_texture;
+            break;
+        case TYPE_SAMPLER:
+            node->param_type = enum_basic_type::tp_sampler;
+            break;
+        case TYPE_VECTOR:
+            node->param_type = enum_basic_type::tp_vector;
+            break;
+        case TYPE_MATRIX:
+            node->param_type = enum_basic_type::tp_matrix;
+            break;
+        default:
+            break;
+        }
+
         return node;
     }
 

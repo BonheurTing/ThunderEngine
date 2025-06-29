@@ -6,8 +6,8 @@ Shader "TestShader"
     SubShader
     {
         struct appdata {
-            int vertex;
-            float uv : TEXCOORD0;
+            int4 vertex : POSITION;
+            float2 uv : TEXCOORD0;
         };
 
         int frag(int x, float y) {

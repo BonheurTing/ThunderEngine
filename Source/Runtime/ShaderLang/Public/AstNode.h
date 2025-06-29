@@ -42,6 +42,8 @@ namespace Thunder
         tp_float,
         tp_void,
         tp_bool,
+        tp_vector,
+        tp_matrix,
         tp_struct,
         tp_buffer,
         tp_texture,
@@ -76,11 +78,34 @@ namespace Thunder
         undefined
     };
 
+    struct parse_location
+    {
+        int first_line;
+        int first_column;
+        int first_source;
+        int last_line;
+        int last_column;
+        int last_source;
+
+        // is null.
+        FORCEINLINE bool is_null() const { return first_line == 0; }
+        // set null.
+        FORCEINLINE void set_null() { first_line = 0; first_column = 0; first_source = 0; last_line = 0; last_column = 0; last_source = 0; }
+    };
+
+    struct token_data : public parse_location
+    {
+        int token_id;
+        const char* text;
+        size_t length;
+    };
+
     struct parse_node
     {
         int int_val;
         char *str_val;
-        class ast_node *token;
+        token_data token;
+        class ast_node* node;
     };
 
     class ast_node
@@ -108,6 +133,7 @@ namespace Thunder
     public:
         enum_basic_type param_type : 4 = enum_basic_type::undefined;
         enum_texture_type texture_type : 4 = enum_texture_type::texture_unknown;
+        NameHandle type_name = nullptr; // 用于存储类型名称
 
         bool is_semantic : 1 = false; // 是否是shader语义
     };
@@ -123,7 +149,7 @@ namespace Thunder
         void print_ast(int indent) override;
     public:
         ast_node_type* type = nullptr;
-        NameHandle name = nullptr;
+        NameHandle name = nullptr; // 用于存储变量名称
         NameHandle semantic = nullptr; // 用于存储shader语义
         String value; // 用于存储常量值或默认值
     };
@@ -325,7 +351,8 @@ namespace Thunder
         int IntValue = 0;
     };
 
-    ast_node* create_type_node(enum_basic_type type);
+    int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);
+    ast_node* create_type_node(const token_data&  type_info);
     ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
     ast_node* create_function_node(ast_node* signature, ast_node* body);
     ast_node* create_func_signature_node(ast_node* returnTypeNode, const char* name, ast_node* params);

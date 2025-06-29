@@ -2,6 +2,7 @@
 
 #include "Assertion.h"
 #include "AstNode.h"
+#include "../Generated/parser.tab.h"
 
 namespace Thunder
 {
@@ -25,7 +26,7 @@ namespace Thunder
 		return dummy;
 	}
 
-	void shader_lang_state::add_struct_member(ast_node* type, const String& name, const String& modifier, const parse_location* loc)
+	void shader_lang_state::add_struct_member(ast_node* type, const String& name, const token_data& modifier, const parse_location* loc)
 	{
 		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
 			"add_struct_member called with invalid type node.");
@@ -36,7 +37,7 @@ namespace Thunder
 		variable->type = static_cast<ast_node_type*>(type);
 		if(variable->type->is_semantic)
 		{
-			variable->semantic = modifier;
+			variable->semantic = modifier.text;
 		}
 
 		if (current_structure)
@@ -49,14 +50,17 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::bind_modifier(ast_node* type, const String& modifier, const parse_location* loc)
+	void shader_lang_state::bind_modifier(ast_node* type, const token_data& modifier, const parse_location* loc)
 	{
 		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
 			"bind_modifier called with invalid type node.");
 
 		if (const auto type_node = static_cast<ast_node_type*>(type))
 		{
-			type_node->is_semantic = true;
+			if (modifier.token_id == TOKEN_SV)
+			{
+				type_node->is_semantic = true;
+			}
 		}
 	}
 

@@ -30,6 +30,8 @@ using namespace Thunder;
 
 void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 
+#define TOKENIZE(TOK) tokenize(yylval->token, yylloc, (yytext), (yyleng), (TOK))
+
 %}
 
 /* 使生成的词法分析器是可重入的，即可以同时有多个实例 */
@@ -76,22 +78,25 @@ SV_TARGET				SV_Target{TARGETS}?
 
 %%
 
-{VECTOR}		{ return TYPE_VECTOR; }
-{MATRIX}		{ return TYPE_MATRIX; }
-{TEXTURE}		{ return TYPE_TEXTURE; }
-{SAMPLER}		{ return TYPE_SAMPLER; }
+{VECTOR}		{ return TOKENIZE(TYPE_VECTOR); }
+{MATRIX}		{ return TOKENIZE(TYPE_MATRIX); }
+{TEXTURE}		{ return TOKENIZE(TYPE_TEXTURE); }
+{SAMPLER}		{ return TOKENIZE(TYPE_SAMPLER); }
 
+POSITION[0-7]?	{
+					return TOKENIZE(TOKEN_SV);
+				}
 SV_Position 	{
-					yylval->str_val = strdup(yytext);
-					return TOKEN_SV;
+					//yylval->str_val = strdup(yytext);
+					return TOKENIZE(TOKEN_SV);
 				}
 {TEXCOORD}  	{
-					yylval->str_val = strdup(yytext);
-					return TOKEN_SV;
+					//yylval->str_val = strdup(yytext);
+					return TOKENIZE(TOKEN_SV);
 				}
 {SV_TARGET} 	{
-					yylval->str_val = strdup(yytext);
-					return TOKEN_SV;
+					//yylval->str_val = strdup(yytext);
+					return TOKENIZE(TOKEN_SV);
 				}
 
 "Shader"		{ return TOKEN_SHADER; }

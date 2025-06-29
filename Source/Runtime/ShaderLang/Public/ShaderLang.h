@@ -2,6 +2,7 @@
 
 #include "Container.h"
 #include "Platform.h"
+#include "AstNode.h"
 
 namespace Thunder
 {
@@ -43,22 +44,6 @@ namespace Thunder
 		error,
 		all
 	};
-
-	struct parse_location
-	{
-		int first_line;
-		int first_column;
-		int first_source;
-		int last_line;
-		int last_column;
-		int last_source;
-
-		// is null.
-		FORCEINLINE bool is_null() const { return first_line == 0; }
-		// set null.
-		FORCEINLINE void set_null() { first_line = 0; first_column = 0; first_source = 0; last_line = 0; last_column = 0; last_source = 0; }
-
-	};
 	
 	/* Shader parsing state.
 	 * 核心功能：
@@ -87,10 +72,10 @@ namespace Thunder
 		class ast_node_function* current_function = nullptr;
 
 		/* 上下文管理 */
-		void parsing_struct_begin(const String& name, const parse_location* loc);
+		void parsing_struct_begin(const String& name, const class parse_location* loc);
 		ast_node_struct* parsing_struct_end();
-		void add_struct_member(ast_node* type, const String& name, const String& modifier, const parse_location* loc);
-		void bind_modifier(ast_node* type, const String& modifier, const parse_location* loc);
+		void add_struct_member(ast_node* type, const String& name, const struct token_data& modifier, const parse_location* loc);
+		void bind_modifier(ast_node* type, const token_data& modifier, const parse_location* loc);
 
 
 		/* 符号表管理 */

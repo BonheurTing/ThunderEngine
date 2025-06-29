@@ -59,9 +59,10 @@ int yylex(YYSTYPE *, parse_location*, void*);
 
 /* %token 用于声明 终结符（terminal/token），即词法分析器（lexer/flex）返回的词法单元。
 它可以指定该 token 的语义值类型（通过 <...> 指定 %union 的成员） */
-%token <str_val> TOKEN_SV
+%token <token> TOKEN_SV
+%token <token> TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER
 %token TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
-%token TYPE_INT TYPE_FLOAT TYPE_VOID TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER
+%token TYPE_INT TYPE_FLOAT TYPE_VOID
 %token <str_val> IDENTIFIER
 %token <int_val> INT_LITERAL
 %token ADD SUB MUL DIV
@@ -69,11 +70,13 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token LPAREN RPAREN LBRACE RBRACE
 
 /* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
-%type <token> arrchive_definition properties_definition pass_definition stage_definition struct_definition function_definition
-%type <token> program passes pass_content function_signature param_list param type
-%type <token> struct_members struct_member
-%type <token> statement_list statement var_decl assignment func_ret
-%type <token> expression primary_expr binary_expr priority_expr
+%type <token> primitive_types
+%type <node> type
+%type <node> arrchive_definition properties_definition pass_definition stage_definition struct_definition function_definition
+%type <node> program passes pass_content function_signature param_list param
+%type <node> struct_members struct_member
+%type <node> statement_list statement var_decl assignment func_ret
+%type <node> expression primary_expr binary_expr priority_expr
 
 %right ASSIGN
 %left ADD SUB
@@ -97,12 +100,8 @@ properties_definition:
     ;
 
 passes:
-    pass_definition {
-        $$ = $1;
-    }
-    | passes pass_definition {
-        $$ = $2;
-    }
+    pass_definition
+    | passes pass_definition
     ;
 
 pass_definition:
@@ -139,7 +138,8 @@ struct_members:
 
 struct_member:
     type IDENTIFIER SEMICOLON {
-        sl_state->add_struct_member($1, $2, "", &yylloc);
+        token_data token;
+        sl_state->add_struct_member($1, $2, token, &yylloc);
     }
     | type IDENTIFIER COLON TOKEN_SV SEMICOLON {
         ast_node* type = $1;
@@ -182,14 +182,15 @@ param:
     }
     ;
 
+primitive_types:
+	TYPE_INT| TYPE_FLOAT| TYPE_VOID 
+    | TYPE_VECTOR | TYPE_MATRIX | TYPE_TEXTURE | TYPE_SAMPLER
+    ;
+
 type:
-    TYPE_INT { $$ = create_type_node(enum_basic_type::tp_int); }
-    | TYPE_FLOAT { $$ = create_type_node(enum_basic_type::tp_float); }
-    | TYPE_VOID { $$ = create_type_node(enum_basic_type::tp_void); }
-    | TYPE_VECTOR
-    | TYPE_MATRIX
-    | TYPE_TEXTURE
-    | TYPE_SAMPLER
+    primitive_types {
+        $$ = create_type_node($1);
+    }
     ;
 
 statement_list:
@@ -203,10 +204,7 @@ statement_list:
     ;
 
 statement:
-    var_decl { $$ = $1; }
-    | assignment { $$ = $1; }
-    | func_ret { $$ = $1; }
-    ;
+    var_decl | assignment | func_ret ;
 
 var_decl:
     type IDENTIFIER SEMICOLON {
@@ -233,10 +231,7 @@ func_ret:
     ;
 
 expression:
-    primary_expr { $$ = $1; }
-    | priority_expr { $$ = $1; }
-    | binary_expr { $$ = $1; }
-    ;
+    primary_expr | priority_expr | binary_expr ;
 
 primary_expr:
     INT_LITERAL { $$ = create_int_literal_node($1); }

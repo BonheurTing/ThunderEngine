@@ -11,17 +11,18 @@ namespace Thunder
 
 	enum class enum_symbol_type : uint8
 	{
-		variable,   // 变量
-		structure,  // 结构体
-		function,   // 函数
-		constant,   // 常量
+		variable,   // 变量 ast_node_var_declaration
+		type,      // 类型 ast_node_type
+		//structure,  // 结构体
+		function,   // 函数 ast_node_function
+		//constant,   // 常量
 		undefined  // 未定义符号
 	};
 
 	struct shader_lang_symbol
 	{
 		String name;
-		enum_symbol_type type;
+		enum_symbol_type type = enum_symbol_type::undefined;
 		ast_node* node = nullptr; //symbol所在的语法树节点
 	};
 
@@ -57,7 +58,10 @@ namespace Thunder
 	 */
 	struct shader_lang_state
 	{
+		shader_lang_state();
+
 		// 调试信息
+		String current_text; // 当前token文本
 		parse_location* current_location = nullptr; // 当前解析位置
 		
 		// 词法/语法分析器状态
@@ -75,19 +79,22 @@ namespace Thunder
 		ast_node_function* current_function = nullptr;
 
 		/* 上下文管理 */
-		void parsing_struct_begin(const token_data& name, const class parse_location* loc);
+		void parsing_struct_begin(const token_data& name);
 		ast_node_struct* parsing_struct_end();
 		void add_struct_member(ast_node* type, const token_data& name, const struct token_data& modifier, const parse_location* loc);
 		void bind_modifier(ast_node* type, const token_data& modifier, const parse_location* loc);
-		void parsing_function_begin(ast_node* type, const token_data& name, const parse_location* loc);
+		void parsing_function_begin(ast_node* type, const token_data& name);
 		ast_node_function* parsing_function_end();
 		void add_function_param(ast_node* type, const token_data& name, const parse_location* loc);
 		void set_function_body(ast_node* body, const parse_location* loc);
 
 		/* 符号表管理 */
-		void insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node, const parse_location* loc);
-		void evaluate_symbol(const token_data&  name, enum_symbol_type type, const parse_location* loc) const;
+		void insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node);
+		void evaluate_symbol(const token_data&  name, enum_symbol_type type) const;
 		ast_node* get_symbol_node(const String& name);
+
+		void TestIdentifier(const token_data& sym);
+		void TestPrimitiveType(const token_data& sym);
 
 		/* 作用域管理 */
 
@@ -95,7 +102,7 @@ namespace Thunder
 		//DataType* type_infer(ShaderParseState* state, ASTNode* expr) { return nullptr;}    // 类型推断
 
 		/* 错误处理 */
-		static void debug_log(const String& msg, const parse_location* loc);
+		void debug_log(const String& msg, const parse_location* loc = nullptr) const;
 
 	};
 	extern shader_lang_state* sl_state;

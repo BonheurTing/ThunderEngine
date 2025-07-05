@@ -1,3 +1,4 @@
+#pragma optimize("", off)
 #include "ShaderLang.h"
 
 #include "Assertion.h"
@@ -13,11 +14,23 @@ namespace Thunder
 		"inline", "sizeof"
 	};
 
-	void shader_lang_state::parsing_struct_begin(const token_data& name, const parse_location* loc)
+	shader_lang_state::shader_lang_state()
 	{
-		TAssert(name.token_id == IDENTIFIER);
-		current_structure = new ast_node_struct(name.text);
-		insert_symbol_table(name, enum_symbol_type::structure, current_structure, loc);
+		current_location = new parse_location(0, 0, 0, 0, 0, 0);
+		current_structure = nullptr;
+		current_function = nullptr;
+	}
+
+	void shader_lang_state::parsing_struct_begin(const token_data& name)
+	{
+		TAssert(name.token_id == NEW_ID);
+		const auto type = create_type_node(name);
+		if (auto struct_type = static_cast<ast_node_type*>(type))
+		{
+			struct_type->param_type = enum_basic_type::tp_struct;
+		}
+		insert_symbol_table(name, enum_symbol_type::type, type);
+		current_structure = new ast_node_struct(type);
 	}
 
 	ast_node_struct* shader_lang_state::parsing_struct_end()
@@ -31,9 +44,8 @@ namespace Thunder
 	{
 		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
 			"add_struct_member called with invalid type node.");
-		TAssert(name.token_id == IDENTIFIER);
+		TAssert(name.token_id == NEW_ID);
 		
-		insert_symbol_table(name, enum_symbol_type::variable, type, loc);
 
 		const auto variable = new ast_node_variable(name.text);
 		variable->type = static_cast<ast_node_type*>(type);
@@ -41,6 +53,7 @@ namespace Thunder
 		{
 			variable->semantic = modifier.text;
 		}
+		insert_symbol_table(name, enum_symbol_type::variable, variable);
 
 		if (current_structure)
 		{
@@ -66,11 +79,11 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::parsing_function_begin(ast_node* type, const token_data& name, const parse_location* loc)
+	void shader_lang_state::parsing_function_begin(ast_node* type, const token_data& name)
 	{
-		TAssert(name.token_id == IDENTIFIER);
+		TAssert(name.token_id == NEW_ID);
 		current_function = new ast_node_function(name.text);
-		insert_symbol_table(name, enum_symbol_type::function, current_function, loc);
+		insert_symbol_table(name, enum_symbol_type::function, current_function);
 		current_function->set_return_type(static_cast<ast_node_type*>(type));
 	}
 
@@ -85,12 +98,12 @@ namespace Thunder
 	{
 		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
 			"add_struct_member called with invalid type node.");
-		TAssert(name.token_id == IDENTIFIER);
-		
-		insert_symbol_table(name, enum_symbol_type::variable, type, loc);
+		TAssert(name.token_id == NEW_ID);
 
 		const auto variable = new ast_node_variable(name.text);
 		variable->type = static_cast<ast_node_type*>(type);
+		insert_symbol_table(name, enum_symbol_type::variable, variable);
+		
 		if (current_function)
 		{
 			current_function->add_parameter(variable);
@@ -115,8 +128,9 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node, const parse_location* loc)
+	void shader_lang_state::insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node)
 	{
+		const auto loc = new parse_location(sym.first_line, sym.first_column, sym.first_source, sym.last_line, sym.last_column, sym.last_source);
 		if (reserved_word_list.contains(sym.text))
 		{
 			// 错误处理：不能使用保留字作为符号名
@@ -134,9 +148,10 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::evaluate_symbol(const token_data&  name, enum_symbol_type type, const parse_location* loc) const
+	void shader_lang_state::evaluate_symbol(const token_data& name, enum_symbol_type type) const
 	{
-		TAssert(name.token_id == IDENTIFIER);
+		TAssert(name.token_id == TOKEN_IDENTIFIER);
+		const auto loc = new parse_location(name.first_line, name.first_column, name.first_source, name.last_line, name.last_column, name.last_source);
 		if (reserved_word_list.contains(name.text))
 		{
 			// 错误处理：不能使用保留字作为符号名
@@ -155,8 +170,19 @@ namespace Thunder
 		{
 			return symbol_table[name].node;
 		}
-		debug_log("Symbol not found: " + name, nullptr);
 		return nullptr;
+	}
+
+	void shader_lang_state::TestIdentifier(const token_data& sym)
+	{
+		int x = 0;
+		++x;
+	}
+
+	void shader_lang_state::TestPrimitiveType(const token_data& sym)
+	{
+		int x = 0;
+		++x;
 	}
 
 	const char* get_file(int file_id)
@@ -164,16 +190,14 @@ namespace Thunder
 		return "";
 	}
 
-	void shader_lang_state::debug_log(const String& msg, const parse_location* loc)
+	void shader_lang_state::debug_log(const String& msg, const parse_location* loc) const
 	{
-		if (loc)
-		{
-			printf("Parsing error with <%s> : line %d col %d  Message : %s\n",
-				get_file(loc->first_source), loc->first_line, loc->first_column, msg.c_str());
-		}
-		else
-		{
-			printf("Parsing error : %s\n", msg.c_str());
-		}
+		if (loc == nullptr)
+			loc = current_location;
+
+		printf("Parsing error with <%s> : line %d col %d  Message : %s\n",
+			get_file(loc->first_source), loc->first_line, loc->first_column, msg.c_str());
+
 	}
 }
+#pragma optimize("", on)

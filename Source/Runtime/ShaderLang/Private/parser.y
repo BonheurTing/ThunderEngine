@@ -40,6 +40,8 @@ void ThunderParse(const char* text);
 
 int yylex(YYSTYPE *, parse_location*, void*);
 
+#define YYDEBUG 1
+
 %}
 
 %define api.pure full
@@ -63,17 +65,19 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER
 %token TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
 %token <token> TYPE_INT TYPE_FLOAT TYPE_VOID
-%token <token> IDENTIFIER
-%token <token> INT_LITERAL
+%token <token> TOKEN_IDENTIFIER NEW_ID
+%token <token> TOKEN_INTEGER STRING_CONSTANT
 %token ADD SUB MUL DIV
-%token ASSIGN COLON SEMICOLON COMMA QUOTE 
+%token ASSIGN COLON SEMICOLON COMMA
 %token LPAREN RPAREN LBRACE RBRACE
 
 /* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
-%type <token> primitive_types
+%type <token> identifier new_identifier
+%type <token> primitive_types 
+%type properties_definition /* Test. */
 %type <node> type
-%type <node> arrchive_definition properties_definition pass_definition stage_definition struct_definition function_definition
-%type <node> program passes pass_content function_signature param_list param
+%type <node> arrchive_definition pass_definition stage_definition struct_definition function_definition
+%type <node> program passes pass_content param_list param
 %type <node> struct_members struct_member
 %type <node> function_body statement_list statement var_decl assignment func_ret
 %type <node> expression primary_expr binary_expr priority_expr postfix_expr
@@ -86,17 +90,36 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %%
 
 program:
-    arrchive_definition {sl_state->ast_root = $1;}
+    arrchive_definition { sl_state->ast_root = $1; }
     ;
 
+identifier:
+    TOKEN_IDENTIFIER
+    ;
+
+/* type_identifier:
+	TYPE_ID
+; */
+
+new_identifier:
+	NEW_ID
+;
+
+/*
+any_identifier:
+	identifier | type_identifier| new_identifier
+; */
+
 arrchive_definition:
-    TOKEN_SHADER QUOTE IDENTIFIER QUOTE LBRACE properties_definition passes RBRACE {
-        $$ = $7;
+    TOKEN_SHADER STRING_CONSTANT LBRACE properties_definition passes RBRACE {
+        $$ = $5;
     }
     ;
 
 properties_definition:
-    TOKEN_PROPERTIES LBRACE /*TODO*/ RBRACE
+    TOKEN_PROPERTIES LBRACE
+    // TODO.
+    RBRACE
     ;
 
 passes:
@@ -121,8 +144,8 @@ stage_definition:
     ;
 
 struct_definition:
-    TOKEN_STRUCT IDENTIFIER LBRACE {
-        sl_state->parsing_struct_begin($2, &yylloc);
+    TOKEN_STRUCT new_identifier LBRACE {
+        sl_state->parsing_struct_begin($2);
     }
     struct_members RBRACE SEMICOLON {
         $$ = sl_state->parsing_struct_end();
@@ -135,39 +158,36 @@ struct_members:
     ;
 
 struct_member:
-    type IDENTIFIER SEMICOLON {
+    type new_identifier SEMICOLON {
         token_data token;
         sl_state->add_struct_member($1, $2, token, &yylloc);
     }
-    | type IDENTIFIER COLON TOKEN_SV SEMICOLON {
+    | type new_identifier COLON TOKEN_SV SEMICOLON {
         ast_node* type = $1;
         sl_state->bind_modifier(type, $4, &yylloc);
-        sl_state->add_struct_member(type, $2, $4, &yylloc);  /* todo: parse sv */
+        sl_state->add_struct_member(type, $2, $4, &yylloc);  // Todo : parse sv.
     }
     ;
 
 function_definition:
-    type IDENTIFIER LPAREN {
-        sl_state->parsing_function_begin($1, $2, &yylloc);
+    type new_identifier LPAREN {
+        sl_state->parsing_function_begin($1, $2);
     }
     param_list RPAREN LBRACE function_body RBRACE {
         $$ = sl_state->parsing_function_end();
     }
     ;
 
-function_signature:
-    type IDENTIFIER LPAREN param_list RPAREN
-    ;
-
 param_list:
-    /* empty */ {
+    // Empty.
+    {
     }
     | param_list COMMA param
     | param
     ;
 
 param:
-    type IDENTIFIER {
+    type new_identifier {
         sl_state->add_function_param($1, $2, &yylloc);
     }
     ;
@@ -181,6 +201,7 @@ type:
     primitive_types {
         $$ = create_type_node($1);
     }
+    
     ;
 
 function_body:
@@ -190,7 +211,8 @@ function_body:
     ;
 
 statement_list:
-    /* empty */ {
+    // Empty.
+    {
         $$ = create_statement_list_node();
     }
     | statement_list statement {
@@ -203,19 +225,17 @@ statement:
     var_decl | assignment | func_ret ;
 
 var_decl:
-    type IDENTIFIER SEMICOLON {
-        sl_state->insert_symbol_table($2, enum_symbol_type::variable, $1, &yylloc);
+    type new_identifier SEMICOLON {
         $$ = create_var_decl_node($1, $2, nullptr);
     }
-    | type IDENTIFIER ASSIGN expression SEMICOLON {
-        sl_state->insert_symbol_table($2, enum_symbol_type::variable, $1, &yylloc);
+    | type new_identifier ASSIGN expression SEMICOLON {
         $$ = create_var_decl_node($1, $2, $4);
     }
     ;
 
 assignment:
-    IDENTIFIER ASSIGN expression SEMICOLON {
-        sl_state->evaluate_symbol($1, enum_symbol_type::variable, &yylloc);
+    identifier ASSIGN expression SEMICOLON {
+        sl_state->evaluate_symbol($1, enum_symbol_type::variable);
         $$ = create_assignment_node($1, $3);
     }
     ;
@@ -230,13 +250,12 @@ expression:
     primary_expr | priority_expr | binary_expr | postfix_expr;
 
 primary_expr:
-    INT_LITERAL { $$ = create_int_literal_node($1); }
-    | IDENTIFIER { $$ = create_identifier_node($1); }
+    TOKEN_INTEGER { $$ = create_int_literal_node($1); }
+    | identifier { $$ = create_identifier_node($1); }
     ;
 
 priority_expr:
-    LPAREN /* empty */ RPAREN
-    | LPAREN expression RPAREN { $$ = $2; }
+    LPAREN expression RPAREN { $$ = $2; }
     ;
 
 binary_expr:
@@ -256,7 +275,7 @@ binary_expr:
 
 postfix_expr:
     primary_expr
-    | postfix_expr '.' IDENTIFIER
+    | postfix_expr '.' identifier
     {
         $$ = create_shuffle_or_component_node($1, $3);
     }
@@ -271,6 +290,7 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg){
 
 void ThunderParse(const char* text)
 {
+    yydebug = 1;
     sl_state = new shader_lang_state();
     lexer_constructor(sl_state, text);
     yyparse(sl_state);

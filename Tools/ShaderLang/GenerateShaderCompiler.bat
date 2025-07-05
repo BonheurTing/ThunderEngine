@@ -12,12 +12,12 @@ echo -- Check the Flex/Bison version
 
 echo.
 echo -- Begin to generate the parser
-%FLEXBISON_BINARY_DIR%\win_bison.exe --yacc -Wno-yacc -Wno-other -dv ^
+%FLEXBISON_BINARY_DIR%\win_bison.exe --yacc -dv ^
     --output=%SHADERLANG_WORKSPACE%\Generated\parser.tab.cpp ^
     --defines=%SHADERLANG_WORKSPACE%\Generated\parser.tab.h ^
     %SHADERLANG_WORKSPACE%\Private\parser.y
 
-%FLEXBISON_BINARY_DIR%\win_flex.exe -d ^
+%FLEXBISON_BINARY_DIR%\win_flex.exe -d --debug ^
     --outfile=%SHADERLANG_WORKSPACE%\Generated\lexer.tab.cpp ^
     %SHADERLANG_WORKSPACE%\Private\lexer.l
 echo -- End to generate the parser

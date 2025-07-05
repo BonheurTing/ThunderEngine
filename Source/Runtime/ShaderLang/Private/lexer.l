@@ -28,6 +28,10 @@ using namespace Thunder;
 
 #define YYSTYPE parse_node
 
+int my_flex_debug = 1;
+#undef yy_flex_debug 
+#define yy_flex_debug my_flex_debug
+
 void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 
 #define TOKENIZE(TOK) tokenize(yylval->token, yylloc, (yytext), (yyleng), (TOK))
@@ -46,6 +50,8 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 /*强制使用批处理模式，适用于yyin = fopen(...) %option batch */
 /*%option prefix="thunder_"*/
 %option extra-type="struct shader_lang_state *"
+
+STRINGS										\"(\\.|[^\\"])*\"
 
 BVECTOR					bool[1-4]
 IVECTOR					int[1-4]
@@ -98,8 +104,9 @@ SV_Position 	{ return TOKENIZE(TOKEN_SV); }
 "return"    	{ return TOKEN_RETURN; }
 "struct"		{ return TOKEN_STRUCT; }
 
-[a-zA-Z_][a-zA-Z0-9_]* { return TOKENIZE(IDENTIFIER); }
-[0-9]+      	{ return TOKENIZE(INT_LITERAL); }
+[a-zA-Z_][a-zA-Z0-9_]* { return TOKENIZE(TOKEN_IDENTIFIER); }
+[0-9]+      	{ return TOKENIZE(TOKEN_INTEGER); }
+{STRINGS}		{ return TOKENIZE(STRING_CONSTANT); }
 
 "+"         	{ return ADD; }
 "-"         	{ return SUB; }
@@ -113,7 +120,7 @@ SV_Position 	{ return TOKENIZE(TOKEN_SV); }
 ")"         	{ return RPAREN; }
 "{"         	{ return LBRACE; }
 "}"         	{ return RBRACE; }
-"\""			{ return QUOTE; }
+
 
 [ \t\n]     ; // 忽略空白字符
 

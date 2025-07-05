@@ -1,4 +1,5 @@
 #pragma once
+#include "Assertion.h"
 #include "Container.h"
 #include "NameHandle.h"
 
@@ -97,9 +98,9 @@ namespace Thunder
 
     struct token_data : public parse_location
     {
-        int token_id;
-        String text;
-        size_t length;
+        int token_id = 0;
+        String text = "";
+        size_t length = 0;
     };
 
     struct parse_node
@@ -168,8 +169,12 @@ namespace Thunder
     class ast_node_struct : public ast_node
     {
     public:
-        ast_node_struct(const String& name)
-        : ast_node(enum_ast_node_type::structure), name(name) {}
+        ast_node_struct(ast_node* token)
+        : ast_node(enum_ast_node_type::structure)
+        {
+            TAssert(token->Type == enum_ast_node_type::type);
+            type = static_cast<ast_node_type*>(token);
+        }
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
@@ -178,7 +183,7 @@ namespace Thunder
             members.push_back(mem);
         }
     private:
-        NameHandle name = nullptr;
+        ast_node_type* type = nullptr;
         TArray<ast_node_variable*> members;
     };
 
@@ -208,7 +213,7 @@ namespace Thunder
         NameHandle func_name = nullptr;
         TArray<ast_node_variable*> params;
         // body
-        class ast_node_statement_list* body;
+        ast_node_statement_list* body;
     };
 
     class ast_node_func_signature : public ast_node
@@ -403,7 +408,6 @@ namespace Thunder
         int IntValue = 0;
     };
 
-    int tokenize(token_data& t, parse_location* loc, const char* text, int text_len, int token);
     ast_node* create_type_node(const token_data& type_info);
     ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
     ast_node* create_func_signature_node(ast_node* returnTypeNode, const char* name, ast_node* params);
@@ -421,5 +425,7 @@ namespace Thunder
     ast_node* create_identifier_node(const token_data& name);
     ast_node* create_priority_node(ast_node* expr);
     ast_node* create_int_literal_node(const token_data& value);
+
+    int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);
     void post_process_ast(ast_node* nodeRoot);
 }

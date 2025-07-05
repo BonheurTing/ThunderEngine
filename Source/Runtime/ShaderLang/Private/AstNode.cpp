@@ -78,7 +78,7 @@ namespace Thunder
     
     void ast_node_struct::generate_hlsl(String& outResult)
     {
-        outResult += "struct " + name.ToString() + " {\n";
+        outResult += "struct " + type->type_name.ToString() + " {\n";
         for (const auto& member : members)
         {
             member->generate_hlsl(outResult);
@@ -247,7 +247,7 @@ namespace Thunder
         outResult += std::to_string(IntValue);
     }
 
-#pragma endregion
+#pragma endregion // HLSL
 
 #pragma region PRINT_AST
     void ast_node_type::print_ast(int indent)
@@ -284,7 +284,7 @@ namespace Thunder
     void ast_node_struct::print_ast(int indent)
     {
         print_blank(indent);
-        printf("Struct: %s\n", name.ToString().c_str());
+        printf("Struct: %s\n", type->type_name.ToString().c_str());
         print_blank(indent + 1);
         printf("Members:\n");
         for (const auto& member : members)
@@ -473,25 +473,7 @@ namespace Thunder
         printf("Integer: %d\n", IntValue);
     }
 
-#pragma endregion
-
-    int tokenize(token_data& t, parse_location* loc, const char* text, int text_len, int token)
-    {
-        t.token_id = token;
-        t.text = text;
-        t.length = text_len;
-
-        t.first_line = loc->first_line;
-        t.first_column = loc->first_column;
-        t.first_source = loc->first_source;
-        t.last_line = loc->last_line;
-        t.last_column = loc->last_column;
-        t.last_source = loc->last_source;
-
-        sl_state->current_location = loc;
-
-        return t.token_id;
-    }
+#pragma endregion // PRINT_AST
 
 #pragma region CREATE_AST_NODE
     
@@ -522,6 +504,21 @@ namespace Thunder
         case TYPE_VOID:
             node->param_type = enum_basic_type::tp_void;
             break;
+        case NEW_ID:
+        {
+            if (const auto symbol_node = sl_state->get_symbol_node(type_info.text))
+            {
+                switch (symbol_node->Type )
+                {
+                case enum_ast_node_type::structure:
+                    node->param_type = enum_basic_type::tp_struct;
+                    break;
+                default:
+                    break;
+                }
+            }
+            break;
+        }
         default:
             break;
         }
@@ -618,22 +615,25 @@ namespace Thunder
     ast_node* create_var_decl_node(ast_node* typeNode, const token_data& name, ast_node* init_expr)
     {
         TAssertf(typeNode != nullptr && typeNode->Type == enum_ast_node_type::type, "Type node type is not correct");
-        TAssert(name.token_id == IDENTIFIER);
+        TAssert(name.token_id == NEW_ID);
         const auto node = new ast_node_var_declaration;
         node->VarDelType = static_cast<ast_node_type*>(typeNode);
         node->VarName = name.text;
+
         if (init_expr != nullptr)
         {
             TAssertf(init_expr->Type == enum_ast_node_type::expression, "Init expression node type is not correct");
             node->DelExpression = static_cast<ast_node_expression*>(init_expr);
         }
+
+        sl_state->insert_symbol_table(name, enum_symbol_type::variable, node);
         return node;
     }
 
     ast_node* create_assignment_node(const token_data& lhs, ast_node* rhs)
     {
         TAssertf(rhs != nullptr && rhs->Type == enum_ast_node_type::expression, "Assignment rhs is null");
-        TAssert(lhs.token_id == IDENTIFIER);
+        TAssert(lhs.token_id == TOKEN_IDENTIFIER);
         const auto node = new ast_node_assignment;
         node->LhsVar = lhs.text;
         node->RhsExpression = static_cast<ast_node_expression*>(rhs);
@@ -654,10 +654,10 @@ namespace Thunder
         TAssertf(right != nullptr && right->Type == enum_ast_node_type::expression, "Binary operation right is null");
 
         const auto node = new ast_node_binary_operation;
-        node->expr_data_type = node->left->expr_data_type;
         node->op = op;
         node->left = static_cast<ast_node_expression*>(left);
         node->right = static_cast<ast_node_expression*>(right);
+        node->expr_data_type = node->left->expr_data_type;
         //TAssert(node->left->expr_data_type == node->right->expr_data_type);
         return node;
     }
@@ -705,7 +705,7 @@ namespace Thunder
                 const auto symbol_node = sl_state->get_symbol_node(comp.text);
                 if(symbol_node == nullptr)
                 {
-                    shader_lang_state::debug_log("Symbol not found: " + comp.text, nullptr);
+                    sl_state->debug_log("Symbol not found: " + comp.text);
                     return nullptr;
                 }
 
@@ -730,7 +730,7 @@ namespace Thunder
 
     ast_node* create_identifier_node(const token_data& name)
     {
-        TAssert(name.token_id == IDENTIFIER);
+        TAssert(name.token_id == TOKEN_IDENTIFIER);
         const auto node = new ast_node_identifier;
         node->Identifier = name.text;
         node->expr_data_type = sl_state->get_symbol_node(name.text);
@@ -739,7 +739,7 @@ namespace Thunder
 
     ast_node* create_int_literal_node(const token_data& value)
     {
-        TAssert(value.token_id == INT_LITERAL);
+        TAssert(value.token_id == TOKEN_INTEGER);
 
         const auto type = new ast_node_type;
         type->param_type = enum_basic_type::tp_int;
@@ -751,13 +751,52 @@ namespace Thunder
         return node;
     }
 
-#pragma endregion
+#pragma endregion // CREATE_AST_NODE
+
+    int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token)
+    {
+        sl_state->current_text = text;
+        memcpy(sl_state->current_location, loc, sizeof(parse_location));
+        
+        t.first_line = loc->first_line;
+        t.first_column = loc->first_column;
+        t.first_source = loc->first_source;
+        t.last_line = loc->last_line;
+        t.last_column = loc->last_column;
+        t.last_source = loc->last_source;
+        
+
+        switch (token)
+        {
+        case TOKEN_IDENTIFIER:
+        {
+            ast_node* symbol_node = sl_state->get_symbol_node(text);
+            if(symbol_node == nullptr)
+            {
+                token = NEW_ID;
+            }/*
+            else if (static_cast<ast_node_type*>(symbol_node) != nullptr)
+            {
+                token = TYPE_ID;
+            }*/
+            break;
+        }
+        default:
+            break;
+        }
+        
+        t.token_id = token;
+        t.text = text;
+        t.length = text_len;
+
+        return t.token_id;
+    }
 
     void post_process_ast(ast_node* nodeRoot)
     {
         if (nodeRoot == nullptr)
         {
-            shader_lang_state::debug_log("AST root node is null", sl_state->current_location);
+            sl_state->debug_log("Parse error, current text : " + sl_state->current_text);
             return;
         }
         nodeRoot->print_ast(0);

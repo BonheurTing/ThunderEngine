@@ -76,7 +76,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <node> program passes pass_content function_signature param_list param
 %type <node> struct_members struct_member
 %type <node> function_body statement_list statement var_decl assignment func_ret
-%type <node> expression primary_expr binary_expr priority_expr
+%type <node> expression primary_expr binary_expr priority_expr postfix_expr
 
 %right ASSIGN
 %left ADD SUB
@@ -204,11 +204,11 @@ statement:
 
 var_decl:
     type IDENTIFIER SEMICOLON {
-        sl_state->insert_symbol_table($2, enum_symbol_type::variable, &yylloc);
+        sl_state->insert_symbol_table($2, enum_symbol_type::variable, $1, &yylloc);
         $$ = create_var_decl_node($1, $2, nullptr);
     }
     | type IDENTIFIER ASSIGN expression SEMICOLON {
-        sl_state->insert_symbol_table($2, enum_symbol_type::variable, &yylloc);
+        sl_state->insert_symbol_table($2, enum_symbol_type::variable, $1, &yylloc);
         $$ = create_var_decl_node($1, $2, $4);
     }
     ;
@@ -227,7 +227,7 @@ func_ret:
     ;
 
 expression:
-    primary_expr | priority_expr | binary_expr ;
+    primary_expr | priority_expr | binary_expr | postfix_expr;
 
 primary_expr:
     INT_LITERAL { $$ = create_int_literal_node($1); }
@@ -235,8 +235,8 @@ primary_expr:
     ;
 
 priority_expr:
-    LPAREN /* empty */ RPAREN {$$ = create_priority_node(nullptr); }
-    | LPAREN expression RPAREN { $$ = create_priority_node($2); }
+    LPAREN /* empty */ RPAREN
+    | LPAREN expression RPAREN { $$ = $2; }
     ;
 
 binary_expr:
@@ -253,6 +253,15 @@ binary_expr:
         $$ = create_binary_op_node(enum_binary_op::div, $1, $3);
     }
     ;
+
+postfix_expr:
+    primary_expr
+    | postfix_expr '.' IDENTIFIER
+    {
+        $$ = create_shuffle_or_component_node($1, $3);
+    }
+    ;
+
 %%
 
 

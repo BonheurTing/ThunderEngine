@@ -14,15 +14,15 @@ namespace Thunder
 		variable,   // 变量
 		structure,  // 结构体
 		function,   // 函数
-		type,       // 类型
 		constant,   // 常量
 		undefined  // 未定义符号
 	};
 
 	struct shader_lang_symbol
 	{
-		String Name;
-		enum_symbol_type Type;
+		String name;
+		enum_symbol_type type;
+		ast_node* node = nullptr; //symbol所在的语法树节点
 	};
 
 	// 调试信息条目
@@ -57,6 +57,9 @@ namespace Thunder
 	 */
 	struct shader_lang_state
 	{
+		// 调试信息
+		parse_location* current_location = nullptr; // 当前解析位置
+		
 		// 词法/语法分析器状态
 		void *scanner = nullptr;	// Flex词法分析器上下文
 		//void *parser = nullptr;		// Bison语法分析器状态
@@ -65,11 +68,11 @@ namespace Thunder
 		TMap<String, shader_lang_symbol> symbol_table = {};
 		
 		/* 抽象语法树 */
-		class ast_node* ast_root = nullptr;	// AST根节点
+		ast_node* ast_root = nullptr;	// AST根节点
 
 		/* 状态机运行时上下文 */
-		class ast_node_struct* current_structure = nullptr;
-		class ast_node_function* current_function = nullptr;
+		ast_node_struct* current_structure = nullptr;
+		ast_node_function* current_function = nullptr;
 
 		/* 上下文管理 */
 		void parsing_struct_begin(const token_data& name, const class parse_location* loc);
@@ -82,8 +85,9 @@ namespace Thunder
 		void set_function_body(ast_node* body, const parse_location* loc);
 
 		/* 符号表管理 */
-		void insert_symbol_table(const token_data& sym, enum_symbol_type type, const parse_location* loc);
+		void insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node, const parse_location* loc);
 		void evaluate_symbol(const token_data&  name, enum_symbol_type type, const parse_location* loc) const;
+		ast_node* get_symbol_node(const String& name);
 
 		/* 作用域管理 */
 

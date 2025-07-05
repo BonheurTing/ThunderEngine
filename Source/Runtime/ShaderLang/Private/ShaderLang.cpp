@@ -16,8 +16,8 @@ namespace Thunder
 	void shader_lang_state::parsing_struct_begin(const token_data& name, const parse_location* loc)
 	{
 		TAssert(name.token_id == IDENTIFIER);
-		insert_symbol_table(name, enum_symbol_type::structure, loc);
 		current_structure = new ast_node_struct(name.text);
+		insert_symbol_table(name, enum_symbol_type::structure, current_structure, loc);
 	}
 
 	ast_node_struct* shader_lang_state::parsing_struct_end()
@@ -33,7 +33,7 @@ namespace Thunder
 			"add_struct_member called with invalid type node.");
 		TAssert(name.token_id == IDENTIFIER);
 		
-		insert_symbol_table(name, enum_symbol_type::variable, loc);
+		insert_symbol_table(name, enum_symbol_type::variable, type, loc);
 
 		const auto variable = new ast_node_variable(name.text);
 		variable->type = static_cast<ast_node_type*>(type);
@@ -69,8 +69,8 @@ namespace Thunder
 	void shader_lang_state::parsing_function_begin(ast_node* type, const token_data& name, const parse_location* loc)
 	{
 		TAssert(name.token_id == IDENTIFIER);
-		insert_symbol_table(name, enum_symbol_type::function, loc);
 		current_function = new ast_node_function(name.text);
+		insert_symbol_table(name, enum_symbol_type::function, current_function, loc);
 		current_function->set_return_type(static_cast<ast_node_type*>(type));
 	}
 
@@ -87,7 +87,7 @@ namespace Thunder
 			"add_struct_member called with invalid type node.");
 		TAssert(name.token_id == IDENTIFIER);
 		
-		insert_symbol_table(name, enum_symbol_type::variable, loc);
+		insert_symbol_table(name, enum_symbol_type::variable, type, loc);
 
 		const auto variable = new ast_node_variable(name.text);
 		variable->type = static_cast<ast_node_type*>(type);
@@ -115,7 +115,7 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::insert_symbol_table(const token_data& sym, enum_symbol_type type, const parse_location* loc)
+	void shader_lang_state::insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node, const parse_location* loc)
 	{
 		if (reserved_word_list.contains(sym.text))
 		{
@@ -130,7 +130,7 @@ namespace Thunder
 		}
 		else
 		{
-			symbol_table[sym.text] = { sym.text, type };
+			symbol_table[sym.text] = { sym.text, type, node };
 		}
 	}
 
@@ -149,6 +149,16 @@ namespace Thunder
 		}
 	}
 
+	ast_node* shader_lang_state::get_symbol_node(const String& name)
+	{
+		if (symbol_table.contains(name))
+		{
+			return symbol_table[name].node;
+		}
+		debug_log("Symbol not found: " + name, nullptr);
+		return nullptr;
+	}
+
 	const char* get_file(int file_id)
 	{
 		return "";
@@ -156,7 +166,14 @@ namespace Thunder
 
 	void shader_lang_state::debug_log(const String& msg, const parse_location* loc)
 	{
-		printf("Parsing error with <%s> : line %d col %d  Message : %s\n",
-			get_file(loc->first_source), loc->first_line, loc->first_column, msg.c_str());
+		if (loc)
+		{
+			printf("Parsing error with <%s> : line %d col %d  Message : %s\n",
+				get_file(loc->first_source), loc->first_line, loc->first_column, msg.c_str());
+		}
+		else
+		{
+			printf("Parsing error : %s\n", msg.c_str());
+		}
 	}
 }

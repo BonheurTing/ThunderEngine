@@ -30,7 +30,9 @@ namespace Thunder
     enum class enum_expr_type : uint8
     {
         binary_op,
-        priority,
+        shuffle,
+        component,
+        priority, //()
         identifier,
         integer,
         undefined
@@ -313,9 +315,10 @@ namespace Thunder
     {
     public:
         ast_node_expression(enum_expr_type exprType)
-            : ast_node(enum_ast_node_type::expression), ExprType(exprType) {}
+            : ast_node(enum_ast_node_type::expression), expr_type(exprType) {}
     public:
-        enum_expr_type ExprType;
+        enum_expr_type expr_type;
+        ast_node* expr_data_type = nullptr; // 用于存储表达式的数据类型
     };
 
     class ast_node_binary_operation : public ast_node_expression
@@ -339,7 +342,41 @@ namespace Thunder
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     public:
-        ast_node_expression * Content = nullptr;
+        ast_node_expression* content = nullptr;
+    };
+
+    class ast_node_shuffle : public ast_node_expression
+    {
+    public:
+        ast_node_shuffle(ast_node_expression* expr, const char in_order[4]) noexcept
+        : ast_node_expression(enum_expr_type::shuffle), prefix(expr)
+        {
+            order[0] = in_order[0];
+            order[1] = in_order[1];
+            order[2] = in_order[2];
+            order[3] = in_order[3];
+        }
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    public:
+        ast_node_expression* prefix = nullptr;
+        char order[4]{ 0, 0, 0, 0 };
+    };
+
+    class ast_node_component : public ast_node_expression
+    {
+    public:
+        ast_node_component(ast_node_expression* expr, ast_node* identifier, const String& text) noexcept
+            : ast_node_expression(enum_expr_type::component),
+            component_name(expr), component_member(identifier), member_text(text) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    private:
+        ast_node_expression* component_name = nullptr;
+        ast_node* component_member = nullptr;
+        String member_text;
     };
 
     //todo: 终结符，待删除
@@ -366,7 +403,7 @@ namespace Thunder
         int IntValue = 0;
     };
 
-    int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);
+    int tokenize(token_data& t, parse_location* loc, const char* text, int text_len, int token);
     ast_node* create_type_node(const token_data& type_info);
     ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
     ast_node* create_func_signature_node(ast_node* returnTypeNode, const char* name, ast_node* params);
@@ -379,8 +416,10 @@ namespace Thunder
     ast_node* create_assignment_node(const token_data& lhs, ast_node* rhs);
     ast_node* create_return_node(ast_node* expr);
     ast_node* create_binary_op_node(enum_binary_op op, ast_node* left, ast_node* right);
-    ast_node* create_priority_node(ast_node* expr);
+    ast_node* create_shuffle_node(ast_node* prefix, const token_data& shuffle_mask);
+    ast_node* create_shuffle_or_component_node(ast_node* expr, const token_data& comp);
     ast_node* create_identifier_node(const token_data& name);
+    ast_node* create_priority_node(ast_node* expr);
     ast_node* create_int_literal_node(const token_data& value);
     void post_process_ast(ast_node* nodeRoot);
 }

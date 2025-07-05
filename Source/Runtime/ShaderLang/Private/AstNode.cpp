@@ -206,11 +206,35 @@ namespace Thunder
     void ast_node_priority::generate_hlsl(String& outResult)
     {
         outResult += "( ";
-        if (Content != nullptr)
+        if (content != nullptr)
         {
-            Content->generate_hlsl(outResult);
+            content->generate_hlsl(outResult);
         }
         outResult += " )";
+    }
+
+    void ast_node_shuffle::generate_hlsl(String& outResult)
+    {
+        prefix->generate_hlsl(outResult);
+        outResult += ".";
+        for (const char i : order)
+        {
+            if (i != 0)
+            {
+                outResult += i;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    void ast_node_component::generate_hlsl(String& outResult)
+    {
+        component_name->generate_hlsl(outResult);
+        outResult += ".";
+        outResult += member_text;
     }
 
     void ast_node_identifier::generate_hlsl(String& outResult)
@@ -404,12 +428,37 @@ namespace Thunder
     {
         print_blank(indent);
         printf("Priority: (\n");
-        if (Content != nullptr)
+        if (content != nullptr)
         {
-            Content->print_ast(indent + 1);
+            content->print_ast(indent + 1);
         }
         print_blank(indent);
         printf(")\n");
+    }
+
+    void ast_node_shuffle::print_ast(int indent)
+    {
+        prefix->print_ast(indent);
+        print_blank(indent);
+        printf("Shuffle: ");
+        for (const char i : order)
+        {
+            if (i != 0)
+            {
+                printf("%c", i);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    void ast_node_component::print_ast(int indent)
+    {
+        component_name->print_ast(indent);
+        print_blank(indent);
+        printf(".%s\n", member_text.c_str());
     }
 
     void ast_node_identifier::print_ast(int indent)
@@ -426,7 +475,7 @@ namespace Thunder
 
 #pragma endregion
 
-    int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token)
+    int tokenize(token_data& t, parse_location* loc, const char* text, int text_len, int token)
     {
         t.token_id = token;
         t.text = text;
@@ -438,6 +487,8 @@ namespace Thunder
         t.last_line = loc->last_line;
         t.last_column = loc->last_column;
         t.last_source = loc->last_source;
+
+        sl_state->current_location = loc;
 
         return t.token_id;
     }
@@ -603,10 +654,66 @@ namespace Thunder
         TAssertf(right != nullptr && right->Type == enum_ast_node_type::expression, "Binary operation right is null");
 
         const auto node = new ast_node_binary_operation;
+        node->expr_data_type = node->left->expr_data_type;
         node->op = op;
         node->left = static_cast<ast_node_expression*>(left);
         node->right = static_cast<ast_node_expression*>(right);
+        //TAssert(node->left->expr_data_type == node->right->expr_data_type);
         return node;
+    }
+
+    ast_node* create_shuffle_or_component_node(ast_node* expr, const token_data& comp)
+    {
+        TAssertf(expr != nullptr && expr->Type == enum_ast_node_type::expression, "Component expression is null");
+
+        bool is_shuffle = true;
+        char order[4] = { 0, 0, 0, 0 };
+        if (comp.length <= 4)
+        {
+            for (int i = 0; i < comp.length; ++i)
+            {
+                switch (comp.text[i])
+                {
+                case 'r':
+                case 'g':
+                case 'b':
+                case 'a':
+                case 'x':
+                case 'y':
+                case 'z':
+                case 'w':
+                    order[i] = comp.text[i];
+                    continue;
+                }
+                is_shuffle = false;
+                break;
+            }
+        }
+        else
+        {
+            is_shuffle = false;
+        }
+        if (const auto prefix = static_cast<ast_node_expression*>(expr))
+        {
+            if (is_shuffle)
+            {
+                auto* prev = new ast_node_shuffle(prefix, order);
+                return prev;
+            }
+            else
+            {
+                const auto symbol_node = sl_state->get_symbol_node(comp.text);
+                if(symbol_node == nullptr)
+                {
+                    shader_lang_state::debug_log("Symbol not found: " + comp.text, nullptr);
+                    return nullptr;
+                }
+
+                const auto component= new ast_node_component(prefix, symbol_node, comp.text);
+                return component;
+            }
+        }
+        return nullptr;
     }
 
     ast_node* create_priority_node(ast_node* expr)
@@ -615,7 +722,8 @@ namespace Thunder
         if (expr)
         {
             TAssert(expr->Type == enum_ast_node_type::expression);
-            node->Content = static_cast<ast_node_expression*>(expr);
+            node->content = static_cast<ast_node_expression*>(expr);
+            node->expr_data_type = node->content->expr_data_type;
         }
         return node;
     }
@@ -625,14 +733,21 @@ namespace Thunder
         TAssert(name.token_id == IDENTIFIER);
         const auto node = new ast_node_identifier;
         node->Identifier = name.text;
+        node->expr_data_type = sl_state->get_symbol_node(name.text);
         return node;
     }
 
     ast_node* create_int_literal_node(const token_data& value)
     {
         TAssert(value.token_id == INT_LITERAL);
+
+        const auto type = new ast_node_type;
+        type->param_type = enum_basic_type::tp_int;
+        type->type_name = "int";
+
         const auto node = new ast_node_integer;
         node->IntValue = std::stoi(value.text);
+        node->expr_data_type = type;
         return node;
     }
 
@@ -640,6 +755,11 @@ namespace Thunder
 
     void post_process_ast(ast_node* nodeRoot)
     {
+        if (nodeRoot == nullptr)
+        {
+            shader_lang_state::debug_log("AST root node is null", sl_state->current_location);
+            return;
+        }
         nodeRoot->print_ast(0);
         printf("\n");
         String outHlsl;

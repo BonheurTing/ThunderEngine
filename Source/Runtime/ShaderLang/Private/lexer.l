@@ -118,7 +118,7 @@ SV_Position 	{ return TOKENIZE(TOKEN_SV); }
 [ \t\n]     ; // 忽略空白字符
 
 .           { /*yyerror("Invalid character");*/ }
- 
+
 %%
 
 void lexer_constructor(struct shader_lang_state *state, const char* text)

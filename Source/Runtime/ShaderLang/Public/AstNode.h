@@ -30,11 +30,10 @@ namespace Thunder
 
     enum class enum_expr_type : uint8
     {
-        binary_op,
-        shuffle,
-        component,
-        priority, //()
-        identifier,
+        binary_op, // 二元运算
+        shuffle, // 向量分量重排
+        component, // 成员访问
+        reference, // 出现过的
         integer,
         undefined
     };
@@ -134,7 +133,7 @@ namespace Thunder
     public:
         enum_basic_type param_type : 4 = enum_basic_type::undefined;
         enum_texture_type texture_type : 4 = enum_texture_type::texture_unknown;
-        NameHandle type_name = nullptr; // 用于存储类型名称
+        String type_name; // 用于存储类型名称
 
         bool is_semantic : 1 = false; // 是否是shader语义
     };
@@ -326,10 +325,10 @@ namespace Thunder
         ast_node* expr_data_type = nullptr; // 用于存储表达式的数据类型
     };
 
-    class ast_node_binary_operation : public ast_node_expression
+    class binary_op_expression : public ast_node_expression
     {
     public:
-        ast_node_binary_operation() : ast_node_expression (enum_expr_type::binary_op) {}
+        binary_op_expression() : ast_node_expression (enum_expr_type::binary_op) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
@@ -339,21 +338,10 @@ namespace Thunder
         ast_node_expression* right = nullptr;
     };
 
-    class ast_node_priority : public ast_node_expression
+    class shuffle_expression : public ast_node_expression
     {
     public:
-        ast_node_priority() : ast_node_expression(enum_expr_type::priority) {}
-
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
-    public:
-        ast_node_expression* content = nullptr;
-    };
-
-    class ast_node_shuffle : public ast_node_expression
-    {
-    public:
-        ast_node_shuffle(ast_node_expression* expr, const char in_order[4]) noexcept
+        shuffle_expression(ast_node_expression* expr, const char in_order[4]) noexcept
         : ast_node_expression(enum_expr_type::shuffle), prefix(expr)
         {
             order[0] = in_order[0];
@@ -369,10 +357,10 @@ namespace Thunder
         char order[4]{ 0, 0, 0, 0 };
     };
 
-    class ast_node_component : public ast_node_expression
+    class component_expression : public ast_node_expression
     {
     public:
-        ast_node_component(ast_node_expression* expr, ast_node* identifier, const String& text) noexcept
+        component_expression(ast_node_expression* expr, ast_node* identifier, const String& text) noexcept
             : ast_node_expression(enum_expr_type::component),
             component_name(expr), component_member(identifier), member_text(text) {}
 
@@ -384,16 +372,21 @@ namespace Thunder
         String member_text;
     };
 
-    //todo: 终结符，待删除
-    class ast_node_identifier : public ast_node_expression
+    /*
+     * 出现过的id
+     */
+    class reference_expression : public ast_node_expression
     {
     public:
-        ast_node_identifier() : ast_node_expression(enum_expr_type::identifier) {}
-
+        reference_expression(String id, ast_node* ref)
+            : ast_node_expression(enum_expr_type::reference)
+            , identifier(std::move(id)), target(ref) {}
+        
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
-    public:
-        NameHandle Identifier = nullptr;
+    private:
+        String identifier;
+        ast_node* target = nullptr; // 指向符号表中的节点
     };
 
     //todo: 终结符，待删除
@@ -422,8 +415,6 @@ namespace Thunder
     ast_node* create_binary_op_node(enum_binary_op op, ast_node* left, ast_node* right);
     ast_node* create_shuffle_node(ast_node* prefix, const token_data& shuffle_mask);
     ast_node* create_shuffle_or_component_node(ast_node* expr, const token_data& comp);
-    ast_node* create_identifier_node(const token_data& name);
-    ast_node* create_priority_node(ast_node* expr);
     ast_node* create_int_literal_node(const token_data& value);
 
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);

@@ -43,7 +43,7 @@ namespace Thunder
 	void shader_lang_state::add_struct_member(ast_node* type, const token_data& name, const token_data& modifier, const parse_location* loc)
 	{
 		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
-			"add_struct_member called with invalid type node.");
+			"add_struct_member called with invalid type owner.");
 		TAssert(name.token_id == NEW_ID);
 		
 
@@ -68,7 +68,7 @@ namespace Thunder
 	void shader_lang_state::bind_modifier(ast_node* type, const token_data& modifier, const parse_location* loc)
 	{
 		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
-			"bind_modifier called with invalid type node.");
+			"bind_modifier called with invalid type owner.");
 
 		if (const auto type_node = static_cast<ast_node_type*>(type))
 		{
@@ -97,7 +97,7 @@ namespace Thunder
 	void shader_lang_state::add_function_param(ast_node* type, const token_data& name, const parse_location* loc)
 	{
 		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
-			"add_struct_member called with invalid type node.");
+			"add_struct_member called with invalid type owner.");
 		TAssert(name.token_id == NEW_ID);
 
 		const auto variable = new ast_node_variable(name.text);
@@ -117,7 +117,7 @@ namespace Thunder
 	void shader_lang_state::set_function_body(ast_node* body, const parse_location* loc)
 	{
 		TAssertf(body != nullptr && body->Type == enum_ast_node_type::statement_list,
-			"set_function_body called with invalid statement list node.");
+			"set_function_body called with invalid statement list owner.");
 		if (current_function)
 		{
 			current_function->set_body(static_cast<ast_node_statement_list*>(body));
@@ -126,6 +126,12 @@ namespace Thunder
 		{
 			debug_log("No current function to set body for.", loc);
 		}
+	}
+
+	ast_node* shader_lang_state::create_reference_expression(const token_data& name)
+	{
+		const auto ref_expr = new reference_expression(name.text, get_symbol_node(name.text));
+		return ref_expr;
 	}
 
 	void shader_lang_state::insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node)
@@ -168,24 +174,22 @@ namespace Thunder
 	{
 		if (symbol_table.contains(name))
 		{
-			return symbol_table[name].node;
+			return symbol_table[name].owner;
 		}
 		return nullptr;
 	}
 
-	void shader_lang_state::TestIdentifier(const token_data& sym)
+	enum_symbol_type shader_lang_state::get_symbol_type(const String& name)
 	{
-		int x = 0;
-		++x;
+		if (symbol_table.contains(name))
+		{
+			return symbol_table[name].type;
+		}
+		return enum_symbol_type::undefined; // 未知类型
 	}
 
-	void shader_lang_state::TestPrimitiveType(const token_data& sym)
-	{
-		int x = 0;
-		++x;
-	}
-
-	const char* get_file(int file_id)
+	//todo 定位文件
+	const char* get_file(int file_id) 
 	{
 		return "";
 	}
@@ -195,9 +199,7 @@ namespace Thunder
 		if (loc == nullptr)
 			loc = current_location;
 
-		printf("Parsing error with <%s> : line %d col %d  Message : %s\n",
-			get_file(loc->first_source), loc->first_line, loc->first_column, msg.c_str());
-
+		printf("Message : %s : line %d col %d \n", msg.c_str(), loc->first_line, loc->first_column);
 	}
 }
 #pragma optimize("", on)

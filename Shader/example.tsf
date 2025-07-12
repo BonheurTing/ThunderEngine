@@ -10,12 +10,10 @@ Shader "TestShader"
             float2 uv : TEXCOORD0;
         };
 
-        int frag(int x, float y) {
-            int a;
-            int b = 10;
-            a = x + 5;
-            b = a * y;
-            return b;
+        int frag(int x) {
+            appdata v;
+            x = v.vertex.xxwy;
+            return x;
         }
     }
 }

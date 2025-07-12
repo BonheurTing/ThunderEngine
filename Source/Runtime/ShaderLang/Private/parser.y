@@ -63,16 +63,25 @@ int yylex(YYSTYPE *, parse_location*, void*);
 它可以指定该 token 的语义值类型（通过 <...> 指定 %union 的成员） */
 %token <token> TOKEN_SV
 %token <token> TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER
-%token TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
+%token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
 %token <token> TYPE_INT TYPE_FLOAT TYPE_VOID
-%token <token> TOKEN_IDENTIFIER NEW_ID
+%token <token> TOKEN_IDENTIFIER TYPE_ID NEW_ID
 %token <token> TOKEN_INTEGER STRING_CONSTANT
-%token ADD SUB MUL DIV
-%token ASSIGN COLON SEMICOLON COMMA
-%token LPAREN RPAREN LBRACE RBRACE
+%token <token> SEMICOLON
+%token <token> RPAREN RBRACE
+
+/* 左结合，右结合，无结合 防止冲突 */
+%left STRING_CONSTANT
+%left<%> COMMA
+%right<token> ASSIGN COLON
+%left<token> ADD SUB
+%left<token> MUL DIV
+%left		 LPAREN LBRACE
+%left<token> '.'
+%nonassoc SEMICOLON
 
 /* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
-%type <token> identifier new_identifier
+%type <token> identifier type_identifier new_identifier primary_identifier
 %type <token> primitive_types 
 %type properties_definition /* Test. */
 %type <node> type
@@ -80,12 +89,8 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <node> program passes pass_content param_list param
 %type <node> struct_members struct_member
 %type <node> function_body statement_list statement var_decl assignment func_ret
-%type <node> expression primary_expr binary_expr priority_expr postfix_expr
+%type <node> expression primary_expr binary_expr postfix_expr
 
-%right ASSIGN
-%left ADD SUB
-%left MUL DIV
-%nonassoc SEMICOLON
  
 %%
 
@@ -97,18 +102,22 @@ identifier:
     TOKEN_IDENTIFIER
     ;
 
-/* type_identifier:
+type_identifier:
 	TYPE_ID
-; */
+    ;
 
 new_identifier:
 	NEW_ID
-;
+    ;
 
 /*
 any_identifier:
 	identifier | type_identifier| new_identifier
 ; */
+
+primary_identifier:
+	identifier| new_identifier
+    ;
 
 arrchive_definition:
     TOKEN_SHADER STRING_CONSTANT LBRACE properties_definition passes RBRACE {
@@ -193,7 +202,8 @@ param:
     ;
 
 primitive_types:
-	TYPE_INT| TYPE_FLOAT| TYPE_VOID 
+    identifier
+	| TYPE_INT| TYPE_FLOAT| TYPE_VOID 
     | TYPE_VECTOR | TYPE_MATRIX | TYPE_TEXTURE | TYPE_SAMPLER
     ;
 
@@ -201,7 +211,9 @@ type:
     primitive_types {
         $$ = create_type_node($1);
     }
-    
+    | type_identifier {
+        $$ = create_type_node($1);
+    }
     ;
 
 function_body:
@@ -247,15 +259,18 @@ func_ret:
     ;
 
 expression:
-    primary_expr | priority_expr | binary_expr | postfix_expr;
+    primary_expr | binary_expr | postfix_expr;
 
 primary_expr:
-    TOKEN_INTEGER { $$ = create_int_literal_node($1); }
-    | identifier { $$ = create_identifier_node($1); }
-    ;
-
-priority_expr:
-    LPAREN expression RPAREN { $$ = $2; }
+    primary_identifier
+    {
+        $$ = state->create_reference_expression($1);
+    }
+    |
+    LPAREN expression RPAREN
+    {
+        $$ = $2;
+    }
     ;
 
 binary_expr:
@@ -275,7 +290,10 @@ binary_expr:
 
 postfix_expr:
     primary_expr
-    | postfix_expr '.' identifier
+    {
+        $$ = $1;
+    }
+    | postfix_expr '.' primary_identifier
     {
         $$ = create_shuffle_or_component_node($1, $3);
     }

@@ -23,7 +23,7 @@ namespace Thunder
 	{
 		String name;
 		enum_symbol_type type = enum_symbol_type::undefined;
-		ast_node* node = nullptr; //symbol所在的语法树节点
+		ast_node* owner = nullptr; //symbol所在的语法树节点
 	};
 
 	// 调试信息条目
@@ -88,13 +88,14 @@ namespace Thunder
 		void add_function_param(ast_node* type, const token_data& name, const parse_location* loc);
 		void set_function_body(ast_node* body, const parse_location* loc);
 
+		/* Expression */
+		ast_node* create_reference_expression(const token_data& name);
+
 		/* 符号表管理 */
 		void insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node);
 		void evaluate_symbol(const token_data&  name, enum_symbol_type type) const;
 		ast_node* get_symbol_node(const String& name);
-
-		void TestIdentifier(const token_data& sym);
-		void TestPrimitiveType(const token_data& sym);
+		enum_symbol_type get_symbol_type(const String& name);
 
 		/* 作用域管理 */
 

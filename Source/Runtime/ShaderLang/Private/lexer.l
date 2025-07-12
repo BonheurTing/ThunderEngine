@@ -94,32 +94,33 @@ SV_Position 	{ return TOKENIZE(TOKEN_SV); }
 {TEXCOORD}  	{ return TOKENIZE(TOKEN_SV); }
 {SV_TARGET} 	{ return TOKENIZE(TOKEN_SV); }
 
-"Shader"		{ return TOKEN_SHADER; }
-"Properties"	{ return TOKEN_PROPERTIES; }
-"SubShader"		{ return TOKEN_SUBSHADER; }
+"Shader"		{ return TOKENIZE(TOKEN_SHADER); }
+"Properties"	{ return TOKENIZE(TOKEN_PROPERTIES); }
+"SubShader"		{ return TOKENIZE(TOKEN_SUBSHADER); }
 
 "int"       	{ return TOKENIZE(TYPE_INT); }
 "float"     	{ return TOKENIZE(TYPE_FLOAT); }
 "void"      	{ return TOKENIZE(TYPE_VOID); }
-"return"    	{ return TOKEN_RETURN; }
-"struct"		{ return TOKEN_STRUCT; }
+"return"    	{ return TOKENIZE(TOKEN_RETURN); }
+"struct"		{ return TOKENIZE(TOKEN_STRUCT); }
 
 [a-zA-Z_][a-zA-Z0-9_]* { return TOKENIZE(TOKEN_IDENTIFIER); }
 [0-9]+      	{ return TOKENIZE(TOKEN_INTEGER); }
 {STRINGS}		{ return TOKENIZE(STRING_CONSTANT); }
 
-"+"         	{ return ADD; }
-"-"         	{ return SUB; }
-"*"         	{ return MUL; }
-"/"         	{ return DIV; }
-"="         	{ return ASSIGN; }
-":"				{ return COLON; }
-";"         	{ return SEMICOLON; }
-","         	{ return COMMA; }
-"("         	{ return LPAREN; }
-")"         	{ return RPAREN; }
-"{"         	{ return LBRACE; }
-"}"         	{ return RBRACE; }
+"+"         	{ return TOKENIZE(ADD); }
+"-"         	{ return TOKENIZE(SUB); }
+"*"         	{ return TOKENIZE(MUL); }
+"/"         	{ return TOKENIZE(DIV); }
+"="         	{ return TOKENIZE(ASSIGN); }
+":"				{ return TOKENIZE(COLON); }
+";"         	{ return TOKENIZE(SEMICOLON); }
+","         	{ return TOKENIZE(COMMA); }
+"."				{ return TOKENIZE('.'); }
+"("         	{ return TOKENIZE(LPAREN); }
+")"         	{ return TOKENIZE(RPAREN); }
+"{"         	{ return TOKENIZE(LBRACE); }
+"}"         	{ return TOKENIZE(RBRACE); }
 
 
 [ \t\n]     ; // 忽略空白字符

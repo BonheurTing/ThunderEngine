@@ -23,9 +23,10 @@ namespace Thunder
 
 	void shader_lang_state::parsing_struct_begin(const token_data& name)
 	{
+		TAssert(current_structure == nullptr);
 		TAssert(name.token_id == NEW_ID);
 		const auto type = create_type_node(name);
-		if (auto struct_type = static_cast<ast_node_type*>(type))
+		if (const auto struct_type = static_cast<ast_node_type*>(type))
 		{
 			struct_type->param_type = enum_basic_type::tp_struct;
 		}
@@ -81,14 +82,17 @@ namespace Thunder
 
 	void shader_lang_state::parsing_function_begin(ast_node* type, const token_data& name)
 	{
+		TAssert(current_function == nullptr);
 		TAssert(name.token_id == NEW_ID);
 		current_function = new ast_node_function(name.text);
 		insert_symbol_table(name, enum_symbol_type::function, current_function);
 		current_function->set_return_type(static_cast<ast_node_type*>(type));
 	}
 
-	ast_node_function* shader_lang_state::parsing_function_end()
+	ast_node_function* shader_lang_state::parsing_function_end(ast_node_block* body)
 	{
+		TAssert(current_function != nullptr);
+		current_function->set_body(body);
 		ast_node_function* dummy = current_function;
 		current_function = nullptr;
 		return dummy;
@@ -114,17 +118,28 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::set_function_body(ast_node* body, const parse_location* loc)
+	void shader_lang_state::parsing_block_begin()
 	{
-		TAssertf(body != nullptr && body->Type == enum_ast_node_type::statement_list,
-			"set_function_body called with invalid statement list owner.");
-		if (current_function)
+		TAssert(current_block == nullptr);
+		current_block = new ast_node_block;
+	}
+
+	ast_node_block* shader_lang_state::parsing_block_end()
+	{
+		ast_node_block* dummy = current_block;
+		current_block = nullptr;
+		return dummy;
+	}
+
+	void shader_lang_state::add_block_statement(ast_node_statement* statement, const parse_location* loc) const
+	{
+		if (current_block)
 		{
-			current_function->set_body(static_cast<ast_node_statement_list*>(body));
+			current_block->add_statement(statement);
 		}
 		else
 		{
-			debug_log("No current function to set body for.", loc);
+			debug_log("No current block to add statement to.", loc);
 		}
 	}
 
@@ -262,6 +277,43 @@ namespace Thunder
 			loc = current_location;
 
 		printf("Message : %s : line %d col %d \n", msg.c_str(), loc->first_line, loc->first_column);
+	}
+
+	ast_node_statement* shader_lang_state::create_var_decl_statement(
+		ast_node* typeNode, const token_data& name, ast_node* init_expr)
+	{
+		TAssertf(typeNode != nullptr && typeNode->Type == enum_ast_node_type::type, "Type owner type is not correct");
+		TAssert(name.token_id == NEW_ID);
+		const auto node = new ast_node_var_declaration;
+		node->VarDelType = static_cast<ast_node_type*>(typeNode);
+		node->VarName = name.text;
+
+		if (init_expr != nullptr)
+		{
+			TAssertf(init_expr->Type == enum_ast_node_type::expression, "Init expression owner type is not correct");
+			node->DelExpression = static_cast<ast_node_expression*>(init_expr);
+		}
+
+		sl_state->insert_symbol_table(name, enum_symbol_type::variable, node);
+		return node;
+	}
+
+	ast_node_statement* shader_lang_state::create_assignment_statement(const token_data& lhs, ast_node* rhs)
+	{
+		TAssertf(rhs != nullptr && rhs->Type == enum_ast_node_type::expression, "Assignment rhs is null");
+		TAssert(lhs.token_id == TOKEN_IDENTIFIER);
+		const auto node = new ast_node_assignment;
+		node->LhsVar = lhs.text;
+		node->RhsExpression = static_cast<ast_node_expression*>(rhs);
+		return node;
+	}
+
+	ast_node_statement* shader_lang_state::create_return_statement(ast_node* expr)
+	{
+		TAssertf(expr != nullptr && expr->Type == enum_ast_node_type::expression, "Return expression is null");
+		const auto node = new ast_node_return;
+		node->RetValue = static_cast<ast_node_expression*>(expr);
+		return node;
 	}
 }
 #pragma optimize("", on)

@@ -88,9 +88,10 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <node> arrchive_definition pass_definition stage_definition struct_definition function_definition
 %type <node> program passes pass_content param_list param
 %type <node> struct_members struct_member
-%type <node> function_body statement_list statement var_decl assignment func_ret
-%type <expression> expression primary_expr binary_expr postfix_expr
 
+%type <expression> expression primary_expr binary_expr postfix_expr
+%type <block> function_body block block_begin
+%type <statement> statement var_decl assignment func_ret
  
 %%
 
@@ -182,8 +183,8 @@ function_definition:
     type new_identifier LPAREN {
         sl_state->parsing_function_begin($1, $2);
     }
-    param_list RPAREN LBRACE function_body RBRACE {
-        $$ = sl_state->parsing_function_end();
+    param_list RPAREN function_body {
+        $$ = sl_state->parsing_function_end($7);
     }
     ;
 
@@ -217,44 +218,63 @@ type:
     ;
 
 function_body:
-    statement_list {
-        sl_state->set_function_body($1, &yylloc);
+    block
+    ;
+
+block_begin:
+	LBRACE
+    {
+        sl_state->parsing_block_begin();
     }
     ;
 
-statement_list:
-    // Empty.
+block_end:
+	RBRACE
+    ;
+
+block:
+    block_begin block_end
     {
-        $$ = create_statement_list_node();
+        $$ = sl_state->parsing_block_end();
     }
-    | statement_list statement {
-        add_statement_to_list($1, $2);
-        $$ = $1;
+    | block_begin block_statements block_end
+    {
+        $$ = sl_state->parsing_block_end();
     }
     ;
+
+block_statements:
+    statement 
+    {
+        sl_state->add_block_statement($1, &yylloc);
+    }
+    | block_statements statement
+    {
+        sl_state->add_block_statement($2, &yylloc);
+    }
 
 statement:
     var_decl | assignment | func_ret ;
 
 var_decl:
     type new_identifier SEMICOLON {
-        $$ = create_var_decl_node($1, $2, nullptr);
+        $$ = sl_state->create_var_decl_statement($1, $2, nullptr);
     }
     | type new_identifier ASSIGN expression SEMICOLON {
-        $$ = create_var_decl_node($1, $2, $4);
+        $$ = sl_state->create_var_decl_statement($1, $2, $4);
     }
     ;
 
 assignment:
     identifier ASSIGN expression SEMICOLON {
         sl_state->evaluate_symbol($1, enum_symbol_type::variable);
-        $$ = create_assignment_node($1, $3);
+        $$ = sl_state->create_assignment_statement($1, $3);
     }
     ;
 
 func_ret:
     TOKEN_RETURN expression SEMICOLON {
-        $$ = create_return_node($2);
+        $$ = sl_state->create_return_statement($2);
     }
     ;
 

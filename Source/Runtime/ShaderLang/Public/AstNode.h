@@ -12,10 +12,7 @@ namespace Thunder
         pass,
         structure,
         function,
-        func_signature,
-        param_list,
-        param,
-        statement_list,
+        block,
         statement,
         expression
     };
@@ -107,6 +104,8 @@ namespace Thunder
         union
         {
             class ast_node* node;
+            class ast_node_block* block;
+            class ast_node_statement* statement;
             class ast_node_expression* expression;
         };
         token_data token;
@@ -207,7 +206,7 @@ namespace Thunder
         {
             params.push_back(param);
         }
-        void set_body(class ast_node_statement_list* body_statements)
+        void set_body(class ast_node_block* body_statements)
         {
             body = body_statements;
         }
@@ -217,71 +216,31 @@ namespace Thunder
         NameHandle func_name = nullptr;
         TArray<ast_node_variable*> params;
         // body
-        ast_node_statement_list* body;
+        ast_node_block* body;
     };
 
-    class ast_node_func_signature : public ast_node
+    class ast_node_block : public ast_node
     {
     public:
-        ast_node_func_signature() : ast_node(enum_ast_node_type::func_signature) {}
-
+        ast_node_block() : ast_node(enum_ast_node_type::block) {}
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
-    public:
-        class ast_node_type* return_type = nullptr;
-        NameHandle func_name = nullptr;
-        class ast_node_param_list* params = nullptr;
-    };
-
-    class ast_node_param_list : public ast_node
-    {
-    public:
-        ast_node_param_list() : ast_node(enum_ast_node_type::param_list) {}
-
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
-    public:
-        int param_count = 0;
-        class ast_node_param* params_head = nullptr;
-        ast_node_param* params_tail = nullptr;
-    };
-
-    class ast_node_param : public ast_node
-    {
-    public:
-        ast_node_param() : ast_node(enum_ast_node_type::param) {}
-
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
-    public:
-        ast_node_type* param_type = nullptr;
-        NameHandle param_name = nullptr;
-        ast_node_param*  next_param = nullptr;
-    };
-
-    class ast_node_statement_list : public ast_node
-    {
-    public:
-        ast_node_statement_list() : ast_node(enum_ast_node_type::statement_list) {}
-
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
-    public:
-        class ast_node_statement* statements_head = nullptr;
-        ast_node_statement* StatementsTail = nullptr;
+    
+        void add_statement(ast_node_statement* statement)
+        {
+            statements.push_back(statement);
+        }
+    private:
+        TArray<ast_node_statement*> statements; // 存储语句列表
     };
 
     class ast_node_statement : public ast_node
     {
     public:
-        ast_node_statement(enum_statement_type statType)
-        : ast_node(enum_ast_node_type::statement), StatNodeType(statType) {}
-
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
+        ast_node_statement(enum_statement_type type)
+        : ast_node(enum_ast_node_type::statement), stat_type(type) {}
     public:
-        enum_statement_type StatNodeType;
-        ast_node_statement* NextStatement = nullptr;
+        enum_statement_type stat_type;
     };
 
     class ast_node_var_declaration : public ast_node_statement
@@ -394,30 +353,8 @@ namespace Thunder
         ast_node* target = nullptr; // 指向符号表中的节点
     };
 
-    //todo: 终结符，待删除
-    class ast_node_integer : public ast_node_expression
-    {
-    public:
-        ast_node_integer() : ast_node_expression(enum_expr_type::integer) {}
-
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
-    public:
-        int IntValue = 0;
-    };
-
     ast_node* create_type_node(const token_data& type_info);
     ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
-    ast_node* create_func_signature_node(ast_node* returnTypeNode, const char* name, ast_node* params);
-    ast_node* create_param_list_node();
-    void add_param_to_list(ast_node* list, ast_node* param);
-    ast_node* create_param_node(ast_node* typeNode, const char* name);
-    ast_node* create_statement_list_node();
-    void add_statement_to_list(ast_node* list, ast_node* stmt);
-    ast_node* create_var_decl_node(ast_node* typeNode, const token_data& name, ast_node* init_expr);
-    ast_node* create_assignment_node(const token_data& lhs, ast_node* rhs);
-    ast_node* create_return_node(ast_node* expr);
-    ast_node* create_int_literal_node(const token_data& value);
 
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);
     void post_process_ast(ast_node* nodeRoot);

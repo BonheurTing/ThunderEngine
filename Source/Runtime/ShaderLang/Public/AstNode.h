@@ -104,8 +104,13 @@ namespace Thunder
 
     struct parse_node
     {
+        union
+        {
+            class ast_node* node;
+            class ast_node_expression* expression;
+        };
         token_data token;
-        class ast_node* node;
+        
     };
 
     class ast_node
@@ -412,9 +417,6 @@ namespace Thunder
     ast_node* create_var_decl_node(ast_node* typeNode, const token_data& name, ast_node* init_expr);
     ast_node* create_assignment_node(const token_data& lhs, ast_node* rhs);
     ast_node* create_return_node(ast_node* expr);
-    ast_node* create_binary_op_node(enum_binary_op op, ast_node* left, ast_node* right);
-    ast_node* create_shuffle_node(ast_node* prefix, const token_data& shuffle_mask);
-    ast_node* create_shuffle_or_component_node(ast_node* expr, const token_data& comp);
     ast_node* create_int_literal_node(const token_data& value);
 
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);

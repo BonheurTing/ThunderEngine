@@ -128,10 +128,72 @@ namespace Thunder
 		}
 	}
 
-	ast_node* shader_lang_state::create_reference_expression(const token_data& name)
+	ast_node_expression* shader_lang_state::create_reference_expression(const token_data& name)
 	{
 		const auto ref_expr = new reference_expression(name.text, get_symbol_node(name.text));
 		return ref_expr;
+	}
+
+	ast_node_expression* shader_lang_state::create_binary_op_expression(
+		enum_binary_op op, ast_node_expression* left, ast_node_expression* right)
+	{
+		const auto node = new binary_op_expression;
+		node->op = op;
+		node->left = left;
+		node->right = right;
+		node->expr_data_type = node->left->expr_data_type;
+		//TAssert(owner->left->expr_data_type == owner->right->expr_data_type);
+		return node;
+	}
+
+	ast_node_expression* shader_lang_state::create_shuffle_or_component_expression(
+		ast_node_expression* expr, const token_data& comp)
+	{
+		bool is_shuffle = true;
+		char order[4] = { 0, 0, 0, 0 };
+		if (comp.length <= 4)
+		{
+			for (int i = 0; i < comp.length; ++i)
+			{
+				switch (comp.text[i])
+				{
+				case 'r':
+				case 'g':
+				case 'b':
+				case 'a':
+				case 'x':
+				case 'y':
+				case 'z':
+				case 'w':
+					order[i] = comp.text[i];
+					continue;
+				}
+				is_shuffle = false;
+				break;
+			}
+		}
+		else
+		{
+			is_shuffle = false;
+		}
+
+		if (is_shuffle)
+		{
+			auto* prev = new shuffle_expression(expr, order);
+			return prev;
+		}
+		else
+		{
+			const auto symbol_node = sl_state->get_symbol_node(comp.text);
+			if(symbol_node == nullptr)
+			{
+				sl_state->debug_log("Symbol not found: " + comp.text);
+				return nullptr;
+			}
+
+			const auto component= new component_expression(expr, symbol_node, comp.text);
+			return component;
+		}
 	}
 
 	void shader_lang_state::insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node)

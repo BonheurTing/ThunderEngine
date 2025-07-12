@@ -89,7 +89,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <node> program passes pass_content param_list param
 %type <node> struct_members struct_member
 %type <node> function_body statement_list statement var_decl assignment func_ret
-%type <node> expression primary_expr binary_expr postfix_expr
+%type <expression> expression primary_expr binary_expr postfix_expr
 
  
 %%
@@ -264,7 +264,7 @@ expression:
 primary_expr:
     primary_identifier
     {
-        $$ = state->create_reference_expression($1);
+        $$ = sl_state->create_reference_expression($1);
     }
     |
     LPAREN expression RPAREN
@@ -275,16 +275,16 @@ primary_expr:
 
 binary_expr:
     expression ADD expression {
-        $$ = create_binary_op_node(enum_binary_op::add, $1, $3);
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::add, $1, $3);
     }
     | expression SUB expression {
-        $$ = create_binary_op_node(enum_binary_op::sub, $1, $3);
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::sub, $1, $3);
     }
     | expression MUL expression {
-        $$ = create_binary_op_node(enum_binary_op::mul, $1, $3);
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::mul, $1, $3);
     }
     | expression DIV expression {
-        $$ = create_binary_op_node(enum_binary_op::div, $1, $3);
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::div, $1, $3);
     }
     ;
 
@@ -295,7 +295,7 @@ postfix_expr:
     }
     | postfix_expr '.' primary_identifier
     {
-        $$ = create_shuffle_or_component_node($1, $3);
+        $$ = sl_state->create_shuffle_or_component_expression($1, $3);
     }
     ;
 

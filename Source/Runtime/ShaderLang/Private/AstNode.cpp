@@ -2,8 +2,6 @@
 #include "AstNode.h"
 #include "ShaderLang.h"
 #include "Assertion.h"
-#include "ShaderCompiler.h"
-#include "Templates/RefCounting.h"
 #include "../Generated/parser.tab.h"
 
 namespace Thunder
@@ -118,37 +116,42 @@ namespace Thunder
         }
     }
 
-    void ast_node_var_declaration::generate_hlsl(String& outResult)
+    void variable_declaration_statement::generate_hlsl(String& outResult)
     {
-        VarDelType->generate_hlsl(outResult);
-        outResult += " " + VarName.ToString();
-        if (DelExpression != nullptr)
+        var_type->generate_hlsl(outResult);
+        outResult += " " + var_name;
+        if (decl_expr != nullptr)
         {
             outResult += " = ";
-            DelExpression->generate_hlsl(outResult);
+            decl_expr->generate_hlsl(outResult);
         }
         outResult += ";\n";
         ast_node_statement::generate_hlsl(outResult);
     }
 
-    void ast_node_assignment::generate_hlsl(String& outResult)
+    void assignment_statement::generate_hlsl(String& outResult)
     {
-        outResult += LhsVar.ToString() + " = ";
-        TAssertf(RhsExpression != nullptr, "Assignment rhs is null");
-        RhsExpression->generate_hlsl(outResult);
+        outResult += lhs_var + " = ";
+        TAssertf(rhs_expr != nullptr, "Assignment rhs is null");
+        rhs_expr->generate_hlsl(outResult);
         outResult += ";\n";
         ast_node_statement::generate_hlsl(outResult);
     }
 
-    void ast_node_return::generate_hlsl(String& outResult)
+    void return_statement::generate_hlsl(String& outResult)
     {
         outResult += "return ";
-        if (RetValue != nullptr)
+        if (ret_value != nullptr)
         {
-            RetValue->generate_hlsl(outResult);
+            ret_value->generate_hlsl(outResult);
         }
         outResult += ";\n";
         ast_node_statement::generate_hlsl(outResult);
+    }
+
+    void condition_statement::generate_hlsl(String& outResult)
+    {
+        
     }
 
     void binary_op_expression::generate_hlsl(String& outResult)
@@ -271,41 +274,41 @@ namespace Thunder
         }
     }
 
-    void ast_node_var_declaration::print_ast(int indent)
+    void variable_declaration_statement::print_ast(int indent)
     {
         print_blank(indent);
         printf("VarDecl: {\n");
-        VarDelType->print_ast(indent + 1);
-        printf("; Name : %s\n", VarName.c_str());
-        if (DelExpression != nullptr)
+        var_type->print_ast(indent + 1);
+        printf("; Name : %s\n", var_name.c_str());
+        if (decl_expr != nullptr)
         {
-            DelExpression->print_ast(indent + 1);
+            decl_expr->print_ast(indent + 1);
         }
         print_blank(indent);
         printf("}\n");
         ast_node_statement::print_ast(indent);
     }
 
-    void ast_node_assignment::print_ast(int indent)
+    void assignment_statement::print_ast(int indent)
     {
         print_blank(indent);
         printf("Assignment: {\n");
         print_blank(indent + 1);
-        printf("%s = \n", LhsVar.c_str());
-        TAssertf(RhsExpression != nullptr, "Assignment rhs is null");
-        RhsExpression->print_ast(indent + 1);
+        printf("%s = \n", lhs_var.c_str());
+        TAssertf(rhs_expr != nullptr, "Assignment rhs is null");
+        rhs_expr->print_ast(indent + 1);
         print_blank(indent);
         printf("}\n");
         ast_node_statement::print_ast(indent);
     }
 
-    void ast_node_return::print_ast(int indent)
+    void return_statement::print_ast(int indent)
     {
         print_blank(indent);
         printf("return: { \n");
-        if (RetValue != nullptr)
+        if (ret_value != nullptr)
         {
-            RetValue->print_ast(indent + 1);
+            ret_value->print_ast(indent + 1);
         }
         else
         {
@@ -314,6 +317,11 @@ namespace Thunder
         print_blank(indent);
         printf("}\n");
         ast_node_statement::print_ast(indent);
+    }
+
+    void condition_statement::print_ast(int indent)
+    {
+        
     }
 
     void binary_op_expression::print_ast(int indent)
@@ -372,70 +380,7 @@ namespace Thunder
     }
 
 #pragma endregion // PRINT_AST
-
-#pragma region CREATE_AST_NODE
     
-    ast_node* create_type_node(const token_data& type_info) {
-        const auto node = new ast_node_type;
-        node->type_name = type_info.text;
-
-        switch (type_info.token_id)
-        {
-        case TYPE_TEXTURE:
-            node->param_type = enum_basic_type::tp_texture;
-            break;
-        case TYPE_SAMPLER:
-            node->param_type = enum_basic_type::tp_sampler;
-            break;
-        case TYPE_VECTOR:
-            node->param_type = enum_basic_type::tp_vector;
-            break;
-        case TYPE_MATRIX:
-            node->param_type = enum_basic_type::tp_matrix;
-            break;
-        case TYPE_INT:
-            node->param_type = enum_basic_type::tp_int;
-            break;
-        case TYPE_FLOAT:
-            node->param_type = enum_basic_type::tp_float;
-            break;
-        case TYPE_VOID:
-            node->param_type = enum_basic_type::tp_void;
-            break;
-        case TYPE_ID:
-        {
-                TAssert(sl_state->get_symbol_type(type_info.text) == enum_symbol_type::type);
-            if (auto symbol_node = static_cast<ast_node_type*>(sl_state->get_symbol_node(type_info.text)))
-            {
-                switch (symbol_node->param_type)
-                {
-                case enum_basic_type::tp_struct:
-                    node->param_type = enum_basic_type::tp_struct;
-                    break;
-                default:
-                    break;
-                }
-            }
-            break;
-        }
-        default:
-            break;
-        }
-
-        return node;
-    }
-
-    ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node)
-    {
-        TAssertf(struct_node != nullptr && struct_node->Type == enum_ast_node_type::structure, "Struct owner type is not correct");
-        TAssertf(stage_node != nullptr && stage_node->Type == enum_ast_node_type::function, "Stage owner type is not correct");
-        const auto node = new ast_node_pass;
-        node->structure = static_cast<ast_node_struct*>(struct_node);
-        node->stage = static_cast<ast_node_function*>(stage_node);
-        return node;
-    }
-
-#pragma endregion // CREATE_AST_NODE
 
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token)
     {
@@ -477,33 +422,7 @@ namespace Thunder
         return t.token_id;
     }
 
-    void post_process_ast(ast_node* nodeRoot)
-    {
-        if (nodeRoot == nullptr)
-        {
-            sl_state->debug_log("Parse Error, current text : " + sl_state->current_text);
-            return;
-        }
-        nodeRoot->print_ast(0);
-        printf("\n");
-        String outHlsl;
-        nodeRoot->generate_hlsl(outHlsl);
-        printf("-------generate hlsl-------\n%s", outHlsl.c_str());
 
-        printf("\n-------DXCompiler-------\n");
-        BinaryData ByteCode;
-        const TRefCountPtr<ICompiler> ShaderCompiler = new DXCCompiler();
-        ShaderCompiler->Compile(nullptr, outHlsl, outHlsl.size(), {}, "", "main", "ps_6_0", ByteCode);
-        if (ByteCode.Data != nullptr)
-        {
-            printf("ByteCode Size: %d\n", static_cast<int32>(ByteCode.Size));
-            TMemory::Destroy(ByteCode.Data);
-        }
-        else
-        {
-            printf("ByteCode is null\n");
-        }
-    }
     
 }
 #pragma optimize("", on)

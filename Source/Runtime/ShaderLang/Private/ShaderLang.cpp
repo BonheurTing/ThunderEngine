@@ -5,6 +5,9 @@
 #include "AstNode.h"
 #include "../Generated/parser.tab.h"
 
+#include "ShaderCompiler.h"
+#include "Templates/RefCounting.h"
+
 namespace Thunder
 {
 	TSet<String> reserved_word_list = {
@@ -19,6 +22,67 @@ namespace Thunder
 		current_location = new parse_location(0, 0, 0, 0, 0, 0);
 		current_structure = nullptr;
 		current_function = nullptr;
+	}
+
+	ast_node_type* shader_lang_state::create_type_node(const token_data& type_info)
+	{
+		const auto node = new ast_node_type;
+		node->type_name = type_info.text;
+
+		switch (type_info.token_id)
+		{
+		case TYPE_TEXTURE:
+			node->param_type = enum_basic_type::tp_texture;
+			break;
+		case TYPE_SAMPLER:
+			node->param_type = enum_basic_type::tp_sampler;
+			break;
+		case TYPE_VECTOR:
+			node->param_type = enum_basic_type::tp_vector;
+			break;
+		case TYPE_MATRIX:
+			node->param_type = enum_basic_type::tp_matrix;
+			break;
+		case TYPE_INT:
+			node->param_type = enum_basic_type::tp_int;
+			break;
+		case TYPE_FLOAT:
+			node->param_type = enum_basic_type::tp_float;
+			break;
+		case TYPE_VOID:
+			node->param_type = enum_basic_type::tp_void;
+			break;
+		case TYPE_ID:
+			{
+				TAssert(sl_state->get_symbol_type(type_info.text) == enum_symbol_type::type);
+				if (auto symbol_node = static_cast<ast_node_type*>(sl_state->get_symbol_node(type_info.text)))
+				{
+					switch (symbol_node->param_type)
+					{
+					case enum_basic_type::tp_struct:
+						node->param_type = enum_basic_type::tp_struct;
+						break;
+					default:
+						break;
+					}
+				}
+				break;
+			}
+		default:
+			break;
+		}
+
+		return node;
+	}
+
+	ast_node* shader_lang_state::create_pass_node(ast_node* struct_node, ast_node* stage_node)
+	{
+		TAssertf(struct_node != nullptr && struct_node->Type == enum_ast_node_type::structure, "Struct owner type is not correct");
+		TAssertf(stage_node != nullptr && stage_node->Type == enum_ast_node_type::function, "Stage owner type is not correct");
+		const auto node = new ast_node_pass;
+		node->structure = static_cast<ast_node_struct*>(struct_node);
+		node->stage = static_cast<ast_node_function*>(stage_node);
+		return node;
 	}
 
 	void shader_lang_state::parsing_struct_begin(const token_data& name)
@@ -141,6 +205,33 @@ namespace Thunder
 		{
 			debug_log("No current block to add statement to.", loc);
 		}
+	}
+
+	ast_node_statement* shader_lang_state::create_var_decl_statement(
+		ast_node_type* type_node, const token_data& name, ast_node_expression* init_expr)
+	{
+		TAssert(name.token_id == NEW_ID);
+		const auto node = new variable_declaration_statement(type_node, name.text, init_expr);
+
+		sl_state->insert_symbol_table(name, enum_symbol_type::variable, node);
+		return node;
+	}
+
+	ast_node_statement* shader_lang_state::create_assignment_statement(const token_data& lhs, ast_node_expression* rhs)
+	{
+		TAssert(lhs.token_id == TOKEN_IDENTIFIER);
+		return new assignment_statement(lhs.text, rhs);
+	}
+
+	ast_node_statement* shader_lang_state::create_return_statement(ast_node_expression* expr)
+	{
+		return new return_statement(expr);
+	}
+
+	ast_node_statement* shader_lang_state::create_condition_statement(
+		ast_node_expression* cond, ast_node_statement* true_stmt, ast_node_statement* false_stmt)
+	{
+		return new condition_statement(cond, true_stmt, false_stmt);
 	}
 
 	ast_node_expression* shader_lang_state::create_reference_expression(const token_data& name)
@@ -279,41 +370,35 @@ namespace Thunder
 		printf("Message : %s : line %d col %d \n", msg.c_str(), loc->first_line, loc->first_column);
 	}
 
-	ast_node_statement* shader_lang_state::create_var_decl_statement(
-		ast_node* typeNode, const token_data& name, ast_node* init_expr)
+	void shader_lang_state::post_process_ast() const
 	{
-		TAssertf(typeNode != nullptr && typeNode->Type == enum_ast_node_type::type, "Type owner type is not correct");
-		TAssert(name.token_id == NEW_ID);
-		const auto node = new ast_node_var_declaration;
-		node->VarDelType = static_cast<ast_node_type*>(typeNode);
-		node->VarName = name.text;
-
-		if (init_expr != nullptr)
+		if (ast_root == nullptr)
 		{
-			TAssertf(init_expr->Type == enum_ast_node_type::expression, "Init expression owner type is not correct");
-			node->DelExpression = static_cast<ast_node_expression*>(init_expr);
+			sl_state->debug_log("Parse Error, current text : " + sl_state->current_text);
+			return;
 		}
+		ast_root->print_ast(0);
+		printf("\n");
+		String outHlsl;
+		ast_root->generate_hlsl(outHlsl);
+		printf("-------generate hlsl-------\n%s", outHlsl.c_str());
 
-		sl_state->insert_symbol_table(name, enum_symbol_type::variable, node);
-		return node;
+		printf("\n-------DXCompiler-------\n");
+		BinaryData ByteCode;
+		const TRefCountPtr<ICompiler> ShaderCompiler = new DXCCompiler();
+		ShaderCompiler->Compile(nullptr, outHlsl, outHlsl.size(), {}, "", "main", "ps_6_0", ByteCode);
+		if (ByteCode.Data != nullptr)
+		{
+			printf("ByteCode Size: %d\n", static_cast<int32>(ByteCode.Size));
+			TMemory::Destroy(ByteCode.Data);
+		}
+		else
+		{
+			printf("ByteCode is null\n");
+		}
 	}
 
-	ast_node_statement* shader_lang_state::create_assignment_statement(const token_data& lhs, ast_node* rhs)
-	{
-		TAssertf(rhs != nullptr && rhs->Type == enum_ast_node_type::expression, "Assignment rhs is null");
-		TAssert(lhs.token_id == TOKEN_IDENTIFIER);
-		const auto node = new ast_node_assignment;
-		node->LhsVar = lhs.text;
-		node->RhsExpression = static_cast<ast_node_expression*>(rhs);
-		return node;
-	}
 
-	ast_node_statement* shader_lang_state::create_return_statement(ast_node* expr)
-	{
-		TAssertf(expr != nullptr && expr->Type == enum_ast_node_type::expression, "Return expression is null");
-		const auto node = new ast_node_return;
-		node->RetValue = static_cast<ast_node_expression*>(expr);
-		return node;
-	}
+
 }
 #pragma optimize("", on)

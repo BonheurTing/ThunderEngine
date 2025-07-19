@@ -63,14 +63,17 @@ int yylex(YYSTYPE *, parse_location*, void*);
 它可以指定该 token 的语义值类型（通过 <...> 指定 %union 的成员） */
 %token <token> TOKEN_SV
 %token <token> TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER
-%token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
 %token <token> TYPE_INT TYPE_FLOAT TYPE_VOID
+
 %token <token> TOKEN_IDENTIFIER TYPE_ID NEW_ID
 %token <token> TOKEN_INTEGER STRING_CONSTANT
-%token <token> SEMICOLON
-%token <token> RPAREN RBRACE
+
+%token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
+%token <token> RPAREN RBRACE SEMICOLON
+%token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE
 
 /* 左结合，右结合，无结合 防止冲突 */
+%nonassoc TOKEN_IF TOKEN_ELSE
 %left STRING_CONSTANT
 %left<%> COMMA
 %right<token> ASSIGN COLON
@@ -84,14 +87,18 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <token> identifier type_identifier new_identifier primary_identifier
 %type <token> primitive_types 
 %type properties_definition /* Test. */
-%type <node> type
+%type <type> type
 %type <node> arrchive_definition pass_definition stage_definition struct_definition function_definition
 %type <node> program passes pass_content param_list param
 %type <node> struct_members struct_member
 
-%type <expression> expression primary_expr binary_expr postfix_expr
+/* statement */
 %type <block> function_body block block_begin
-%type <statement> statement var_decl assignment func_ret
+%type <statement> statement var_decl assignment func_ret empty_statement 
+                if_then_statement if_then_else_statement
+
+/* expression */
+%type <expression> expression primary_expr binary_expr postfix_expr
  
 %%
 
@@ -145,7 +152,7 @@ pass_definition:
 
 pass_content:
     struct_definition stage_definition{
-        $$ = create_pass_node($1, $2);
+        $$ = sl_state->create_pass_node($1, $2);
     }
     ;
 
@@ -210,10 +217,10 @@ primitive_types:
 
 type:
     primitive_types {
-        $$ = create_type_node($1);
+        $$ = sl_state->create_type_node($1);
     }
     | type_identifier {
-        $$ = create_type_node($1);
+        $$ = sl_state->create_type_node($1);
     }
     ;
 
@@ -254,7 +261,8 @@ block_statements:
     }
 
 statement:
-    var_decl | assignment | func_ret ;
+    var_decl | assignment | func_ret | empty_statement
+    | if_then_statement | if_then_else_statement;
 
 var_decl:
     type new_identifier SEMICOLON {
@@ -277,6 +285,25 @@ func_ret:
         $$ = sl_state->create_return_statement($2);
     }
     ;
+
+empty_statement:
+    SEMICOLON
+    {
+        $$ = nullptr;
+    }
+    ;
+
+if_then_statement:
+	TOKEN_IF LPAREN expression RPAREN statement
+    {
+        $$ = state->create_condition_statement($3, $5, nullptr);
+    }
+;
+
+if_then_else_statement:
+    if_then_statement
+    ;
+
 
 expression:
     primary_expr | binary_expr | postfix_expr;
@@ -332,6 +359,6 @@ void ThunderParse(const char* text)
     sl_state = new shader_lang_state();
     lexer_constructor(sl_state, text);
     yyparse(sl_state);
-    post_process_ast(sl_state->ast_root);
+    sl_state->post_process_ast();
 	lexer_lexer_dtor(sl_state);
 }

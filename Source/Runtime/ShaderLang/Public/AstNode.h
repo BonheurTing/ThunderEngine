@@ -22,6 +22,7 @@ namespace Thunder
         declare,
         assign,
         return_,
+        condition,
         undefined
     };
 
@@ -95,7 +96,7 @@ namespace Thunder
     struct token_data : public parse_location
     {
         int token_id = 0;
-        String text = "";
+        String text;
         size_t length = 0;
     };
 
@@ -104,6 +105,7 @@ namespace Thunder
         union
         {
             class ast_node* node;
+            class ast_node_type* type;
             class ast_node_block* block;
             class ast_node_statement* statement;
             class ast_node_expression* expression;
@@ -126,7 +128,7 @@ namespace Thunder
         enum_ast_node_type Type;
     };
 
-    // 类型基类，类型相关的用法都在这里
+    // 类型基类，类型相关的用法都在这里 = type_spec
     class ast_node_type : public ast_node
     {
     public:
@@ -135,10 +137,10 @@ namespace Thunder
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     public:
+        String type_name; // 用于存储类型名称
+        // format
         enum_basic_type param_type : 4 = enum_basic_type::undefined;
         enum_texture_type texture_type : 4 = enum_texture_type::texture_unknown;
-        String type_name; // 用于存储类型名称
-
         bool is_semantic : 1 = false; // 是否是shader语义
     };
 
@@ -216,7 +218,7 @@ namespace Thunder
         NameHandle func_name = nullptr;
         TArray<ast_node_variable*> params;
         // body
-        ast_node_block* body;
+        ast_node_block* body = nullptr;
     };
 
     class ast_node_block : public ast_node
@@ -243,40 +245,57 @@ namespace Thunder
         enum_statement_type stat_type;
     };
 
-    class ast_node_var_declaration : public ast_node_statement
+    class variable_declaration_statement : public ast_node_statement
     {
     public:
-        ast_node_var_declaration() : ast_node_statement(enum_statement_type::declare) {}
+        variable_declaration_statement(ast_node_type* type, String text, ast_node_expression* expr) noexcept
+        : ast_node_statement(enum_statement_type::declare), var_type(type), var_name(std::move(text)), decl_expr(expr) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
-    public:
-        ast_node_type* VarDelType = nullptr;
-        NameHandle VarName = nullptr;
-        class ast_node_expression* DelExpression = nullptr;
+    private:
+        ast_node_type* var_type = nullptr;
+        String var_name;
+        ast_node_expression* decl_expr = nullptr;
     };
 
-    class ast_node_assignment : public ast_node_statement
+    class assignment_statement : public ast_node_statement
     {
     public:
-        ast_node_assignment() : ast_node_statement(enum_statement_type::assign) {}
+        assignment_statement(String text, ast_node_expression* expr) noexcept
+        : ast_node_statement(enum_statement_type::assign), lhs_var(std::move(text)), rhs_expr(expr) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
-    public:
-        NameHandle LhsVar = nullptr;
-        ast_node_expression* RhsExpression = nullptr;
+    private:
+        String lhs_var;
+        ast_node_expression* rhs_expr = nullptr;
     };
 
-    class ast_node_return : public ast_node_statement
+    class return_statement : public ast_node_statement
     {
     public:
-        ast_node_return() : ast_node_statement(enum_statement_type::return_) {}
+        return_statement(ast_node_expression* expr) noexcept
+        : ast_node_statement(enum_statement_type::return_), ret_value(expr) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    private:
+        ast_node_expression* ret_value = nullptr;
+    };
+
+    class condition_statement : public ast_node_statement
+    {
+    public:
+        condition_statement(ast_node_expression* expr, ast_node_statement* true_stmt, ast_node_statement* false_stmt) noexcept
+        : ast_node_statement(enum_statement_type::condition), condition(expr), true_branch(true_stmt), false_branch(false_stmt) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     public:
-        ast_node_expression* RetValue = nullptr;
+        ast_node_expression* condition = nullptr;
+        ast_node_statement* true_branch = nullptr;
+        ast_node_statement* false_branch = nullptr;
     };
 
     class ast_node_expression : public ast_node
@@ -292,7 +311,8 @@ namespace Thunder
     class binary_op_expression : public ast_node_expression
     {
     public:
-        binary_op_expression() : ast_node_expression (enum_expr_type::binary_op) {}
+        binary_op_expression() noexcept
+        : ast_node_expression (enum_expr_type::binary_op) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
@@ -342,7 +362,7 @@ namespace Thunder
     class reference_expression : public ast_node_expression
     {
     public:
-        reference_expression(String id, ast_node* ref)
+        reference_expression(String id, ast_node* ref) noexcept
             : ast_node_expression(enum_expr_type::reference)
             , identifier(std::move(id)), target(ref) {}
         
@@ -353,9 +373,5 @@ namespace Thunder
         ast_node* target = nullptr; // 指向符号表中的节点
     };
 
-    ast_node* create_type_node(const token_data& type_info);
-    ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
-
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);
-    void post_process_ast(ast_node* nodeRoot);
 }

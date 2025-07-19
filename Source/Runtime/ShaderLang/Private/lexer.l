@@ -101,8 +101,14 @@ SV_Position 	{ return TOKENIZE(TOKEN_SV); }
 "int"       	{ return TOKENIZE(TYPE_INT); }
 "float"     	{ return TOKENIZE(TYPE_FLOAT); }
 "void"      	{ return TOKENIZE(TYPE_VOID); }
-"return"    	{ return TOKENIZE(TOKEN_RETURN); }
+
 "struct"		{ return TOKENIZE(TOKEN_STRUCT); }
+
+"if"			{ return TOKENIZE(TOKEN_IF); }
+"else"			{ return TOKENIZE(TOKEN_ELSE); }
+"true"			{ return TOKENIZE(TOKEN_TRUE); }
+"false"			{ return TOKENIZE(TOKEN_FALSE); }							
+"return"    	{ return TOKENIZE(TOKEN_RETURN); }
 
 [a-zA-Z_][a-zA-Z0-9_]* { return TOKENIZE(TOKEN_IDENTIFIER); }
 [0-9]+      	{ return TOKENIZE(TOKEN_INTEGER); }

@@ -11,7 +11,7 @@ namespace Thunder
 
 	enum class enum_symbol_type : uint8
 	{
-		variable,   // 变量 ast_node_var_declaration
+		variable,   // 变量 variable_declaration_statement
 		type,      // 类型 ast_node_type
 		//structure,  // 结构体
 		function,   // 函数 ast_node_function
@@ -80,6 +80,9 @@ namespace Thunder
 		ast_node_block* current_block = nullptr;
 
 		/* 上下文管理 */
+		ast_node_type* create_type_node(const token_data& type_info);
+		ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
+		
 		void parsing_struct_begin(const token_data& name);
 		ast_node_struct* parsing_struct_end();
 		void add_struct_member(ast_node* type, const token_data& name, const struct token_data& modifier, const parse_location* loc);
@@ -93,15 +96,16 @@ namespace Thunder
 		ast_node_block* parsing_block_end();
 		void add_block_statement(ast_node_statement* statement, const parse_location* loc) const;
 
+		/* Statement */
+		static ast_node_statement* create_var_decl_statement(ast_node_type* type_node, const token_data& name, ast_node_expression* init_expr);
+		static ast_node_statement* create_assignment_statement(const token_data& lhs, ast_node_expression* rhs);
+		static ast_node_statement* create_return_statement(ast_node_expression* expr);
+		static ast_node_statement* create_condition_statement(ast_node_expression* cond, ast_node_statement* true_stmt, ast_node_statement* false_stmt);
+
 		/* Expression */
 		ast_node_expression* create_reference_expression(const token_data& name);
 		static ast_node_expression* create_binary_op_expression(enum_binary_op op, ast_node_expression* left, ast_node_expression* right);
 		static ast_node_expression* create_shuffle_or_component_expression(ast_node_expression* expr, const token_data& comp);
-
-		/* Statement */
-		static ast_node_statement* create_var_decl_statement(ast_node* typeNode, const token_data& name, ast_node* init_expr);
-		static ast_node_statement* create_assignment_statement(const token_data& lhs, ast_node* rhs);
-		static ast_node_statement* create_return_statement(ast_node* expr);
 
 		/* 符号表管理 */
 		void insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node);
@@ -116,6 +120,7 @@ namespace Thunder
 
 		/* 错误处理 */
 		void debug_log(const String& msg, const parse_location* loc = nullptr) const;
+		void post_process_ast() const;
 
 	};
 	extern shader_lang_state* sl_state;

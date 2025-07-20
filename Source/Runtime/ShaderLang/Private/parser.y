@@ -66,11 +66,14 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TYPE_INT TYPE_FLOAT TYPE_VOID
 
 %token <token> TOKEN_IDENTIFIER TYPE_ID NEW_ID
-%token <token> TOKEN_INTEGER STRING_CONSTANT
+%token <token> TOKEN_INTEGER TOKEN_FLOAT STRING_CONSTANT
 
 %token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
 %token <token> RPAREN RBRACE SEMICOLON
 %token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE
+
+/* 逻辑和比较运算符 */
+%token <token> EQ NE LT LE GT GE AND OR NOT
 
 /* 左结合，右结合，无结合 防止冲突 */
 %nonassoc LOWER_THAN_ELSE
@@ -78,8 +81,17 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %left STRING_CONSTANT
 %left<%> COMMA
 %right<token> ASSIGN COLON
-%left<token> ADD SUB
-%left<token> MUL DIV
+/* 逻辑运算符优先级 */
+%left OR
+%left AND
+/* 比较运算符优先级 */
+%left EQ NE
+%left LT LE GT GE
+/* 算术运算符优先级 */
+%left ADD SUB
+%left MUL DIV
+/* 一元运算符优先级 */
+%right NOT
 %left		 LPAREN LBRACE
 %left<token> '.'
 %nonassoc SEMICOLON
@@ -100,6 +112,8 @@ int yylex(YYSTYPE *, parse_location*, void*);
 
 /* expression */
 %type <expression> expression primary_expr binary_expr postfix_expr
+                  logical_or_expr logical_and_expr equality_expr relational_expr
+                  unary_expr constant_expr
  
 %%
 
@@ -310,12 +324,80 @@ if_then_else_statement:
 
 
 expression:
-    postfix_expr | binary_expr;
+    logical_or_expr;
+
+/* 逻辑或表达式 */
+logical_or_expr:
+    logical_and_expr
+    {
+        $$ = $1;
+    }
+    | logical_or_expr OR logical_and_expr
+    {
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::logical_or, $1, $3);
+    }
+    ;
+
+/* 逻辑与表达式 */
+logical_and_expr:
+    equality_expr
+    {
+        $$ = $1;
+    }
+    | logical_and_expr AND equality_expr
+    {
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::logical_and, $1, $3);
+    }
+    ;
+
+/* 相等性表达式 */
+equality_expr:
+    relational_expr
+    {
+        $$ = $1;
+    }
+    | equality_expr EQ relational_expr
+    {
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::equal, $1, $3);
+    }
+    | equality_expr NE relational_expr
+    {
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::not_equal, $1, $3);
+    }
+    ;
+
+/* 关系表达式 */
+relational_expr:
+    binary_expr
+    {
+        $$ = $1;
+    }
+    | relational_expr LT binary_expr
+    {
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::less, $1, $3);
+    }
+    | relational_expr LE binary_expr
+    {
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::less_equal, $1, $3);
+    }
+    | relational_expr GT binary_expr
+    {
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::greater, $1, $3);
+    }
+    | relational_expr GE binary_expr
+    {
+        $$ = sl_state->create_binary_op_expression(enum_binary_op::greater_equal, $1, $3);
+    }
+    ;
 
 primary_expr:
     primary_identifier
     {
         $$ = sl_state->create_reference_expression($1);
+    }
+    | constant_expr
+    {
+        $$ = $1;
     }
     |
     LPAREN expression RPAREN
@@ -324,17 +406,55 @@ primary_expr:
     }
     ;
 
+/* 常量表达式 */
+constant_expr:
+    TOKEN_INTEGER
+    {
+        $$ = new constant_int_expression(std::stoi($1.text));
+    }
+    | TOKEN_FLOAT
+    {
+        $$ = new constant_float_expression(std::stof($1.text));
+    }
+    | TOKEN_TRUE
+    {
+        $$ = new constant_bool_expression(true);
+    }
+    | TOKEN_FALSE
+    {
+        $$ = new constant_bool_expression(false);
+    }
+    ;
+
+/* 一元表达式 */
+unary_expr:
+    postfix_expr
+    {
+        $$ = $1;
+    }
+    | NOT unary_expr
+    {
+        // 需要在AstNode.h中定义unary_expression类
+        // $$ = new unary_expression(enum_unary_op::logical_not, $2);
+        $$ = $2; // 临时实现
+    }
+    ;
+
 binary_expr:
-    expression ADD expression {
+    unary_expr
+    {
+        $$ = $1;
+    }
+    | binary_expr ADD binary_expr {
         $$ = sl_state->create_binary_op_expression(enum_binary_op::add, $1, $3);
     }
-    | expression SUB expression {
+    | binary_expr SUB binary_expr {
         $$ = sl_state->create_binary_op_expression(enum_binary_op::sub, $1, $3);
     }
-    | expression MUL expression {
+    | binary_expr MUL binary_expr {
         $$ = sl_state->create_binary_op_expression(enum_binary_op::mul, $1, $3);
     }
-    | expression DIV expression {
+    | binary_expr DIV binary_expr {
         $$ = sl_state->create_binary_op_expression(enum_binary_op::div, $1, $3);
     }
     ;

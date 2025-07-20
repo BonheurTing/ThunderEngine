@@ -5,14 +5,16 @@ Shader "TestShader"
     }
     SubShader
     {
-        struct appdata {
+        struct appdata
+        {
             int4 vertex : POSITION;
             float2 uv : TEXCOORD0;
         };
 
-        int frag(int x, float y) {
-            appdata v;
-            x = v.vertex.xxwy;
+        int frag(int x)
+        {
+            if (5.0 > 9)
+               x = v.uv.x;
             return x;
         }
     }

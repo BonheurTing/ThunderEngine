@@ -112,6 +112,9 @@ SV_Position 	{ return TOKENIZE(TOKEN_SV); }
 
 [a-zA-Z_][a-zA-Z0-9_]* { return TOKENIZE(TOKEN_IDENTIFIER); }
 [0-9]+      	{ return TOKENIZE(TOKEN_INTEGER); }
+[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?	{ return TOKENIZE(TOKEN_FLOAT); }
+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?		{ return TOKENIZE(TOKEN_FLOAT); }
+[0-9]+[fF]								{ return TOKENIZE(TOKEN_FLOAT); }
 {STRINGS}		{ return TOKENIZE(STRING_CONSTANT); }
 
 "+"         	{ return TOKENIZE(ADD); }
@@ -119,10 +122,22 @@ SV_Position 	{ return TOKENIZE(TOKEN_SV); }
 "*"         	{ return TOKENIZE(MUL); }
 "/"         	{ return TOKENIZE(DIV); }
 "="         	{ return TOKENIZE(ASSIGN); }
-":"				{ return TOKENIZE(COLON); }
+
+"=="        	{ return TOKENIZE(EQ); }
+"!="        	{ return TOKENIZE(NE); }
+"<"         	{ return TOKENIZE(LT); }
+"<="        	{ return TOKENIZE(LE); }
+">"         	{ return TOKENIZE(GT); }
+">="        	{ return TOKENIZE(GE); }
+
+"&&"        	{ return TOKENIZE(AND); }
+"||"        	{ return TOKENIZE(OR); }
+"!"         	{ return TOKENIZE(NOT); }
+
+":"         	{ return TOKENIZE(COLON); }
 ";"         	{ return TOKENIZE(SEMICOLON); }
 ","         	{ return TOKENIZE(COMMA); }
-"."				{ return TOKENIZE('.'); }
+"."         	{ return TOKENIZE('.'); }
 "("         	{ return TOKENIZE(LPAREN); }
 ")"         	{ return TOKENIZE(RPAREN); }
 "{"         	{ return TOKENIZE(LBRACE); }

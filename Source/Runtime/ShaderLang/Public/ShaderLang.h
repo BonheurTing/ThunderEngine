@@ -106,6 +106,11 @@ namespace Thunder
 		ast_node_expression* create_reference_expression(const token_data& name);
 		static ast_node_expression* create_binary_op_expression(enum_binary_op op, ast_node_expression* left, ast_node_expression* right);
 		static ast_node_expression* create_shuffle_or_component_expression(ast_node_expression* expr, const token_data& comp);
+		
+		/* Constant Expression */
+		static ast_node_expression* create_constant_int_expression(int value);
+		static ast_node_expression* create_constant_float_expression(float value);
+		static ast_node_expression* create_constant_bool_expression(bool value);
 
 		/* 符号表管理 */
 		void insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node);

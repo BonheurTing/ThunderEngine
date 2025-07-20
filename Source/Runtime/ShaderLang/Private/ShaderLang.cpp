@@ -302,6 +302,22 @@ namespace Thunder
 		}
 	}
 
+	// 常量表达式创建函数
+	ast_node_expression* shader_lang_state::create_constant_int_expression(int value)
+	{
+		return new constant_int_expression(value);
+	}
+
+	ast_node_expression* shader_lang_state::create_constant_float_expression(float value)
+	{
+		return new constant_float_expression(value);
+	}
+
+	ast_node_expression* shader_lang_state::create_constant_bool_expression(bool value)
+	{
+		return new constant_bool_expression(value);
+	}
+
 	void shader_lang_state::insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node)
 	{
 		const auto loc = new parse_location(sym.first_line, sym.first_column, sym.first_source, sym.last_line, sym.last_column, sym.last_source);

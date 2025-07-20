@@ -151,7 +151,78 @@ namespace Thunder
 
     void condition_statement::generate_hlsl(String& outResult)
     {
-        
+        if (!condition)
+            return;
+
+        const auto cond_ret = condition->evaluate();
+        if (cond_ret.result_type == enum_eval_result_type::constant_bool)
+        {
+            if (cond_ret.bool_value)
+            {
+                if (true_branch)
+                {
+                    true_branch->generate_hlsl(outResult);
+                }
+            }
+            else
+            {
+                if (false_branch)
+                {
+                    false_branch->generate_hlsl(outResult);
+                }
+            }
+        }
+        else if (cond_ret.result_type == enum_eval_result_type::constant_int)
+        {
+            if (cond_ret.int_value > 0)
+            {
+                if (true_branch)
+                {
+                    true_branch->generate_hlsl(outResult);
+                }
+            }
+            else
+            {
+                if (false_branch)
+                {
+                    false_branch->generate_hlsl(outResult);
+                }
+            }
+        }
+        else if (cond_ret.result_type == enum_eval_result_type::constant_float)
+        {
+            if (cond_ret.float_value > 0.0f)
+            {
+                if (true_branch)
+                {
+                    true_branch->generate_hlsl(outResult);
+                }
+            }
+            else
+            {
+                if (false_branch)
+                {
+                    false_branch->generate_hlsl(outResult);
+                }
+            }
+        }
+        else
+        {
+            if (true_branch)
+            {
+                outResult += "if (";
+                condition->generate_hlsl(outResult);
+                outResult += ") {\n";
+                true_branch->generate_hlsl(outResult);
+                outResult += "}\n";
+            }
+            if (false_branch)
+            {
+                outResult += "else {\n";
+                false_branch->generate_hlsl(outResult);
+                outResult += "}\n";
+            }
+        }
     }
 
     void binary_op_expression::generate_hlsl(String& outResult)
@@ -197,6 +268,21 @@ namespace Thunder
     void reference_expression::generate_hlsl(String& outResult)
     {
         outResult += identifier;
+    }
+
+    void constant_int_expression::generate_hlsl(String& outResult)
+    {
+        outResult += std::to_string(value);
+    }
+
+    void constant_float_expression::generate_hlsl(String& outResult)
+    {
+        outResult += std::to_string(value) + "f";
+    }
+
+    void constant_bool_expression::generate_hlsl(String& outResult)
+    {
+        outResult += value ? "true" : "false";
     }
 
 #pragma endregion // HLSL
@@ -321,7 +407,28 @@ namespace Thunder
 
     void condition_statement::print_ast(int indent)
     {
-        
+        if (!condition)
+            return;
+
+        if (true_branch)
+        {
+            print_blank(indent);
+            printf("if: (\n");
+            condition->print_ast(indent + 1);
+            print_blank(indent);
+            printf(") {\n");
+            true_branch->print_ast(indent + 1);
+            print_blank(indent);
+            printf("}\n");
+        }
+        if (false_branch)
+        {
+            print_blank(indent);
+            printf("else {\n");
+            false_branch->print_ast(indent + 1);
+            print_blank(indent);
+            printf("}\n");
+        }
     }
 
     void binary_op_expression::print_ast(int indent)
@@ -379,6 +486,24 @@ namespace Thunder
         printf("%s\n", identifier.c_str());
     }
 
+    void constant_int_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("ConstantInt: %d\n", value);
+    }
+
+    void constant_float_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("ConstantFloat: %f\n", value);
+    }
+
+    void constant_bool_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("ConstantBool: %s\n", value ? "true" : "false");
+    }
+
 #pragma endregion // PRINT_AST
     
 
@@ -399,7 +524,7 @@ namespace Thunder
         {
         case TOKEN_IDENTIFIER:
         {
-            ast_node* symbol_node = sl_state->get_symbol_node(text);
+            const ast_node* symbol_node = sl_state->get_symbol_node(text);
             if(symbol_node == nullptr)
             {
                 token = NEW_ID;
@@ -422,7 +547,224 @@ namespace Thunder
         return t.token_id;
     }
 
+#pragma region Evaluate Functions
 
+    // 基类evaluate函数默认实现
+    evaluate_expr_result ast_node_expression::evaluate()
+    {
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::undetermined;
+        return result;
+    }
+
+    // 二元运算表达式evaluate实现
+    evaluate_expr_result binary_op_expression::evaluate()
+    {
+        if (!left || !right)
+        {
+            return {};
+        }
+
+        const evaluate_expr_result left_result = left->evaluate();
+        const evaluate_expr_result right_result = right->evaluate();
+
+        // 如果任一操作数无法确定，返回未确定结果
+        if (left_result.result_type == enum_eval_result_type::undetermined ||
+            right_result.result_type == enum_eval_result_type::undetermined)
+        {
+            return {};
+        }
+
+        // 常量折叠 - 整数运算
+        if (left_result.result_type == enum_eval_result_type::constant_int &&
+            right_result.result_type == enum_eval_result_type::constant_int)
+        {
+            int result_value = 0;
+            bool is_comparison = false;
+            
+            switch (op)
+            {
+            case enum_binary_op::add:
+                result_value = left_result.int_value + right_result.int_value;
+                break;
+            case enum_binary_op::sub:
+                result_value = left_result.int_value - right_result.int_value;
+                break;
+            case enum_binary_op::mul:
+                result_value = left_result.int_value * right_result.int_value;
+                break;
+            case enum_binary_op::div:
+                if (right_result.int_value != 0)
+                    result_value = left_result.int_value / right_result.int_value;
+                else
+                    return {}; // 除零错误
+                break;
+            case enum_binary_op::equal:
+                result_value = (left_result.int_value == right_result.int_value) ? 1 : 0;
+                is_comparison = true;
+                break;
+            case enum_binary_op::not_equal:
+                result_value = (left_result.int_value != right_result.int_value) ? 1 : 0;
+                is_comparison = true;
+                break;
+            case enum_binary_op::less:
+                result_value = (left_result.int_value < right_result.int_value) ? 1 : 0;
+                is_comparison = true;
+                break;
+            case enum_binary_op::less_equal:
+                result_value = (left_result.int_value <= right_result.int_value) ? 1 : 0;
+                is_comparison = true;
+                break;
+            case enum_binary_op::greater:
+                result_value = (left_result.int_value > right_result.int_value) ? 1 : 0;
+                is_comparison = true;
+                break;
+            case enum_binary_op::greater_equal:
+                result_value = (left_result.int_value >= right_result.int_value) ? 1 : 0;
+                is_comparison = true;
+                break;
+            case enum_binary_op::logical_and:
+                result_value = (left_result.int_value != 0 && right_result.int_value != 0) ? 1 : 0;
+                is_comparison = true;
+                break;
+            case enum_binary_op::logical_or:
+                result_value = (left_result.int_value != 0 || right_result.int_value != 0) ? 1 : 0;
+                is_comparison = true;
+                break;
+            case enum_binary_op::undefined: return {};
+            }
+            
+            if (is_comparison)
+                return {static_cast<bool>(result_value)};
+            else
+                return {result_value};
+        }
+
+        // 常量折叠 - 浮点数运算
+        if (left_result.result_type == enum_eval_result_type::constant_float &&
+            right_result.result_type == enum_eval_result_type::constant_float)
+        {
+            float result_value;
+            
+            switch (op)
+            {
+            case enum_binary_op::add:
+                result_value = left_result.float_value + right_result.float_value;
+                break;
+            case enum_binary_op::sub:
+                result_value = left_result.float_value - right_result.float_value;
+                break;
+            case enum_binary_op::mul:
+                result_value = left_result.float_value * right_result.float_value;
+                break;
+            case enum_binary_op::div:
+                if (right_result.float_value != 0.0f)
+                    result_value = left_result.float_value / right_result.float_value;
+                else
+                    return {};
+                break;
+            case enum_binary_op::equal:
+                return {left_result.float_value == right_result.float_value};
+            case enum_binary_op::not_equal:
+                return {left_result.float_value != right_result.float_value};
+            case enum_binary_op::less:
+                return {left_result.float_value < right_result.float_value};
+            case enum_binary_op::less_equal:
+                return {left_result.float_value <= right_result.float_value};
+            case enum_binary_op::greater:
+                return {left_result.float_value > right_result.float_value};
+            case enum_binary_op::greater_equal:
+                return {left_result.float_value >= right_result.float_value};
+            default:
+                return {};
+            }
+            
+            return {result_value};
+        }
+
+        // 混合类型运算（整数和浮点数）
+        if ((left_result.result_type == enum_eval_result_type::constant_int && 
+             right_result.result_type == enum_eval_result_type::constant_float) ||
+            (left_result.result_type == enum_eval_result_type::constant_float && 
+             right_result.result_type == enum_eval_result_type::constant_int))
+        {
+            float left_val = (left_result.result_type == enum_eval_result_type::constant_int) ? 
+                             static_cast<float>(left_result.int_value) : left_result.float_value;
+            const float right_val = (right_result.result_type == enum_eval_result_type::constant_int) ? 
+                                        static_cast<float>(right_result.int_value) : right_result.float_value;
+            
+            switch (op)
+            {
+            case enum_binary_op::add:
+                return {left_val + right_val};
+            case enum_binary_op::sub:
+                return {left_val - right_val};
+            case enum_binary_op::mul:
+                return {left_val * right_val};
+            case enum_binary_op::div:
+                if (right_val != 0.0f)
+                    return {left_val / right_val};
+                else
+                    return {};
+            case enum_binary_op::equal:
+                return {left_val == right_val};
+            case enum_binary_op::not_equal:
+                return {left_val != right_val};
+            case enum_binary_op::less:
+                return {left_val < right_val};
+            case enum_binary_op::less_equal:
+                return {left_val <= right_val};
+            case enum_binary_op::greater:
+                return {left_val > right_val};
+            case enum_binary_op::greater_equal:
+                return {left_val >= right_val};
+            default:
+                return {};
+            }
+        }
+
+        // 无法进行常量折叠，返回未确定结果
+        return {};
+    }
+
+    // 引用表达式evaluate实现
+    evaluate_expr_result reference_expression::evaluate()
+    {
+        if (!target)
+        {
+            return {};
+        }
+
+        // 如果引用的是常量，尝试获取其值
+        if (target->Type == enum_ast_node_type::expression)
+        {
+            const auto expr = static_cast<ast_node_expression*>(target);
+            return expr->evaluate();
+        }
+
+        // 对于变量或其他类型，返回变量类型的结果
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::variable;
+        result.result_node = target;
+        return result;
+    }
+
+    evaluate_expr_result constant_int_expression::evaluate()
+    {
+        return {value};
+    }
+
+    evaluate_expr_result constant_float_expression::evaluate()
+    {
+        return {value};
+    }
+
+    evaluate_expr_result constant_bool_expression::evaluate()
+    {
+        return {value};
+    }
+
+#pragma endregion // Evaluate Functions
     
 }
 #pragma optimize("", on)

@@ -33,6 +33,8 @@ namespace Thunder
         component, // 成员访问
         reference, // 出现过的
         integer,
+        constant_float,
+        constant_bool,
         undefined
     };
 
@@ -75,6 +77,16 @@ namespace Thunder
         sub,
         mul,
         div,
+        // 逻辑运算
+        logical_and,
+        logical_or,
+        // 比较运算
+        equal,
+        not_equal,
+        less,
+        less_equal,
+        greater,
+        greater_equal,
         undefined
     };
 
@@ -298,11 +310,57 @@ namespace Thunder
         ast_node_statement* false_branch = nullptr;
     };
 
+    // 表达式求值结果类型
+    enum class enum_eval_result_type : uint8
+    {
+        undetermined,     // 未确定
+        constant_int,     // 常量整数
+        constant_float,   // 常量浮点数
+        constant_bool,    // 常量布尔值
+        variable,         // 变量
+        temp_var,         // 临时变量
+        object            // 对象
+    };
+
+    // 表达式求值结果
+    struct evaluate_expr_result  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    {
+        ast_node_type* type = nullptr;           // 表达式类型
+        enum_eval_result_type result_type = enum_eval_result_type::undetermined;
+        union
+        {
+            ast_node* result_node;     // 结果节点
+            int int_value;             // 整数值
+            float float_value;         // 浮点值
+            bool bool_value;           // 布尔值
+        };
+
+        evaluate_expr_result() noexcept = default;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+
+        evaluate_expr_result(ast_node* node) noexcept  // NOLINT(cppcoreguidelines-pro-type-member-init)
+            : result_type(enum_eval_result_type::variable), result_node(node) {}
+
+        evaluate_expr_result(int value) noexcept   // NOLINT(cppcoreguidelines-pro-type-member-init)
+            : result_type(enum_eval_result_type::constant_int), int_value(value) {}
+        
+        evaluate_expr_result(float value) noexcept  // NOLINT(cppcoreguidelines-pro-type-member-init)
+            : result_type(enum_eval_result_type::constant_float), float_value(value) {}
+        
+        evaluate_expr_result(bool value) noexcept  // NOLINT(cppcoreguidelines-pro-type-member-init)
+            : result_type(enum_eval_result_type::constant_bool), bool_value(value) {}
+
+        
+    };
+
     class ast_node_expression : public ast_node
     {
     public:
         ast_node_expression(enum_expr_type exprType)
             : ast_node(enum_ast_node_type::expression), expr_type(exprType) {}
+        
+        // 表达式评估函数
+        virtual evaluate_expr_result evaluate();
+        
     public:
         enum_expr_type expr_type;
         ast_node* expr_data_type = nullptr; // 用于存储表达式的数据类型
@@ -316,6 +374,7 @@ namespace Thunder
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
     public:
         enum_binary_op op = enum_binary_op::undefined;
         ast_node_expression* left = nullptr;
@@ -368,9 +427,52 @@ namespace Thunder
         
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
     private:
         String identifier;
         ast_node* target = nullptr; // 指向符号表中的节点
+    };
+
+    // 整数常量表达式
+    class constant_int_expression : public ast_node_expression
+    {
+    public:
+        constant_int_expression(int value) noexcept
+            : ast_node_expression(enum_expr_type::integer), value(value) {}
+        
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+    private:
+        int value;
+    };
+
+    // 浮点数常量表达式
+    class constant_float_expression : public ast_node_expression
+    {
+    public:
+        constant_float_expression(float value) noexcept
+            : ast_node_expression(enum_expr_type::constant_float), value(value) {}
+        
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+    private:
+        float value;
+    };
+
+    // 布尔常量表达式
+    class constant_bool_expression : public ast_node_expression
+    {
+    public:
+        constant_bool_expression(bool value) noexcept
+            : ast_node_expression(enum_expr_type::constant_bool), value(value) {}
+        
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+    private:
+        bool value;
     };
 
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);

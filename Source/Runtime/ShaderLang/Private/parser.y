@@ -73,7 +73,8 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE
 
 /* 左结合，右结合，无结合 防止冲突 */
-%nonassoc TOKEN_IF TOKEN_ELSE
+%nonassoc LOWER_THAN_ELSE
+%nonassoc TOKEN_ELSE
 %left STRING_CONSTANT
 %left<%> COMMA
 %right<token> ASSIGN COLON
@@ -294,19 +295,22 @@ empty_statement:
     ;
 
 if_then_statement:
-	TOKEN_IF LPAREN expression RPAREN statement
+	TOKEN_IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE
     {
         $$ = state->create_condition_statement($3, $5, nullptr);
     }
 ;
 
 if_then_else_statement:
-    if_then_statement
+    TOKEN_IF LPAREN expression RPAREN statement TOKEN_ELSE statement
+    {
+        $$ = state->create_condition_statement($3, $5, $7);
+    }
     ;
 
 
 expression:
-    primary_expr | binary_expr | postfix_expr;
+    postfix_expr | binary_expr;
 
 primary_expr:
     primary_identifier

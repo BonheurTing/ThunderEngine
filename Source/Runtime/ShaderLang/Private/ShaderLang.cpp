@@ -273,16 +273,26 @@ namespace Thunder
 		return ref_expr;
 	}
 
-	ast_node_expression* shader_lang_state::create_binary_op_expression(
+	ast_node_expression* shader_lang_state::create_binary_expression(
 		enum_binary_op op, ast_node_expression* left, ast_node_expression* right)
 	{
-		const auto node = new binary_op_expression;
+		const auto node = new binary_expression;
 		node->op = op;
 		node->left = left;
 		node->right = right;
 		node->expr_data_type = node->left->expr_data_type;
 		//TAssert(owner->left->expr_data_type == owner->right->expr_data_type);
 		return node;
+	}
+
+	ast_node_expression* shader_lang_state::create_unary_expression(enum_unary_op op, ast_node_expression* operand)
+	{
+		return new unary_expression(op, operand);
+	}
+
+	ast_node_expression* shader_lang_state::create_compound_assignment_expression(enum_assignment_op op, ast_node_expression* lhs, ast_node_expression* rhs)
+	{
+		return new compound_assignment_expression(op, lhs, rhs);
 	}
 
 	ast_node_expression* shader_lang_state::create_shuffle_or_component_expression(

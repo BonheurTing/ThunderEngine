@@ -79,18 +79,25 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %left STRING_CONSTANT
 %left<%> COMMA
 %right<token> QUESTION COLON
-                ASSIGN 
+                ASSIGN ADDEQ SUBEQ MULEQ DIVEQ MODEQ LSHIFTEQ RSHIFTEQ ANDEQ OREQ XOREQ
 /* 逻辑运算符优先级 */
 %left<token> OR
 %left<token> AND
+/* 位运算符优先级 */
+%left<token> BITOR
+%left<token> BITXOR
+%left<token> BITAND
 /* 比较运算符优先级 */
 %left<token> EQ NE
 %left<token> LT LE GT GE
+/* 移位运算符优先级 */
+%left<token> LSHIFT RSHIFT
 /* 算术运算符优先级 */
 %left<token> ADD SUB
-%left<token> MUL DIV
+%left<token> MUL DIV MOD
 /* 一元运算符优先级 */
-%right<token> NOT
+%right<token> NOT BITNOT
+%left<token> INC DEC
 %left<token> LPAREN LBRACE
 %left<token> '.'
 %nonassoc SEMICOLON
@@ -390,6 +397,46 @@ assignment_expr:
     {
         $$ = sl_state->create_assignment_expression($1, $3);
     }
+    | unary_expr ADDEQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::add_assign, $1, $3);
+    }
+    | unary_expr SUBEQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::sub_assign, $1, $3);
+    }
+    | unary_expr MULEQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::mul_assign, $1, $3);
+    }
+    | unary_expr DIVEQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::div_assign, $1, $3);
+    }
+    | unary_expr MODEQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::mod_assign, $1, $3);
+    }
+    | unary_expr LSHIFTEQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::lshift_assign, $1, $3);
+    }
+    | unary_expr RSHIFTEQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::rshift_assign, $1, $3);
+    }
+    | unary_expr ANDEQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::and_assign, $1, $3);
+    }
+    | unary_expr OREQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::or_assign, $1, $3);
+    }
+    | unary_expr XOREQ assignment_expr
+    {
+        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::xor_assign, $1, $3);
+    }
     ;
 
 conditional_expr:
@@ -408,7 +455,7 @@ logical_or_expr:
     }
     | logical_or_expr OR logical_and_expr
     {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::logical_or, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::logical_or, $1, $3);
     }
     ;
 
@@ -420,7 +467,7 @@ logical_and_expr:
     }
     | logical_and_expr AND equality_expr
     {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::logical_and, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::logical_and, $1, $3);
     }
     ;
 
@@ -432,11 +479,11 @@ equality_expr:
     }
     | equality_expr EQ relational_expr
     {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::equal, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::equal, $1, $3);
     }
     | equality_expr NE relational_expr
     {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::not_equal, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::not_equal, $1, $3);
     }
     ;
 
@@ -448,19 +495,19 @@ relational_expr:
     }
     | relational_expr LT binary_expr
     {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::less, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::less, $1, $3);
     }
     | relational_expr LE binary_expr
     {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::less_equal, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::less_equal, $1, $3);
     }
     | relational_expr GT binary_expr
     {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::greater, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::greater, $1, $3);
     }
     | relational_expr GE binary_expr
     {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::greater_equal, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::greater_equal, $1, $3);
     }
     ;
 
@@ -508,9 +555,27 @@ unary_expr:
     }
     | NOT unary_expr
     {
-        // 需要在AstNode.h中定义unary_expression类
-        // $$ = new unary_expression(enum_unary_op::logical_not, $2);
-        $$ = $2; // 临时实现
+        $$ = sl_state->create_unary_expression(enum_unary_op::logical_not, $2);
+    }
+    | BITNOT unary_expr
+    {
+        $$ = sl_state->create_unary_expression(enum_unary_op::bit_not, $2);
+    }
+    | ADD unary_expr
+    {
+        $$ = sl_state->create_unary_expression(enum_unary_op::positive, $2);
+    }
+    | SUB unary_expr
+    {
+        $$ = sl_state->create_unary_expression(enum_unary_op::negative, $2);
+    }
+    | INC unary_expr
+    {
+        $$ = sl_state->create_unary_expression(enum_unary_op::pre_inc, $2);
+    }
+    | DEC unary_expr
+    {
+        $$ = sl_state->create_unary_expression(enum_unary_op::pre_dec, $2);
     }
     ;
 
@@ -520,16 +585,34 @@ binary_expr:
         $$ = $1;
     }
     | binary_expr ADD binary_expr {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::add, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::add, $1, $3);
     }
     | binary_expr SUB binary_expr {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::sub, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::sub, $1, $3);
     }
     | binary_expr MUL binary_expr {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::mul, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::mul, $1, $3);
     }
     | binary_expr DIV binary_expr {
-        $$ = sl_state->create_binary_op_expression(enum_binary_op::div, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::div, $1, $3);
+    }
+    | binary_expr MOD binary_expr {
+        $$ = sl_state->create_binary_expression(enum_binary_op::mod, $1, $3);
+    }
+    | binary_expr BITAND binary_expr {
+        $$ = sl_state->create_binary_expression(enum_binary_op::bit_and, $1, $3);
+    }
+    | binary_expr BITOR binary_expr {
+        $$ = sl_state->create_binary_expression(enum_binary_op::bit_or, $1, $3);
+    }
+    | binary_expr BITXOR binary_expr {
+        $$ = sl_state->create_binary_expression(enum_binary_op::bit_xor, $1, $3);
+    }
+    | binary_expr LSHIFT binary_expr {
+        $$ = sl_state->create_binary_expression(enum_binary_op::left_shift, $1, $3);
+    }
+    | binary_expr RSHIFT binary_expr {
+        $$ = sl_state->create_binary_expression(enum_binary_op::right_shift, $1, $3);
     }
     ;
 
@@ -541,6 +624,14 @@ postfix_expr:
     | postfix_expr '.' primary_identifier
     {
         $$ = sl_state->create_shuffle_or_component_expression($1, $3);
+    }
+    | postfix_expr INC
+    {
+        $$ = sl_state->create_unary_expression(enum_unary_op::post_inc, $1);
+    }
+    | postfix_expr DEC
+    {
+        $$ = sl_state->create_unary_expression(enum_unary_op::post_dec, $1);
     }
     | function_call
     {

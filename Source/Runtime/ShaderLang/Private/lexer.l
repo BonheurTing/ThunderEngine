@@ -123,6 +123,29 @@ SV_Position 	{ return TOKENIZE(TOKEN_SV); }
 "*"         	{ return TOKENIZE(MUL); }
 "/"         	{ return TOKENIZE(DIV); }
 "="         	{ return TOKENIZE(ASSIGN); }
+"%"         	{ return TOKENIZE(MOD); }
+
+"++"        	{ return TOKENIZE(INC); }
+"--"        	{ return TOKENIZE(DEC); }
+
+"+="        	{ return TOKENIZE(ADDEQ); }
+"-="        	{ return TOKENIZE(SUBEQ); }
+"*="        	{ return TOKENIZE(MULEQ); }
+"/="        	{ return TOKENIZE(DIVEQ); }
+"%="        	{ return TOKENIZE(MODEQ); }
+
+"<<"        	{ return TOKENIZE(LSHIFT); }
+">>"        	{ return TOKENIZE(RSHIFT); }
+"<<="       	{ return TOKENIZE(LSHIFTEQ); }
+">>="       	{ return TOKENIZE(RSHIFTEQ); }
+
+"&"         	{ return TOKENIZE(BITAND); }
+"|"         	{ return TOKENIZE(BITOR); }
+"^"         	{ return TOKENIZE(BITXOR); }
+"~"         	{ return TOKENIZE(BITNOT); }
+"&="        	{ return TOKENIZE(ANDEQ); }
+"|="        	{ return TOKENIZE(OREQ); }
+"^="        	{ return TOKENIZE(XOREQ); }
 
 "=="        	{ return TOKENIZE(EQ); }
 "!="        	{ return TOKENIZE(NE); }

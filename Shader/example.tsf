@@ -13,6 +13,10 @@ Shader "TestShader"
 
         int frag(int x, int y)
         {
+            for (int i = 0; i < 10; i++)
+            {
+                x += y;
+            }
             frag(x,y);
             return x;
         }

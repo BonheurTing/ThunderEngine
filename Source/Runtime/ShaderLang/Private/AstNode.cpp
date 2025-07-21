@@ -231,7 +231,7 @@ namespace Thunder
         }
     }
 
-    void binary_op_expression::generate_hlsl(String& outResult)
+    void binary_expression::generate_hlsl(String& outResult)
     {
         TAssertf(left != nullptr && right != nullptr, "Binary operation left or right is null");
         //outResult += "(";
@@ -241,6 +241,23 @@ namespace Thunder
         case enum_binary_op::sub: outResult += " - "; break;
         case enum_binary_op::mul: outResult += " * "; break;
         case enum_binary_op::div: outResult += " / "; break;
+        case enum_binary_op::mod: outResult += " % "; break;
+        // 位运算
+        case enum_binary_op::bit_and: outResult += " & "; break;
+        case enum_binary_op::bit_or: outResult += " | "; break;
+        case enum_binary_op::bit_xor: outResult += " ^ "; break;
+        case enum_binary_op::left_shift: outResult += " << "; break;
+        case enum_binary_op::right_shift: outResult += " >> "; break;
+        // 逻辑运算
+        case enum_binary_op::logical_and: outResult += " && "; break;
+        case enum_binary_op::logical_or: outResult += " || "; break;
+        // 比较运算
+        case enum_binary_op::equal: outResult += " == "; break;
+        case enum_binary_op::not_equal: outResult += " != "; break;
+        case enum_binary_op::less: outResult += " < "; break;
+        case enum_binary_op::less_equal: outResult += " <= "; break;
+        case enum_binary_op::greater: outResult += " > "; break;
+        case enum_binary_op::greater_equal: outResult += " >= "; break;
         case enum_binary_op::undefined: break;
         }
         right->generate_hlsl(outResult);
@@ -370,6 +387,71 @@ namespace Thunder
         if (false_expression)
         {
             false_expression->generate_hlsl(outResult);
+        }
+    }
+
+    void unary_expression::generate_hlsl(String& outResult)
+    {
+        switch (op) {
+        case enum_unary_op::pre_inc:
+            outResult += "++";
+            if (operand) operand->generate_hlsl(outResult);
+            break;
+        case enum_unary_op::pre_dec:
+            outResult += "--";
+            if (operand) operand->generate_hlsl(outResult);
+            break;
+        case enum_unary_op::post_inc:
+            if (operand) operand->generate_hlsl(outResult);
+            outResult += "++";
+            break;
+        case enum_unary_op::post_dec:
+            if (operand) operand->generate_hlsl(outResult);
+            outResult += "--";
+            break;
+        case enum_unary_op::positive:
+            outResult += "+";
+            if (operand) operand->generate_hlsl(outResult);
+            break;
+        case enum_unary_op::negative:
+            outResult += "-";
+            if (operand) operand->generate_hlsl(outResult);
+            break;
+        case enum_unary_op::logical_not:
+            outResult += "!";
+            if (operand) operand->generate_hlsl(outResult);
+            break;
+        case enum_unary_op::bit_not:
+            outResult += "~";
+            if (operand) operand->generate_hlsl(outResult);
+            break;
+        case enum_unary_op::undefined:
+            break;
+        }
+    }
+
+    void compound_assignment_expression::generate_hlsl(String& outResult)
+    {
+        if (left_expr)
+        {
+            left_expr->generate_hlsl(outResult);
+        }
+        switch (op) {
+        case enum_assignment_op::add_assign: outResult += " += "; break;
+        case enum_assignment_op::sub_assign: outResult += " -= "; break;
+        case enum_assignment_op::mul_assign: outResult += " *= "; break;
+        case enum_assignment_op::div_assign: outResult += " /= "; break;
+        case enum_assignment_op::mod_assign: outResult += " %= "; break;
+        case enum_assignment_op::lshift_assign: outResult += " <<= "; break;
+        case enum_assignment_op::rshift_assign: outResult += " >>= "; break;
+        case enum_assignment_op::and_assign: outResult += " &= "; break;
+        case enum_assignment_op::or_assign: outResult += " |= "; break;
+        case enum_assignment_op::xor_assign: outResult += " ^= "; break;
+        default: break;
+        }
+        if (right_expr)
+        {
+            right_expr->generate_hlsl(outResult);
         }
     }
 
@@ -532,7 +614,7 @@ namespace Thunder
         }
     }
 
-    void binary_op_expression::print_ast(int indent)
+    void binary_expression::print_ast(int indent)
     {
         TAssertf(left != nullptr && right != nullptr, "Binary operation left or right is null");
         print_blank(indent);
@@ -688,6 +770,58 @@ namespace Thunder
         }
     }
 
+    void unary_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("UnaryOp: ");
+        switch (op) {
+        case enum_unary_op::pre_inc: printf("++pre\n"); break;
+        case enum_unary_op::pre_dec: printf("--pre\n"); break;
+        case enum_unary_op::post_inc: printf("post++\n"); break;
+        case enum_unary_op::post_dec: printf("post--\n"); break;
+        case enum_unary_op::positive: printf("+\n"); break;
+        case enum_unary_op::negative: printf("-\n"); break;
+        case enum_unary_op::logical_not: printf("!\n"); break;
+        case enum_unary_op::bit_not: printf("~\n"); break;
+        default: printf("undefined\n"); break;
+        }
+        if (operand)
+        {
+            operand->print_ast(indent + 1);
+        }
+    }
+
+    void compound_assignment_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("CompoundAssignment: ");
+        switch (op) {
+        case enum_assignment_op::add_assign: printf("+=\n"); break;
+        case enum_assignment_op::sub_assign: printf("-=\n"); break;
+        case enum_assignment_op::mul_assign: printf("*=\n"); break;
+        case enum_assignment_op::div_assign: printf("/=\n"); break;
+        case enum_assignment_op::mod_assign: printf("%%=\n"); break;
+        case enum_assignment_op::lshift_assign: printf("<<=\n"); break;
+        case enum_assignment_op::rshift_assign: printf(">>=\n"); break;
+        case enum_assignment_op::and_assign: printf("&=\n"); break;
+        case enum_assignment_op::or_assign: printf("|=\n"); break;
+        case enum_assignment_op::xor_assign: printf("^=\n"); break;
+        default: printf("undefined\n"); break;
+        }
+        print_blank(indent + 1);
+        printf("Left:\n");
+        if (left_expr)
+        {
+            left_expr->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("Right:\n");
+        if (right_expr)
+        {
+            right_expr->print_ast(indent + 2);
+        }
+    }
+
 #pragma endregion // PRINT_AST
     
 
@@ -742,7 +876,7 @@ namespace Thunder
     }
 
     // 二元运算表达式evaluate实现
-    evaluate_expr_result binary_op_expression::evaluate()
+    evaluate_expr_result binary_expression::evaluate()
     {
         if (!left || !right)
         {
@@ -998,6 +1132,84 @@ namespace Thunder
         }
         
         // 条件无法确定，返回未确定结果
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::undetermined;
+        return result;
+    }
+
+    evaluate_expr_result unary_expression::evaluate()
+    {
+        if (!operand)
+        {
+            return {};
+        }
+
+        const evaluate_expr_result operand_result = operand->evaluate();
+        
+        // 对于 ++ 和 -- 运算符，一般无法在编译时求值
+        if (op == enum_unary_op::pre_inc || op == enum_unary_op::pre_dec ||
+            op == enum_unary_op::post_inc || op == enum_unary_op::post_dec)
+        {
+            evaluate_expr_result result;
+            result.result_type = enum_eval_result_type::undetermined;
+            return result;
+        }
+
+        // 常量折叠 - 整数运算
+        if (operand_result.result_type == enum_eval_result_type::constant_int)
+        {
+            switch (op)
+            {
+            case enum_unary_op::positive:
+                return {operand_result.int_value};
+            case enum_unary_op::negative:
+                return {-operand_result.int_value};
+            case enum_unary_op::logical_not:
+                return {operand_result.int_value == 0};
+            case enum_unary_op::bit_not:
+                return {~operand_result.int_value};
+            default:
+                break;
+            }
+        }
+
+        // 常量折叠 - 浮点数运算
+        if (operand_result.result_type == enum_eval_result_type::constant_float)
+        {
+            switch (op)
+            {
+            case enum_unary_op::positive:
+                return {operand_result.float_value};
+            case enum_unary_op::negative:
+                return {-operand_result.float_value};
+            case enum_unary_op::logical_not:
+                return {operand_result.float_value == 0.0f};
+            default:
+                break;
+            }
+        }
+
+        // 常量折叠 - 布尔运算
+        if (operand_result.result_type == enum_eval_result_type::constant_bool)
+        {
+            switch (op)
+            {
+            case enum_unary_op::logical_not:
+                return {!operand_result.bool_value};
+            default:
+                break;
+            }
+        }
+
+        // 无法进行常量折叠，返回未确定结果
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::undetermined;
+        return result;
+    }
+
+    evaluate_expr_result compound_assignment_expression::evaluate()
+    {
+        // 复合赋值表达式一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;

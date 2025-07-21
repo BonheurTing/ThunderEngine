@@ -30,6 +30,7 @@ namespace Thunder
     enum class enum_expr_type : uint8
     {
         binary_op, // 二元运算
+        unary_op,  // 一元运算
         shuffle, // 向量分量重排
         component, // 成员访问
         reference, // 出现过的
@@ -39,6 +40,7 @@ namespace Thunder
         assignment, // 赋值表达式
         conditional, // 条件表达式
         function_call, // 函数调用
+        compound_assignment, // 复合赋值表达式
         undefined
     };
 
@@ -81,6 +83,13 @@ namespace Thunder
         sub,
         mul,
         div,
+        mod,
+        // 位运算
+        bit_and,
+        bit_or,
+        bit_xor,
+        left_shift,
+        right_shift,
         // 逻辑运算
         logical_and,
         logical_or,
@@ -91,6 +100,35 @@ namespace Thunder
         less_equal,
         greater,
         greater_equal,
+        undefined
+    };
+
+    enum class enum_unary_op : uint8
+    {
+        positive,   // +
+        negative,   // -
+        logical_not, // !
+        bit_not,    // ~
+        pre_inc,    // ++expr
+        pre_dec,    // --expr
+        post_inc,   // expr++
+        post_dec,   // expr--
+        undefined
+    };
+
+    enum class enum_assignment_op : uint8
+    {
+        assign,        // =
+        add_assign,    // +=
+        sub_assign,    // -=
+        mul_assign,    // *=
+        div_assign,    // /=
+        mod_assign,    // %=
+        lshift_assign, // <<=
+        rshift_assign, // >>=
+        and_assign,    // &=
+        or_assign,     // |=
+        xor_assign,    // ^=
         undefined
     };
 
@@ -397,10 +435,10 @@ namespace Thunder
         ast_node* expr_data_type = nullptr; // 用于存储表达式的数据类型
     };
 
-    class binary_op_expression : public ast_node_expression
+    class binary_expression : public ast_node_expression
     {
     public:
-        binary_op_expression() noexcept
+        binary_expression() noexcept
         : ast_node_expression (enum_expr_type::binary_op) {}
 
         void generate_hlsl(String& outResult) override;
@@ -553,6 +591,46 @@ namespace Thunder
         ast_node_expression* true_expression = nullptr;
         ast_node_expression* false_expression = nullptr;
     };
+
+
+
+
+
+
+    class unary_expression : public ast_node_expression
+    {
+    public:
+        unary_expression(enum_unary_op op, ast_node_expression* expr) noexcept
+            : ast_node_expression(enum_expr_type::unary_op), op(op), operand(expr) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+    public:
+        enum_unary_op op = enum_unary_op::undefined;
+        ast_node_expression* operand = nullptr;
+    };
+
+    class compound_assignment_expression : public ast_node_expression
+    {
+    public:
+        compound_assignment_expression(enum_assignment_op op, ast_node_expression* lhs, ast_node_expression* rhs) noexcept
+            : ast_node_expression(enum_expr_type::compound_assignment), op(op), left_expr(lhs), right_expr(rhs) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+    public:
+        enum_assignment_op op = enum_assignment_op::undefined;
+        ast_node_expression* left_expr = nullptr;
+        ast_node_expression* right_expr = nullptr;
+    };
+
+    class custom_expression : public ast_node_expression
+    {
+        
+    };
+    
 
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);
 }

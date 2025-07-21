@@ -70,34 +70,33 @@ int yylex(YYSTYPE *, parse_location*, void*);
 
 %token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
 %token <token> RPAREN RBRACE SEMICOLON
-%token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE
+%token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE TOKEN_FOR
 
-/* 逻辑和比较运算符 */
-%token <token> EQ NE LT LE GT GE AND OR NOT
 
 /* 左结合，右结合，无结合 防止冲突 */
 %nonassoc LOWER_THAN_ELSE
 %nonassoc TOKEN_ELSE
 %left STRING_CONSTANT
 %left<%> COMMA
-%right<token> ASSIGN COLON
+%right<token> QUESTION COLON
+                ASSIGN 
 /* 逻辑运算符优先级 */
-%left OR
-%left AND
+%left<token> OR
+%left<token> AND
 /* 比较运算符优先级 */
-%left EQ NE
-%left LT LE GT GE
+%left<token> EQ NE
+%left<token> LT LE GT GE
 /* 算术运算符优先级 */
-%left ADD SUB
-%left MUL DIV
+%left<token> ADD SUB
+%left<token> MUL DIV
 /* 一元运算符优先级 */
-%right NOT
-%left		 LPAREN LBRACE
+%right<token> NOT
+%left<token> LPAREN LBRACE
 %left<token> '.'
 %nonassoc SEMICOLON
 
 /* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
-%type <token> identifier type_identifier new_identifier primary_identifier
+%type <token> identifier type_identifier new_identifier primary_identifier any_identifier
 %type <token> primitive_types 
 %type properties_definition /* Test. */
 %type <type> type
@@ -107,14 +106,17 @@ int yylex(YYSTYPE *, parse_location*, void*);
 
 /* statement */
 %type <block> function_body block block_begin
-%type <statement> statement var_decl assignment func_ret empty_statement 
-                if_then_statement if_then_else_statement
+%type <statement> statement declaration_statement assignment func_ret empty_statement expression_statement
+                if_then_statement if_then_else_statement for_statement for_init_statement
 
 /* expression */
-%type <expression> expression primary_expr binary_expr postfix_expr
+%type <expression> expression primary_expr binary_expr postfix_expr function_call
                   logical_or_expr logical_and_expr equality_expr relational_expr
-                  unary_expr constant_expr
- 
+                  unary_expr constant_expr condition maybe_condition maybe_expression
+                  assignment_expr conditional_expr
+
+%type <expression> function_call_header function_call_header_no_parameters function_call_header_with_parameters
+
 %%
 
 program:
@@ -133,10 +135,9 @@ new_identifier:
 	NEW_ID
     ;
 
-/*
 any_identifier:
 	identifier | type_identifier| new_identifier
-; */
+    ;
 
 primary_identifier:
 	identifier| new_identifier
@@ -276,14 +277,21 @@ block_statements:
     }
 
 statement:
-    var_decl | assignment | func_ret | empty_statement
-    | if_then_statement | if_then_else_statement;
+    block { $$ = $1; }
+    | declaration_statement
+    | assignment
+    | func_ret
+    | empty_statement
+    | expression_statement
+    | if_then_statement
+    | if_then_else_statement
+    | for_statement;
 
-var_decl:
+declaration_statement:
     type new_identifier SEMICOLON {
         $$ = sl_state->create_var_decl_statement($1, $2, nullptr);
     }
-    | type new_identifier ASSIGN expression SEMICOLON {
+    | type new_identifier ASSIGN assignment_expr SEMICOLON {
         $$ = sl_state->create_var_decl_statement($1, $2, $4);
     }
     ;
@@ -308,23 +316,89 @@ empty_statement:
     }
     ;
 
+expression_statement:
+	expression SEMICOLON
+    {
+        $$ = sl_state->create_expression_statement($1);
+    }
+    ;
+
 if_then_statement:
 	TOKEN_IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE
     {
-        $$ = state->create_condition_statement($3, $5, nullptr);
+        $$ = sl_state->create_condition_statement($3, $5, nullptr);
     }
 ;
 
 if_then_else_statement:
     TOKEN_IF LPAREN expression RPAREN statement TOKEN_ELSE statement
     {
-        $$ = state->create_condition_statement($3, $5, $7);
+        $$ = sl_state->create_condition_statement($3, $5, $7);
     }
     ;
 
+for_statement:
+	TOKEN_FOR LPAREN for_init_statement maybe_condition SEMICOLON maybe_expression RPAREN statement
+    {
+        $$ = sl_state->create_for_statement($3, $4, $6, $8);
+    }
+    ;
+
+for_init_statement:
+	expression_statement
+    | declaration_statement
+    | empty_statement
+    ;
+
+condition:
+	expression
+    {
+        $$ = $1;
+    }
+    | type any_identifier ASSIGN assignment_expr
+    {
+        $$ = $4;
+    }
+    ;
+
+maybe_condition:
+    {
+        $$ = nullptr;
+    }
+	| condition
+    ;
+
+maybe_expression:
+    {
+        $$ = nullptr;
+    }
+    | expression
+    ;
 
 expression:
-    logical_or_expr;
+    assignment_expr
+    | expression COMMA assignment_expr
+    {
+        // 这里需要实现逗号表达式，暂时简化处理
+        $$ = $3;
+    }
+    ;
+
+assignment_expr:
+    conditional_expr
+    | unary_expr ASSIGN assignment_expr
+    {
+        $$ = sl_state->create_assignment_expression($1, $3);
+    }
+    ;
+
+conditional_expr:
+    logical_or_expr
+    | logical_or_expr QUESTION expression COLON assignment_expr
+    {
+        $$ = sl_state->create_conditional_expression($1, $3, $5);
+    }
+    ;
 
 /* 逻辑或表达式 */
 logical_or_expr:
@@ -468,7 +542,43 @@ postfix_expr:
     {
         $$ = sl_state->create_shuffle_or_component_expression($1, $3);
     }
+    | function_call
+    {
+		$$ = $1;
+    }
     ;
+
+function_call_header:
+    primary_identifier LPAREN
+    {
+        $$ = sl_state->create_function_call_expression($1);
+    }
+    ;
+
+function_call_header_no_parameters:
+    function_call_header TYPE_VOID
+    | function_call_header
+    ;
+
+function_call_header_with_parameters:
+    function_call_header assignment_expr
+    {
+        $$ = $1;
+		state->append_argument($$, $2);
+    }
+    | function_call_header_with_parameters COMMA assignment_expr
+    {
+        $$ = $1;
+		state->append_argument($$, $3);
+    }
+    ;
+
+function_call:
+    function_call_header_no_parameters RPAREN
+    | function_call_header_with_parameters RPAREN
+    ;
+
+
 
 %%
 

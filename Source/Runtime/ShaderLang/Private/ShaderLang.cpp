@@ -228,10 +228,43 @@ namespace Thunder
 		return new return_statement(expr);
 	}
 
+	ast_node_statement* shader_lang_state::create_expression_statement(ast_node_expression* expr)
+	{
+		return new expression_statement(expr);
+	}
+
 	ast_node_statement* shader_lang_state::create_condition_statement(
 		ast_node_expression* cond, ast_node_statement* true_stmt, ast_node_statement* false_stmt)
 	{
 		return new condition_statement(cond, true_stmt, false_stmt);
+	}
+
+	ast_node_statement* shader_lang_state::create_for_statement(
+		ast_node_statement* init, ast_node_expression* cond, ast_node_expression* update, ast_node_statement* body)
+	{
+		return new for_statement(init, cond, update, body);
+	}
+
+	ast_node_expression* shader_lang_state::create_function_call_expression(const token_data& func_name)
+	{
+		return new function_call_expression(func_name.text);
+	}
+
+	void shader_lang_state::append_argument(ast_node_expression* func_call_expr, ast_node_expression* arg_expr)
+	{
+		TAssert(func_call_expr != nullptr && func_call_expr->expr_type == enum_expr_type::function_call);
+		const auto expr = static_cast<function_call_expression*>(func_call_expr);
+		expr->add_argument(arg_expr);
+	}
+
+	ast_node_expression* shader_lang_state::create_assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs)
+	{
+		return new assignment_expression(lhs, rhs);
+	}
+
+	ast_node_expression* shader_lang_state::create_conditional_expression(ast_node_expression* cond, ast_node_expression* true_expr, ast_node_expression* false_expr)
+	{
+		return new conditional_expression(cond, true_expr, false_expr);
 	}
 
 	ast_node_expression* shader_lang_state::create_reference_expression(const token_data& name)

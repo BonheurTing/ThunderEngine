@@ -126,7 +126,6 @@ namespace Thunder
             decl_expr->generate_hlsl(outResult);
         }
         outResult += ";\n";
-        ast_node_statement::generate_hlsl(outResult);
     }
 
     void assignment_statement::generate_hlsl(String& outResult)
@@ -135,7 +134,6 @@ namespace Thunder
         TAssertf(rhs_expr != nullptr, "Assignment rhs is null");
         rhs_expr->generate_hlsl(outResult);
         outResult += ";\n";
-        ast_node_statement::generate_hlsl(outResult);
     }
 
     void return_statement::generate_hlsl(String& outResult)
@@ -146,7 +144,15 @@ namespace Thunder
             ret_value->generate_hlsl(outResult);
         }
         outResult += ";\n";
-        ast_node_statement::generate_hlsl(outResult);
+    }
+
+    void expression_statement::generate_hlsl(String& outResult)
+    {
+        if (expr != nullptr)
+        {
+            expr->generate_hlsl(outResult);
+            outResult += ";\n";
+        }
     }
 
     void condition_statement::generate_hlsl(String& outResult)
@@ -285,6 +291,88 @@ namespace Thunder
         outResult += value ? "true" : "false";
     }
 
+    void for_statement::generate_hlsl(String& outResult)
+    {
+        outResult += "for (";
+        if (init_stmt)
+        {
+            String init_str;
+            init_stmt->generate_hlsl(init_str);
+            // Remove trailing semicolon and newline from init statement
+            if (!init_str.empty() && init_str.back() == '\n')
+                init_str.pop_back();
+            if (!init_str.empty() && init_str.back() == ';')
+                init_str.pop_back();
+            outResult += init_str;
+        }
+        outResult += "; ";
+        
+        if (condition)
+        {
+            condition->generate_hlsl(outResult);
+        }
+        outResult += "; ";
+        
+        if (update_expr)
+        {
+            update_expr->generate_hlsl(outResult);
+        }
+        outResult += ") {\n";
+        
+        if (body_stmt)
+        {
+            body_stmt->generate_hlsl(outResult);
+        }
+        outResult += "}\n";
+    }
+
+    void function_call_expression::generate_hlsl(String& outResult)
+    {
+        outResult += function_name + "(";
+        String arguments_string;
+        for (const auto argument : arguments)
+        {
+            if (arguments_string.length() > 0)
+            {
+                arguments_string += ", ";
+            }
+            argument->generate_hlsl(arguments_string);
+        }
+        outResult += arguments_string;
+        outResult += ")";
+    }
+
+    void assignment_expression::generate_hlsl(String& outResult)
+    {
+        if (left_expr)
+        {
+            left_expr->generate_hlsl(outResult);
+        }
+        outResult += " = ";
+        if (right_expr)
+        {
+            right_expr->generate_hlsl(outResult);
+        }
+    }
+
+    void conditional_expression::generate_hlsl(String& outResult)
+    {
+        if (condition)
+        {
+            condition->generate_hlsl(outResult);
+        }
+        outResult += " ? ";
+        if (true_expression)
+        {
+            true_expression->generate_hlsl(outResult);
+        }
+        outResult += " : ";
+        if (false_expression)
+        {
+            false_expression->generate_hlsl(outResult);
+        }
+    }
+
 #pragma endregion // HLSL
 
 #pragma region PRINT_AST
@@ -372,7 +460,6 @@ namespace Thunder
         }
         print_blank(indent);
         printf("}\n");
-        ast_node_statement::print_ast(indent);
     }
 
     void assignment_statement::print_ast(int indent)
@@ -385,7 +472,6 @@ namespace Thunder
         rhs_expr->print_ast(indent + 1);
         print_blank(indent);
         printf("}\n");
-        ast_node_statement::print_ast(indent);
     }
 
     void return_statement::print_ast(int indent)
@@ -402,7 +488,22 @@ namespace Thunder
         }
         print_blank(indent);
         printf("}\n");
-        ast_node_statement::print_ast(indent);
+    }
+
+    void expression_statement::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("Expression: {\n");
+        if (expr != nullptr)
+        {
+            expr->print_ast(indent + 1);
+        }
+        else
+        {
+            printf(";\n");
+        }
+        print_blank(indent);
+        printf("}\n");
     }
 
     void condition_statement::print_ast(int indent)
@@ -502,6 +603,89 @@ namespace Thunder
     {
         print_blank(indent);
         printf("ConstantBool: %s\n", value ? "true" : "false");
+    }
+
+    void for_statement::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("ForStatement:\n");
+        print_blank(indent + 1);
+        printf("Init:\n");
+        if (init_stmt)
+        {
+            init_stmt->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("Condition:\n");
+        if (condition)
+        {
+            condition->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("Update:\n");
+        if (update_expr)
+        {
+            update_expr->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("Body:\n");
+        if (body_stmt)
+        {
+            body_stmt->print_ast(indent + 2);
+        }
+    }
+
+    void function_call_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("FunctionCall: %s\n", function_name.c_str());
+        printf("Arguments:\n");
+        for (const auto argument : arguments)
+        {
+            argument->print_ast(indent + 1);
+        }
+    }
+
+    void assignment_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("Assignment:\n");
+        print_blank(indent + 1);
+        printf("Left:\n");
+        if (left_expr)
+        {
+            left_expr->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("Right:\n");
+        if (right_expr)
+        {
+            right_expr->print_ast(indent + 2);
+        }
+    }
+
+    void conditional_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("ConditionalExpr:\n");
+        print_blank(indent + 1);
+        printf("Condition:\n");
+        if (condition)
+        {
+            condition->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("TrueExpr:\n");
+        if (true_expression)
+        {
+            true_expression->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("FalseExpr:\n");
+        if (false_expression)
+        {
+            false_expression->print_ast(indent + 2);
+        }
     }
 
 #pragma endregion // PRINT_AST
@@ -762,6 +946,61 @@ namespace Thunder
     evaluate_expr_result constant_bool_expression::evaluate()
     {
         return {value};
+    }
+
+    evaluate_expr_result function_call_expression::evaluate()
+    {
+        // 函数调用一般无法在编译时求值，返回未确定结果
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::undetermined;
+        return result;
+    }
+
+    evaluate_expr_result assignment_expression::evaluate()
+    {
+        // 赋值表达式一般无法在编译时求值，返回未确定结果
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::undetermined;
+        return result;
+    }
+
+    evaluate_expr_result conditional_expression::evaluate()
+    {
+        if (!condition)
+        {
+            return {};
+        }
+
+        const evaluate_expr_result cond_result = condition->evaluate();
+        
+        // 如果条件是常量，可以直接选择分支
+        if (cond_result.result_type == enum_eval_result_type::constant_bool)
+        {
+            if (cond_result.bool_value)
+            {
+                return true_expression ? true_expression->evaluate() : evaluate_expr_result{};
+            }
+            else
+            {
+                return false_expression ? false_expression->evaluate() : evaluate_expr_result{};
+            }
+        }
+        else if (cond_result.result_type == enum_eval_result_type::constant_int)
+        {
+            if (cond_result.int_value != 0)
+            {
+                return true_expression ? true_expression->evaluate() : evaluate_expr_result{};
+            }
+            else
+            {
+                return false_expression ? false_expression->evaluate() : evaluate_expr_result{};
+            }
+        }
+        
+        // 条件无法确定，返回未确定结果
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::undetermined;
+        return result;
     }
 
 #pragma endregion // Evaluate Functions

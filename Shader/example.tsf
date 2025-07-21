@@ -11,10 +11,9 @@ Shader "TestShader"
             float2 uv : TEXCOORD0;
         };
 
-        int frag(int x)
+        int frag(int x, int y)
         {
-            if (5.0 > 9)
-               x = v.uv.x;
+            frag(x,y);
             return x;
         }
     }

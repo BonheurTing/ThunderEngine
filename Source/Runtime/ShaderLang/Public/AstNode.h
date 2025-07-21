@@ -12,7 +12,6 @@ namespace Thunder
         pass,
         structure,
         function,
-        block,
         statement,
         expression
     };
@@ -22,7 +21,9 @@ namespace Thunder
         declare,
         assign,
         return_,
+        expression,
         condition,
+        block,
         undefined
     };
 
@@ -35,6 +36,9 @@ namespace Thunder
         integer,
         constant_float,
         constant_bool,
+        assignment, // 赋值表达式
+        conditional, // 条件表达式
+        function_call, // 函数调用
         undefined
     };
 
@@ -118,8 +122,8 @@ namespace Thunder
         {
             class ast_node* node;
             class ast_node_type* type;
-            class ast_node_block* block;
             class ast_node_statement* statement;
+            class ast_node_block* block;
             class ast_node_expression* expression;
         };
         token_data token;
@@ -233,21 +237,6 @@ namespace Thunder
         ast_node_block* body = nullptr;
     };
 
-    class ast_node_block : public ast_node
-    {
-    public:
-        ast_node_block() : ast_node(enum_ast_node_type::block) {}
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
-    
-        void add_statement(ast_node_statement* statement)
-        {
-            statements.push_back(statement);
-        }
-    private:
-        TArray<ast_node_statement*> statements; // 存储语句列表
-    };
-
     class ast_node_statement : public ast_node
     {
     public:
@@ -296,6 +285,18 @@ namespace Thunder
         ast_node_expression* ret_value = nullptr;
     };
 
+    class expression_statement : public ast_node_statement
+    {
+    public:
+        expression_statement(ast_node_expression* expr) noexcept
+        : ast_node_statement(enum_statement_type::expression), expr(expr) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    private:
+        ast_node_expression* expr = nullptr;
+    };
+
     class condition_statement : public ast_node_statement
     {
     public:
@@ -308,6 +309,36 @@ namespace Thunder
         ast_node_expression* condition = nullptr;
         ast_node_statement* true_branch = nullptr;
         ast_node_statement* false_branch = nullptr;
+    };
+
+    class for_statement : public ast_node_statement
+    {
+    public:
+        for_statement(ast_node_statement* init, ast_node_expression* cond, ast_node_expression* update, ast_node_statement* body) noexcept
+        : ast_node_statement(enum_statement_type::undefined), init_stmt(init), condition(cond), update_expr(update), body_stmt(body) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    public:
+        ast_node_statement* init_stmt = nullptr;
+        ast_node_expression* condition = nullptr;
+        ast_node_expression* update_expr = nullptr;
+        ast_node_statement* body_stmt = nullptr;
+    };
+
+    class ast_node_block : public ast_node_statement
+    {
+    public:
+        ast_node_block() : ast_node_statement(enum_statement_type::block) {}
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    
+        void add_statement(ast_node_statement* statement)
+        {
+            statements.push_back(statement);
+        }
+    private:
+        TArray<ast_node_statement*> statements; // 存储语句列表
     };
 
     // 表达式求值结果类型
@@ -473,6 +504,54 @@ namespace Thunder
         evaluate_expr_result evaluate() override;
     private:
         bool value;
+    };
+
+    class function_call_expression : public ast_node_expression
+    {
+    public:
+        function_call_expression(const String& func_name) noexcept
+            : ast_node_expression(enum_expr_type::function_call), function_name(func_name) {}
+
+        void add_argument(ast_node_expression* arg)
+        {
+            arguments.push_back(arg);
+        }
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+    private:
+        String function_name;
+        TArray<ast_node_expression*> arguments = {};
+    };
+
+    class assignment_expression : public ast_node_expression
+    {
+    public:
+        assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs) noexcept
+            : ast_node_expression(enum_expr_type::assignment), left_expr(lhs), right_expr(rhs) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+    private:
+        ast_node_expression* left_expr = nullptr;
+        ast_node_expression* right_expr = nullptr;
+    };
+
+    class conditional_expression : public ast_node_expression
+    {
+    public:
+        conditional_expression(ast_node_expression* cond, ast_node_expression* true_expr, ast_node_expression* false_expr) noexcept
+            : ast_node_expression(enum_expr_type::conditional), condition(cond), true_expression(true_expr), false_expression(false_expr) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+    private:
+        ast_node_expression* condition = nullptr;
+        ast_node_expression* true_expression = nullptr;
+        ast_node_expression* false_expression = nullptr;
     };
 
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);

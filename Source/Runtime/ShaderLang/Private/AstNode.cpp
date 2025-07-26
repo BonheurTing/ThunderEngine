@@ -169,14 +169,6 @@ namespace Thunder
         outResult += ";\n";
     }
 
-    void assignment_statement::generate_hlsl(String& outResult)
-    {
-        outResult += lhs_var + " = ";
-        TAssertf(rhs_expr != nullptr, "Assignment rhs is null");
-        rhs_expr->generate_hlsl(outResult);
-        outResult += ";\n";
-    }
-
     void return_statement::generate_hlsl(String& outResult)
     {
         outResult += "return ";
@@ -478,6 +470,7 @@ namespace Thunder
             left_expr->generate_hlsl(outResult);
         }
         switch (op) {
+        case enum_assignment_op::assign: outResult += " = "; break;
         case enum_assignment_op::add_assign: outResult += " += "; break;
         case enum_assignment_op::sub_assign: outResult += " -= "; break;
         case enum_assignment_op::mul_assign: outResult += " *= "; break;
@@ -488,7 +481,7 @@ namespace Thunder
         case enum_assignment_op::and_assign: outResult += " &= "; break;
         case enum_assignment_op::or_assign: outResult += " |= "; break;
         case enum_assignment_op::xor_assign: outResult += " ^= "; break;
-        default: break;
+        case enum_assignment_op::undefined: break;
         }
         if (right_expr)
         {
@@ -581,18 +574,6 @@ namespace Thunder
         {
             decl_expr->print_ast(indent + 1);
         }
-        print_blank(indent);
-        printf("}\n");
-    }
-
-    void assignment_statement::print_ast(int indent)
-    {
-        print_blank(indent);
-        printf("Assignment: {\n");
-        print_blank(indent + 1);
-        printf("%s = \n", lhs_var.c_str());
-        TAssertf(rhs_expr != nullptr, "Assignment rhs is null");
-        rhs_expr->print_ast(indent + 1);
         print_blank(indent);
         printf("}\n");
     }

@@ -214,8 +214,9 @@ namespace Thunder
             class ast_node_block* block;
             class ast_node_expression* expression;
         };
+
         token_data token;
-        
+        int op_type;
     };
 
     class ast_node
@@ -357,19 +358,6 @@ namespace Thunder
         ast_node_type* var_type = nullptr;
         String var_name;
         ast_node_expression* decl_expr = nullptr;
-    };
-
-    class assignment_statement : public ast_node_statement
-    {
-    public:
-        assignment_statement(String text, ast_node_expression* expr) noexcept
-        : ast_node_statement(enum_statement_type::assign), lhs_var(std::move(text)), rhs_expr(expr) {}
-
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
-    private:
-        String lhs_var;
-        ast_node_expression* rhs_expr = nullptr;
     };
 
     class return_statement : public ast_node_statement

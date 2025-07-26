@@ -313,13 +313,6 @@ namespace Thunder
 		return node;
 	}
 
-	ast_node_statement* shader_lang_state::create_assignment_statement(const token_data& lhs, ast_node_expression* rhs)
-	{
-		TAssert(lhs.token_id == TOKEN_IDENTIFIER);
-		// todo : check symbol
-		return new assignment_statement(lhs.text, rhs);
-	}
-
 	ast_node_statement* shader_lang_state::create_return_statement(ast_node_expression* expr)
 	{
 		return new return_statement(expr);
@@ -382,14 +375,14 @@ namespace Thunder
 		return node;
 	}
 
-	ast_node_expression* shader_lang_state::create_unary_expression(enum_unary_op op, ast_node_expression* operand)
+	ast_node_expression* shader_lang_state::create_unary_expression(int op, ast_node_expression* operand)
 	{
-		return new unary_expression(op, operand);
+		return new unary_expression(static_cast<enum_unary_op>(op), operand);
 	}
 
-	ast_node_expression* shader_lang_state::create_compound_assignment_expression(enum_assignment_op op, ast_node_expression* lhs, ast_node_expression* rhs)
+	ast_node_expression* shader_lang_state::create_compound_assignment_expression(int op, ast_node_expression* lhs, ast_node_expression* rhs)
 	{
-		return new compound_assignment_expression(op, lhs, rhs);
+		return new compound_assignment_expression(static_cast<enum_assignment_op>(op), lhs, rhs);
 	}
 
 	ast_node_expression* shader_lang_state::create_shuffle_or_component_expression(

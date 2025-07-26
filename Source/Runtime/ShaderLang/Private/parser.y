@@ -107,13 +107,14 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <token> primitive_types 
 %type properties_definition /* Test. */
 %type <type> type
+%type <op_type> assignment_operator unary_operator
 %type <node> archive_definition pass_definition stage_definition struct_definition function_definition
 %type <node> program passes pass_content param_list param
 %type <node> struct_members struct_member
 
 /* statement */
 %type <block> function_body block block_begin
-%type <statement> statement declaration_statement assignment func_ret empty_statement expression_statement
+%type <statement> statement declaration_statement func_ret empty_statement expression_statement
                 if_then_statement if_then_else_statement for_statement for_init_statement
 
 /* expression */
@@ -236,8 +237,7 @@ param:
     ;
 
 primitive_types:
-    identifier
-	| TYPE_INT| TYPE_FLOAT| TYPE_VOID 
+    TYPE_INT| TYPE_FLOAT| TYPE_VOID 
     | TYPE_VECTOR | TYPE_MATRIX | TYPE_TEXTURE | TYPE_SAMPLER
     ;
 
@@ -289,7 +289,6 @@ block_statements:
 statement:
     block { $$ = $1; }
     | declaration_statement
-    | assignment
     | func_ret
     | empty_statement
     | expression_statement
@@ -303,12 +302,6 @@ declaration_statement:
     }
     | type new_identifier ASSIGN assignment_expr SEMICOLON {
         $$ = sl_state->create_var_decl_statement($1, $2, $4);
-    }
-    ;
-
-assignment:
-    identifier ASSIGN expression SEMICOLON {
-        $$ = sl_state->create_assignment_statement($1, $3);
     }
     ;
 
@@ -395,49 +388,9 @@ expression:
 
 assignment_expr:
     conditional_expr
-    | unary_expr ASSIGN assignment_expr
+    | unary_expr assignment_operator assignment_expr
     {
-        $$ = sl_state->create_assignment_expression($1, $3);
-    }
-    | unary_expr ADDEQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::add_assign, $1, $3);
-    }
-    | unary_expr SUBEQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::sub_assign, $1, $3);
-    }
-    | unary_expr MULEQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::mul_assign, $1, $3);
-    }
-    | unary_expr DIVEQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::div_assign, $1, $3);
-    }
-    | unary_expr MODEQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::mod_assign, $1, $3);
-    }
-    | unary_expr LSHIFTEQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::lshift_assign, $1, $3);
-    }
-    | unary_expr RSHIFTEQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::rshift_assign, $1, $3);
-    }
-    | unary_expr ANDEQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::and_assign, $1, $3);
-    }
-    | unary_expr OREQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::or_assign, $1, $3);
-    }
-    | unary_expr XOREQ assignment_expr
-    {
-        $$ = sl_state->create_compound_assignment_expression(enum_assignment_op::xor_assign, $1, $3);
+        $$ = sl_state->create_compound_assignment_expression($2, $1, $3);
     }
     ;
 
@@ -549,35 +502,89 @@ constant_expr:
     }
     ;
 
+assignment_operator:
+    ASSIGN
+    {
+        $$ = static_cast<int>(enum_assignment_op::assign);
+    }
+    | ADDEQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::add_assign);
+    }
+    | SUBEQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::sub_assign);
+    }
+    | MULEQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::mul_assign);
+    }
+    | DIVEQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::div_assign);
+    }
+    | MODEQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::mod_assign);
+    }
+    | LSHIFTEQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::lshift_assign);
+    }
+    | RSHIFTEQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::rshift_assign);
+    }
+    | ANDEQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::and_assign);
+    }
+    | OREQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::or_assign);
+    }
+    | XOREQ
+    {
+        $$ = static_cast<int>(enum_assignment_op::xor_assign);
+    }
+    ;
+    
+unary_operator:
+    ADD
+    {
+        $$ = static_cast<int>(enum_unary_op::positive);
+    }
+    | SUB
+    {
+        $$ = static_cast<int>(enum_unary_op::negative);
+    }
+    | NOT
+    {
+        $$ = static_cast<int>(enum_unary_op::logical_not);
+    }
+    | BITNOT
+    {
+        $$ = static_cast<int>(enum_unary_op::bit_not);
+    }
+    | INC
+    {
+        $$ = static_cast<int>(enum_unary_op::pre_inc);
+    }
+    | DEC
+    {
+        $$ = static_cast<int>(enum_unary_op::pre_dec);
+    }
+    ;
+
 /* 一元表达式 */
 unary_expr:
     postfix_expr
     {
         $$ = $1;
     }
-    | NOT unary_expr
+    | unary_operator unary_expr
     {
-        $$ = sl_state->create_unary_expression(enum_unary_op::logical_not, $2);
-    }
-    | BITNOT unary_expr
-    {
-        $$ = sl_state->create_unary_expression(enum_unary_op::bit_not, $2);
-    }
-    | ADD unary_expr
-    {
-        $$ = sl_state->create_unary_expression(enum_unary_op::positive, $2);
-    }
-    | SUB unary_expr
-    {
-        $$ = sl_state->create_unary_expression(enum_unary_op::negative, $2);
-    }
-    | INC unary_expr
-    {
-        $$ = sl_state->create_unary_expression(enum_unary_op::pre_inc, $2);
-    }
-    | DEC unary_expr
-    {
-        $$ = sl_state->create_unary_expression(enum_unary_op::pre_dec, $2);
+        $$ = sl_state->create_unary_expression($1, $2);
     }
     ;
 
@@ -629,11 +636,11 @@ postfix_expr:
     }
     | postfix_expr INC
     {
-        $$ = sl_state->create_unary_expression(enum_unary_op::post_inc, $1);
+        $$ = sl_state->create_unary_expression(static_cast<int>(enum_unary_op::post_inc), $1);
     }
     | postfix_expr DEC
     {
-        $$ = sl_state->create_unary_expression(enum_unary_op::post_dec, $1);
+        $$ = sl_state->create_unary_expression(static_cast<int>(enum_unary_op::post_dec), $1);
     }
     | function_call
     {

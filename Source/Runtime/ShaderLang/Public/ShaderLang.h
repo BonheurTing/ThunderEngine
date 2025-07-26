@@ -88,7 +88,6 @@ namespace Thunder
 
 		/* Statement */
 		ast_node_statement* create_var_decl_statement(ast_node_type* type_node, const token_data& name, ast_node_expression* init_expr);
-		static ast_node_statement* create_assignment_statement(const token_data& lhs, ast_node_expression* rhs);
 		static ast_node_statement* create_return_statement(ast_node_expression* expr);
 		static ast_node_statement* create_expression_statement(ast_node_expression* expr);
 		static ast_node_statement* create_condition_statement(ast_node_expression* cond, ast_node_statement* true_stmt, ast_node_statement* false_stmt);
@@ -97,8 +96,8 @@ namespace Thunder
 		/* Expression */
 		ast_node_expression* create_reference_expression(const token_data& name);
 		static ast_node_expression* create_binary_expression(enum_binary_op op, ast_node_expression* left, ast_node_expression* right);
-		static ast_node_expression* create_unary_expression(enum_unary_op op, ast_node_expression* operand);
-		static ast_node_expression* create_compound_assignment_expression(enum_assignment_op op, ast_node_expression* lhs, ast_node_expression* rhs);
+		static ast_node_expression* create_unary_expression(int op, ast_node_expression* operand);
+		static ast_node_expression* create_compound_assignment_expression(int op, ast_node_expression* lhs, ast_node_expression* rhs);
 		static ast_node_expression* create_shuffle_or_component_expression(ast_node_expression* expr, const token_data& comp);
 		static ast_node_expression* create_function_call_expression(const token_data& func_name);
 		static void append_argument(ast_node_expression* func_call_expr, ast_node_expression* arg_expr);

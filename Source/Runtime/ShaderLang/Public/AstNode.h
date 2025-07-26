@@ -2,6 +2,7 @@
 #include "Assertion.h"
 #include "Container.h"
 #include "NameHandle.h"
+#include "Templates/RefCounting.h"
 
 namespace Thunder
 {
@@ -132,6 +133,23 @@ namespace Thunder
         undefined
     };
 
+    enum class enum_symbol_type : uint8
+    {
+        variable,   // 变量 variable_declaration_statement
+        type,      // 类型 ast_node_type
+        structure,  // 结构体
+        function,   // 函数 ast_node_function
+        //constant,   // 常量
+        undefined  // 未定义符号
+    };
+
+    struct shader_lang_symbol
+    {
+        String name;
+        enum_symbol_type type = enum_symbol_type::undefined;
+        class ast_node* owner = nullptr; //symbol所在的语法树节点
+    };
+
     struct parse_location
     {
         int first_line;
@@ -153,6 +171,38 @@ namespace Thunder
         String text;
         size_t length = 0;
     };
+
+    class scope : public RefCountedObject
+    {
+    public:
+        scope(scope* outer, ast_node* owner = nullptr) noexcept
+            : m_outer(outer), m_owner(owner) {}
+
+        _NODISCARD_ scope* get_outer() const noexcept { return m_outer; }
+        _NODISCARD_ ast_node* get_owner() const noexcept { return m_owner; }
+        _NODISCARD_ ast_node* find_local_symbol(const String& name) const
+        {
+            auto it = m_symbols.find(name);
+            if (it != m_symbols.end())
+                return it->second.owner;
+            return nullptr;
+        }
+        void push_symbol(const String& text, enum_symbol_type type, ast_node* node)
+        {
+            shader_lang_symbol symbol;
+            symbol.name = text;
+            symbol.type = type;
+            symbol.owner = node;
+            m_symbols[text] = symbol;
+        }
+		
+    private:
+        TRefCountPtr<scope> m_outer;
+        ast_node* m_owner;
+        TMap<String, shader_lang_symbol> m_symbols; // 当前作用域的符号表
+    };
+
+    using scope_ref = TRefCountPtr<scope>;
 
     struct parse_node
     {
@@ -198,7 +248,7 @@ namespace Thunder
         bool is_semantic : 1 = false; // 是否是shader语义
     };
 
-    // 变量基类，包含参数变量，局部变量，全局变量，shader semantic等
+    // 变量基类，包含参数变量，局部变量，全局变量，shader semantic等 // Definition
     class ast_node_variable : public ast_node
     {
     public:
@@ -209,8 +259,8 @@ namespace Thunder
         void print_ast(int indent) override;
     public:
         ast_node_type* type = nullptr;
-        NameHandle name = nullptr; // 用于存储变量名称
-        NameHandle semantic = nullptr; // 用于存储shader语义
+        String name; // 用于存储变量名称
+        String semantic; // 用于存储shader语义
         String value; // 用于存储常量值或默认值
     };
 
@@ -235,13 +285,18 @@ namespace Thunder
             type = static_cast<ast_node_type*>(token);
         }
 
+        scope* begin_structure(scope* outer);
+        void end_structure(scope* current);
+
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
         void add_member(ast_node_variable* mem)
         {
             members.push_back(mem);
+            local_scope->push_symbol(mem->name, enum_symbol_type::variable, mem);
         }
     private:
+        scope_ref local_scope; // 作用域引用，用于符号表管理
         ast_node_type* type = nullptr;
         TArray<ast_node_variable*> members;
     };
@@ -252,8 +307,6 @@ namespace Thunder
         ast_node_function(const String& name)
         : ast_node(enum_ast_node_type::function), func_name(name) {}
 
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
         void set_return_type(ast_node_type* ret_type)
         {
             return_type = ret_type;
@@ -261,12 +314,20 @@ namespace Thunder
         void add_parameter(ast_node_variable* param)
         {
             params.push_back(param);
+            local_scope->push_symbol(param->name, enum_symbol_type::variable, param);
         }
         void set_body(class ast_node_block* body_statements)
         {
             body = body_statements;
         }
+        scope* begin_function(scope* outer);
+        void end_function(scope* current);
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+
     private:
+        scope_ref local_scope; // 作用域引用，用于符号表管理
         // func_signature
         ast_node_type* return_type = nullptr;
         NameHandle func_name = nullptr;
@@ -368,15 +429,19 @@ namespace Thunder
     {
     public:
         ast_node_block() : ast_node_statement(enum_statement_type::block) {}
-        void generate_hlsl(String& outResult) override;
-        void print_ast(int indent) override;
-    
         void add_statement(ast_node_statement* statement)
         {
             statements.push_back(statement);
         }
+
+        scope* begin_block(scope* outer);
+        void end_block(scope* current);
+        
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
     private:
         TArray<ast_node_statement*> statements; // 存储语句列表
+        scope_ref local_scope; // 作用域引用，用于符号表管理
     };
 
     // 表达式求值结果类型
@@ -630,7 +695,9 @@ namespace Thunder
     {
         
     };
-    
+
+    //////////////////////////////////////////////////////////////////////////
+    // Tokenize
 
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token);
 }

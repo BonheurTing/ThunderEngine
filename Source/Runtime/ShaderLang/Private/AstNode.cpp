@@ -33,6 +33,47 @@ namespace Thunder
         outResult += "ADD EAX EBX";*/
     }
 
+    scope* ast_node_struct::begin_structure(scope* outer)
+    {
+        local_scope = new scope(outer, this);
+        /*for (ast_node_variable* member : members)
+        {
+            local_scope->push_symbol(member->name, enum_symbol_type::variable, member);
+        }*/
+        return local_scope.Get();
+    }
+
+    void ast_node_struct::end_structure(scope* current)
+    {
+        TAssert(local_scope == current);
+        local_scope.SafeRelease();
+    }
+
+    scope* ast_node_function::begin_function(scope* outer)
+    {
+        local_scope = new scope(outer, this);
+        return local_scope.Get();
+    }
+
+    void ast_node_function::end_function(scope* current)
+    {
+        TAssert(local_scope == current);
+        local_scope.SafeRelease();
+    }
+
+    scope* ast_node_block::begin_block(scope* outer)
+    {
+        local_scope = new scope(outer, this);
+        return local_scope.Get();
+    }
+
+    void ast_node_block::end_block(scope* current)
+    {
+        TAssert(local_scope == current);
+        local_scope.SafeRelease();
+    }
+
+
 #pragma region HLSL
 
     void ast_node_type::generate_hlsl(String& outResult)
@@ -57,10 +98,10 @@ namespace Thunder
     void ast_node_variable::generate_hlsl(String& outResult)
     {
         type->generate_hlsl(outResult);
-        outResult += " " + name.ToString();
+        outResult += " " + name;
         if (type->is_semantic)
         {
-            outResult += " : " + semantic.ToString();
+            outResult += " : " + semantic;
         }
     }
 
@@ -86,7 +127,7 @@ namespace Thunder
         }
         outResult += "};\n";
     }
-    
+
     void ast_node_function::generate_hlsl(std::string& outResult)
     {
         String paramList;
@@ -467,10 +508,10 @@ namespace Thunder
     void ast_node_variable::print_ast(int indent)
     {
         type->print_ast(indent);
-        printf(" Name: %s", name.ToString().c_str());
+        printf(" Name: %s", name.c_str());
         if (type->is_semantic)
         {
-            printf(" Semantic: %s", semantic.ToString().c_str());
+            printf(" Semantic: %s", semantic.c_str());
         }
         printf("\n");
     }
@@ -823,47 +864,6 @@ namespace Thunder
     }
 
 #pragma endregion // PRINT_AST
-    
-
-    int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token)
-    {
-        sl_state->current_text = text;
-        memcpy(sl_state->current_location, loc, sizeof(parse_location));
-        
-        t.first_line = loc->first_line;
-        t.first_column = loc->first_column;
-        t.first_source = loc->first_source;
-        t.last_line = loc->last_line;
-        t.last_column = loc->last_column;
-        t.last_source = loc->last_source;
-        
-
-        switch (token)
-        {
-        case TOKEN_IDENTIFIER:
-        {
-            const ast_node* symbol_node = sl_state->get_symbol_node(text);
-            if(symbol_node == nullptr)
-            {
-                token = NEW_ID;
-            }
-            else if (symbol_node->Type == enum_ast_node_type::type)
-            {
-                sl_state->debug_log("TYPE_ID : " + sl_state->current_text, loc);
-                token = TYPE_ID;
-            }
-            break;
-        }
-        default:
-            break;
-        }
-        
-        t.token_id = token;
-        t.text = text;
-        t.length = text_len;
-
-        return t.token_id;
-    }
 
 #pragma region Evaluate Functions
 
@@ -1216,6 +1216,48 @@ namespace Thunder
     }
 
 #pragma endregion // Evaluate Functions
-    
+
+
+    //////////////////////////////////////////////////////////////////////////
+    // Tokenize
+
+    int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token)
+    {
+        sl_state->current_text = text;
+        memcpy(sl_state->current_location, loc, sizeof(parse_location));
+        
+        t.first_line = loc->first_line;
+        t.first_column = loc->first_column;
+        t.first_source = loc->first_source;
+        t.last_line = loc->last_line;
+        t.last_column = loc->last_column;
+        t.last_source = loc->last_source;
+
+        switch (token)
+        {
+        case TOKEN_IDENTIFIER:
+            {
+                const ast_node* symbol_node = sl_state->get_symbol_node(text);
+                if(symbol_node == nullptr)
+                {
+                    token = NEW_ID;
+                }
+                else if (symbol_node->Type == enum_ast_node_type::type)
+                {
+                    sl_state->debug_log("TYPE_ID : " + sl_state->current_text, loc);
+                    token = TYPE_ID;
+                }
+                break;
+            }
+        default:
+            break;
+        }
+        
+        t.token_id = token;
+        t.text = text;
+        t.length = text_len;
+
+        return t.token_id;
+    }
 }
 #pragma optimize("", on)

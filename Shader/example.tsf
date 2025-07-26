@@ -17,6 +17,22 @@ Shader "TestShader"
             {
                 x += y;
             }
+            if (x+y > 100)
+            {
+                y = 100;
+                if (x > 50)
+                {
+                    x = 50;
+                }
+                else
+                {
+                    x = 0;
+                }
+            }
+            if (5 < 9)
+            {
+                x = y;
+            }
             frag(x,y);
             return x;
         }

@@ -107,7 +107,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <token> primitive_types 
 %type properties_definition /* Test. */
 %type <type> type
-%type <node> arrchive_definition pass_definition stage_definition struct_definition function_definition
+%type <node> archive_definition pass_definition stage_definition struct_definition function_definition
 %type <node> program passes pass_content param_list param
 %type <node> struct_members struct_member
 
@@ -127,7 +127,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %%
 
 program:
-    arrchive_definition { sl_state->ast_root = $1; }
+    archive_definition { sl_state->ast_root = $1; }
     ;
 
 identifier:
@@ -150,9 +150,12 @@ primary_identifier:
 	identifier| new_identifier
     ;
 
-arrchive_definition:
-    TOKEN_SHADER STRING_CONSTANT LBRACE properties_definition passes RBRACE {
-        $$ = $5;
+archive_definition:
+    TOKEN_SHADER STRING_CONSTANT LBRACE {
+        sl_state->parsing_archive_begin($2);
+    }
+    properties_definition passes RBRACE {
+        $$ = sl_state->parsing_archive_end($6);
     }
     ;
 
@@ -305,7 +308,6 @@ declaration_statement:
 
 assignment:
     identifier ASSIGN expression SEMICOLON {
-        sl_state->evaluate_symbol($1, enum_symbol_type::variable);
         $$ = sl_state->create_assignment_statement($1, $3);
     }
     ;

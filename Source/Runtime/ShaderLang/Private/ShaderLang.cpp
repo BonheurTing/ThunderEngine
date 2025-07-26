@@ -24,6 +24,82 @@ namespace Thunder
 		current_function = nullptr;
 	}
 
+	shader_lang_state::~shader_lang_state()
+	{
+		if (current_location)
+		{
+			delete current_location;
+			current_location = nullptr;
+		}
+	}
+
+	// 作用域管理实现
+	void shader_lang_state::push_scope(scope* in_scope)
+	{
+		symbol_scopes.push_back(in_scope);
+	}
+
+	scope* shader_lang_state::pop_scope()
+	{
+		scope* cur_scope = symbol_scopes.back();
+		symbol_scopes.pop_back();
+		return cur_scope;
+	}
+
+	scope* shader_lang_state::current_scope() const
+	{
+		return symbol_scopes.empty() ? nullptr : symbol_scopes.back();
+	}
+
+	ast_node* shader_lang_state::get_local_symbol(const String& name) const
+	{
+		if (current_scope())
+		{
+			return current_scope()->find_local_symbol(name);
+		}
+		return nullptr;
+	}
+
+	ast_node* shader_lang_state::get_global_symbol(const String& name) const
+	{
+		// 从最内层作用域向外层查找
+		for (auto it = symbol_scopes.rbegin(); it != symbol_scopes.rend(); ++it)
+		{
+			ast_node* node = (*it)->find_local_symbol(name);
+			if (node != nullptr)
+			{
+				return node;
+			}
+		}
+		return nullptr;
+	}
+
+	enum_symbol_type shader_lang_state::get_symbol_type(const String& name) const
+	{
+		// 从最内层作用域向外层查找符号类型
+		for (auto it = symbol_scopes.rbegin(); it != symbol_scopes.rend(); ++it)
+		{
+			ast_node* node = (*it)->find_local_symbol(name);
+			if (node != nullptr)
+			{
+				// 根据AST节点类型推断符号类型
+				switch (node->Type)
+				{
+				case enum_ast_node_type::type:
+					return enum_symbol_type::type;
+				case enum_ast_node_type::function:
+					return enum_symbol_type::function;
+				case enum_ast_node_type::variable:
+				case enum_ast_node_type::statement:
+					return enum_symbol_type::variable;
+				default:
+					break;
+				}
+			}
+		}
+		return enum_symbol_type::undefined;
+	}
+
 	ast_node_type* shader_lang_state::create_type_node(const token_data& type_info)
 	{
 		const auto node = new ast_node_type;
@@ -55,7 +131,7 @@ namespace Thunder
 		case TYPE_ID:
 			{
 				TAssert(sl_state->get_symbol_type(type_info.text) == enum_symbol_type::type);
-				if (auto symbol_node = static_cast<ast_node_type*>(sl_state->get_symbol_node(type_info.text)))
+				if (auto symbol_node = static_cast<ast_node_type*>(sl_state->get_global_symbol(type_info.text)))
 				{
 					switch (symbol_node->param_type)
 					{
@@ -85,6 +161,19 @@ namespace Thunder
 		return node;
 	}
 
+	void shader_lang_state::parsing_archive_begin(const token_data& name)
+	{
+		global_scope = new scope(nullptr,nullptr);
+		push_scope(global_scope);
+	}
+
+	ast_node* shader_lang_state::parsing_archive_end(ast_node* content)
+	{
+		pop_scope();
+		global_scope.SafeRelease();
+		return content;
+	}
+
 	void shader_lang_state::parsing_struct_begin(const token_data& name)
 	{
 		TAssert(current_structure == nullptr);
@@ -94,12 +183,15 @@ namespace Thunder
 		{
 			struct_type->param_type = enum_basic_type::tp_struct;
 		}
-		insert_symbol_table(name, enum_symbol_type::type, type);
 		current_structure = new ast_node_struct(type);
+		current_scope()->push_symbol(name.text, enum_symbol_type::structure, current_structure);
+		push_scope(current_structure->begin_structure(current_scope()));
 	}
 
 	ast_node_struct* shader_lang_state::parsing_struct_end()
 	{
+		current_structure->end_structure(pop_scope());
+
 		ast_node_struct* dummy = current_structure;
 		current_structure = nullptr;
 		return dummy;
@@ -118,7 +210,6 @@ namespace Thunder
 		{
 			variable->semantic = modifier.text;
 		}
-		insert_symbol_table(name, enum_symbol_type::variable, variable);
 
 		if (current_structure)
 		{
@@ -149,14 +240,17 @@ namespace Thunder
 		TAssert(current_function == nullptr);
 		TAssert(name.token_id == NEW_ID);
 		current_function = new ast_node_function(name.text);
-		insert_symbol_table(name, enum_symbol_type::function, current_function);
 		current_function->set_return_type(static_cast<ast_node_type*>(type));
+		current_scope()->push_symbol(name.text, enum_symbol_type::function, current_function);
+		push_scope(current_function->begin_function(current_scope()));
 	}
 
 	ast_node_function* shader_lang_state::parsing_function_end(ast_node_block* body)
 	{
 		TAssert(current_function != nullptr);
 		current_function->set_body(body);
+		current_function->end_function(pop_scope());
+
 		ast_node_function* dummy = current_function;
 		current_function = nullptr;
 		return dummy;
@@ -170,7 +264,6 @@ namespace Thunder
 
 		const auto variable = new ast_node_variable(name.text);
 		variable->type = static_cast<ast_node_type*>(type);
-		insert_symbol_table(name, enum_symbol_type::variable, variable);
 		
 		if (current_function)
 		{
@@ -184,22 +277,25 @@ namespace Thunder
 
 	void shader_lang_state::parsing_block_begin()
 	{
-		TAssert(current_block == nullptr);
-		current_block = new ast_node_block;
+		auto* new_block = new ast_node_block;
+		push_scope(new_block->begin_block(current_scope()));
+		block_stacks.push_back(new_block);
 	}
 
 	ast_node_block* shader_lang_state::parsing_block_end()
 	{
-		ast_node_block* dummy = current_block;
-		current_block = nullptr;
-		return dummy;
+		const auto current_block = block_stacks.back();
+		current_block->end_block(pop_scope());
+		block_stacks.pop_back();
+		
+		return current_block;
 	}
 
 	void shader_lang_state::add_block_statement(ast_node_statement* statement, const parse_location* loc) const
 	{
-		if (current_block)
+		if (!block_stacks.empty())
 		{
-			current_block->add_statement(statement);
+			block_stacks.back()->add_statement(statement);
 		}
 		else
 		{
@@ -213,13 +309,14 @@ namespace Thunder
 		TAssert(name.token_id == NEW_ID);
 		const auto node = new variable_declaration_statement(type_node, name.text, init_expr);
 
-		sl_state->insert_symbol_table(name, enum_symbol_type::variable, node);
+		current_scope()->push_symbol(name.text, enum_symbol_type::variable, node);
 		return node;
 	}
 
 	ast_node_statement* shader_lang_state::create_assignment_statement(const token_data& lhs, ast_node_expression* rhs)
 	{
 		TAssert(lhs.token_id == TOKEN_IDENTIFIER);
+		// todo : check symbol
 		return new assignment_statement(lhs.text, rhs);
 	}
 
@@ -269,7 +366,7 @@ namespace Thunder
 
 	ast_node_expression* shader_lang_state::create_reference_expression(const token_data& name)
 	{
-		const auto ref_expr = new reference_expression(name.text, get_symbol_node(name.text));
+		const auto ref_expr = new reference_expression(name.text, get_global_symbol(name.text));
 		return ref_expr;
 	}
 
@@ -333,7 +430,7 @@ namespace Thunder
 		}
 		else
 		{
-			const auto symbol_node = sl_state->get_symbol_node(comp.text);
+			const auto symbol_node = sl_state->get_global_symbol(comp.text);
 			if(symbol_node == nullptr)
 			{
 				sl_state->debug_log("Symbol not found: " + comp.text);
@@ -359,60 +456,6 @@ namespace Thunder
 	ast_node_expression* shader_lang_state::create_constant_bool_expression(bool value)
 	{
 		return new constant_bool_expression(value);
-	}
-
-	void shader_lang_state::insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node)
-	{
-		const auto loc = new parse_location(sym.first_line, sym.first_column, sym.first_source, sym.last_line, sym.last_column, sym.last_source);
-		if (reserved_word_list.contains(sym.text))
-		{
-			// 错误处理：不能使用保留字作为符号名
-			debug_log("Cannot use reserved word as symbol name:" + sym.text, loc);
-			return;
-		}
-		if (symbol_table.contains(sym.text))
-		{
-			// 错误处理：符号已存在
-			debug_log("Symbol already exists: " + sym.text, loc);
-		}
-		else
-		{
-			symbol_table[sym.text] = { sym.text, type, node };
-		}
-	}
-
-	void shader_lang_state::evaluate_symbol(const token_data& name, enum_symbol_type type) const
-	{
-		TAssert(name.token_id == TOKEN_IDENTIFIER);
-		const auto loc = new parse_location(name.first_line, name.first_column, name.first_source, name.last_line, name.last_column, name.last_source);
-		if (reserved_word_list.contains(name.text))
-		{
-			// 错误处理：不能使用保留字作为符号名
-			debug_log("Cannot use reserved word as symbol name: " + name.text, loc);
-			return;
-		}
-		if (!symbol_table.contains(name.text))
-		{
-			debug_log("Symbol not found: " + name.text, loc);
-		}
-	}
-
-	ast_node* shader_lang_state::get_symbol_node(const String& name)
-	{
-		if (symbol_table.contains(name))
-		{
-			return symbol_table[name].owner;
-		}
-		return nullptr;
-	}
-
-	enum_symbol_type shader_lang_state::get_symbol_type(const String& name)
-	{
-		if (symbol_table.contains(name))
-		{
-			return symbol_table[name].type;
-		}
-		return enum_symbol_type::undefined; // 未知类型
 	}
 
 	//todo 定位文件

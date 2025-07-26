@@ -6,26 +6,6 @@
 
 namespace Thunder
 {
-	
-	enum class enum_ast_node_type : uint8;
-
-	enum class enum_symbol_type : uint8
-	{
-		variable,   // 变量 variable_declaration_statement
-		type,      // 类型 ast_node_type
-		//structure,  // 结构体
-		function,   // 函数 ast_node_function
-		//constant,   // 常量
-		undefined  // 未定义符号
-	};
-
-	struct shader_lang_symbol
-	{
-		String name;
-		enum_symbol_type type = enum_symbol_type::undefined;
-		ast_node* owner = nullptr; //symbol所在的语法树节点
-	};
-
 	// 调试信息条目
 	struct debug_info
 	{
@@ -59,6 +39,7 @@ namespace Thunder
 	struct shader_lang_state
 	{
 		shader_lang_state();
+		~shader_lang_state();
 
 		// 调试信息
 		String current_text; // 当前token文本
@@ -68,20 +49,29 @@ namespace Thunder
 		void *scanner = nullptr;	// Flex词法分析器上下文
 		//void *parser = nullptr;		// Bison语法分析器状态
 
-		// 符号表
-		TMap<String, shader_lang_symbol> symbol_table = {};
-		
 		/* 抽象语法树 */
 		ast_node* ast_root = nullptr;	// AST根节点
+		scope_ref global_scope = nullptr;	// 全局作用域
+
+		// 作用域
+		TArray<scope*> symbol_scopes;
+
+		// function stacks.
+		//std::vector<ast_node_function*> functions;
+		// block stacks.
+		TArray<ast_node_block*> block_stacks;
 
 		/* 状态机运行时上下文 */
 		ast_node_struct* current_structure = nullptr;
 		ast_node_function* current_function = nullptr;
-		ast_node_block* current_block = nullptr;
+		//ast_node_block* current_block = nullptr;
 
 		/* 上下文管理 */
 		ast_node_type* create_type_node(const token_data& type_info);
 		ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
+
+		void parsing_archive_begin(const token_data& name);
+		ast_node* parsing_archive_end(ast_node* content);
 		
 		void parsing_struct_begin(const token_data& name);
 		ast_node_struct* parsing_struct_end();
@@ -97,7 +87,7 @@ namespace Thunder
 		void add_block_statement(ast_node_statement* statement, const parse_location* loc) const;
 
 		/* Statement */
-		static ast_node_statement* create_var_decl_statement(ast_node_type* type_node, const token_data& name, ast_node_expression* init_expr);
+		ast_node_statement* create_var_decl_statement(ast_node_type* type_node, const token_data& name, ast_node_expression* init_expr);
 		static ast_node_statement* create_assignment_statement(const token_data& lhs, ast_node_expression* rhs);
 		static ast_node_statement* create_return_statement(ast_node_expression* expr);
 		static ast_node_statement* create_expression_statement(ast_node_expression* expr);
@@ -120,13 +110,16 @@ namespace Thunder
 		static ast_node_expression* create_constant_float_expression(float value);
 		static ast_node_expression* create_constant_bool_expression(bool value);
 
-		/* 符号表管理 */
-		void insert_symbol_table(const token_data& sym, enum_symbol_type type, ast_node* node);
-		void evaluate_symbol(const token_data&  name, enum_symbol_type type) const;
-		ast_node* get_symbol_node(const String& name);
-		enum_symbol_type get_symbol_type(const String& name);
-
-		/* 作用域管理 */
+		/* 作用域 & 符号表 管理 */
+		void push_scope(scope* in_scope);
+		scope* pop_scope();
+		scope* current_scope() const;
+		ast_node* get_local_symbol(const String& name) const;
+		ast_node* get_global_symbol(const String& name) const;
+		enum_symbol_type get_symbol_type(const String& name) const;
+		
+		/* 兼容性函数 - 逐步淘汰 */
+		ast_node* get_symbol_node(const String& name) { return get_global_symbol(name); }
 
 		/* 类型系统 */
 		//DataType* type_infer(ShaderParseState* state, ASTNode* expr) { return nullptr;}    // 类型推断

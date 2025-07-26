@@ -62,16 +62,20 @@ namespace Thunder
 		TArray<ast_node_block*> block_stacks;
 
 		/* 状态机运行时上下文 */
+		ast_node_pass* current_pass = nullptr;
 		ast_node_struct* current_structure = nullptr;
 		ast_node_function* current_function = nullptr;
 		//ast_node_block* current_block = nullptr;
 
 		/* 上下文管理 */
 		ast_node_type* create_type_node(const token_data& type_info);
-		ast_node* create_pass_node(ast_node* struct_node, ast_node* stage_node);
 
 		void parsing_archive_begin(const token_data& name);
 		ast_node* parsing_archive_end(ast_node* content);
+
+		void parsing_pass_begin();
+		ast_node* parsing_pass_end();
+		void add_definition_member(ast_node* def);
 		
 		void parsing_struct_begin(const token_data& name);
 		ast_node_struct* parsing_struct_end();
@@ -88,26 +92,26 @@ namespace Thunder
 
 		/* Statement */
 		ast_node_statement* create_var_decl_statement(ast_node_type* type_node, const token_data& name, ast_node_expression* init_expr);
-		static ast_node_statement* create_return_statement(ast_node_expression* expr);
-		static ast_node_statement* create_expression_statement(ast_node_expression* expr);
-		static ast_node_statement* create_condition_statement(ast_node_expression* cond, ast_node_statement* true_stmt, ast_node_statement* false_stmt);
-		static ast_node_statement* create_for_statement(ast_node_statement* init, ast_node_expression* cond, ast_node_expression* update, ast_node_statement* body);
+		ast_node_statement* create_return_statement(ast_node_expression* expr);
+		ast_node_statement* create_expression_statement(ast_node_expression* expr);
+		ast_node_statement* create_condition_statement(ast_node_expression* cond, ast_node_statement* true_stmt, ast_node_statement* false_stmt);
+		ast_node_statement* create_for_statement(ast_node_statement* init, ast_node_expression* cond, ast_node_expression* update, ast_node_statement* body);
 
 		/* Expression */
 		ast_node_expression* create_reference_expression(const token_data& name);
-		static ast_node_expression* create_binary_expression(enum_binary_op op, ast_node_expression* left, ast_node_expression* right);
-		static ast_node_expression* create_unary_expression(int op, ast_node_expression* operand);
-		static ast_node_expression* create_compound_assignment_expression(int op, ast_node_expression* lhs, ast_node_expression* rhs);
-		static ast_node_expression* create_shuffle_or_component_expression(ast_node_expression* expr, const token_data& comp);
-		static ast_node_expression* create_function_call_expression(const token_data& func_name);
-		static void append_argument(ast_node_expression* func_call_expr, ast_node_expression* arg_expr);
-		static ast_node_expression* create_assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs);
-		static ast_node_expression* create_conditional_expression(ast_node_expression* cond, ast_node_expression* true_expr, ast_node_expression* false_expr);
+		ast_node_expression* create_binary_expression(enum_binary_op op, ast_node_expression* left, ast_node_expression* right);
+		ast_node_expression* create_unary_expression(int op, ast_node_expression* operand);
+		ast_node_expression* create_compound_assignment_expression(int op, ast_node_expression* lhs, ast_node_expression* rhs);
+		ast_node_expression* create_shuffle_or_component_expression(ast_node_expression* expr, const token_data& comp);
+		ast_node_expression* create_function_call_expression(const token_data& func_name);
+		void append_argument(ast_node_expression* func_call_expr, ast_node_expression* arg_expr);
+		ast_node_expression* create_assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs);
+		ast_node_expression* create_conditional_expression(ast_node_expression* cond, ast_node_expression* true_expr, ast_node_expression* false_expr);
 		
 		/* Constant Expression */
-		static ast_node_expression* create_constant_int_expression(int value);
-		static ast_node_expression* create_constant_float_expression(float value);
-		static ast_node_expression* create_constant_bool_expression(bool value);
+		ast_node_expression* create_constant_int_expression(int value);
+		ast_node_expression* create_constant_float_expression(float value);
+		ast_node_expression* create_constant_bool_expression(bool value);
 
 		/* 作用域 & 符号表 管理 */
 		void push_scope(scope* in_scope);
@@ -116,9 +120,6 @@ namespace Thunder
 		ast_node* get_local_symbol(const String& name) const;
 		ast_node* get_global_symbol(const String& name) const;
 		enum_symbol_type get_symbol_type(const String& name) const;
-		
-		/* 兼容性函数 - 逐步淘汰 */
-		ast_node* get_symbol_node(const String& name) { return get_global_symbol(name); }
 
 		/* 类型系统 */
 		//DataType* type_infer(ShaderParseState* state, ASTNode* expr) { return nullptr;}    // 类型推断

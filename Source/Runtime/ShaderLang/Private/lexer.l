@@ -90,7 +90,7 @@ SV_TARGET				SV_Target{TARGETS}?
 {SAMPLER}		{ return TOKENIZE(TYPE_SAMPLER); }
 
 POSITION[0-7]?	{ return TOKENIZE(TOKEN_SV); }
-SV_Position 	{ return TOKENIZE(TOKEN_SV); }
+SV_POSITION 	{ return TOKENIZE(TOKEN_SV); }
 {TEXCOORD}  	{ return TOKENIZE(TOKEN_SV); }
 {SV_TARGET} 	{ return TOKENIZE(TOKEN_SV); }
 

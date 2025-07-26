@@ -10,8 +10,21 @@ Shader "TestShader"
             int4 vertex : POSITION;
             float2 uv : TEXCOORD0;
         };
+        
+        struct v2f
+        {
+            float4 pos : SV_POSITION;
+            float2 uv : TEXCOORD0;
+        };
+        
+        v2f vert(appdata v)
+        {
+            v2f o;
+            o.uv = v.uv;
+            return o;
+        }
 
-        int frag(int x, int y)
+        int frag(v2f v, int x, int y)
         {
             for (int i = 0; i < 10; i++)
             {

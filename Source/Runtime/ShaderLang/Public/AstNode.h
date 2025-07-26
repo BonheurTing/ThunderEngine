@@ -253,8 +253,8 @@ namespace Thunder
     class ast_node_variable : public ast_node
     {
     public:
-        ast_node_variable(const String& name)
-            : ast_node(enum_ast_node_type::variable), name(name) {}
+        ast_node_variable(String name)
+            : ast_node(enum_ast_node_type::variable), name(std::move(name)) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
@@ -269,11 +269,20 @@ namespace Thunder
     {
     public:
         ast_node_pass() : ast_node(enum_ast_node_type::pass) {}
+        void add_structure(class ast_node_struct* structure)
+        {
+            structures.push_back(structure);
+        }
+        void add_function(class ast_node_function* function)
+        {
+            functions.push_back(function);
+        }
+        
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
-    public:
-        class ast_node_struct* structure = nullptr;
-        class ast_node_function* stage = nullptr;
+    private:
+        TArray<ast_node_struct*> structures;
+        TArray<ast_node_function*> functions;
     };
 
     class ast_node_struct : public ast_node
@@ -525,16 +534,15 @@ namespace Thunder
     class component_expression : public ast_node_expression
     {
     public:
-        component_expression(ast_node_expression* expr, ast_node* identifier, const String& text) noexcept
+        component_expression(ast_node_expression* expr, String text) noexcept
             : ast_node_expression(enum_expr_type::component),
-            component_name(expr), component_member(identifier), member_text(text) {}
+            component_name(expr), identifier(std::move(text)) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     private:
         ast_node_expression* component_name = nullptr;
-        ast_node* component_member = nullptr;
-        String member_text;
+        String identifier;
     };
 
     /*
@@ -600,8 +608,8 @@ namespace Thunder
     class function_call_expression : public ast_node_expression
     {
     public:
-        function_call_expression(const String& func_name) noexcept
-            : ast_node_expression(enum_expr_type::function_call), function_name(func_name) {}
+        function_call_expression(String func_name) noexcept
+            : ast_node_expression(enum_expr_type::function_call), function_name(std::move(func_name)) {}
 
         void add_argument(ast_node_expression* arg)
         {

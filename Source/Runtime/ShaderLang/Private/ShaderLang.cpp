@@ -130,17 +130,18 @@ namespace Thunder
 			break;
 		case TYPE_ID:
 			{
-				TAssert(sl_state->get_symbol_type(type_info.text) == enum_symbol_type::type);
-				if (auto symbol_node = static_cast<ast_node_type*>(sl_state->get_global_symbol(type_info.text)))
+				const auto symbol_node = get_global_symbol(type_info.text);
+				if (symbol_node->Type == enum_ast_node_type::type)
 				{
-					switch (symbol_node->param_type)
-					{
-					case enum_basic_type::tp_struct:
-						node->param_type = enum_basic_type::tp_struct;
-						break;
-					default:
-						break;
-					}
+					//node->param_type = static_cast<ast_node_type*>(symbol_node)->param_type;
+				}
+				else if (symbol_node->Type == enum_ast_node_type::structure)
+				{
+					node->param_type = enum_basic_type::tp_struct;
+				}
+				else
+				{
+					TAssert(false);
 				}
 				break;
 			}
@@ -148,16 +149,6 @@ namespace Thunder
 			break;
 		}
 
-		return node;
-	}
-
-	ast_node* shader_lang_state::create_pass_node(ast_node* struct_node, ast_node* stage_node)
-	{
-		TAssertf(struct_node != nullptr && struct_node->Type == enum_ast_node_type::structure, "Struct owner type is not correct");
-		TAssertf(stage_node != nullptr && stage_node->Type == enum_ast_node_type::function, "Stage owner type is not correct");
-		const auto node = new ast_node_pass;
-		node->structure = static_cast<ast_node_struct*>(struct_node);
-		node->stage = static_cast<ast_node_function*>(stage_node);
 		return node;
 	}
 
@@ -172,6 +163,38 @@ namespace Thunder
 		pop_scope();
 		global_scope.SafeRelease();
 		return content;
+	}
+
+	void shader_lang_state::parsing_pass_begin()
+	{
+		TAssert(current_pass == nullptr);
+		current_pass = new ast_node_pass;
+	}
+
+	ast_node* shader_lang_state::parsing_pass_end()
+	{
+		ast_node_pass* dummy = current_pass;
+		current_pass = nullptr;
+		return dummy;
+	}
+
+	void shader_lang_state::add_definition_member(ast_node* def)
+	{
+		if (def != nullptr)
+		{
+			if (def->Type == enum_ast_node_type::structure)
+			{
+				current_pass->add_structure(static_cast<ast_node_struct*>(def));
+			}
+			else if (def->Type == enum_ast_node_type::function)
+			{
+				current_pass->add_function(static_cast<ast_node_function*>(def));
+			}
+			else
+			{
+				debug_log("Invalid definition type in add_definition_member.");
+			}
+		}
 	}
 
 	void shader_lang_state::parsing_struct_begin(const token_data& name)
@@ -423,14 +446,14 @@ namespace Thunder
 		}
 		else
 		{
-			const auto symbol_node = sl_state->get_global_symbol(comp.text);
+			/*const auto symbol_node = get_global_symbol(comp.text);
 			if(symbol_node == nullptr)
 			{
-				sl_state->debug_log("Symbol not found: " + comp.text);
+				debug_log("Symbol not found: " + comp.text);
 				return nullptr;
-			}
+			}*/
 
-			const auto component= new component_expression(expr, symbol_node, comp.text);
+			const auto component = new component_expression(expr, comp.text);
 			return component;
 		}
 	}
@@ -469,7 +492,7 @@ namespace Thunder
 	{
 		if (ast_root == nullptr)
 		{
-			sl_state->debug_log("Parse Error, current text : " + sl_state->current_text);
+			debug_log("Parse Error, current text : " + sl_state->current_text);
 			return;
 		}
 		ast_root->print_ast(0);

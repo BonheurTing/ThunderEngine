@@ -172,14 +172,26 @@ passes:
     ;
 
 pass_definition:
-    TOKEN_SUBSHADER LBRACE pass_content RBRACE{
-        $$ = $3;
+    TOKEN_SUBSHADER LBRACE {
+        sl_state->parsing_pass_begin();
+    }
+    pass_content RBRACE{
+        $$ = sl_state->parsing_pass_end();
     }
     ;
 
 pass_content:
-    struct_definition stage_definition{
-        $$ = sl_state->create_pass_node($1, $2);
+    struct_definition {
+        sl_state->add_definition_member($1);
+    }
+    | stage_definition {
+        sl_state->add_definition_member($1);
+    }
+    | pass_content struct_definition {
+        sl_state->add_definition_member($2);
+    }
+    | pass_content stage_definition {
+        sl_state->add_definition_member($2);
     }
     ;
 

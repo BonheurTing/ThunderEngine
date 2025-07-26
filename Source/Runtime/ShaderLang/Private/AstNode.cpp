@@ -107,13 +107,15 @@ namespace Thunder
 
     void ast_node_pass::generate_hlsl(String& outResult)
     {
-        if (structure != nullptr)
+        for (const auto& def : structures)
         {
-            structure->generate_hlsl(outResult);
+            def->generate_hlsl(outResult);
+            outResult += "\n";
         }
-        if (stage != nullptr)
+        for (const auto& def : functions)
         {
-            stage->generate_hlsl(outResult);
+            def->generate_hlsl(outResult);
+            outResult += "\n";
         }
     }
     
@@ -318,7 +320,7 @@ namespace Thunder
     {
         component_name->generate_hlsl(outResult);
         outResult += ".";
-        outResult += member_text;
+        outResult += identifier;
     }
 
     void reference_expression::generate_hlsl(String& outResult)
@@ -513,13 +515,13 @@ namespace Thunder
     {
         print_blank(indent);
         printf("Pass:\n");
-        if (structure != nullptr)
+        for (const auto def : structures)
         {
-            structure->print_ast(indent + 1);
+            def->print_ast(indent + 1);
         }
-        if (stage != nullptr)
+        for (const auto def : functions)
         {
-            stage->print_ast(indent + 1);
+            def->print_ast(indent + 1);
         }
     }
 
@@ -680,7 +682,7 @@ namespace Thunder
         printf("Component: {\n");
         component_name->print_ast(indent + 1);
         print_blank(indent + 1);
-        printf(".%s\n", member_text.c_str());
+        printf(".%s\n", identifier.c_str());
         print_blank(indent);
         printf("}\n");
     }
@@ -1218,12 +1220,13 @@ namespace Thunder
         {
         case TOKEN_IDENTIFIER:
             {
-                const ast_node* symbol_node = sl_state->get_symbol_node(text);
+                const ast_node* symbol_node = sl_state->get_global_symbol(text);
                 if(symbol_node == nullptr)
                 {
                     token = NEW_ID;
                 }
-                else if (symbol_node->Type == enum_ast_node_type::type)
+                else if (symbol_node->Type == enum_ast_node_type::type ||
+                    symbol_node->Type == enum_ast_node_type::structure)
                 {
                     sl_state->debug_log("TYPE_ID : " + sl_state->current_text, loc);
                     token = TYPE_ID;

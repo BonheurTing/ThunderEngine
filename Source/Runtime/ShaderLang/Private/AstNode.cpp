@@ -119,6 +119,34 @@ namespace Thunder
 
     void ast_node_archive::generate_hlsl(String& outResult)
     {
+        if (!object_parameters.empty())
+        {
+            outResult += "cbuffer cbObject : register(b0, space0)\n{\n";
+            for (const auto& param : object_parameters)
+            {
+                outResult += param->type->type_name + " " + param->name + ";\n";
+            }
+            outResult += "};\n\n";
+        }
+        if (!pass_parameters.empty())
+        {
+            outResult += "cbuffer cbPass : register(b1, space0)\n{\n";
+            for (const auto& param : pass_parameters)
+            {
+                outResult += param->type->type_name + " " + param->name + ";\n";
+            }
+            outResult += "};\n\n";
+        }
+        if (!global_parameters.empty())
+        {
+            outResult += "cbuffer cbGlobal : register(b2, space0)\n{\n";
+            for (const auto& param : global_parameters)
+            {
+                outResult += param->type->type_name + " " + param->name + ";\n";
+            }
+            outResult += "};\n\n";
+        }
+        
         for (const auto pass : passes)
         {
             pass->generate_hlsl(outResult);

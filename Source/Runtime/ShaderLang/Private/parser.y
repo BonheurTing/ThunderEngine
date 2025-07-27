@@ -174,44 +174,31 @@ properties_definition:
     }
     ;
 
-variant:
+variable:
     type new_identifier SEMICOLON {
-        sl_state->add_variant_member($1, $2, nullptr);
+        sl_state->add_variable_to_list($1, $2, nullptr);
     }
     | type new_identifier ASSIGN constant_expr SEMICOLON {
-        sl_state->add_variant_member($1, $2, $4);
+        sl_state->add_variable_to_list($1, $2, $4);
     }
     ;
 
-variant_list:
-    // EMPTY
-    | variant
-    | variant_list variant
+variable_list:
+    variable
+    | variable_list variable
     ;
 
 variants_definition:
-    TOKEN_VARIANTS LBRACE variant_list RBRACE {
+    TOKEN_VARIANTS LBRACE variable_list RBRACE {
+        token_data data;
+        sl_state->parsing_variable_end($1, data);
         $$ = nullptr;
     }
     ;
 
-parameter:
-    type new_identifier SEMICOLON {
-        sl_state->add_parameter_member($1, $2, nullptr);
-    }
-    | type new_identifier ASSIGN constant_expr SEMICOLON {
-        sl_state->add_parameter_member($1, $2, $4);
-    }
-    ;
-
-parameter_list:
-    // EMPTY
-    | parameter
-    | parameter_list parameter
-    ;
-
 parameters_definition:
-    TOKEN_PARAMETERS STRING_CONSTANT LBRACE parameter_list RBRACE {
+    TOKEN_PARAMETERS STRING_CONSTANT LBRACE variable_list RBRACE {
+        sl_state->parsing_variable_end($1, $2);
         $$ = nullptr;
     }
     ;

@@ -167,6 +167,68 @@ namespace Thunder
 		return dummy;
 	}
 
+	void shader_lang_state::add_variable_to_list(ast_node* type, const token_data& name, ast_node_expression* default_value)
+	{
+		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
+			"add_variant_member called with invalid type.");
+		TAssert(name.token_id == NEW_ID);
+
+		const auto variable = new ast_node_variable(name.text);
+		variable->type = static_cast<ast_node_type*>(type);
+		
+		if (default_value != nullptr)
+		{
+			// 这里可以将default_value转换为字符串存储到variable->value中
+			// 具体实现取决于如何处理默认值
+		}
+
+		current_variables.push_back(variable);
+	}
+
+	void shader_lang_state::parsing_variable_end(const token_data& name, const token_data& text)
+	{
+		if (name.token_id == TOKEN_VARIANTS)
+		{
+			for (const auto& var : current_variables)
+			{
+				current_archive->add_variant(var);
+			}
+		}
+		else if (name.token_id == TOKEN_PARAMETERS)
+		{
+			if (text.text == "\"Object\"")
+			{
+				for (const auto& var : current_variables)
+				{
+					current_archive->add_object_parameter(var);
+				}
+			}
+			else if (text.text == "\"Pass\"")
+			{
+				for (const auto& var : current_variables)
+				{
+					current_archive->add_pass_parameter(var);
+				}
+			}
+			else if (text.text == "\"Global\"")
+			{
+				for (const auto& var : current_variables)
+				{
+					current_archive->add_global_parameter(var);
+				}
+			}
+			else
+			{
+				debug_log("Unknown parameter type: " + text.text);
+			}
+		}
+		else
+		{
+			debug_log("Unknown variable type: " + name.text);
+		}
+		current_variables.clear();
+	}
+
 	void shader_lang_state::parsing_pass_begin()
 	{
 		TAssert(current_pass == nullptr);
@@ -258,56 +320,6 @@ namespace Thunder
 			{
 				type_node->is_semantic = true;
 			}
-		}
-	}
-
-	void shader_lang_state::add_variant_member(ast_node* type, const token_data& name, ast_node_expression* default_value)
-	{
-		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
-			"add_variant_member called with invalid type.");
-		TAssert(name.token_id == NEW_ID);
-
-		const auto variable = new ast_node_variable(name.text);
-		variable->type = static_cast<ast_node_type*>(type);
-		
-		if (default_value != nullptr)
-		{
-			// 这里可以将default_value转换为字符串存储到variable->value中
-			// 具体实现取决于如何处理默认值
-		}
-
-		if (current_archive)
-		{
-			current_archive->add_variant(variable);
-		}
-		else
-		{
-			debug_log("No current variants to add member to.");
-		}
-	}
-
-	void shader_lang_state::add_parameter_member(ast_node* type, const token_data& name, ast_node_expression* default_value)
-	{
-		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
-			"add_parameter_member called with invalid type.");
-		TAssert(name.token_id == NEW_ID);
-
-		const auto variable = new ast_node_variable(name.text);
-		variable->type = static_cast<ast_node_type*>(type);
-		
-		if (default_value != nullptr)
-		{
-			// 这里可以将default_value转换为字符串存储到variable->value中
-			// 具体实现取决于如何处理默认值
-		}
-
-		if (current_archive)
-		{
-			current_archive->add_pass_parameter(variable);
-		}
-		else
-		{
-			debug_log("No current parameters to add member to.");
 		}
 	}
 

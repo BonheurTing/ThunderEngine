@@ -538,6 +538,12 @@ namespace Thunder
 		}
 	}
 
+	ast_node_expression* shader_lang_state::create_index_expression(ast_node_expression* expr,
+		ast_node_expression* index_expr)
+	{
+		return new index_expression(expr, index_expr);
+	}
+
 	// 常量表达式创建函数
 	ast_node_expression* shader_lang_state::create_constant_int_expression(int value)
 	{

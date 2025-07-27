@@ -70,7 +70,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 
 %token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_VARIANTS TOKEN_PARAMETERS TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
 %token <token> TOKEN_BREAK TOKEN_CONTINUE TOKEN_DISCARD
-%token <token> RPAREN RBRACE SEMICOLON
+%token <token> RPAREN RBRACKET RBRACE SEMICOLON
 %token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE TOKEN_FOR
 
 
@@ -99,7 +99,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 /* 一元运算符优先级 */
 %right<token> NOT BITNOT
 %left<token> INC DEC
-%left<token> LPAREN LBRACE
+%left<token> LPAREN LBRACKET LBRACE
 %left<token> '.'
 %nonassoc SEMICOLON
 
@@ -703,6 +703,10 @@ postfix_expr:
     | postfix_expr DEC
     {
         $$ = sl_state->create_unary_expression(static_cast<int>(enum_unary_op::post_dec), $1);
+    }
+    | postfix_expr LBRACKET expression RBRACKET
+    {
+        $$ = sl_state->create_index_expression($1, $3);
     }
     | function_call
     {

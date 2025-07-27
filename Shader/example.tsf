@@ -82,9 +82,12 @@ Shader "TestShader"
             {
                 x = y;
             }
+            
+            float4 test_float4;
+            float test_float_component = test_float4[3];
 
             ps_out out;
-            float test_return_value = test_function(1);
+            float test_return_value = test_function(1)[0][1][2 * 5][x + 1].xxx;
             out.color0 = test_return_value.xxxx;
             out.color1 = test_return_value.rrrr;
             return out;

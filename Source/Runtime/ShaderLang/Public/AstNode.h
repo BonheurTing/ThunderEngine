@@ -38,6 +38,7 @@ namespace Thunder
         unary_op,  // 一元运算
         shuffle, // 向量分量重排
         component, // 成员访问
+        index, // 数组索引
         reference, // 出现过的
         integer,
         constant_float,
@@ -623,9 +624,21 @@ namespace Thunder
         String identifier;
     };
 
-    /*
-     * 出现过的id
-     */
+    class index_expression : public ast_node_expression
+    {
+    public:
+        index_expression(ast_node_expression* expr, ast_node_expression* index_expr) noexcept
+            : ast_node_expression(enum_expr_type::index), target(expr), index(index_expr) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    private:
+        ast_node_expression* target = nullptr; // 被索引的表达式
+        ast_node_expression* index = nullptr; // 索引表达式
+    };
+
+
+    // 出现过的id
     class reference_expression : public ast_node_expression
     {
     public:

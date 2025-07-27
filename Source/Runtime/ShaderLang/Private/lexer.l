@@ -172,6 +172,8 @@ SV_POSITION 	{ return TOKENIZE(TOKEN_SV); }
 ")"         	{ return TOKENIZE(RPAREN); }
 "{"         	{ return TOKENIZE(LBRACE); }
 "}"         	{ return TOKENIZE(RBRACE); }
+\[				{ return TOKENIZE(LBRACKET); }
+\]				{ return TOKENIZE(RBRACKET); }
 
 
 [ \t\n]     ; // 忽略空白字符

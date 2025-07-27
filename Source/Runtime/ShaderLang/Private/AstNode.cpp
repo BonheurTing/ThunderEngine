@@ -387,6 +387,17 @@ namespace Thunder
         outResult += identifier;
     }
 
+    void index_expression::generate_hlsl(String& outResult)
+    {
+        target->generate_hlsl(outResult);
+        outResult += "[";
+        if (index)
+        {
+            index->generate_hlsl(outResult);
+        }
+        outResult += "]";
+    }
+
     void reference_expression::generate_hlsl(String& outResult)
     {
         outResult += identifier;
@@ -773,6 +784,26 @@ namespace Thunder
         component_name->print_ast(indent + 1);
         print_blank(indent + 1);
         printf(".%s\n", identifier.c_str());
+        print_blank(indent);
+        printf("}\n");
+    }
+
+    void index_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("Index: {\n");
+        if (target)
+        {
+            target->print_ast(indent + 1);
+        }
+        print_blank(indent + 1);
+        printf("[\n");
+        if (index)
+        {
+            index->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("]\n");
         print_blank(indent);
         printf("}\n");
     }

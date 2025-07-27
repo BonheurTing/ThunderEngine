@@ -230,6 +230,21 @@ namespace Thunder
         outResult += ";\n";
     }
 
+    void break_statement::generate_hlsl(String& outResult)
+    {
+        outResult += "break;\n";
+    }
+
+    void continue_statement::generate_hlsl(String& outResult)
+    {
+        outResult += "continue;\n";
+    }
+
+    void discard_statement::generate_hlsl(String& outResult)
+    {
+        outResult += "discard;\n";
+    }
+
     void expression_statement::generate_hlsl(String& outResult)
     {
         if (expr != nullptr)
@@ -651,6 +666,24 @@ namespace Thunder
         }
         print_blank(indent);
         printf("}\n");
+    }
+
+    void break_statement::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("break\n");
+    }
+
+    void continue_statement::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("continue\n");
+    }
+
+    void discard_statement::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("discard\n");
     }
 
     void expression_statement::print_ast(int indent)

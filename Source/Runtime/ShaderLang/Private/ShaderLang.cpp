@@ -406,6 +406,21 @@ namespace Thunder
 		return new return_statement(expr);
 	}
 
+	ast_node_statement* shader_lang_state::create_break_statement()
+	{
+		return new break_statement();
+	}
+
+	ast_node_statement* shader_lang_state::create_continue_statement()
+	{
+		return new continue_statement();
+	}
+
+	ast_node_statement* shader_lang_state::create_discard_statement()
+	{
+		return new discard_statement();
+	}
+
 	ast_node_statement* shader_lang_state::create_expression_statement(ast_node_expression* expr)
 	{
 		return new expression_statement(expr);

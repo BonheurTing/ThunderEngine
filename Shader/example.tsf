@@ -60,6 +60,11 @@ Shader "TestShader"
             for (int i = 0; i < 10; i++)
             {
                 x += y;
+                if (x > 0)
+                {
+                    break;
+                }
+                continue;
             }
             if (x+y > 100)
             {

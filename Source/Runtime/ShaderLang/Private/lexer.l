@@ -111,6 +111,9 @@ SV_POSITION 	{ return TOKENIZE(TOKEN_SV); }
 "true"			{ return TOKENIZE(TOKEN_TRUE); }
 "false"			{ return TOKENIZE(TOKEN_FALSE); }
 "for"			{ return TOKENIZE(TOKEN_FOR); }
+"break"			{ return TOKENIZE(TOKEN_BREAK); }
+"continue"		{ return TOKENIZE(TOKEN_CONTINUE); }
+"discard"		{ return TOKENIZE(TOKEN_DISCARD); }
 "return"    	{ return TOKENIZE(TOKEN_RETURN); }
 
 [a-zA-Z_][a-zA-Z0-9_]* { return TOKENIZE(TOKEN_IDENTIFIER); }

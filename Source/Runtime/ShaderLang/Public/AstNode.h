@@ -23,6 +23,9 @@ namespace Thunder
         declare,
         assign,
         return_,
+        break_,
+        continue_,
+        discard_,
         expression,
         condition,
         block,
@@ -424,6 +427,36 @@ namespace Thunder
         void print_ast(int indent) override;
     private:
         ast_node_expression* ret_value = nullptr;
+    };
+
+    class break_statement : public ast_node_statement
+    {
+    public:
+        break_statement() noexcept
+        : ast_node_statement(enum_statement_type::break_) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    };
+
+    class continue_statement : public ast_node_statement
+    {
+    public:
+        continue_statement() noexcept
+        : ast_node_statement(enum_statement_type::continue_) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+    };
+
+    class discard_statement : public ast_node_statement
+    {
+    public:
+        discard_statement() noexcept
+        : ast_node_statement(enum_statement_type::discard_) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
     };
 
     class expression_statement : public ast_node_statement

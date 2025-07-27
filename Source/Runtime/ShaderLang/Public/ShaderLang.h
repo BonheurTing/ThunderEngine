@@ -96,6 +96,9 @@ namespace Thunder
 		/* Statement */
 		ast_node_statement* create_var_decl_statement(ast_node_type* type_node, const token_data& name, ast_node_expression* init_expr);
 		ast_node_statement* create_return_statement(ast_node_expression* expr);
+		ast_node_statement* create_break_statement();
+		ast_node_statement* create_continue_statement();
+		ast_node_statement* create_discard_statement();
 		ast_node_statement* create_expression_statement(ast_node_expression* expr);
 		ast_node_statement* create_condition_statement(ast_node_expression* cond, ast_node_statement* true_stmt, ast_node_statement* false_stmt);
 		ast_node_statement* create_for_statement(ast_node_statement* init, ast_node_expression* cond, ast_node_expression* update, ast_node_statement* body);

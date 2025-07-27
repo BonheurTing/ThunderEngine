@@ -69,6 +69,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TOKEN_INTEGER TOKEN_FLOAT STRING_CONSTANT
 
 %token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_VARIANTS TOKEN_PARAMETERS TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
+%token <token> TOKEN_BREAK TOKEN_CONTINUE TOKEN_DISCARD
 %token <token> RPAREN RBRACE SEMICOLON
 %token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE TOKEN_FOR
 
@@ -114,7 +115,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 
 /* statement */
 %type <block> function_body block block_begin
-%type <statement> statement declaration_statement func_ret empty_statement expression_statement
+%type <statement> statement declaration_statement jump_statement empty_statement expression_statement
                 if_then_statement if_then_else_statement for_statement for_init_statement
 
 /* expression */
@@ -338,7 +339,7 @@ block_statements:
 statement:
     block { $$ = $1; }
     | declaration_statement
-    | func_ret
+    | jump_statement
     | empty_statement
     | expression_statement
     | if_then_statement
@@ -354,9 +355,21 @@ declaration_statement:
     }
     ;
 
-func_ret:
+jump_statement:
     TOKEN_RETURN expression SEMICOLON {
         $$ = sl_state->create_return_statement($2);
+    }
+    | TOKEN_RETURN SEMICOLON {
+        $$ = sl_state->create_return_statement(nullptr);
+    }
+    | TOKEN_BREAK SEMICOLON {
+        $$ = sl_state->create_break_statement();
+    }
+    | TOKEN_CONTINUE SEMICOLON {
+        $$ = sl_state->create_continue_statement();
+    }
+    | TOKEN_DISCARD SEMICOLON {
+        $$ = sl_state->create_discard_statement();
     }
     ;
 

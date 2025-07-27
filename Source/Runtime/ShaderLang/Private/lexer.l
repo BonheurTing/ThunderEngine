@@ -80,7 +80,7 @@ SAMPLER					(s|S)ampler{SAMPLER_TAIL}
 TEXCOORD				TEXCOORD[N|0-9]
 
 TARGETS					[0-7]
-SV_TARGET				SV_Target{TARGETS}?
+SV_TARGET				SV_TARGET{TARGETS}?
 
 %%
 
@@ -96,6 +96,8 @@ SV_POSITION 	{ return TOKENIZE(TOKEN_SV); }
 
 "Shader"		{ return TOKENIZE(TOKEN_SHADER); }
 "Properties"	{ return TOKENIZE(TOKEN_PROPERTIES); }
+"Variants"		{ return TOKENIZE(TOKEN_VARIANTS); }
+"Parameters"	{ return TOKENIZE(TOKEN_PARAMETERS); }
 "SubShader"		{ return TOKENIZE(TOKEN_SUBSHADER); }
 
 "int"       	{ return TOKENIZE(TYPE_INT); }

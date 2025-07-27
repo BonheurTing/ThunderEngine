@@ -3,11 +3,30 @@ Shader "TestShader"
     Properties
     {
     }
+    Variants
+    {  
+        int _Variants = 0;
+        float4 _Variant1;
+    }
+    Parameters "Pass"
+    {
+        float4x4 WorldToObject;
+        float4x4 ViewProjection;
+    }
+    Parameters "Object"
+    {
+        float3 LastPosition;
+    }
+    Parameters "Global"
+    {
+        float4 _Color2;
+        int RenderQuality = 1;
+    }
     SubShader
     {
-        struct appdata
+        struct vs_input
         {
-            int4 vertex : POSITION;
+            float4 vertex : POSITION;
             float2 uv : TEXCOORD0;
         };
         
@@ -17,14 +36,26 @@ Shader "TestShader"
             float2 uv : TEXCOORD0;
         };
         
-        v2f vert(appdata v)
+        struct ps_out
+        {
+            float4 color0 : SV_TARGET0;
+            float4 color1 : SV_TARGET1;
+        };
+        
+        v2f vert(vs_input v)
         {
             v2f o;
+            o.pos = v.vertex.wwxy;
             o.uv = v.uv;
             return o;
         }
+        
+        float test_function(int x)
+        {
+            return 0.5;
+        }
 
-        int frag(v2f v, int x, int y)
+        ps_out frag(v2f v)
         {
             for (int i = 0; i < 10; i++)
             {
@@ -46,8 +77,12 @@ Shader "TestShader"
             {
                 x = y;
             }
-            frag(x,y);
-            return x;
+
+            ps_out out;
+            float test_return_value = test_function(1);
+            out.color0 = test_return_value.xxxx;
+            out.color1 = test_return_value.rrrr;
+            return out;
         }
     }
 }

@@ -68,7 +68,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TOKEN_IDENTIFIER TYPE_ID NEW_ID
 %token <token> TOKEN_INTEGER TOKEN_FLOAT STRING_CONSTANT
 
-%token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
+%token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_VARIANTS TOKEN_PARAMETERS TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
 %token <token> RPAREN RBRACE SEMICOLON
 %token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE TOKEN_FOR
 
@@ -105,7 +105,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 /* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
 %type <token> identifier type_identifier new_identifier primary_identifier any_identifier
 %type <token> primitive_types 
-%type properties_definition /* Test. */
+%type <node> definitions properties_definition variants_definition parameters_definition
 %type <type> type
 %type <op_type> assignment_operator unary_operator
 %type <node> archive_definition pass_definition stage_definition struct_definition function_definition
@@ -155,15 +155,65 @@ archive_definition:
     TOKEN_SHADER STRING_CONSTANT LBRACE {
         sl_state->parsing_archive_begin($2);
     }
-    properties_definition passes RBRACE {
+    definitions passes RBRACE {
         $$ = sl_state->parsing_archive_end($6);
     }
+    ;
+
+definitions:
+    properties_definition
+    | definitions variants_definition
+    | definitions parameters_definition
     ;
 
 properties_definition:
     TOKEN_PROPERTIES LBRACE
     // TODO.
-    RBRACE
+    RBRACE {
+        $$ = nullptr;
+    }
+    ;
+
+variant:
+    type new_identifier SEMICOLON {
+        sl_state->add_variant_member($1, $2, nullptr);
+    }
+    | type new_identifier ASSIGN constant_expr SEMICOLON {
+        sl_state->add_variant_member($1, $2, $4);
+    }
+    ;
+
+variant_list:
+    // EMPTY
+    | variant
+    | variant_list variant
+    ;
+
+variants_definition:
+    TOKEN_VARIANTS LBRACE variant_list RBRACE {
+        $$ = nullptr;
+    }
+    ;
+
+parameter:
+    type new_identifier SEMICOLON {
+        sl_state->add_parameter_member($1, $2, nullptr);
+    }
+    | type new_identifier ASSIGN constant_expr SEMICOLON {
+        sl_state->add_parameter_member($1, $2, $4);
+    }
+    ;
+
+parameter_list:
+    // EMPTY
+    | parameter
+    | parameter_list parameter
+    ;
+
+parameters_definition:
+    TOKEN_PARAMETERS STRING_CONSTANT LBRACE parameter_list RBRACE {
+        $$ = nullptr;
+    }
     ;
 
 passes:

@@ -65,13 +65,15 @@ namespace Thunder
 		ast_node_pass* current_pass = nullptr;
 		ast_node_struct* current_structure = nullptr;
 		ast_node_function* current_function = nullptr;
-		//ast_node_block* current_block = nullptr;
+		ast_node_archive* current_archive = nullptr;
 
 		/* 上下文管理 */
 		ast_node_type* create_type_node(const token_data& type_info);
 
 		void parsing_archive_begin(const token_data& name);
 		ast_node* parsing_archive_end(ast_node* content);
+		void add_variant_member(ast_node* type, const token_data& name, ast_node_expression* default_value);
+		void add_parameter_member(ast_node* type, const token_data& name, ast_node_expression* default_value);
 
 		void parsing_pass_begin();
 		ast_node* parsing_pass_end();

@@ -33,6 +33,18 @@ namespace Thunder
         outResult += "ADD EAX EBX";*/
     }
 
+    scope* ast_node_archive::begin_archive()
+    {
+        global_scope = new scope(nullptr, this);
+        return global_scope.Get();
+    }
+
+    void ast_node_archive::end_archive(scope* current)
+    {
+        TAssert(global_scope == current);
+        global_scope.SafeRelease();
+    }
+
     scope* ast_node_struct::begin_structure(scope* outer)
     {
         local_scope = new scope(outer, this);
@@ -102,6 +114,15 @@ namespace Thunder
         if (type->is_semantic)
         {
             outResult += " : " + semantic;
+        }
+    }
+
+    void ast_node_archive::generate_hlsl(String& outResult)
+    {
+        for (const auto pass : passes)
+        {
+            pass->generate_hlsl(outResult);
+            outResult += "\n";
         }
     }
 
@@ -509,6 +530,14 @@ namespace Thunder
             printf(" Semantic: %s", semantic.c_str());
         }
         printf("\n");
+    }
+
+    void ast_node_archive::print_ast(int indent)
+    {
+        for (const auto pass : passes)
+        {
+            pass->print_ast(indent);
+        }
     }
 
     void ast_node_pass::print_ast(int indent)

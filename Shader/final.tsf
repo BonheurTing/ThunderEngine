@@ -31,6 +31,19 @@ Shader "ShaderName"
     }
 }
 
+// Type, Offset, Size
+LayoutMap = 
+{
+    "ViewProj" : {EType::float4x4, 0 : 64};
+    "LastPos" : {EType::float3, 64 : 12};
+    ...
+};
+//cpp使用
+params.Set("ViewProj", scene.GetViewProj());
+//cpp内部
+byte* dst = cb0 + LayoutMap["ViewProj"].offset;
+memcpy(dst, src, LayoutMap["ViewProj"].size);
+
 
 /**
 * 使用情景1：希望场景中画一个opaque球，一个translucent球

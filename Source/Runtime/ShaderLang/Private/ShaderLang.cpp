@@ -154,15 +154,17 @@ namespace Thunder
 
 	void shader_lang_state::parsing_archive_begin(const token_data& name)
 	{
-		global_scope = new scope(nullptr,nullptr);
-		push_scope(global_scope);
+		current_archive = new ast_node_archive(name.text);
+		push_scope(current_archive->begin_archive());
 	}
 
 	ast_node* shader_lang_state::parsing_archive_end(ast_node* content)
 	{
-		pop_scope();
-		global_scope.SafeRelease();
-		return content;
+		current_archive->end_archive(pop_scope());
+
+		ast_node_archive* dummy = current_archive;
+		current_archive = nullptr;
+		return dummy;
 	}
 
 	void shader_lang_state::parsing_pass_begin()
@@ -173,6 +175,7 @@ namespace Thunder
 
 	ast_node* shader_lang_state::parsing_pass_end()
 	{
+		current_archive->add_pass(current_pass);
 		ast_node_pass* dummy = current_pass;
 		current_pass = nullptr;
 		return dummy;
@@ -255,6 +258,56 @@ namespace Thunder
 			{
 				type_node->is_semantic = true;
 			}
+		}
+	}
+
+	void shader_lang_state::add_variant_member(ast_node* type, const token_data& name, ast_node_expression* default_value)
+	{
+		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
+			"add_variant_member called with invalid type.");
+		TAssert(name.token_id == NEW_ID);
+
+		const auto variable = new ast_node_variable(name.text);
+		variable->type = static_cast<ast_node_type*>(type);
+		
+		if (default_value != nullptr)
+		{
+			// 这里可以将default_value转换为字符串存储到variable->value中
+			// 具体实现取决于如何处理默认值
+		}
+
+		if (current_archive)
+		{
+			current_archive->add_variant(variable);
+		}
+		else
+		{
+			debug_log("No current variants to add member to.");
+		}
+	}
+
+	void shader_lang_state::add_parameter_member(ast_node* type, const token_data& name, ast_node_expression* default_value)
+	{
+		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
+			"add_parameter_member called with invalid type.");
+		TAssert(name.token_id == NEW_ID);
+
+		const auto variable = new ast_node_variable(name.text);
+		variable->type = static_cast<ast_node_type*>(type);
+		
+		if (default_value != nullptr)
+		{
+			// 这里可以将default_value转换为字符串存储到variable->value中
+			// 具体实现取决于如何处理默认值
+		}
+
+		if (current_archive)
+		{
+			current_archive->add_pass_parameter(variable);
+		}
+		else
+		{
+			debug_log("No current parameters to add member to.");
 		}
 	}
 

@@ -10,6 +10,7 @@ namespace Thunder
     {
         type,
         variable,
+        archive,
         pass,
         structure,
         function,
@@ -263,6 +264,50 @@ namespace Thunder
         String name; // 用于存储变量名称
         String semantic; // 用于存储shader语义
         String value; // 用于存储常量值或默认值
+    };
+
+    class ast_node_archive : public ast_node
+    {
+    public:
+        ast_node_archive(const String& text) : ast_node(enum_ast_node_type::archive), name(text) {}
+
+        scope* begin_archive();
+        void end_archive(scope* current);
+
+        void add_pass(class ast_node_pass* pass)
+        {
+            passes.push_back(pass);
+        }
+        void add_variant(class ast_node_variable* var)
+        {
+            variants.push_back(var);
+        }
+        void add_object_parameter(ast_node_variable* var)
+        {
+            object_parameters.push_back(var);
+        }
+        void add_pass_parameter(ast_node_variable* var)
+        {
+            pass_parameters.push_back(var);
+        }
+        void add_global_parameter(ast_node_variable* var)
+        {
+            global_parameters.push_back(var);
+        }
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+
+    private:
+        String name;
+        scope_ref global_scope;
+        TArray<ast_node_variable*> properties;
+        TArray<ast_node_variable*> variants;
+        TArray<ast_node_variable*> object_parameters;
+        TArray<ast_node_variable*> pass_parameters;
+        TArray<ast_node_variable*> global_parameters;
+        TArray<ast_node_pass*> passes;
+        
     };
 
     class ast_node_pass : public ast_node

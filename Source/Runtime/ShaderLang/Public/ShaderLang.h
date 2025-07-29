@@ -73,7 +73,7 @@ namespace Thunder
 
 		void parsing_archive_begin(const token_data& name);
 		ast_node* parsing_archive_end(ast_node* content);
-		void add_variable_to_list(ast_node* type, const token_data& name, ast_node_expression* default_value);
+		void add_variable_to_list(ast_node_type* type, const token_data& name, ast_node_expression* default_value);
 		void parsing_variable_end(const token_data& name, const token_data& text);
 
 		void parsing_pass_begin();
@@ -82,19 +82,21 @@ namespace Thunder
 		
 		void parsing_struct_begin(const token_data& name);
 		ast_node_struct* parsing_struct_end();
-		void add_struct_member(ast_node* type, const token_data& name, const struct token_data& modifier, const parse_location* loc);
-		static void bind_modifier(ast_node* type, const token_data& modifier, const parse_location* loc);
+		void add_struct_member(ast_node_type* type, const token_data& name, const struct token_data& modifier, const parse_location* loc);
+		static void bind_modifier(ast_node_type* type, const token_data& modifier, const parse_location* loc);
 		
 		void parsing_function_begin(ast_node* type, const token_data& name);
 		ast_node_function* parsing_function_end(ast_node_block* body);
-		void add_function_param(ast_node* type, const token_data& name, const parse_location* loc);
+		void add_function_param(ast_node_type* type, const token_data& name, const parse_location* loc);
 
 		void parsing_block_begin();
 		ast_node_block* parsing_block_end();
 		void add_block_statement(ast_node_statement* statement, const parse_location* loc) const;
 
+		int evaluate_integer_expression(ast_node_expression* expr, const parse_location& loc);
+
 		/* Statement */
-		ast_node_statement* create_var_decl_statement(ast_node_type* type_node, const token_data& name, ast_node_expression* init_expr);
+		ast_node_statement* create_declaration_statement(ast_node_type* type, const token_data& name, const dimensions& dim, ast_node_expression* expr);
 		ast_node_statement* create_return_statement(ast_node_expression* expr);
 		ast_node_statement* create_break_statement();
 		ast_node_statement* create_continue_statement();
@@ -114,6 +116,8 @@ namespace Thunder
 		void append_argument(ast_node_expression* func_call_expr, ast_node_expression* arg_expr);
 		ast_node_expression* create_assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs);
 		ast_node_expression* create_conditional_expression(ast_node_expression* cond, ast_node_expression* true_expr, ast_node_expression* false_expr);
+		ast_node_expression* create_chain_expression(ast_node_expression* prev, ast_node_expression* next);
+		ast_node_expression* create_cast_expression(ast_node_type* target_type, ast_node_expression* operand);
 		
 		/* Constant Expression */
 		ast_node_expression* create_constant_int_expression(int value);

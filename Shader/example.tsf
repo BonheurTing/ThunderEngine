@@ -83,7 +83,7 @@ Shader "TestShader"
                 x = y;
             }
             
-            float4 test_float4;
+            float4 test_float4 = {3, 4,5};
             float test_float_component = test_float4[3];
 
             ps_out out;

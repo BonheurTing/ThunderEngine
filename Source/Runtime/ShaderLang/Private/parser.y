@@ -108,6 +108,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <token> primitive_types 
 %type <node> definitions properties_definition variants_definition parameters_definition
 %type <type> type
+%type <dimension> maybe_array array_dimensions maybe_semantic
 %type <op_type> assignment_operator unary_operator
 %type <node> archive_definition pass_definition stage_definition struct_definition function_definition
 %type <node> program passes pass_content param_list param
@@ -119,10 +120,10 @@ int yylex(YYSTYPE *, parse_location*, void*);
                 if_then_statement if_then_else_statement for_statement for_init_statement
 
 /* expression */
-%type <expression> expression primary_expr binary_expr postfix_expr function_call
-                  logical_or_expr logical_and_expr equality_expr relational_expr
-                  unary_expr constant_expr condition maybe_condition maybe_expression
-                  assignment_expr conditional_expr
+%type <expression> expression primary_expr postfix_expr function_call
+                  logical_or_expr logical_and_expr inclusive_or_expr exclusive_or_expr and_expr equality_expr relational_expr shift_expr
+                  additive_expr multiplicative_expr unary_expr constant_expr condition maybe_condition maybe_expression
+                  assignment_expr conditional_expr local_variable_initializer variable_initializer
 
 %type <expression> function_call_header function_call_header_no_parameters function_call_header_with_parameters
 
@@ -151,6 +152,44 @@ any_identifier:
 primary_identifier:
 	identifier| new_identifier
     ;
+
+array_dimensions:
+	LBRACKET RBRACKET
+		{
+			$$ = dimensions{};
+            $$.add_dimension(0);
+		}
+|	LBRACKET expression RBRACKET
+		{
+			$$ = dimensions{};
+            $$.add_dimension(sl_state->evaluate_integer_expression($2, @2));
+		}
+|	array_dimensions LBRACKET expression RBRACKET
+		{
+			$$ = $1;
+            $$.add_dimension(sl_state->evaluate_integer_expression($3, @3));
+		}
+;
+
+maybe_array:
+		{
+			$$ = dimensions{};
+		}
+|	array_dimensions
+		{
+			$$ = $1;
+		}
+;
+
+maybe_semantic:
+		{
+			$$.set_null();
+		}
+| 	COLON TOKEN_SV
+		{
+			$$ = $2;
+		}
+;
 
 archive_definition:
     TOKEN_SHADER STRING_CONSTANT LBRACE {
@@ -257,9 +296,9 @@ struct_member:
         sl_state->add_struct_member($1, $2, token, &yylloc);
     }
     | type new_identifier COLON TOKEN_SV SEMICOLON {
-        ast_node* type = $1;
-        sl_state->bind_modifier(type, $4, &yylloc);
-        sl_state->add_struct_member(type, $2, $4, &yylloc);  // Todo : parse sv.
+        //ast_node_type* type = $1;
+        sl_state->bind_modifier($1, $4, &yylloc);
+        sl_state->add_struct_member($1, $2, $4, &yylloc);  // Todo : parse sv.
     }
     ;
 
@@ -299,6 +338,34 @@ type:
         $$ = sl_state->create_type_node($1);
     }
     ;
+
+local_variable_initializer:
+    {
+        $$ = nullptr;
+    }
+|	ASSIGN assignment_expr
+		{
+			$$ = $2;
+		}
+|	ASSIGN LBRACE expression RBRACE
+		{
+			$$ = $3; // 初始化列表，简化处理
+		}
+;
+
+variable_initializer:
+		{
+			$$ = nullptr;
+		}
+|	ASSIGN constant_expr
+		{
+			$$ = $2;
+		}
+|	ASSIGN LBRACE constant_expr RBRACE
+		{
+			$$ = $3; // 常量初始化列表
+		}
+;
 
 function_body:
     block
@@ -347,11 +414,9 @@ statement:
     | for_statement;
 
 declaration_statement:
-    type new_identifier SEMICOLON {
-        $$ = sl_state->create_var_decl_statement($1, $2, nullptr);
-    }
-    | type new_identifier ASSIGN assignment_expr SEMICOLON {
-        $$ = sl_state->create_var_decl_statement($1, $2, $4);
+    type primary_identifier maybe_array local_variable_initializer SEMICOLON
+    {
+        $$ = sl_state->create_declaration_statement($1, $2, $3, $4);
     }
     ;
 
@@ -443,8 +508,7 @@ expression:
     assignment_expr
     | expression COMMA assignment_expr
     {
-        // 这里需要实现逗号表达式，暂时简化处理
-        $$ = $3;
+        $$ = sl_state->create_chain_expression($1, $3);
     }
     ;
 
@@ -478,13 +542,49 @@ logical_or_expr:
 
 /* 逻辑与表达式 */
 logical_and_expr:
+    inclusive_or_expr
+    {
+        $$ = $1;
+    }
+    | logical_and_expr AND inclusive_or_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::logical_and, $1, $3);
+    }
+    ;
+
+/* 位或表达式 */
+inclusive_or_expr:
+    exclusive_or_expr
+    {
+        $$ = $1;
+    }
+    | inclusive_or_expr BITOR exclusive_or_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::bit_or, $1, $3);
+    }
+    ;
+
+/* 位异或表达式 */
+exclusive_or_expr:
+    and_expr
+    {
+        $$ = $1;
+    }
+    | exclusive_or_expr BITXOR and_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::bit_xor, $1, $3);
+    }
+    ;
+
+/* 位与表达式 */
+and_expr:
     equality_expr
     {
         $$ = $1;
     }
-    | logical_and_expr AND equality_expr
+    | and_expr BITAND equality_expr
     {
-        $$ = sl_state->create_binary_expression(enum_binary_op::logical_and, $1, $3);
+        $$ = sl_state->create_binary_expression(enum_binary_op::bit_and, $1, $3);
     }
     ;
 
@@ -506,25 +606,77 @@ equality_expr:
 
 /* 关系表达式 */
 relational_expr:
-    binary_expr
+    shift_expr
     {
         $$ = $1;
     }
-    | relational_expr LT binary_expr
+    | relational_expr LT shift_expr
     {
         $$ = sl_state->create_binary_expression(enum_binary_op::less, $1, $3);
     }
-    | relational_expr LE binary_expr
+    | relational_expr LE shift_expr
     {
         $$ = sl_state->create_binary_expression(enum_binary_op::less_equal, $1, $3);
     }
-    | relational_expr GT binary_expr
+    | relational_expr GT shift_expr
     {
         $$ = sl_state->create_binary_expression(enum_binary_op::greater, $1, $3);
     }
-    | relational_expr GE binary_expr
+    | relational_expr GE shift_expr
     {
         $$ = sl_state->create_binary_expression(enum_binary_op::greater_equal, $1, $3);
+    }
+    ;
+
+/* 移位表达式 */
+shift_expr:
+    additive_expr
+    {
+        $$ = $1;
+    }
+    | shift_expr LSHIFT additive_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::left_shift, $1, $3);
+    }
+    | shift_expr RSHIFT additive_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::right_shift, $1, $3);
+    }
+    ;
+
+/* 加法表达式 */
+additive_expr:
+    multiplicative_expr
+    {
+        $$ = $1;
+    }
+    | additive_expr ADD multiplicative_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::add, $1, $3);
+    }
+    | additive_expr SUB multiplicative_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::sub, $1, $3);
+    }
+    ;
+
+/* 乘法表达式 */
+multiplicative_expr:
+    unary_expr
+    {
+        $$ = $1;
+    }
+    | multiplicative_expr MUL unary_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::mul, $1, $3);
+    }
+    | multiplicative_expr DIV unary_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::div, $1, $3);
+    }
+    | multiplicative_expr MOD unary_expr
+    {
+        $$ = sl_state->create_binary_expression(enum_binary_op::mod, $1, $3);
     }
     ;
 
@@ -648,44 +800,12 @@ unary_expr:
     {
         $$ = sl_state->create_unary_expression($1, $2);
     }
+    | LPAREN type RPAREN unary_expr
+    {
+        $$ = sl_state->create_cast_expression($2, $4);
+    }
     ;
 
-binary_expr:
-    unary_expr
-    {
-        $$ = $1;
-    }
-    | binary_expr ADD binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::add, $1, $3);
-    }
-    | binary_expr SUB binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::sub, $1, $3);
-    }
-    | binary_expr MUL binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::mul, $1, $3);
-    }
-    | binary_expr DIV binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::div, $1, $3);
-    }
-    | binary_expr MOD binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::mod, $1, $3);
-    }
-    | binary_expr BITAND binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::bit_and, $1, $3);
-    }
-    | binary_expr BITOR binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::bit_or, $1, $3);
-    }
-    | binary_expr BITXOR binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::bit_xor, $1, $3);
-    }
-    | binary_expr LSHIFT binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::left_shift, $1, $3);
-    }
-    | binary_expr RSHIFT binary_expr {
-        $$ = sl_state->create_binary_expression(enum_binary_op::right_shift, $1, $3);
-    }
-    ;
 
 postfix_expr:
     primary_expr

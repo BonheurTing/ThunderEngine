@@ -47,6 +47,8 @@ namespace Thunder
         conditional, // 条件表达式
         function_call, // 函数调用
         compound_assignment, // 复合赋值表达式
+        chain, // 链式表达式（逗号表达式）
+        cast, // 类型转换表达式
         undefined
     };
 
@@ -177,6 +179,22 @@ namespace Thunder
         size_t length = 0;
     };
 
+    struct dimensions
+    {
+        uint32 dimension = 0;
+        uint32 array_count[3] = {0};
+
+        _NODISCARD_ bool is_array() const noexcept
+        {
+            return dimension > 0;
+        }
+        _NODISCARD_ void add_dimension(uint32 dim) noexcept
+        {
+            TAssert(dimension < 3);
+            array_count[dimension++] = dim;
+        }
+    };
+
     class scope : public RefCountedObject
     {
     public:
@@ -222,6 +240,7 @@ namespace Thunder
 
         token_data token;
         int op_type;
+        dimensions dimension;
     };
 
     class ast_node
@@ -258,14 +277,15 @@ namespace Thunder
     class ast_node_variable : public ast_node
     {
     public:
-        ast_node_variable(String name)
-            : ast_node(enum_ast_node_type::variable), name(std::move(name)) {}
+        ast_node_variable(ast_node_type* var_type, String name)
+            : ast_node(enum_ast_node_type::variable), type(var_type), name(std::move(name)) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     public:
         ast_node_type* type = nullptr;
         String name; // 用于存储变量名称
+        dimensions dimension; // 用于存储变量的维度信息
         String semantic; // 用于存储shader语义
         String value; // 用于存储常量值或默认值
     };
@@ -407,14 +427,13 @@ namespace Thunder
     class variable_declaration_statement : public ast_node_statement
     {
     public:
-        variable_declaration_statement(ast_node_type* type, String text, ast_node_expression* expr) noexcept
-        : ast_node_statement(enum_statement_type::declare), var_type(type), var_name(std::move(text)), decl_expr(expr) {}
+        variable_declaration_statement(ast_node_variable* var, ast_node_expression* expr) noexcept
+        : ast_node_statement(enum_statement_type::declare), variable(var), decl_expr(expr) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     private:
-        ast_node_type* var_type = nullptr;
-        String var_name;
+        ast_node_variable* variable = nullptr;
         ast_node_expression* decl_expr = nullptr;
     };
 
@@ -637,7 +656,6 @@ namespace Thunder
         ast_node_expression* index = nullptr; // 索引表达式
     };
 
-
     // 出现过的id
     class reference_expression : public ast_node_expression
     {
@@ -744,11 +762,6 @@ namespace Thunder
         ast_node_expression* false_expression = nullptr;
     };
 
-
-
-
-
-
     class unary_expression : public ast_node_expression
     {
     public:
@@ -776,6 +789,45 @@ namespace Thunder
         enum_assignment_op op = enum_assignment_op::undefined;
         ast_node_expression* left_expr = nullptr;
         ast_node_expression* right_expr = nullptr;
+    };
+
+    // 链式表达式（逗号表达式）
+    class chain_expression : public ast_node_expression
+    {
+    public:
+        chain_expression(ast_node_expression* first_expr) noexcept
+            : ast_node_expression(enum_expr_type::chain)
+        {
+            expressions.push_back(first_expr);
+        }
+
+        void add_expression(ast_node_expression* expr)
+        {
+            expressions.push_back(expr);
+        }
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+
+    private:
+        TArray<ast_node_expression*> expressions;
+    };
+
+    // 类型转换表达式
+    class cast_expression : public ast_node_expression
+    {
+    public:
+        cast_expression(ast_node_type* target_type, ast_node_expression* expr) noexcept
+            : ast_node_expression(enum_expr_type::cast), cast_type(target_type), operand(expr) {}
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+
+    private:
+        ast_node_type* cast_type = nullptr;
+        ast_node_expression* operand = nullptr;
     };
 
     class custom_expression : public ast_node_expression

@@ -210,13 +210,14 @@ namespace Thunder
 
     void variable_declaration_statement::generate_hlsl(String& outResult)
     {
-        var_type->generate_hlsl(outResult);
-        outResult += " " + var_name;
-        if (decl_expr != nullptr)
+        variable->generate_hlsl(outResult);
+        
+        if (decl_expr)
         {
             outResult += " = ";
             decl_expr->generate_hlsl(outResult);
         }
+        
         outResult += ";\n";
     }
 
@@ -566,6 +567,37 @@ namespace Thunder
         }
     }
 
+    void chain_expression::generate_hlsl(String& outResult)
+    {
+        outResult += "{";
+        for (size_t i = 0; i < expressions.size(); ++i)
+        {
+            if (i > 0)
+            {
+                outResult += ", ";
+            }
+            if (expressions[i])
+            {
+                expressions[i]->generate_hlsl(outResult);
+            }
+        }
+        outResult += "}";
+    }
+
+    void cast_expression::generate_hlsl(String& outResult)
+    {
+        outResult += "(";
+        if (cast_type)
+        {
+            cast_type->generate_hlsl(outResult);
+        }
+        outResult += ")";
+        if (operand)
+        {
+            operand->generate_hlsl(outResult);
+        }
+    }
+
 #pragma endregion // HLSL
 
 #pragma region PRINT_AST
@@ -653,12 +685,14 @@ namespace Thunder
     {
         print_blank(indent);
         printf("VarDecl: {\n");
-        var_type->print_ast(indent + 1);
-        printf("; Name : %s\n", var_name.c_str());
-        if (decl_expr != nullptr)
+        variable->print_ast(indent + 1);
+
+        if (decl_expr)
         {
+            printf("DeclExpr:\n");
             decl_expr->print_ast(indent + 1);
         }
+        
         print_blank(indent);
         printf("}\n");
     }
@@ -964,6 +998,39 @@ namespace Thunder
         if (right_expr)
         {
             right_expr->print_ast(indent + 2);
+        }
+    }
+
+    void chain_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("ChainExpression:\n");
+        for (size_t i = 0; i < expressions.size(); ++i)
+        {
+            print_blank(indent + 1);
+            printf("Expression[%zu]:\n", i);
+            if (expressions[i])
+            {
+                expressions[i]->print_ast(indent + 2);
+            }
+        }
+    }
+
+    void cast_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("CastExpression:\n");
+        print_blank(indent + 1);
+        printf("TargetType:\n");
+        if (cast_type)
+        {
+            cast_type->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("Operand:\n");
+        if (operand)
+        {
+            operand->print_ast(indent + 2);
         }
     }
 
@@ -1314,6 +1381,74 @@ namespace Thunder
     evaluate_expr_result compound_assignment_expression::evaluate()
     {
         // 复合赋值表达式一般无法在编译时求值，返回未确定结果
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::undetermined;
+        return result;
+    }
+
+    evaluate_expr_result chain_expression::evaluate()
+    {
+        // 链式表达式返回最后一个表达式的值
+        if (!expressions.empty() && expressions.back())
+        {
+            return expressions.back()->evaluate();
+        }
+        return {};
+    }
+
+    evaluate_expr_result cast_expression::evaluate()
+    {
+        if (!operand)
+        {
+            return {};
+        }
+
+        evaluate_expr_result operand_result = operand->evaluate();
+        
+        // 对于常量表达式，尝试进行类型转换
+        if (cast_type && cast_type->param_type != enum_basic_type::undefined)
+        {
+            switch (cast_type->param_type)
+            {
+            case enum_basic_type::tp_int:
+                if (operand_result.result_type == enum_eval_result_type::constant_float)
+                {
+                    return {static_cast<int>(operand_result.float_value)};
+                }
+                else if (operand_result.result_type == enum_eval_result_type::constant_bool)
+                {
+                    return {operand_result.bool_value ? 1 : 0};
+                }
+                break;
+                
+            case enum_basic_type::tp_float:
+                if (operand_result.result_type == enum_eval_result_type::constant_int)
+                {
+                    return {static_cast<float>(operand_result.int_value)};
+                }
+                else if (operand_result.result_type == enum_eval_result_type::constant_bool)
+                {
+                    return {operand_result.bool_value ? 1.0f : 0.0f};
+                }
+                break;
+                
+            case enum_basic_type::tp_bool:
+                if (operand_result.result_type == enum_eval_result_type::constant_int)
+                {
+                    return {operand_result.int_value != 0};
+                }
+                else if (operand_result.result_type == enum_eval_result_type::constant_float)
+                {
+                    return {operand_result.float_value != 0.0f};
+                }
+                break;
+                
+            default:
+                break;
+            }
+        }
+        
+        // 无法进行常量折叠，返回未确定结果
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;

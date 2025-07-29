@@ -167,14 +167,11 @@ namespace Thunder
 		return dummy;
 	}
 
-	void shader_lang_state::add_variable_to_list(ast_node* type, const token_data& name, ast_node_expression* default_value)
+	void shader_lang_state::add_variable_to_list(ast_node_type* type, const token_data& name, ast_node_expression* default_value)
 	{
-		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
-			"add_variant_member called with invalid type.");
 		TAssert(name.token_id == NEW_ID);
 
-		const auto variable = new ast_node_variable(name.text);
-		variable->type = static_cast<ast_node_type*>(type);
+		const auto variable = new ast_node_variable(type, name.text);
 		
 		if (default_value != nullptr)
 		{
@@ -285,16 +282,11 @@ namespace Thunder
 		return dummy;
 	}
 
-	void shader_lang_state::add_struct_member(ast_node* type, const token_data& name, const token_data& modifier, const parse_location* loc)
+	void shader_lang_state::add_struct_member(ast_node_type* type, const token_data& name, const token_data& modifier, const parse_location* loc)
 	{
-		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
-			"add_struct_member called with invalid type owner.");
 		TAssert(name.token_id == NEW_ID);
-		
-
-		const auto variable = new ast_node_variable(name.text);
-		variable->type = static_cast<ast_node_type*>(type);
-		if(variable->type->is_semantic)
+		const auto variable = new ast_node_variable(type, name.text);
+		if(type->is_semantic)
 		{
 			variable->semantic = modifier.text;
 		}
@@ -309,12 +301,9 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::bind_modifier(ast_node* type, const token_data& modifier, const parse_location* loc)
+	void shader_lang_state::bind_modifier(ast_node_type* type, const token_data& modifier, const parse_location* loc)
 	{
-		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
-			"bind_modifier called with invalid type owner.");
-
-		if (const auto type_node = static_cast<ast_node_type*>(type))
+		if (const auto type_node = type)
 		{
 			if (modifier.token_id == TOKEN_SV)
 			{
@@ -344,14 +333,10 @@ namespace Thunder
 		return dummy;
 	}
 
-	void shader_lang_state::add_function_param(ast_node* type, const token_data& name, const parse_location* loc)
+	void shader_lang_state::add_function_param(ast_node_type* type, const token_data& name, const parse_location* loc)
 	{
-		TAssertf(type != nullptr && type->Type == enum_ast_node_type::type,
-			"add_struct_member called with invalid type owner.");
 		TAssert(name.token_id == NEW_ID);
-
-		const auto variable = new ast_node_variable(name.text);
-		variable->type = static_cast<ast_node_type*>(type);
+		const auto variable = new ast_node_variable(type, name.text);
 		
 		if (current_function)
 		{
@@ -391,13 +376,28 @@ namespace Thunder
 		}
 	}
 
-	ast_node_statement* shader_lang_state::create_var_decl_statement(
-		ast_node_type* type_node, const token_data& name, ast_node_expression* init_expr)
+	int shader_lang_state::evaluate_integer_expression(ast_node_expression* expr, const parse_location& loc)
 	{
-		TAssert(name.token_id == NEW_ID);
-		const auto node = new variable_declaration_statement(type_node, name.text, init_expr);
+		const auto ret = expr->evaluate();
+		if (ret.result_type == enum_eval_result_type::constant_int)
+		{
+			return ret.int_value;
+		}
+		else
+		{
+			debug_log("Expected integer expression, but " + ret.type->type_name, &loc);
+			return 0; // 或者抛出异常
+		}
+	}
 
-		current_scope()->push_symbol(name.text, enum_symbol_type::variable, node);
+	ast_node_statement* shader_lang_state::create_declaration_statement(ast_node_type* type, const token_data& name,
+		const dimensions& dim, ast_node_expression* expr)
+	{
+		TAssert(get_local_symbol(name.text) == nullptr);
+		const auto variable = new ast_node_variable(type, name.text);
+		variable->dimension = dim;
+		current_scope()->push_symbol(name.text, enum_symbol_type::variable, variable);
+		const auto node = new variable_declaration_statement(variable, expr);
 		return node;
 	}
 
@@ -458,6 +458,30 @@ namespace Thunder
 	ast_node_expression* shader_lang_state::create_conditional_expression(ast_node_expression* cond, ast_node_expression* true_expr, ast_node_expression* false_expr)
 	{
 		return new conditional_expression(cond, true_expr, false_expr);
+	}
+
+	ast_node_expression* shader_lang_state::create_chain_expression(ast_node_expression* prev, ast_node_expression* next)
+	{
+		// 检查prev是否已经是链式表达式
+		chain_expression* chain_expr = dynamic_cast<chain_expression*>(prev);
+		if (chain_expr)
+		{
+			// 如果已经是链式表达式，直接添加新表达式
+			chain_expr->add_expression(next);
+			return chain_expr;
+		}
+		else
+		{
+			// 创建新的链式表达式
+			chain_expr = new chain_expression(prev);
+			chain_expr->add_expression(next);
+			return chain_expr;
+		}
+	}
+
+	ast_node_expression* shader_lang_state::create_cast_expression(ast_node_type* target_type, ast_node_expression* operand)
+	{
+		return new cast_expression(target_type, operand);
 	}
 
 	ast_node_expression* shader_lang_state::create_reference_expression(const token_data& name)

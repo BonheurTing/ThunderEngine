@@ -111,6 +111,10 @@ SV_Position		{ return TOKENIZE(TOKEN_SV); }
 "Parameters"	{ return TOKENIZE(TOKEN_PARAMETERS); }
 "SubShader"		{ return TOKENIZE(TOKEN_SUBSHADER); }
 
+"using"			{ return TOKENIZE(TOKEN_USING); }
+"VertexEntry"	{ return TOKENIZE(TOKEN_VERTEX); }
+"PixelEntry"	{ return TOKENIZE(TOKEN_PIXEL); }
+
 "int"       	{ return TOKENIZE(TYPE_INT); }
 "float"     	{ return TOKENIZE(TYPE_FLOAT); }
 "void"      	{ return TOKENIZE(TYPE_VOID); }

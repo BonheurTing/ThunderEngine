@@ -12,6 +12,7 @@ Shader "TestShader"
     {
         float4x4 WorldToObject;
         float4x4 ViewProjection;
+        
     }
     Parameters "Object"
     {
@@ -24,6 +25,9 @@ Shader "TestShader"
     }
     SubShader
     {
+        using VertexEntry = vert;
+        using PixelEntry = frag;
+
         struct vs_input
         {
             float4 vertex : POSITION;

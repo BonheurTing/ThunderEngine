@@ -69,8 +69,9 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TOKEN_IDENTIFIER TYPE_ID NEW_ID
 %token <token> TOKEN_INTEGER TOKEN_FLOAT STRING_CONSTANT
 
-%token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_VARIANTS TOKEN_PARAMETERS TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
-%token <token> TOKEN_BREAK TOKEN_CONTINUE TOKEN_DISCARD
+%token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_VARIANTS TOKEN_PARAMETERS TOKEN_SUBSHADER
+%token <token> TOKEN_USING TOKEN_VERTEX TOKEN_PIXEL TOKEN_STRUCT
+%token <token> TOKEN_BREAK TOKEN_CONTINUE TOKEN_DISCARD TOKEN_RETURN
 %token <token> RPAREN RBRACKET RBRACE SEMICOLON
 %token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE TOKEN_FOR TOKEN_CONSTEXPR
 
@@ -260,22 +261,30 @@ pass_definition:
     ;
 
 pass_content:
-    struct_definition {
+    stage_definition
+    | struct_definition {
         sl_state->add_definition_member($1);
     }
-    | stage_definition {
+    | function_definition {
         sl_state->add_definition_member($1);
     }
+    | pass_content stage_definition
     | pass_content struct_definition {
         sl_state->add_definition_member($2);
     }
-    | pass_content stage_definition {
+    | pass_content function_definition {
         sl_state->add_definition_member($2);
     }
     ;
 
+stage_token:
+    TOKEN_VERTEX | TOKEN_PIXEL
+    ;
+
 stage_definition:
-    function_definition
+    TOKEN_USING stage_token ASSIGN primary_identifier SEMICOLON {
+        $$ = nullptr;
+    }
     ;
 
 struct_definition:
@@ -293,15 +302,13 @@ struct_members:
     ;
 
 struct_member:
-    maybe_type_qualifications type new_identifier SEMICOLON {
-        sl_state->combine_modifier($2, $1);
+    type new_identifier SEMICOLON {
         token_data token;
-        sl_state->add_struct_member($2, $3, token, &yylloc);
+        sl_state->add_struct_member($1, $2, token, &yylloc);
     }
-    | maybe_type_qualifications type new_identifier COLON TOKEN_SV SEMICOLON {
-        sl_state->combine_modifier($2, $1);
-        sl_state->bind_modifier($2, $5, &yylloc);
-        sl_state->add_struct_member($2, $3, $5, &yylloc);
+    | type new_identifier COLON TOKEN_SV SEMICOLON {
+        sl_state->bind_modifier($1, $4, &yylloc);
+        sl_state->add_struct_member($1, $2, $4, &yylloc);  // Todo : parse sv.
     }
     ;
 

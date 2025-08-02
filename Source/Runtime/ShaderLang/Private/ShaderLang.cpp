@@ -443,11 +443,28 @@ namespace Thunder
 		return new function_call_expression(func_name.text);
 	}
 
+	ast_node_expression* shader_lang_state::create_constructor_expression(ast_node_type* type)
+	{
+		return new constructor_expression(type);
+	}
+
 	void shader_lang_state::append_argument(ast_node_expression* func_call_expr, ast_node_expression* arg_expr)
 	{
-		TAssert(func_call_expr != nullptr && func_call_expr->expr_type == enum_expr_type::function_call);
-		const auto expr = static_cast<function_call_expression*>(func_call_expr);
-		expr->add_argument(arg_expr);
+		TAssert(func_call_expr != nullptr);
+		if (func_call_expr->expr_type == enum_expr_type::function_call)
+		{
+			const auto expr = static_cast<function_call_expression*>(func_call_expr);
+			expr->add_argument(arg_expr);
+		}
+		else if (func_call_expr->expr_type == enum_expr_type::constructor_call)
+		{
+			const auto expr = static_cast<constructor_expression*>(func_call_expr);
+			expr->add_argument(arg_expr);
+		}
+		else
+		{
+			TAssert(false && "Expected function call or constructor expression");
+		}
 	}
 
 	ast_node_expression* shader_lang_state::create_assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs)

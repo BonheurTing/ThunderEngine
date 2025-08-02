@@ -46,6 +46,7 @@ namespace Thunder
         assignment, // 赋值表达式
         conditional, // 条件表达式
         function_call, // 函数调用
+        constructor_call, // 构造函数调用
         compound_assignment, // 复合赋值表达式
         chain, // 链式表达式（逗号表达式）
         cast, // 类型转换表达式
@@ -730,6 +731,25 @@ namespace Thunder
         evaluate_expr_result evaluate() override;
     private:
         String function_name;
+        TArray<ast_node_expression*> arguments = {};
+    };
+
+    class constructor_expression : public ast_node_expression
+    {
+    public:
+        constructor_expression(ast_node_type* type) noexcept
+            : ast_node_expression(enum_expr_type::constructor_call), constructor_type(type) {}
+
+        void add_argument(ast_node_expression* arg)
+        {
+            arguments.push_back(arg);
+        }
+
+        void generate_hlsl(String& outResult) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate() override;
+    private:
+        ast_node_type* constructor_type = nullptr;
         TArray<ast_node_expression*> arguments = {};
     };
 

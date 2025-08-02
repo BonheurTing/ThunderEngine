@@ -835,7 +835,11 @@ postfix_expr:
     ;
 
 function_call_header:
-    primary_identifier LPAREN
+    type LPAREN
+    {
+        $$ = sl_state->create_constructor_expression($1);
+    }
+    | primary_identifier LPAREN
     {
         $$ = sl_state->create_function_call_expression($1);
     }

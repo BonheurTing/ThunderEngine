@@ -113,6 +113,7 @@ namespace Thunder
 		ast_node_expression* create_shuffle_or_component_expression(ast_node_expression* expr, const token_data& comp);
 		ast_node_expression* create_index_expression(ast_node_expression* expr, ast_node_expression* index_expr);
 		ast_node_expression* create_function_call_expression(const token_data& func_name);
+		ast_node_expression* create_constructor_expression(ast_node_type* type);
 		void append_argument(ast_node_expression* func_call_expr, ast_node_expression* arg_expr);
 		ast_node_expression* create_assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs);
 		ast_node_expression* create_conditional_expression(ast_node_expression* cond, ast_node_expression* true_expr, ast_node_expression* false_expr);

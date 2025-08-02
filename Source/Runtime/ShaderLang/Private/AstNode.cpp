@@ -470,6 +470,26 @@ namespace Thunder
         outResult += ")";
     }
 
+    void constructor_expression::generate_hlsl(String& outResult)
+    {
+        if (constructor_type)
+        {
+            constructor_type->generate_hlsl(outResult);
+        }
+        outResult += "(";
+        String arguments_string;
+        for (const auto argument : arguments)
+        {
+            if (arguments_string.length() > 0)
+            {
+                arguments_string += ", ";
+            }
+            argument->generate_hlsl(arguments_string);
+        }
+        outResult += arguments_string;
+        outResult += ")";
+    }
+
     void assignment_expression::generate_hlsl(String& outResult)
     {
         if (left_expr)
@@ -907,6 +927,21 @@ namespace Thunder
         }
     }
 
+    void constructor_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("Constructor: ");
+        if (constructor_type)
+        {
+            constructor_type->print_ast(0);
+        }
+        printf("\nArguments:\n");
+        for (const auto argument : arguments)
+        {
+            argument->print_ast(indent + 1);
+        }
+    }
+
     void assignment_expression::print_ast(int indent)
     {
         print_blank(indent);
@@ -1256,6 +1291,14 @@ namespace Thunder
     evaluate_expr_result function_call_expression::evaluate()
     {
         // 函数调用一般无法在编译时求值，返回未确定结果
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::undetermined;
+        return result;
+    }
+
+    evaluate_expr_result constructor_expression::evaluate()
+    {
+        // 构造函数调用一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;

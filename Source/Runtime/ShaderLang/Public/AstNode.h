@@ -125,6 +125,25 @@ namespace Thunder
         undefined
     };
 
+    enum class enum_type_qualifier : uint8
+    {
+        none = 0,
+        // Input/Output qualifiers
+        input = 1 << 0,      // in
+        output = 1 << 1,     // out  
+        inout = 1 << 2,      // inout
+        // Storage class qualifiers
+        extern_ = 1 << 3,    // extern
+        static_ = 1 << 4,    // static
+        uniform = 1 << 5,    // uniform
+        // Type modifiers
+        const_ = 1 << 6,     // const
+        volatile_ = 1 << 7   // volatile (using only 8 bits for now)
+    };
+
+    // Type qualifier flags can be combined
+    using type_qualifier_flags = uint8;
+
     enum class enum_assignment_op : uint8
     {
         assign,        // =
@@ -272,6 +291,7 @@ namespace Thunder
         enum_basic_type param_type : 4 = enum_basic_type::undefined;
         enum_texture_type texture_type : 4 = enum_texture_type::texture_unknown;
         bool is_semantic : 1 = false; // 是否是shader语义
+        type_qualifier_flags qualifiers = static_cast<type_qualifier_flags>(enum_type_qualifier::none); // 类型限定符
     };
 
     // 变量基类，包含参数变量，局部变量，全局变量，shader semantic等 // Definition

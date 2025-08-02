@@ -82,8 +82,7 @@ namespace Thunder
 		
 		void parsing_struct_begin(const token_data& name);
 		ast_node_struct* parsing_struct_end();
-		void add_struct_member(ast_node_type* type, const token_data& name, const struct token_data& modifier, const parse_location* loc);
-		static void bind_modifier(ast_node_type* type, const token_data& modifier, const parse_location* loc);
+		void add_struct_member(ast_node_type* type, const token_data& name, const token_data& modifier, const parse_location* loc);
 		
 		void parsing_function_begin(ast_node* type, const token_data& name);
 		ast_node_function* parsing_function_end(ast_node_block* body);
@@ -94,6 +93,12 @@ namespace Thunder
 		void add_block_statement(ast_node_statement* statement, const parse_location* loc) const;
 
 		int evaluate_integer_expression(ast_node_expression* expr, const parse_location& loc);
+
+		/* 类型系统 */
+		void bind_modifier(ast_node_type* type, const token_data& modifier, const parse_location* loc);
+		void combine_modifier(ast_node_type* type, ast_node_type* modifier);
+		void apply_modifier(ast_node_type* type, const token_data& modifier);
+		//DataType* type_infer(ShaderParseState* state, ASTNode* expr) { return nullptr;}    // 类型推断
 
 		/* Statement */
 		ast_node_statement* create_declaration_statement(ast_node_type* type, const token_data& name, const dimensions& dim, ast_node_expression* expr);
@@ -132,9 +137,7 @@ namespace Thunder
 		ast_node* get_local_symbol(const String& name) const;
 		ast_node* get_global_symbol(const String& name) const;
 		enum_symbol_type get_symbol_type(const String& name) const;
-
-		/* 类型系统 */
-		//DataType* type_infer(ShaderParseState* state, ASTNode* expr) { return nullptr;}    // 类型推断
+		
 
 		/* 错误处理 */
 		void debug_log(const String& msg, const parse_location* loc = nullptr) const;

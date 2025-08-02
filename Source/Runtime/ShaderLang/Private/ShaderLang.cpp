@@ -301,17 +301,6 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::bind_modifier(ast_node_type* type, const token_data& modifier, const parse_location* loc)
-	{
-		if (const auto type_node = type)
-		{
-			if (modifier.token_id == TOKEN_SV)
-			{
-				type_node->is_semantic = true;
-			}
-		}
-	}
-
 	void shader_lang_state::parsing_function_begin(ast_node* type, const token_data& name)
 	{
 		TAssert(current_function == nullptr);
@@ -387,6 +376,63 @@ namespace Thunder
 		{
 			debug_log("Expected integer expression, but " + ret.type->type_name, &loc);
 			return 0; // 或者抛出异常
+		}
+	}
+
+	void shader_lang_state::bind_modifier(ast_node_type* type, const token_data& modifier, const parse_location* loc)
+	{
+		if (const auto type_node = type)
+		{
+			if (modifier.token_id == TOKEN_SV)
+			{
+				type_node->is_semantic = true;
+			}
+		}
+	}
+
+	void shader_lang_state::combine_modifier(ast_node_type* type, ast_node_type* modifier)
+	{
+		type->qualifiers |= modifier->qualifiers;
+	}
+
+	void shader_lang_state::apply_modifier(ast_node_type* type, const token_data& modifier)
+	{
+		// 根据token类型设置相应的限定符标志
+		if (modifier.token_id == TOKEN_IN)
+		{
+			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::input);
+		}
+		else if (modifier.token_id == TOKEN_OUT)
+		{
+			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::output);
+		}
+		else if (modifier.token_id == TOKEN_INOUT)
+		{
+			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::inout);
+		}
+		else if (modifier.text == "const")
+		{
+			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::const_);
+		}
+		else if (modifier.text == "static")
+		{
+			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::static_);
+		}
+		else if (modifier.text == "uniform")
+		{
+			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::uniform);
+		}
+		else if (modifier.text == "extern")
+		{
+			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::extern_);
+		}
+		else if (modifier.text == "volatile")
+		{
+			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::volatile_);
+		}
+		else
+		{
+			debug_log("Unknown type qualifier: " + modifier.text);
 		}
 	}
 

@@ -115,6 +115,10 @@ SV_Position		{ return TOKENIZE(TOKEN_SV); }
 "float"     	{ return TOKENIZE(TYPE_FLOAT); }
 "void"      	{ return TOKENIZE(TYPE_VOID); }
 
+"in"			{ return TOKENIZE(TOKEN_IN); }
+"inout"			{ return TOKENIZE(TOKEN_INOUT); }
+"out"			{ return TOKENIZE(TOKEN_OUT); }
+
 "struct"		{ return TOKENIZE(TOKEN_STRUCT); }
 
 "if"			{ return TOKENIZE(TOKEN_IF); }

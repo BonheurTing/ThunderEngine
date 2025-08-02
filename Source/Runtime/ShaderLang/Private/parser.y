@@ -64,6 +64,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TOKEN_SV
 %token <token> TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER
 %token <token> TYPE_INT TYPE_FLOAT TYPE_VOID
+%token <token> TOKEN_IN TOKEN_INOUT TOKEN_OUT
 
 %token <token> TOKEN_IDENTIFIER TYPE_ID NEW_ID
 %token <token> TOKEN_INTEGER TOKEN_FLOAT STRING_CONSTANT
@@ -107,7 +108,8 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <token> identifier type_identifier new_identifier primary_identifier any_identifier
 %type <token> primitive_types 
 %type <node> definitions properties_definition variants_definition parameters_definition
-%type <type> type
+%type <token> inout_modifier type_qualification
+%type <type> type variable_type type_qualifications maybe_type_qualifications
 %type <dimension> maybe_array array_dimensions maybe_semantic
 %type <op_type> assignment_operator unary_operator
 %type <node> archive_definition pass_definition stage_definition struct_definition function_definition
@@ -291,14 +293,15 @@ struct_members:
     ;
 
 struct_member:
-    type new_identifier SEMICOLON {
+    maybe_type_qualifications type new_identifier SEMICOLON {
+        sl_state->combine_modifier($2, $1);
         token_data token;
-        sl_state->add_struct_member($1, $2, token, &yylloc);
+        sl_state->add_struct_member($2, $3, token, &yylloc);
     }
-    | type new_identifier COLON TOKEN_SV SEMICOLON {
-        //ast_node_type* type = $1;
-        sl_state->bind_modifier($1, $4, &yylloc);
-        sl_state->add_struct_member($1, $2, $4, &yylloc);  // Todo : parse sv.
+    | maybe_type_qualifications type new_identifier COLON TOKEN_SV SEMICOLON {
+        sl_state->combine_modifier($2, $1);
+        sl_state->bind_modifier($2, $5, &yylloc);
+        sl_state->add_struct_member($2, $3, $5, &yylloc);
     }
     ;
 
@@ -320,8 +323,9 @@ param_list:
     ;
 
 param:
-    type new_identifier {
-        sl_state->add_function_param($1, $2, &yylloc);
+    maybe_type_qualifications type new_identifier {
+        sl_state->combine_modifier($2,$1);
+        sl_state->add_function_param($2, $3, &yylloc);
     }
     ;
 
@@ -336,6 +340,48 @@ type:
     }
     | type_identifier {
         $$ = sl_state->create_type_node($1);
+    }
+    ;
+
+inout_modifier:
+	TOKEN_IN| TOKEN_INOUT| TOKEN_OUT
+    ;
+
+type_qualification:
+    inout_modifier
+    ;
+
+type_qualifications:
+	type_qualification
+    {
+        $$ = new ast_node_type();
+        sl_state->apply_modifier($$, $1);
+    }
+    | type_qualifications type_qualification
+    {
+        sl_state->apply_modifier($$ = $1, $2);
+    }
+    ;
+
+maybe_type_qualifications:
+    {
+        $$ = new ast_node_type();
+    }
+    | type_qualifications
+    {
+        $$ = $1;
+    }
+    ;
+
+variable_type:
+	type
+    {
+        $$ = $1;
+    }
+    | type_qualifications type
+    {
+        $$ = $2;
+        state->combine_modifier($2, $1);
     }
     ;
 
@@ -414,7 +460,7 @@ statement:
     | for_statement;
 
 declaration_statement:
-    type primary_identifier maybe_array local_variable_initializer SEMICOLON
+    variable_type primary_identifier maybe_array local_variable_initializer SEMICOLON
     {
         $$ = sl_state->create_declaration_statement($1, $2, $3, $4);
     }

@@ -55,7 +55,7 @@ Shader "TestShader"
             return 0.5;
         }
 
-        ps_out frag(v2f v)
+        ps_out frag(in v2f v)
         {
             for (int i = 0; i < 10; i++)
             {
@@ -105,11 +105,11 @@ Shader "TestShader"
             converted = (float)to_convert;
             ps_out test_out = (ps_out)0;
 
-            ps_out out;
+            ps_out out_;
             float test_return_value = test_function(1)[0][1][2 * 5][x + 1].xxx;
-            out.color0 = test_return_value.xxxx;
-            out.color1 = test_return_value.rrrr;
-            return out;
+            out_.color0 = test_return_value.xxxx;
+            out_.color1 = test_return_value.rrrr;
+            return out_;
         }
     }
 }

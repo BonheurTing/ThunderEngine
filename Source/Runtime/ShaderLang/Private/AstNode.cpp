@@ -90,6 +90,27 @@ namespace Thunder
 
     void ast_node_type::generate_hlsl(String& outResult)
     {
+        // 生成类型限定符
+        if (qualifiers != static_cast<type_qualifier_flags>(enum_type_qualifier::none))
+        {
+            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::const_))
+                outResult += "const ";
+            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::static_))
+                outResult += "static ";
+            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::uniform))
+                outResult += "uniform ";
+            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::extern_))
+                outResult += "extern ";
+            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::volatile_))
+                outResult += "volatile ";
+            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::input))
+                outResult += "in ";
+            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::output))
+                outResult += "out ";
+            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::inout))
+                outResult += "inout ";
+        }
+        
         String out_name = "";
         /*switch (param_type)
         {

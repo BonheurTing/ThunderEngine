@@ -84,9 +84,11 @@ TEXTURE					(t|T)exture{TEXTURE_TAIL}
 SAMPLER					(s|S)ampler{SAMPLER_TAIL}
 
 TEXCOORD				TEXCOORD[N|0-9]
+Texcoord				Texcoord[N|0-9]
 
 TARGETS					[0-7]
 SV_TARGET				SV_TARGET{TARGETS}?
+SV_Target				SV_Target{TARGETS}?
 
 %%
 
@@ -96,9 +98,12 @@ SV_TARGET				SV_TARGET{TARGETS}?
 {SAMPLER}		{ return TOKENIZE(TYPE_SAMPLER); }
 
 POSITION[0-7]?	{ return TOKENIZE(TOKEN_SV); }
-SV_POSITION 	{ return TOKENIZE(TOKEN_SV); }
+SV_POSITION		{ return TOKENIZE(TOKEN_SV); }
+SV_Position		{ return TOKENIZE(TOKEN_SV); }
 {TEXCOORD}  	{ return TOKENIZE(TOKEN_SV); }
+{Texcoord}		{ return TOKENIZE(TOKEN_SV); }
 {SV_TARGET} 	{ return TOKENIZE(TOKEN_SV); }
+{SV_Target}		{ return TOKENIZE(TOKEN_SV); }
 
 "Shader"		{ return TOKENIZE(TOKEN_SHADER); }
 "Properties"	{ return TOKENIZE(TOKEN_PROPERTIES); }
@@ -121,6 +126,7 @@ SV_POSITION 	{ return TOKENIZE(TOKEN_SV); }
 "continue"		{ return TOKENIZE(TOKEN_CONTINUE); }
 "discard"		{ return TOKENIZE(TOKEN_DISCARD); }
 "return"    	{ return TOKENIZE(TOKEN_RETURN); }
+"constexpr"		{ return TOKENIZE(TOKEN_CONSTEXPR); }
 
 [a-zA-Z\_\$][a-zA-Z0-9\_\#\$]*			{ return TOKENIZE(TOKEN_IDENTIFIER);
  }

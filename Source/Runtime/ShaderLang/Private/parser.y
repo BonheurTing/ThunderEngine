@@ -71,7 +71,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_VARIANTS TOKEN_PARAMETERS TOKEN_SUBSHADER TOKEN_RETURN TOKEN_STRUCT
 %token <token> TOKEN_BREAK TOKEN_CONTINUE TOKEN_DISCARD
 %token <token> RPAREN RBRACKET RBRACE SEMICOLON
-%token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE TOKEN_FOR
+%token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE TOKEN_FOR TOKEN_CONSTEXPR
 
 
 /* 左结合，右结合，无结合 防止冲突 */
@@ -452,15 +452,19 @@ expression_statement:
     }
     ;
 
+if_head:
+    TOKEN_IF
+    | TOKEN_IF TOKEN_CONSTEXPR;
+
 if_then_statement:
-	TOKEN_IF LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE
+	if_head LPAREN expression RPAREN statement %prec LOWER_THAN_ELSE
     {
         $$ = sl_state->create_condition_statement($3, $5, nullptr);
     }
 ;
 
 if_then_else_statement:
-    TOKEN_IF LPAREN expression RPAREN statement TOKEN_ELSE statement
+    if_head LPAREN expression RPAREN statement TOKEN_ELSE statement
     {
         $$ = sl_state->create_condition_statement($3, $5, $7);
     }

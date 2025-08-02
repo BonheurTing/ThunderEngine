@@ -35,6 +35,7 @@ int my_flex_debug = 1;
 void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 
 #define TOKENIZE(TOK) tokenize(yylval->token, yylloc, (yytext), (yyleng), (TOK))
+#define TOKENIZE_COMMENT()
 
 %}
 
@@ -51,7 +52,12 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 /*%option prefix="thunder_"*/
 %option extra-type="struct shader_lang_state *"
 
-STRINGS										\"(\\.|[^\\"])*\"
+STRINGS					\"(\\.|[^\\"])*\"
+
+ANY_BUTSTAR				[^\*]
+ANY_BUTSLASH			[^\/]
+COMMENT					[\/][\*]({ANY_BUTSTAR}|[\*]{ANY_BUTSLASH})*[\*][\/]
+FASTCOMMENT				[\/][\/].*
 
 BVECTOR					bool[1-4]
 IVECTOR					int[1-4]
@@ -116,12 +122,23 @@ SV_POSITION 	{ return TOKENIZE(TOKEN_SV); }
 "discard"		{ return TOKENIZE(TOKEN_DISCARD); }
 "return"    	{ return TOKENIZE(TOKEN_RETURN); }
 
-[a-zA-Z_][a-zA-Z0-9_]* { return TOKENIZE(TOKEN_IDENTIFIER); }
-[0-9]+      	{ return TOKENIZE(TOKEN_INTEGER); }
+[a-zA-Z\_\$][a-zA-Z0-9\_\#\$]*			{ return TOKENIZE(TOKEN_IDENTIFIER);
+ }
+[1-9][0-9]*[uU]?						{ return TOKENIZE(TOKEN_INTEGER); }
+0[xX][0-9a-fA-F]+[uU]?					{ return TOKENIZE(TOKEN_INTEGER); }
+0[0-7]*[uU]?							{ return TOKENIZE(TOKEN_INTEGER); }
+
+
 [0-9]+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?	{ return TOKENIZE(TOKEN_FLOAT); }
-\.[0-9]+([eE][+-]?[0-9]+)?[fF]?		{ return TOKENIZE(TOKEN_FLOAT); }
+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?			{ return TOKENIZE(TOKEN_FLOAT); }
+[0-9]+\.([eE][+-]?[0-9]+)?[fF]?			{ return TOKENIZE(TOKEN_FLOAT); }
+[0-9]+[eE][+-]?[0-9]+[fF]?				{ return TOKENIZE(TOKEN_FLOAT); }
 [0-9]+[fF]								{ return TOKENIZE(TOKEN_FLOAT); }
+
 {STRINGS}		{ return TOKENIZE(STRING_CONSTANT); }
+
+{COMMENT}		{ TOKENIZE_COMMENT(); }
+{FASTCOMMENT}	{ TOKENIZE_COMMENT(); }
 
 "+"         	{ return TOKENIZE(ADD); }
 "-"         	{ return TOKENIZE(SUB); }

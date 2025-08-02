@@ -83,8 +83,12 @@ Shader "TestShader"
                 x = y;
             }
             
-            float4 test_float4 = {3, 4,5};
-            float test_float_component = test_float4[3];
+            // 测试注释
+            float test_float4[3] = { 3, /*7*/4, 5 };
+            /*测试
+            多行注释
+            */
+            float test_float_component = (float)test_float4[2];
 
             ps_out out;
             float test_return_value = test_function(1)[0][1][2 * 5][x + 1].xxx;

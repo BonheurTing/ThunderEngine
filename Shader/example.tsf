@@ -12,7 +12,9 @@ Shader "TestShader"
     {
         float4x4 WorldToObject;
         float4x4 ViewProjection;
-        
+        Texture2D _MainTex;
+        Texture2D<float4> Albedo;
+        StructuredBuffer<float4> _StructuredBuffer;
     }
     Parameters "Object"
     {

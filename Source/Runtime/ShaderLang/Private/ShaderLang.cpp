@@ -60,7 +60,7 @@ namespace Thunder
 		return nullptr;
 	}
 
-	ast_node* shader_lang_state::get_global_symbol(const String& name) const
+	ast_node* shader_lang_state::get_global_symbol(const String& name)
 	{
 		// 从最内层作用域向外层查找
 		for (auto it = symbol_scopes.rbegin(); it != symbol_scopes.rend(); ++it)
@@ -83,10 +83,10 @@ namespace Thunder
 			if (node != nullptr)
 			{
 				// 根据AST节点类型推断符号类型
-				switch (node->Type)
+				switch (node->node_type)
 				{
-				case enum_ast_node_type::type:
-					return enum_symbol_type::type;
+				case enum_ast_node_type::type_format:
+					return enum_symbol_type::type_format;
 				case enum_ast_node_type::function:
 					return enum_symbol_type::function;
 				case enum_ast_node_type::variable:
@@ -98,58 +98,6 @@ namespace Thunder
 			}
 		}
 		return enum_symbol_type::undefined;
-	}
-
-	ast_node_type* shader_lang_state::create_type_node(const token_data& type_info)
-	{
-		const auto node = new ast_node_type;
-		node->type_name = type_info.text;
-
-		switch (type_info.token_id)
-		{
-		case TYPE_TEXTURE:
-			node->param_type = enum_basic_type::tp_texture;
-			break;
-		case TYPE_SAMPLER:
-			node->param_type = enum_basic_type::tp_sampler;
-			break;
-		case TYPE_VECTOR:
-			node->param_type = enum_basic_type::tp_vector;
-			break;
-		case TYPE_MATRIX:
-			node->param_type = enum_basic_type::tp_matrix;
-			break;
-		case TYPE_INT:
-			node->param_type = enum_basic_type::tp_int;
-			break;
-		case TYPE_FLOAT:
-			node->param_type = enum_basic_type::tp_float;
-			break;
-		case TYPE_VOID:
-			node->param_type = enum_basic_type::tp_void;
-			break;
-		case TYPE_ID:
-			{
-				const auto symbol_node = get_global_symbol(type_info.text);
-				if (symbol_node->Type == enum_ast_node_type::type)
-				{
-					//node->param_type = static_cast<ast_node_type*>(symbol_node)->param_type;
-				}
-				else if (symbol_node->Type == enum_ast_node_type::structure)
-				{
-					node->param_type = enum_basic_type::tp_struct;
-				}
-				else
-				{
-					TAssert(false);
-				}
-				break;
-			}
-		default:
-			break;
-		}
-
-		return node;
 	}
 
 	void shader_lang_state::parsing_archive_begin(const token_data& name)
@@ -167,7 +115,7 @@ namespace Thunder
 		return dummy;
 	}
 
-	void shader_lang_state::add_variable_to_list(ast_node_type* type, const token_data& name, ast_node_expression* default_value)
+	void shader_lang_state::add_variable_to_list(ast_node_type_format* type, const token_data& name, ast_node_expression* default_value)
 	{
 		TAssert(name.token_id == NEW_ID);
 
@@ -244,11 +192,11 @@ namespace Thunder
 	{
 		if (def != nullptr)
 		{
-			if (def->Type == enum_ast_node_type::structure)
+			if (def->node_type == enum_ast_node_type::structure)
 			{
 				current_pass->add_structure(static_cast<ast_node_struct*>(def));
 			}
-			else if (def->Type == enum_ast_node_type::function)
+			else if (def->node_type == enum_ast_node_type::function)
 			{
 				current_pass->add_function(static_cast<ast_node_function*>(def));
 			}
@@ -263,12 +211,13 @@ namespace Thunder
 	{
 		TAssert(current_structure == nullptr);
 		TAssert(name.token_id == NEW_ID);
-		const auto type = create_type_node(name);
-		if (const auto struct_type = static_cast<ast_node_type*>(type))
-		{
-			struct_type->param_type = enum_basic_type::tp_struct;
-		}
-		current_structure = new ast_node_struct(type);
+		const auto type = new ast_node_type_format();
+		type->basic_type = enum_basic_type::tp_struct;
+		//type->type_text = name.text;
+		type->indirect_index = static_cast<uint16>(custom_types.size());
+
+		current_structure = new ast_node_struct(type, name.text);
+		custom_types.push_back(current_structure);
 		current_scope()->push_symbol(name.text, enum_symbol_type::structure, current_structure);
 		push_scope(current_structure->begin_structure(current_scope()));
 	}
@@ -282,7 +231,7 @@ namespace Thunder
 		return dummy;
 	}
 
-	void shader_lang_state::add_struct_member(ast_node_type* type, const token_data& name, const token_data& modifier, const parse_location* loc)
+	void shader_lang_state::add_struct_member(ast_node_type_format* type, const token_data& name, const token_data& modifier, const parse_location* loc)
 	{
 		TAssert(name.token_id == NEW_ID);
 		const auto variable = new ast_node_variable(type, name.text);
@@ -301,12 +250,12 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::parsing_function_begin(ast_node* type, const token_data& name)
+	void shader_lang_state::parsing_function_begin(ast_node_type_format* type, const token_data& name)
 	{
 		TAssert(current_function == nullptr);
 		TAssert(name.token_id == NEW_ID);
 		current_function = new ast_node_function(name.text);
-		current_function->set_return_type(static_cast<ast_node_type*>(type));
+		current_function->set_return_type(type);
 		current_scope()->push_symbol(name.text, enum_symbol_type::function, current_function);
 		push_scope(current_function->begin_function(current_scope()));
 	}
@@ -322,7 +271,7 @@ namespace Thunder
 		return dummy;
 	}
 
-	void shader_lang_state::add_function_param(ast_node_type* type, const token_data& name, const parse_location* loc)
+	void shader_lang_state::add_function_param(ast_node_type_format* type, const token_data& name, const parse_location* loc)
 	{
 		TAssert(name.token_id == NEW_ID);
 		const auto variable = new ast_node_variable(type, name.text);
@@ -374,12 +323,164 @@ namespace Thunder
 		}
 		else
 		{
-			debug_log("Expected integer expression, but " + ret.type->type_name, &loc);
+			String type_text;
+			ret.type->generate_hlsl(type_text);
+			debug_log("Expected integer expression, but " + type_text, &loc);
 			return 0; // 或者抛出异常
 		}
 	}
 
-	void shader_lang_state::bind_modifier(ast_node_type* type, const token_data& modifier, const parse_location* loc)
+	
+	// 根据对象类型名称解析对象类型枚举
+	enum_object_type parse_object_type_from_name(const String& type_name)
+	{
+		LOG(type_name.c_str());
+		if (type_name == "Buffer") return enum_object_type::buffer;
+		if (type_name == "ByteAddressBuffer") return enum_object_type::byte_address_buffer;
+		if (type_name == "StructuredBuffer") return enum_object_type::structured_buffer;
+		if (type_name == "AppendStructuredBuffer") return enum_object_type::append_structured_buffer;
+		if (type_name == "ConsumeStructuredBuffer") return enum_object_type::consume_structured_buffer;
+		if (type_name == "RWBuffer") return enum_object_type::rw_buffer;
+		if (type_name == "RWByteAddressBuffer") return enum_object_type::rw_byte_address_buffer;
+		if (type_name == "RWStructuredBuffer") return enum_object_type::rw_structured_buffer;
+		
+		if (type_name == "Texture1D") return enum_object_type::texture_1d;
+		if (type_name == "Texture1DArray") return enum_object_type::texture_1d_array;
+		if (type_name == "Texture2D") return enum_object_type::texture_2d;
+		if (type_name == "Texture2DArray") return enum_object_type::texture_2d_array;
+		if (type_name == "Texture3D") return enum_object_type::texture_3d;
+		if (type_name == "Texture2DMS") return enum_object_type::texture_2d_ms;
+		if (type_name == "Texture2DMSArray") return enum_object_type::texture_2d_ms_array;
+		if (type_name == "TextureCube") return enum_object_type::texture_cube;
+		if (type_name == "TextureCubeArray") return enum_object_type::texture_cube_array;
+		if (type_name == "RWTexture1D") return enum_object_type::rw_texture_1d;
+		if (type_name == "RWTexture1DArray") return enum_object_type::rw_texture_1d_array;
+		if (type_name == "RWTexture2D") return enum_object_type::rw_texture_2d;
+		if (type_name == "RWTexture2DArray") return enum_object_type::rw_texture_2d_array;
+		if (type_name == "RWTexture3D") return enum_object_type::rw_texture_3d;
+		
+		if (type_name == "InputPatch") return enum_object_type::input_patch;
+		if (type_name == "OutputPatch") return enum_object_type::output_patch;
+		if (type_name == "ConstantBuffer") return enum_object_type::constant_buffer;
+		
+		return enum_object_type::none;
+	}
+
+	ast_node_type_format* shader_lang_state::create_basic_type_node(const token_data& type_info)
+	{
+		const auto node = new ast_node_type_format;
+		String sub;
+		switch (type_info.token_id)
+		{
+		case TYPE_BOOL:
+			node->basic_type = enum_basic_type::tp_bool;
+			break;
+		case TYPE_UINT:
+			node->basic_type = enum_basic_type::tp_uint;
+			break;
+		case TYPE_INT:
+			node->basic_type = enum_basic_type::tp_int;
+			break;
+		case TYPE_HALF:
+			node->basic_type = enum_basic_type::tp_half;
+			break;
+		case TYPE_FLOAT:
+			node->basic_type = enum_basic_type::tp_float;
+			break;
+		case TYPE_DOUBLE:
+			node->basic_type = enum_basic_type::tp_double;
+		case TYPE_VOID:
+			node->basic_type = enum_basic_type::tp_void;
+			break;
+		case TYPE_TEXTURE:
+			node->basic_type = enum_basic_type::tp_texture;
+			break;
+		case TYPE_SAMPLER:
+			node->basic_type = enum_basic_type::tp_sampler;
+			break;
+		case TYPE_ID:
+			{
+				node->basic_type = enum_basic_type::tp_indict; //reference type
+				auto symbol = get_global_symbol(type_info.text);
+				if (symbol && symbol->node_type == enum_ast_node_type::structure)
+				{
+					node->indirect_index = static_cast<ast_node_struct*>(symbol)->get_type()->indirect_index;
+				}
+				break;
+			}
+		case TYPE_VECTOR:
+		case TYPE_MATRIX:
+			{
+				switch (type_info.text[0])
+				{
+				case 'b':
+					node->basic_type = enum_basic_type::tp_bool;
+					sub = type_info.text.substr(4);
+					break;
+				case 'i':
+					node->basic_type = enum_basic_type::tp_int;
+					sub = type_info.text.substr(3);
+					break;
+				case 'u':
+					node->basic_type = enum_basic_type::tp_uint;
+					sub = type_info.text.substr(4);
+					break;
+				case 'h':
+					node->basic_type = enum_basic_type::tp_half;
+					sub = type_info.text.substr(4);
+					break;
+				case 'f':
+					node->basic_type = enum_basic_type::tp_float;
+					sub = type_info.text.substr(5);
+					break;
+				case 'd':
+					node->basic_type = enum_basic_type::tp_double;
+					sub = type_info.text.substr(6);
+					break;
+				default: break;
+				}
+				node->row = sub[0] - '0';
+				if (type_info.token_id == TYPE_VECTOR)
+				{
+					node->type_class = enum_type_class::vector;
+				}
+				else
+				{
+					node->type_class = enum_type_class::matrix;
+					node->column = sub[2] - '0';
+				}
+				break;
+			}
+		default:
+			break;
+		}
+
+		return node;
+	}
+
+	ast_node_type_format* shader_lang_state::create_object_type_node(const token_data& object)
+	{
+		const auto node = new ast_node_type_format();
+		node->basic_type = enum_basic_type::tp_none;
+		node->object_type = parse_object_type_from_name(object.text);
+		TAssert(node->object_type != enum_object_type::none);
+		return node;
+	}
+
+	// 创建带模板参数的对象类型节点
+	ast_node_type_format* shader_lang_state::create_object_type_node(const token_data& object, const token_data& content)
+	{
+		ast_node_type_format* node = new ast_node_type_format();
+		ast_node_type_format* content_node = create_basic_type_node(content);
+		node->packed_flags = content_node->packed_flags;
+		LOG("packed_flags: %d", node->packed_flags);
+		node->object_type = parse_object_type_from_name(object.text);
+		LOG("packed_flags after parse_object_type: %d", node->packed_flags);
+		TAssert(node->object_type != enum_object_type::none);
+		return node;
+	}
+
+	void shader_lang_state::bind_modifier(ast_node_type_format* type, const token_data& modifier, const parse_location* loc)
 	{
 		if (const auto type_node = type)
 		{
@@ -390,45 +491,33 @@ namespace Thunder
 		}
 	}
 
-	void shader_lang_state::combine_modifier(ast_node_type* type, ast_node_type* modifier)
+	void shader_lang_state::combine_modifier(ast_node_type_format* type, ast_node_type_format* modifier)
 	{
 		type->qualifiers |= modifier->qualifiers;
 	}
 
-	void shader_lang_state::apply_modifier(ast_node_type* type, const token_data& modifier)
+	void shader_lang_state::apply_modifier(ast_node_type_format* type, const token_data& modifier)
 	{
 		// 根据token类型设置相应的限定符标志
 		if (modifier.token_id == TOKEN_IN)
 		{
-			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::input);
+			type->is_in = true;
 		}
 		else if (modifier.token_id == TOKEN_OUT)
 		{
-			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::output);
+			type->is_out = true;
 		}
 		else if (modifier.token_id == TOKEN_INOUT)
 		{
-			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::inout);
+			type->is_inout = true;
 		}
 		else if (modifier.text == "const")
 		{
-			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::const_);
+			type->is_const = true;
 		}
 		else if (modifier.text == "static")
 		{
-			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::static_);
-		}
-		else if (modifier.text == "uniform")
-		{
-			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::uniform);
-		}
-		else if (modifier.text == "extern")
-		{
-			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::extern_);
-		}
-		else if (modifier.text == "volatile")
-		{
-			type->qualifiers |= static_cast<type_qualifier_flags>(enum_type_qualifier::volatile_);
+			type->is_static = true;
 		}
 		else
 		{
@@ -436,7 +525,7 @@ namespace Thunder
 		}
 	}
 
-	ast_node_statement* shader_lang_state::create_declaration_statement(ast_node_type* type, const token_data& name,
+	ast_node_statement* shader_lang_state::create_declaration_statement(ast_node_type_format* type, const token_data& name,
 		const dimensions& dim, ast_node_expression* expr)
 	{
 		TAssert(get_local_symbol(name.text) == nullptr);
@@ -489,7 +578,7 @@ namespace Thunder
 		return new function_call_expression(func_name.text);
 	}
 
-	ast_node_expression* shader_lang_state::create_constructor_expression(ast_node_type* type)
+	ast_node_expression* shader_lang_state::create_constructor_expression(ast_node_type_format* type)
 	{
 		return new constructor_expression(type);
 	}
@@ -542,7 +631,7 @@ namespace Thunder
 		}
 	}
 
-	ast_node_expression* shader_lang_state::create_cast_expression(ast_node_type* target_type, ast_node_expression* operand)
+	ast_node_expression* shader_lang_state::create_cast_expression(ast_node_type_format* target_type, ast_node_expression* operand)
 	{
 		return new cast_expression(target_type, operand);
 	}
@@ -668,7 +757,7 @@ namespace Thunder
 			debug_log("Parse Error, current text : " + sl_state->current_text);
 			return;
 		}
-		ast_root->print_ast(0);
+		//ast_root->print_ast(0);
 		printf("\n");
 		String outHlsl;
 		ast_root->generate_hlsl(outHlsl);

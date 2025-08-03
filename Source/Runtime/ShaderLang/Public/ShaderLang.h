@@ -56,6 +56,9 @@ namespace Thunder
 		// 作用域
 		TArray<scope*> symbol_scopes;
 
+		// 自定义的类型
+		TArray<ast_node*> custom_types; // for indirect types
+
 		// function stacks.
 		//std::vector<ast_node_function*> functions;
 		// block stacks.
@@ -69,11 +72,9 @@ namespace Thunder
 		TArray<ast_node_variable*> current_variables;
 
 		/* 上下文管理 */
-		ast_node_type* create_type_node(const token_data& type_info);
-
 		void parsing_archive_begin(const token_data& name);
 		ast_node* parsing_archive_end(ast_node* content);
-		void add_variable_to_list(ast_node_type* type, const token_data& name, ast_node_expression* default_value);
+		void add_variable_to_list(ast_node_type_format* type, const token_data& name, ast_node_expression* default_value);
 		void parsing_variable_end(const token_data& name, const token_data& text);
 
 		void parsing_pass_begin();
@@ -82,11 +83,11 @@ namespace Thunder
 		
 		void parsing_struct_begin(const token_data& name);
 		ast_node_struct* parsing_struct_end();
-		void add_struct_member(ast_node_type* type, const token_data& name, const token_data& modifier, const parse_location* loc);
+		void add_struct_member(ast_node_type_format* type, const token_data& name, const token_data& modifier, const parse_location* loc);
 		
-		void parsing_function_begin(ast_node* type, const token_data& name);
+		void parsing_function_begin(ast_node_type_format* type, const token_data& name);
 		ast_node_function* parsing_function_end(ast_node_block* body);
-		void add_function_param(ast_node_type* type, const token_data& name, const parse_location* loc);
+		void add_function_param(ast_node_type_format* type, const token_data& name, const parse_location* loc);
 
 		void parsing_block_begin();
 		ast_node_block* parsing_block_end();
@@ -95,13 +96,16 @@ namespace Thunder
 		int evaluate_integer_expression(ast_node_expression* expr, const parse_location& loc);
 
 		/* 类型系统 */
-		void bind_modifier(ast_node_type* type, const token_data& modifier, const parse_location* loc);
-		void combine_modifier(ast_node_type* type, ast_node_type* modifier);
-		void apply_modifier(ast_node_type* type, const token_data& modifier);
+		ast_node_type_format* create_basic_type_node(const token_data& type_info);
+		ast_node_type_format* create_object_type_node(const token_data& object);
+		ast_node_type_format* create_object_type_node(const token_data& object, const token_data& content);
+		void bind_modifier(ast_node_type_format* type, const token_data& modifier, const parse_location* loc);
+		void combine_modifier(ast_node_type_format* type, ast_node_type_format* modifier);
+		void apply_modifier(ast_node_type_format* type, const token_data& modifier);
 		//DataType* type_infer(ShaderParseState* state, ASTNode* expr) { return nullptr;}    // 类型推断
 
 		/* Statement */
-		ast_node_statement* create_declaration_statement(ast_node_type* type, const token_data& name, const dimensions& dim, ast_node_expression* expr);
+		ast_node_statement* create_declaration_statement(ast_node_type_format* type, const token_data& name, const dimensions& dim, ast_node_expression* expr);
 		ast_node_statement* create_return_statement(ast_node_expression* expr);
 		ast_node_statement* create_break_statement();
 		ast_node_statement* create_continue_statement();
@@ -118,12 +122,12 @@ namespace Thunder
 		ast_node_expression* create_shuffle_or_component_expression(ast_node_expression* expr, const token_data& comp);
 		ast_node_expression* create_index_expression(ast_node_expression* expr, ast_node_expression* index_expr);
 		ast_node_expression* create_function_call_expression(const token_data& func_name);
-		ast_node_expression* create_constructor_expression(ast_node_type* type);
+		ast_node_expression* create_constructor_expression(ast_node_type_format* type);
 		void append_argument(ast_node_expression* func_call_expr, ast_node_expression* arg_expr);
 		ast_node_expression* create_assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs);
 		ast_node_expression* create_conditional_expression(ast_node_expression* cond, ast_node_expression* true_expr, ast_node_expression* false_expr);
 		ast_node_expression* create_chain_expression(ast_node_expression* prev, ast_node_expression* next);
-		ast_node_expression* create_cast_expression(ast_node_type* target_type, ast_node_expression* operand);
+		ast_node_expression* create_cast_expression(ast_node_type_format* target_type, ast_node_expression* operand);
 		
 		/* Constant Expression */
 		ast_node_expression* create_constant_int_expression(int value);
@@ -135,7 +139,7 @@ namespace Thunder
 		scope* pop_scope();
 		scope* current_scope() const;
 		ast_node* get_local_symbol(const String& name) const;
-		ast_node* get_global_symbol(const String& name) const;
+		ast_node* get_global_symbol(const String& name);
 		enum_symbol_type get_symbol_type(const String& name) const;
 		
 

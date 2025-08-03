@@ -92,6 +92,30 @@ SV_Target				SV_Target{TARGETS}?
 
 %%
 
+"Buffer"					{ return TOKENIZE(TYPE_OBJECT); }
+"ByteAddressBuffer"			{ return TOKENIZE(TYPE_OBJECT); }
+"StructuredBuffer"			{ return TOKENIZE(TYPE_OBJECT); }
+"AppendStructuredBuffer"	{ return TOKENIZE(TYPE_OBJECT); }
+"ConsumeStructuredBuffer"	{ return TOKENIZE(TYPE_OBJECT); }
+"RWBuffer"					{ return TOKENIZE(TYPE_OBJECT); }
+"RWByteAddressBuffer"		{ return TOKENIZE(TYPE_OBJECT); }
+"RWStructuredBuffer"		{ return TOKENIZE(TYPE_OBJECT); }
+
+"Texture1D"					{ return TOKENIZE(TYPE_OBJECT); }
+"Texture1DArray"			{ return TOKENIZE(TYPE_OBJECT); }
+"Texture2D"					{ return TOKENIZE(TYPE_OBJECT); }
+"Texture2DArray"			{ return TOKENIZE(TYPE_OBJECT); }
+"Texture3D"					{ return TOKENIZE(TYPE_OBJECT); }
+"Texture2DMS"				{ return TOKENIZE(TYPE_OBJECT); }
+"Texture2DMSArray"			{ return TOKENIZE(TYPE_OBJECT); }
+"TextureCube"				{ return TOKENIZE(TYPE_OBJECT); }
+"TextureCubeArray"			{ return TOKENIZE(TYPE_OBJECT); }
+"RWTexture1D"				{ return TOKENIZE(TYPE_OBJECT); }
+"RWTexture1DArray"			{ return TOKENIZE(TYPE_OBJECT); }
+"RWTexture2D"				{ return TOKENIZE(TYPE_OBJECT); }
+"RWTexture2DArray"			{ return TOKENIZE(TYPE_OBJECT); }
+"RWTexture3D"				{ return TOKENIZE(TYPE_OBJECT); }
+
 {VECTOR}		{ return TOKENIZE(TYPE_VECTOR); }
 {MATRIX}		{ return TOKENIZE(TYPE_MATRIX); }
 {TEXTURE}		{ return TOKENIZE(TYPE_TEXTURE); }
@@ -115,8 +139,12 @@ SV_Position		{ return TOKENIZE(TOKEN_SV); }
 "VertexEntry"	{ return TOKENIZE(TOKEN_VERTEX); }
 "PixelEntry"	{ return TOKENIZE(TOKEN_PIXEL); }
 
+"bool"			{ return TOKENIZE(TYPE_BOOL); }
 "int"       	{ return TOKENIZE(TYPE_INT); }
+"uint"			{ return TOKENIZE(TYPE_UINT); }
+"half"			{ return TOKENIZE(TYPE_HALF); }
 "float"     	{ return TOKENIZE(TYPE_FLOAT); }
+"double"		{ return TOKENIZE(TYPE_DOUBLE); }
 "void"      	{ return TOKENIZE(TYPE_VOID); }
 
 "in"			{ return TOKENIZE(TOKEN_IN); }

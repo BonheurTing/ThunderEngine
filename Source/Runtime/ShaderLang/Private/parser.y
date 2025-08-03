@@ -62,8 +62,8 @@ int yylex(YYSTYPE *, parse_location*, void*);
 /* %token 用于声明 终结符（terminal/token），即词法分析器（lexer/flex）返回的词法单元。
 它可以指定该 token 的语义值类型（通过 <...> 指定 %union 的成员） */
 %token <token> TOKEN_SV
-%token <token> TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER
-%token <token> TYPE_INT TYPE_FLOAT TYPE_VOID
+%token <token> TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER TYPE_OBJECT
+%token <token> TYPE_BOOL TYPE_INT TYPE_UINT TYPE_HALF TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 %token <token> TOKEN_IN TOKEN_INOUT TOKEN_OUT
 
 %token <token> TOKEN_IDENTIFIER TYPE_ID NEW_ID
@@ -336,17 +336,32 @@ param:
     }
     ;
 
+scalar_types:
+    TYPE_BOOL | TYPE_INT | TYPE_UINT | TYPE_HALF | TYPE_FLOAT | TYPE_DOUBLE
+    ;
+
 primitive_types:
-    TYPE_INT| TYPE_FLOAT| TYPE_VOID 
-    | TYPE_VECTOR | TYPE_MATRIX | TYPE_TEXTURE | TYPE_SAMPLER
+    scalar_types | TYPE_VOID | TYPE_VECTOR | TYPE_MATRIX;
     ;
 
 type:
     primitive_types {
-        $$ = sl_state->create_type_node($1);
+        $$ = sl_state->create_basic_type_node($1);
+    }
+    | TYPE_SAMPLER {
+        $$ = sl_state->create_basic_type_node($1);
+    }
+    | TYPE_OBJECT {
+        $$ = sl_state->create_object_type_node($1);
+    }
+    | TYPE_OBJECT LT primitive_types GT {
+        $$ = sl_state->create_object_type_node($1, $3);
+    }
+    | TYPE_OBJECT LT type_identifier GT {
+        $$ = sl_state->create_object_type_node($1, $3);
     }
     | type_identifier {
-        $$ = sl_state->create_type_node($1);
+        $$ = sl_state->create_basic_type_node($1);
     }
     ;
 
@@ -361,7 +376,7 @@ type_qualification:
 type_qualifications:
 	type_qualification
     {
-        $$ = new ast_node_type();
+        $$ = new ast_node_type_format();
         sl_state->apply_modifier($$, $1);
     }
     | type_qualifications type_qualification
@@ -372,7 +387,7 @@ type_qualifications:
 
 maybe_type_qualifications:
     {
-        $$ = new ast_node_type();
+        $$ = new ast_node_type_format();
     }
     | type_qualifications
     {

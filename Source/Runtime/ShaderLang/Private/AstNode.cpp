@@ -3,6 +3,7 @@
 #include "ShaderLang.h"
 #include "Assertion.h"
 #include "../Generated/parser.tab.h"
+#include<string_view>
 
 namespace Thunder
 {
@@ -10,17 +11,6 @@ namespace Thunder
 
     static void print_blank(int indent) {
         for (int i = 0; i < indent; i++) printf("  ");
-    }
-
-    static const char* get_type_name(enum_basic_type type) {
-        switch (type)
-        {
-            case enum_basic_type::tp_int: return "int";
-            case enum_basic_type::tp_float: return "float";
-            case enum_basic_type::tp_void: return "void";
-            case enum_basic_type::undefined: return "unknown";
-        }
-        return nullptr;
     }
 
     void ast_node::generate_dxil()
@@ -88,44 +78,118 @@ namespace Thunder
 
 #pragma region HLSL
 
-    void ast_node_type::generate_hlsl(String& outResult)
+
+    static const String TemplateTypeNames[static_cast<size_t>(enum_object_type::object_num)] =
+    {
+        "none",
+        // Buffer object
+        "Buffer",
+        "ByteAddressBuffer",
+        "StructuredBuffer",
+        "AppendStructuredBuffer",
+        "ConsumeStructuredBuffer",
+        "RWBuffer",
+        "RWByteAddressBuffer",
+        "RWStructuredBuffer",
+        // Texture object
+        "Texture1D",
+        "Texture1DArray",
+        "Texture2D",
+        "Texture2DArray",
+        "Texture2DMS",
+        "Texture2DMSArray",
+        "Texture3D",
+        "TextureCube",
+        "TextureCubeArray",
+        "RWTexture1D",
+        "RWTexture1DArray",
+        "RWTexture2D",
+        "RWTexture2DArray",
+        "RWTexture3D",
+        // Tessellation in/out
+        "InputPatch",
+        "OutputPatch",
+        "ConstantBuffer",
+    };
+
+    String ast_node_type_format::get_type_text() const
+    {
+        String text = "";
+        switch (basic_type)
+        {
+            case enum_basic_type::tp_void: text = "void"; break;
+            case enum_basic_type::tp_bool: text = "bool"; break;
+            case enum_basic_type::tp_int: text = "int"; break;
+            case enum_basic_type::tp_uint: text = "uint"; break;
+            case enum_basic_type::tp_half: text = "half"; break;
+            case enum_basic_type::tp_float: text = "float"; break;
+            case enum_basic_type::tp_double: text = "double"; break;
+            case enum_basic_type::tp_none:
+                text = TemplateTypeNames[static_cast<int>(object_type)];
+                break;
+            case enum_basic_type::tp_indict:
+            {
+                ast_node* node = sl_state->custom_types[indirect_index];
+                if (node && node->node_type == enum_ast_node_type::structure)
+                {
+                    text = static_cast<ast_node_struct*>(node)->get_name();
+                }
+                else
+                {
+                    TAssert(false);
+                }
+                break;
+            }
+            default: break;
+        }
+        if (type_class == enum_type_class::vector
+            || type_class == enum_type_class::matrix)
+        {
+            text += std::to_string(row);
+        }
+        if (type_class == enum_type_class::matrix)
+        {
+            text += 'x';
+            text += std::to_string(column);
+        }
+        return text;
+    }
+
+    void ast_node_type_format::generate_hlsl(String& outResult)
     {
         // 生成类型限定符
-        if (qualifiers != static_cast<type_qualifier_flags>(enum_type_qualifier::none))
+        if (is_in)
         {
-            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::const_))
-                outResult += "const ";
-            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::static_))
-                outResult += "static ";
-            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::uniform))
-                outResult += "uniform ";
-            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::extern_))
-                outResult += "extern ";
-            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::volatile_))
-                outResult += "volatile ";
-            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::input))
-                outResult += "in ";
-            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::output))
-                outResult += "out ";
-            if (qualifiers & static_cast<type_qualifier_flags>(enum_type_qualifier::inout))
-                outResult += "inout ";
+            outResult += "in ";
         }
-        
-        String out_name = "";
-        /*switch (param_type)
+        if (is_out)
         {
-        case enum_basic_type::tp_int: out_name = "int"; break;
-        case enum_basic_type::tp_float: out_name = "float"; break;
-        case enum_basic_type::tp_void: out_name = "void"; break;
-        case enum_basic_type::tp_struct: out_name = type_name; break;
-        case enum_basic_type::tp_vector: out_name = type_name; break;
-        case enum_basic_type::tp_matrix: out_name = type_name; break;
-        case enum_basic_type::tp_texture: out_name = type_name; break;
-        case enum_basic_type::tp_sampler: out_name = type_name; break;
-            
-        default: break;
-        }*/
-        outResult += type_name;
+            outResult += "out ";
+        }
+        if (is_inout)
+        {
+            outResult += "inout ";
+        }
+        if (is_static)
+        {
+            outResult += "static ";
+        }
+        if (is_const)
+        {
+            outResult += "const ";
+        }
+
+        if (object_type != enum_object_type::none)
+        {
+            outResult += TemplateTypeNames[static_cast<size_t>(object_type)];
+            outResult += '<';
+            outResult += get_type_text();
+            outResult += '>';
+        }
+        else
+        {
+            outResult += get_type_text();
+        }
     }
 
     void ast_node_variable::generate_hlsl(String& outResult)
@@ -140,12 +204,19 @@ namespace Thunder
 
     void ast_node_archive::generate_hlsl(String& outResult)
     {
+        TArray<ast_node_variable*> objects;
         if (!object_parameters.empty())
         {
             outResult += "cbuffer cbObject : register(b0, space0)\n{\n";
             for (const auto& param : object_parameters)
             {
-                outResult += param->type->type_name + " " + param->name + ";\n";
+                if (param->type->is_object())
+                {
+                    objects.push_back(param);
+                    continue;
+                }
+                param->type->generate_hlsl(outResult);
+                outResult += " " + param->name + ";\n";
             }
             outResult += "};\n\n";
         }
@@ -154,7 +225,13 @@ namespace Thunder
             outResult += "cbuffer cbPass : register(b1, space0)\n{\n";
             for (const auto& param : pass_parameters)
             {
-                outResult += param->type->type_name + " " + param->name + ";\n";
+                if (param->type->is_object())
+                {
+                    objects.push_back(param);
+                    continue;
+                }
+                param->type->generate_hlsl(outResult);
+                outResult += " " + param->name + ";\n";
             }
             outResult += "};\n\n";
         }
@@ -163,9 +240,21 @@ namespace Thunder
             outResult += "cbuffer cbGlobal : register(b2, space0)\n{\n";
             for (const auto& param : global_parameters)
             {
-                outResult += param->type->type_name + " " + param->name + ";\n";
+                if (param->type->is_object())
+                {
+                    objects.push_back(param);
+                    continue;
+                }
+                param->type->generate_hlsl(outResult);
+                outResult += " " + param->name + ";\n";
             }
             outResult += "};\n\n";
+        }
+        int object_index = 0;
+        for (const auto& obj : objects)
+        {
+            obj->type->generate_hlsl(outResult);
+            outResult += " " + obj->name + " : register(t" + std::to_string(object_index++) + ");\n";
         }
         
         for (const auto pass : passes)
@@ -191,7 +280,7 @@ namespace Thunder
     
     void ast_node_struct::generate_hlsl(String& outResult)
     {
-        outResult += "struct " + type->type_name+ " {\n";
+        outResult += "struct " + name + " {\n";
         for (const auto& member : members)
         {
             member->generate_hlsl(outResult);
@@ -642,10 +731,12 @@ namespace Thunder
 #pragma endregion // HLSL
 
 #pragma region PRINT_AST
-    void ast_node_type::print_ast(int indent)
+    void ast_node_type_format::print_ast(int indent)
     {
         print_blank(indent);
-        printf("Type: %s", type_name.c_str());
+        String type_text;
+        generate_hlsl(type_text);
+        printf("Type: %s", type_text.c_str());
     }
 
     void ast_node_variable::print_ast(int indent)
@@ -684,7 +775,7 @@ namespace Thunder
     void ast_node_struct::print_ast(int indent)
     {
         print_blank(indent);
-        printf("Struct: %s\n", type->type_name.c_str());
+        printf("Struct: %s\n", name.c_str());
         print_blank(indent + 1);
         printf("Members:\n");
         for (const auto& member : members)
@@ -1281,7 +1372,7 @@ namespace Thunder
         }
 
         // 如果引用的是常量，尝试获取其值
-        if (target->Type == enum_ast_node_type::expression)
+        if (target->node_type == enum_ast_node_type::expression)
         {
             const auto expr = static_cast<ast_node_expression*>(target);
             return expr->evaluate();
@@ -1470,9 +1561,9 @@ namespace Thunder
         evaluate_expr_result operand_result = operand->evaluate();
         
         // 对于常量表达式，尝试进行类型转换
-        if (cast_type && cast_type->param_type != enum_basic_type::undefined)
+        if (cast_type)
         {
-            switch (cast_type->param_type)
+            switch (cast_type->basic_type)
             {
             case enum_basic_type::tp_int:
                 if (operand_result.result_type == enum_eval_result_type::constant_float)
@@ -1545,8 +1636,8 @@ namespace Thunder
                 {
                     token = NEW_ID;
                 }
-                else if (symbol_node->Type == enum_ast_node_type::type ||
-                    symbol_node->Type == enum_ast_node_type::structure)
+                else if (symbol_node->node_type == enum_ast_node_type::type_format ||
+                    symbol_node->node_type == enum_ast_node_type::structure)
                 {
                     sl_state->debug_log("TYPE_ID : " + sl_state->current_text, loc);
                     token = TYPE_ID;

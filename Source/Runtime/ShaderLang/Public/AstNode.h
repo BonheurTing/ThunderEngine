@@ -8,7 +8,7 @@ namespace Thunder
 {
     enum class enum_ast_node_type : uint8
     {
-        type,
+        type_format,
         variable,
         archive,
         pass,
@@ -55,22 +55,28 @@ namespace Thunder
 
     enum class enum_basic_type : uint8
     {
-        tp_int,
-        tp_float,
+        tp_none = 0,
+        tp_indict,
         tp_void,
         tp_bool,
-        tp_vector,
-        tp_matrix,
-        tp_struct,
-        tp_buffer,
+        tp_int,
+        tp_uint,
+        tp_half,
+        tp_float,
+        tp_double,
         tp_texture,
         tp_sampler,
-        undefined
+        tp_string,
+        tp_struct,
+        tp_shader,
+
+        tp_num
     };
-    static_assert(static_cast<size_t>(enum_basic_type::undefined) <= 16, "enum basic type check.");
+    static_assert(static_cast<size_t>(enum_basic_type::tp_num) <= 32, "enum basic type check.");
 
     enum class enum_texture_type : uint8
     {
+        texture_none = 0,
         texture1d,
         texture2d,
         texture3d,
@@ -82,9 +88,60 @@ namespace Thunder
         texture_cube_array,
         
         texture_sampler,
-        texture_unknown
+        texture_num
     };
-    static_assert(static_cast<size_t>(enum_texture_type::texture_unknown) <= 16, "enum texture type check.");
+    static_assert(static_cast<size_t>(enum_texture_type::texture_num) <= 32, "enum texture type check.");
+
+    enum class enum_object_type : uint8
+    {
+        none = 0,
+        // Buffer types
+        buffer,
+        byte_address_buffer,
+        structured_buffer,
+        append_structured_buffer,
+        consume_structured_buffer,
+        rw_buffer,
+        rw_byte_address_buffer,
+        rw_structured_buffer,
+        
+        // Texture types
+        texture_1d,
+        texture_1d_array,
+        texture_2d,
+        texture_2d_array,
+        texture_3d,
+        texture_2d_ms,
+        texture_2d_ms_array,
+        texture_cube,
+        texture_cube_array,
+        rw_texture_1d,
+        rw_texture_1d_array,
+        rw_texture_2d,
+        rw_texture_2d_array,
+        rw_texture_3d,
+
+        // Sampler types
+        //sampler_state,
+        
+        // Patch types
+        input_patch,
+        output_patch,
+        constant_buffer,
+        
+        object_num
+    };
+    static_assert(static_cast<size_t>(enum_object_type::object_num) <= 32, "enum object type check.");
+
+    enum class enum_type_class : uint8
+    {
+        scalar = 0,
+        vector,
+        matrix,
+
+        num
+    };
+    static_assert(static_cast<size_t>(enum_type_class::num) <= 4, "enum type class check.");
 
     enum class enum_binary_op : uint8
     {
@@ -125,7 +182,7 @@ namespace Thunder
         undefined
     };
 
-    enum class enum_type_qualifier : uint8
+    /*enum class enum_type_qualifier : uint8
     {
         none = 0,
         // Input/Output qualifiers
@@ -142,7 +199,7 @@ namespace Thunder
     };
 
     // Type qualifier flags can be combined
-    using type_qualifier_flags = uint8;
+    using type_qualifier_flags = uint8;*/
 
     enum class enum_assignment_op : uint8
     {
@@ -163,7 +220,7 @@ namespace Thunder
     enum class enum_symbol_type : uint8
     {
         variable,   // 变量 variable_declaration_statement
-        type,      // 类型 ast_node_type
+        type_format, // 类型 ast_node_type_format
         structure,  // 结构体
         function,   // 函数 ast_node_function
         //constant,   // 常量
@@ -252,7 +309,7 @@ namespace Thunder
         union
         {
             class ast_node* node;
-            class ast_node_type* type;
+            class ast_node_type_format* type;
             class ast_node_statement* statement;
             class ast_node_block* block;
             class ast_node_expression* expression;
@@ -266,7 +323,7 @@ namespace Thunder
     class ast_node
     {
     public:
-        ast_node(enum_ast_node_type type) : Type(type) {}
+        ast_node(enum_ast_node_type type) : node_type(type) {}
         virtual ~ast_node() = default;
 
         virtual void generate_hlsl(String& outResult) {}
@@ -274,37 +331,72 @@ namespace Thunder
         virtual void print_ast(int indent) {}
 
     public:
-        enum_ast_node_type Type;
+        enum_ast_node_type node_type;
     };
 
     // 类型基类，类型相关的用法都在这里 = type_spec
-    class ast_node_type : public ast_node
+    class ast_node_type_format : public ast_node
     {
     public:
-        ast_node_type() : ast_node(enum_ast_node_type::type) {}
+        union
+        {
+            struct
+            {
+                enum_basic_type basic_type : 5; // basic type
+                uint8 row : 3;		// For vector / matrix.
+                uint8 column : 3;		// For matrix.
+                enum_texture_type texture_type : 5; // Texture class
+                enum_object_type object_type : 5; // Object type.
+                enum_type_class type_class : 3; // Type class (scalar, vector, matrix, etc.)
 
+                uint8 padding0;
+                uint16 indirect_index; // For indirect type.
+
+                bool is_in : 1;		// Input variable.
+                bool is_out : 1;	// Output variable.
+                bool is_inout : 1;	// InOut variable.
+                bool is_static : 1;		// Static variable.
+                bool is_const : 1;		// Constant variable.
+                bool is_sample : 1;		// Interpolate at sample location.
+                bool is_semantic : 1;	// 是否是shader语义
+			    uint16 padding1 : 9;
+            };
+            struct
+            {
+                uint32 packed_flags; // Combine all type flags.
+                uint16 custom_type_index; // For indirect type.
+                uint16 qualifiers; // Combine all qualifiers.
+            };
+
+            // Combination.
+            uint64 combination;
+        };
+    private:
+        _NODISCARD_ String get_type_text() const;
+    public:
+        ast_node_type_format() noexcept
+            : ast_node(enum_ast_node_type::type_format)
+            { combination = 0; }
+
+        bool is_object() const noexcept
+        {
+            return object_type != enum_object_type::none;
+        }
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
-    public:
-        String type_name; // 用于存储类型名称
-        // format
-        enum_basic_type param_type : 4 = enum_basic_type::undefined;
-        enum_texture_type texture_type : 4 = enum_texture_type::texture_unknown;
-        bool is_semantic : 1 = false; // 是否是shader语义
-        type_qualifier_flags qualifiers = static_cast<type_qualifier_flags>(enum_type_qualifier::none); // 类型限定符
     };
 
     // 变量基类，包含参数变量，局部变量，全局变量，shader semantic等 // Definition
     class ast_node_variable : public ast_node
     {
     public:
-        ast_node_variable(ast_node_type* var_type, String name)
+        ast_node_variable(ast_node_type_format* var_type, String name)
             : ast_node(enum_ast_node_type::variable), type(var_type), name(std::move(name)) {}
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     public:
-        ast_node_type* type = nullptr;
+        ast_node_type_format* type = nullptr;
         String name; // 用于存储变量名称
         dimensions dimension; // 用于存储变量的维度信息
         String semantic; // 用于存储shader语义
@@ -378,12 +470,8 @@ namespace Thunder
     class ast_node_struct : public ast_node
     {
     public:
-        ast_node_struct(ast_node* token)
-        : ast_node(enum_ast_node_type::structure)
-        {
-            TAssert(token->Type == enum_ast_node_type::type);
-            type = static_cast<ast_node_type*>(token);
-        }
+        ast_node_struct(ast_node_type_format* token, const String& struct_name)
+        : ast_node(enum_ast_node_type::structure), type(token), name(struct_name) {}
 
         scope* begin_structure(scope* outer);
         void end_structure(scope* current);
@@ -395,10 +483,19 @@ namespace Thunder
             members.push_back(mem);
             local_scope->push_symbol(mem->name, enum_symbol_type::variable, mem);
         }
+        ast_node_type_format* get_type() const
+        {
+            return type;
+        }
+        String get_name() const
+        {
+            return name;
+        }
     private:
         scope_ref local_scope; // 作用域引用，用于符号表管理
-        ast_node_type* type = nullptr;
+        ast_node_type_format* type = nullptr;
         TArray<ast_node_variable*> members;
+        String name; // 用于存储结构体名称
     };
 
     class ast_node_function : public ast_node
@@ -407,7 +504,7 @@ namespace Thunder
         ast_node_function(const String& name)
         : ast_node(enum_ast_node_type::function), func_name(name) {}
 
-        void set_return_type(ast_node_type* ret_type)
+        void set_return_type(ast_node_type_format* ret_type)
         {
             return_type = ret_type;
         }
@@ -429,7 +526,7 @@ namespace Thunder
     private:
         scope_ref local_scope; // 作用域引用，用于符号表管理
         // func_signature
-        ast_node_type* return_type = nullptr;
+        ast_node_type_format* return_type = nullptr;
         NameHandle func_name = nullptr;
         TArray<ast_node_variable*> params;
         // body
@@ -575,7 +672,7 @@ namespace Thunder
     // 表达式求值结果
     struct evaluate_expr_result  // NOLINT(cppcoreguidelines-pro-type-member-init)
     {
-        ast_node_type* type = nullptr;           // 表达式类型
+        ast_node_type_format* type = nullptr;           // 表达式类型
         enum_eval_result_type result_type = enum_eval_result_type::undetermined;
         union
         {
@@ -757,7 +854,7 @@ namespace Thunder
     class constructor_expression : public ast_node_expression
     {
     public:
-        constructor_expression(ast_node_type* type) noexcept
+        constructor_expression(ast_node_type_format* type) noexcept
             : ast_node_expression(enum_expr_type::constructor_call), constructor_type(type) {}
 
         void add_argument(ast_node_expression* arg)
@@ -769,7 +866,7 @@ namespace Thunder
         void print_ast(int indent) override;
         evaluate_expr_result evaluate() override;
     private:
-        ast_node_type* constructor_type = nullptr;
+        ast_node_type_format* constructor_type = nullptr;
         TArray<ast_node_expression*> arguments = {};
     };
 
@@ -858,7 +955,7 @@ namespace Thunder
     class cast_expression : public ast_node_expression
     {
     public:
-        cast_expression(ast_node_type* target_type, ast_node_expression* expr) noexcept
+        cast_expression(ast_node_type_format* target_type, ast_node_expression* expr) noexcept
             : ast_node_expression(enum_expr_type::cast), cast_type(target_type), operand(expr) {}
 
         void generate_hlsl(String& outResult) override;
@@ -866,7 +963,7 @@ namespace Thunder
         evaluate_expr_result evaluate() override;
 
     private:
-        ast_node_type* cast_type = nullptr;
+        ast_node_type_format* cast_type = nullptr;
         ast_node_expression* operand = nullptr;
     };
 

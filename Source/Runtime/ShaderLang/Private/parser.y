@@ -107,11 +107,11 @@ int yylex(YYSTYPE *, parse_location*, void*);
 
 /* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
 %type <token> identifier type_identifier new_identifier primary_identifier any_identifier
-%type <token> primitive_types 
+%type <token> primitive_types scalar_types
 %type <node> definitions properties_definition variants_definition parameters_definition
-%type <token> inout_modifier type_qualification
+%type <token> inout_modifier type_qualification maybe_semantic
 %type <type> type variable_type type_qualifications maybe_type_qualifications
-%type <dimension> maybe_array array_dimensions maybe_semantic
+%type <dimension> maybe_array array_dimensions
 %type <op_type> assignment_operator unary_operator
 %type <node> archive_definition pass_definition stage_definition struct_definition function_definition
 %type <node> program passes pass_content param_list param
@@ -126,7 +126,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <expression> expression primary_expr postfix_expr function_call
                   logical_or_expr logical_and_expr inclusive_or_expr exclusive_or_expr and_expr equality_expr relational_expr shift_expr
                   additive_expr multiplicative_expr unary_expr constant_expr condition maybe_condition maybe_expression
-                  assignment_expr conditional_expr local_variable_initializer variable_initializer
+                  assignment_expr conditional_expr local_variable_initializer
 
 %type <expression> function_call_header function_call_header_no_parameters function_call_header_with_parameters
 
@@ -186,7 +186,7 @@ maybe_array:
 
 maybe_semantic:
 		{
-			$$.set_null();
+			$$ = token_data();
 		}
 | 	COLON TOKEN_SV
 		{
@@ -302,13 +302,9 @@ struct_members:
     ;
 
 struct_member:
-    type new_identifier SEMICOLON {
-        token_data token;
-        sl_state->add_struct_member($1, $2, token, &yylloc);
-    }
-    | type new_identifier COLON TOKEN_SV SEMICOLON {
-        sl_state->bind_modifier($1, $4, &yylloc);
-        sl_state->add_struct_member($1, $2, $4, &yylloc);  // Todo : parse sv.
+    type new_identifier maybe_semantic SEMICOLON {
+        sl_state->apply_modifier($1, $3);
+        sl_state->add_struct_member($1, $2, $3, &yylloc);
     }
     ;
 
@@ -316,8 +312,8 @@ function_definition:
     type new_identifier LPAREN {
         sl_state->parsing_function_begin($1, $2);
     }
-    param_list RPAREN function_body {
-        $$ = sl_state->parsing_function_end($7);
+    param_list RPAREN maybe_semantic function_body {
+        $$ = sl_state->parsing_function_end($7, $8);
     }
     ;
 
@@ -418,20 +414,6 @@ local_variable_initializer:
 |	ASSIGN LBRACE expression RBRACE
 		{
 			$$ = $3; // 初始化列表，简化处理
-		}
-;
-
-variable_initializer:
-		{
-			$$ = nullptr;
-		}
-|	ASSIGN constant_expr
-		{
-			$$ = $2;
-		}
-|	ASSIGN LBRACE constant_expr RBRACE
-		{
-			$$ = $3; // 常量初始化列表
 		}
 ;
 

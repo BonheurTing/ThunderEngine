@@ -215,8 +215,8 @@ namespace Thunder
                     objects.push_back(param);
                     continue;
                 }
-                param->type->generate_hlsl(outResult);
-                outResult += " " + param->name + ";\n";
+                param->generate_hlsl(outResult);
+                outResult += ";\n";
             }
             outResult += "};\n\n";
         }
@@ -230,8 +230,8 @@ namespace Thunder
                     objects.push_back(param);
                     continue;
                 }
-                param->type->generate_hlsl(outResult);
-                outResult += " " + param->name + ";\n";
+                param->generate_hlsl(outResult);
+                outResult += ";\n";
             }
             outResult += "};\n\n";
         }
@@ -245,8 +245,8 @@ namespace Thunder
                     objects.push_back(param);
                     continue;
                 }
-                param->type->generate_hlsl(outResult);
-                outResult += " " + param->name + ";\n";
+                param->generate_hlsl(outResult);
+                outResult += ";\n";
             }
             outResult += "};\n\n";
         }
@@ -256,7 +256,8 @@ namespace Thunder
             obj->type->generate_hlsl(outResult);
             outResult += " " + obj->name + " : register(t" + std::to_string(object_index++) + ");\n";
         }
-        
+        outResult += "\n";
+
         for (const auto pass : passes)
         {
             pass->generate_hlsl(outResult);
@@ -303,7 +304,16 @@ namespace Thunder
 
         String funcSignature;
         return_type->generate_hlsl(funcSignature);
-        funcSignature += " " + func_name.ToString() + "(" + paramList + ")\n";
+        funcSignature += " " + func_name.ToString() + "(" + paramList + ")";
+
+        if (!semantic.empty())
+        {
+            funcSignature += " : " + semantic + "\n";
+        }
+        else
+        {
+            funcSignature += "\n";
+        }
 
         String funcBody;
         body->generate_hlsl(funcBody);

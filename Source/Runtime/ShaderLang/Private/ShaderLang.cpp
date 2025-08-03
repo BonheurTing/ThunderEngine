@@ -260,9 +260,13 @@ namespace Thunder
 		push_scope(current_function->begin_function(current_scope()));
 	}
 
-	ast_node_function* shader_lang_state::parsing_function_end(ast_node_block* body)
+	ast_node_function* shader_lang_state::parsing_function_end(const token_data& info, ast_node_block* body)
 	{
 		TAssert(current_function != nullptr);
+		if (info.token_id == TOKEN_SV)
+		{
+			current_function->set_semantic(info.text);
+		}
 		current_function->set_body(body);
 		current_function->end_function(pop_scope());
 
@@ -480,17 +484,6 @@ namespace Thunder
 		return node;
 	}
 
-	void shader_lang_state::bind_modifier(ast_node_type_format* type, const token_data& modifier, const parse_location* loc)
-	{
-		if (const auto type_node = type)
-		{
-			if (modifier.token_id == TOKEN_SV)
-			{
-				type_node->is_semantic = true;
-			}
-		}
-	}
-
 	void shader_lang_state::combine_modifier(ast_node_type_format* type, ast_node_type_format* modifier)
 	{
 		type->qualifiers |= modifier->qualifiers;
@@ -518,6 +511,10 @@ namespace Thunder
 		else if (modifier.text == "static")
 		{
 			type->is_static = true;
+		}
+		else if (modifier.token_id == TOKEN_SV)
+		{
+			type->is_semantic = true;
 		}
 		else
 		{

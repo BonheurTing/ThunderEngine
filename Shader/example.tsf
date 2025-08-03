@@ -56,7 +56,7 @@ Shader "TestShader"
             return o;
         }
         
-        float test_function(int x)
+        float test_function(int x) : SV_Target
         {
             return 0.5;
         }

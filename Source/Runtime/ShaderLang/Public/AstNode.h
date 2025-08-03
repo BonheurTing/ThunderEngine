@@ -400,7 +400,6 @@ namespace Thunder
         String name; // 用于存储变量名称
         dimensions dimension; // 用于存储变量的维度信息
         String semantic; // 用于存储shader语义
-        String value; // 用于存储常量值或默认值
     };
 
     class ast_node_archive : public ast_node
@@ -513,6 +512,10 @@ namespace Thunder
             params.push_back(param);
             local_scope->push_symbol(param->name, enum_symbol_type::variable, param);
         }
+        void set_semantic(const String& sem)
+        {
+            semantic = sem;
+        }
         void set_body(class ast_node_block* body_statements)
         {
             body = body_statements;
@@ -529,6 +532,7 @@ namespace Thunder
         ast_node_type_format* return_type = nullptr;
         NameHandle func_name = nullptr;
         TArray<ast_node_variable*> params;
+        String semantic; // 用于存储shader语义
         // body
         ast_node_block* body = nullptr;
     };

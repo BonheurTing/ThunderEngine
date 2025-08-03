@@ -86,7 +86,7 @@ namespace Thunder
 		void add_struct_member(ast_node_type_format* type, const token_data& name, const token_data& modifier, const parse_location* loc);
 		
 		void parsing_function_begin(ast_node_type_format* type, const token_data& name);
-		ast_node_function* parsing_function_end(ast_node_block* body);
+		ast_node_function* parsing_function_end(const token_data& info, ast_node_block* body);
 		void add_function_param(ast_node_type_format* type, const token_data& name, const parse_location* loc);
 
 		void parsing_block_begin();
@@ -99,7 +99,6 @@ namespace Thunder
 		ast_node_type_format* create_basic_type_node(const token_data& type_info);
 		ast_node_type_format* create_object_type_node(const token_data& object);
 		ast_node_type_format* create_object_type_node(const token_data& object, const token_data& content);
-		void bind_modifier(ast_node_type_format* type, const token_data& modifier, const parse_location* loc);
 		void combine_modifier(ast_node_type_format* type, ast_node_type_format* modifier);
 		void apply_modifier(ast_node_type_format* type, const token_data& modifier);
 		//DataType* type_infer(ShaderParseState* state, ASTNode* expr) { return nullptr;}    // 类型推断

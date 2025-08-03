@@ -63,7 +63,9 @@ namespace Thunder
     
     String FileManager::GetProjectRoot() const
     {
-	    return "";
+    	//todo
+    	auto currentPath = std::filesystem::current_path();
+	    return currentPath.parent_path().parent_path().parent_path().parent_path().parent_path().string();
     }
     
     String FileManager::GetEngineRoot() const
@@ -81,6 +83,6 @@ namespace Thunder
     
     String FileManager::GetEngineShaderRoot() const
     {
-    	return GetEngineRoot() + "\\Shader";
+    	return GetProjectRoot() + "\\Shader\\";
     }
 }

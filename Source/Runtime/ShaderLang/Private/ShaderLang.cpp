@@ -3,6 +3,7 @@
 
 #include "Assertion.h"
 #include "AstNode.h"
+#include "PreProcessor.h"
 #include "../Generated/parser.tab.h"
 
 #include "ShaderCompiler.h"

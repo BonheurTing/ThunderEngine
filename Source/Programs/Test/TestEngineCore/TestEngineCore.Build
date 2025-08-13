@@ -1,0 +1,7 @@
+set(ModuleName TestEngineCore)
+set(LinkMode EXECUTABLE)
+
+set(PublicDependencyModuleList
+    Core
+    Engine
+)

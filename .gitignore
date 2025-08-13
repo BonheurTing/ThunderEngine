@@ -45,7 +45,6 @@
 *.export.h
 Generated/
 Debug/
-Engine/
 Intermediate/
 Source/ThirdParty/EASTL
 Source/ThirdParty/llvm8

@@ -1,0 +1,9 @@
+Parameters "Object"
+{
+    float3 LastPosition;
+}
+Parameters "Global"
+{
+    float4 _Color2;
+    int RenderQuality = 1;
+}

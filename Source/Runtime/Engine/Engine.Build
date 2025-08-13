@@ -1,0 +1,5 @@
+set(ModuleName Engine)
+set(LinkMode SHARED)
+set(PublicDependencyModuleList
+    Core
+)

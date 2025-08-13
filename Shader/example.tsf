@@ -16,15 +16,9 @@ Shader "TestShader"
         Texture2D<float4> Albedo;
         StructuredBuffer<float4> _StructuredBuffer;
     }
-    Parameters "Object"
-    {
-        float3 LastPosition;
-    }
-    Parameters "Global"
-    {
-        float4 _Color2;
-        int RenderQuality = 1;
-    }
+    #include "TestInclude1/TestInclude2/test_include.tsh"
+    #define ENABLE_UV0 1
+    #define ENABLE_UV1 0
     SubShader
     {
         using VertexEntry = vert;
@@ -33,7 +27,12 @@ Shader "TestShader"
         struct vs_input
         {
             float4 vertex : POSITION;
+        #if ENABLE_UV0
             float2 uv : TEXCOORD0;
+        #endif
+        #if ENABLE_UV1
+            float2 uv1 : TEXCOORD1;
+        #endif
         };
         
         struct v2f

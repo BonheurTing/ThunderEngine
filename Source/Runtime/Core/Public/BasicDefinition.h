@@ -5,6 +5,7 @@
 #include <cstring>
 #include "Container.h"
 #include "Memory/MemoryBase.h"
+#include "Templates/RefCountObject.h"
 
 #define _NODISCARD_ [[nodiscard]]
 
@@ -26,7 +27,7 @@ namespace Thunder
 	{ };
 	
 	/* Unsafe Binary Data*/
-	struct BinaryData
+	struct BinaryData : RefCountedObject
 	{
 		void* Data = nullptr;
 		size_t Size = 0;

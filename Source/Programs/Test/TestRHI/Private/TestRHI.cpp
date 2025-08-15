@@ -9,8 +9,8 @@
 #include "EngineMain.h"
 #include "CoreModule.h"
 #include "CoreMinimal.h"
-#include "FileManager.h"
 #include "Config/ConfigManager.h"
+#include "FileSystem/FileModule.h"
 
 namespace Thunder
 {
@@ -24,7 +24,7 @@ int main()
     EngineMain MainEntry;
     ModuleManager::GetInstance()->LoadModule<CoreModule>();
     ModuleManager::GetInstance()->LoadModule<ShaderModule>();
-    std::cout << "ThunderEngine Path: " << GFileManager->GetEngineRoot() << std::endl;
+    std::cout << "ThunderEngine Path: " << FileModule::GetEngineRoot() << std::endl;
 
     // test config
     String configRHIType = GConfigManager->GetConfig("BaseEngine")->GetString("RHI");
@@ -118,9 +118,9 @@ int main()
     RHICreateFence(0, 0);
 
     // Test Shader Compiler
-    const String fileName = GFileManager->GetEngineRoot() + "\\Shader\\shaders.hlsl";
+    const String fileName = FileModule::GetEngineRoot() + "\\Shader\\shaders.hlsl";
     String shaderSource;
-    GFileManager->LoadFileToString(fileName, shaderSource);
+    FileModule::LoadFileToString(fileName, shaderSource);
 
     // Test Parse Shader File
     ShaderModule* shaderModule = ShaderModule::GetModule();

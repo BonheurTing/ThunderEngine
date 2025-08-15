@@ -31,6 +31,8 @@ namespace Thunder
 	{
 		void* Data = nullptr;
 		size_t Size = 0;
+
+		
 	};
 
 	/* Safe Binary Data*/

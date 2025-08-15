@@ -3,7 +3,6 @@
 #include "Assertion.h"
 #include "CoreMinimal.h"
 #include "CoreModule.h"
-#include "FileManager.h"
 #include "Templates/RefCounting.h"
 
 using namespace Thunder;

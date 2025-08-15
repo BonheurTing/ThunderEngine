@@ -45,7 +45,7 @@ namespace Thunder
     	}
     	~ShaderCombination() override
     	{
-    		for (auto pair : Shaders)
+    		for (auto& pair : Shaders)
     		{
     			if (pair.second.ByteCode.Size > 0)
     			{

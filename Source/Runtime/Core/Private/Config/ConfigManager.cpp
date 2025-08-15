@@ -1,7 +1,7 @@
 #include "Config/ConfigManager.h"
 #include "Assertion.h"
 #include "CoreModule.h"
-#include "FileManager.h"
+#include "FileSystem/FileModule.h"
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
 
@@ -21,8 +21,8 @@ namespace Thunder
 	bool ConfigManager::ReLoadConfig(NameHandle configName)
 	{
 		String configContent;
-		const String configPath = GFileManager->GetEngineRoot() + "Config/" + configName.ToString() + ".json";
-		if (!GFileManager->LoadFileToString(configPath, configContent))
+		const String configPath = FileModule::GetEngineRoot() + "Config/" + configName.ToString() + ".json";
+		if (!FileModule::LoadFileToString(configPath, configContent))
 		{
 			LOG("Fail to load config file to string: %s", configPath.c_str());
 			return false;
@@ -123,7 +123,7 @@ namespace Thunder
 			Writer<StringBuffer> writer{buffer};
 			document.Accept(writer);
 			const String configContent = buffer.GetString();
-			GFileManager->SaveFileFromString(configName.ToString(), configContent);
+			FileModule::SaveFileFromString(configName.ToString(), configContent);
 			return true;
 		}
 		return false;

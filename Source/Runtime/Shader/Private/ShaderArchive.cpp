@@ -3,8 +3,8 @@
 #include <sstream>
 #include "Assertion.h"
 #include "CoreModule.h"
-#include "FileManager.h"
 #include "ShaderModule.h"
+#include "FileSystem/FileModule.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder
@@ -362,7 +362,7 @@ namespace Thunder
     
     String ShaderArchive::GetShaderSourceDir() const
     {
-    	String fullPath = GFileManager->GetEngineShaderRoot();
+    	String fullPath = FileModule::GetEngineShaderRoot();
     	constexpr size_t invalidPosition = 0xffffffff;
     	size_t lastSlashPosition = invalidPosition;
     	if (SourcePath.find_last_of("\\") != std::string::npos)
@@ -391,9 +391,9 @@ namespace Thunder
     		return true;
     	}
     	// SourcePath
-    	const String fileName = GFileManager->GetEngineRoot() + "\\Shader\\" + SourcePath;
+    	const String fileName = FileModule::GetEngineRoot() + "\\Shader\\" + SourcePath;
     	String shaderSource;
-    	GFileManager->LoadFileToString(fileName, shaderSource);
+    	FileModule::LoadFileToString(fileName, shaderSource);
     	// include file
     	String shaderIncludeStr;
     	GenerateIncludeString(passName, shaderIncludeStr);

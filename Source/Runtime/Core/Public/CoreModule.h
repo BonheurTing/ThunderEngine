@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "Module/ModuleManager.h"
 #include "Templates/RefCounting.h"
-#include "FileManager.h"
 #include "Config/ConfigManager.h"
 
 namespace Thunder
@@ -18,10 +17,8 @@ namespace Thunder
 
 	private:
 		class IMalloc* MemoryAllocator;
-		TRefCountPtr<FileManager> FileManagerInstance;
 		TRefCountPtr<ConfigManager> ConfigManagerInstance;
 	};
 
-	extern CORE_API FileManager* GFileManager;
 	extern CORE_API ConfigManager* GConfigManager;
 }

@@ -4,6 +4,16 @@
 #define _TRELEASE 0
 #endif
 
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(_WIN64)
+	#define THUNDER_WINDOWS 1
+	#define THUNDER_POSIX 0
+#elif defined(__linux__) || defined(__APPLE__) || defined(__unix__) || defined(_POSIX_VERSION)
+	#define THUNDER_WINDOWS 0
+	#define THUNDER_POSIX 1
+#else
+	#error "Unknown compiler"
+#endif
+
 namespace Thunder
 {
 #define FORCEINLINE __forceinline									/* Force code to be inline */

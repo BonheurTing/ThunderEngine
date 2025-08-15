@@ -5,8 +5,8 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
-
 #include "CoreModule.h"
+#include "FileSystem/FileModule.h"
 
 namespace Thunder
 {
@@ -22,7 +22,7 @@ namespace Thunder
 			TAssert(false);
 		}, [](const std::string& path, bool isSystem)
 		{
-			String shaderRoot = GFileManager->GetEngineShaderRoot();
+			String shaderRoot = FileModule::GetEngineShaderRoot();
 			
 			std::ifstream file(shaderRoot + path);
 			std::stringstream buffer;

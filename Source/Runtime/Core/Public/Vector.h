@@ -140,15 +140,19 @@ namespace Thunder
 	{
 	}
 
+	using TVector2f = TVector<float>;
 	using TVector3f = TVector<float>;
 	using TVector4f = TVector4<float>;
 
+	using TVector2d = TVector<double>;
 	using TVector3d = TVector<double>;
 	using TVector4d = TVector4<double>;
 
+	using TVector2i = TVector<int32>;
 	using TVector3i = TVector<int32>;
 	using TVector4i = TVector4<int32>;
 
+	using TVector2u = TVector<uint32>;
 	using TVector3u = TVector<uint32>;
 	using TVector4u = TVector4<uint32>;
 	

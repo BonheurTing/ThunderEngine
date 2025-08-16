@@ -23,9 +23,9 @@ namespace Thunder
     	uint64 VariantMask = 0;
     };
     
-    struct ShaderStage
+    struct ShaderStage : public RefCountedObject
     {
-    	BinaryData ByteCode;
+    	BinaryData* ByteCode;
     	uint64 VariantId;
     };
     
@@ -47,22 +47,24 @@ namespace Thunder
     	{
     		for (auto& pair : Shaders)
     		{
-    			if (pair.second.ByteCode.Size > 0)
+    			if (pair.second->ByteCode->Size > 0)
     			{
-    				TMemory::Destroy(pair.second.ByteCode.Data);
+    				TMemory::Destroy(pair.second->ByteCode->Data);
     			}
     		}
     	}
 
-    	void GetByteCode(EShaderStageType type, BinaryData& outByteCode)
+    	BinaryData* GetByteCode(EShaderStageType type)
     	{
-    		if (Shaders.contains(type))
-    		{
-    			outByteCode = Shaders[type].ByteCode;
-    		}
+	        const auto iter = Shaders.find(type);
+    		if (iter != Shaders.end())
+			{
+				return iter->second->ByteCode;
+			}
+    		return nullptr;
     	}
 
-    	THashMap<EShaderStageType, ShaderStage> Shaders;
+    	THashMap<EShaderStageType, ShaderStage*> Shaders;
     };
     
     struct VariantMeta

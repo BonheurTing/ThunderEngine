@@ -336,16 +336,16 @@ namespace Thunder
     		THashMap<NameHandle, bool> shaderMarco{};
     		VariantIdToShaderMarco(stageVariantId, meta.second.VariantMask, shaderMarco);
     		//todo: include file
-    		newVariant.Shaders[meta.first] = ShaderStage{};
-    		ShaderStage& newStageVariant = newVariant.Shaders[meta.first];
-    		ShaderModule::GetModule()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant.ByteCode);
+    		newVariant.Shaders[meta.first] = new ShaderStage{};
+    		ShaderStage* newStageVariant = newVariant.Shaders[meta.first];
+    		ShaderModule::GetModule()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], *newStageVariant->ByteCode);
     
-    		if (newStageVariant.ByteCode.Size == 0)
+    		if (newStageVariant->ByteCode->Size == 0)
     		{
     			TAssertf(false, "Compile Shader: Output an empty ByteCode");
     			return false;
     		}
-    		newStageVariant.VariantId = stageVariantId;
+    		newStageVariant->VariantId = stageVariantId;
     	}
     	return true;
     }

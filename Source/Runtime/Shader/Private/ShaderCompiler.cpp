@@ -4,6 +4,7 @@
 #include "d3dcompiler.h"
 #include "ShaderArchive.h"
 #include "ShaderModule.h"
+#include "FileSystem/FileModule.h"
 
 namespace Thunder
 {

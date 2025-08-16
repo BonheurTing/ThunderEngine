@@ -4,6 +4,7 @@
 #include "ShaderCompiler.h"
 #include "rapidjson/document.h"
 #include "ShaderArchive.h"
+#include "FileSystem/FileModule.h"
 #include "Memory/MemoryBase.h"
 
 namespace Thunder

@@ -3,6 +3,8 @@
 #include "Container.h"
 #include <cstring>
 
+#include "Guid.h"
+
 namespace Thunder
 {
 	class CORE_API MemoryWriter
@@ -16,6 +18,11 @@ namespace Thunder
 
 		MemoryWriter& operator<<(const String& str);
 		MemoryWriter& operator<<(const char* str);
+		MemoryWriter& operator<<(const TGuid& guid)
+		{
+			return *this << guid.A << guid.B << guid.C << guid.D;
+		} 
+		
 
 		void* Data() const { return Buffer; }
 		size_t Size() const { return CurrentSize; }
@@ -39,6 +46,11 @@ namespace Thunder
 		MemoryReader& operator>>(T& value);
 
 		MemoryReader& operator>>(String& str);
+		MemoryReader& operator>>(const char* str);
+		MemoryReader& operator>>(TGuid& guid)
+		{
+			return *this >> guid.A >> guid.B >> guid.C >> guid.D;
+		}
 
 	private:
 		void ReadRaw(void* dest, size_t size);

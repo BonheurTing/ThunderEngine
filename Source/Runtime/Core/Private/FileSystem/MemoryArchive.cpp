@@ -85,6 +85,13 @@ namespace Thunder
 		return *this;
 	}
 
+	MemoryReader& MemoryReader::operator>>(const char* str)
+	{
+		String temp;
+		*this >> temp;
+		return *this;
+	}
+
 	void MemoryReader::ReadRaw(void* dest, size_t size)
 	{
 		if (Position + size <= BufferSize)

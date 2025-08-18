@@ -23,10 +23,10 @@ namespace Thunder
 		bool SavePackage(Package* package, const String& fullPath);
 
 	private:
-		TMap<GUID, GameResource*> LoadedResources; // 已加载的资源，使用 GUID 作为键
+		TMap<GUID, GameResource*> LoadedResources; // 已加载的资源，使用 TGuid 作为键
 		TMap<String, GUID> LoadedResourcesByPath; // 使用虚拟路径作为键, 便于开发者使用，仅editor有
 
-		TMap<GUID, String> ResourcePathMap; // Package的路径映射，使用 GUID 作为键；启动时扫描content目录建立guid到路径虚拟路径映射，world streaming等使用
+		TMap<GUID, String> ResourcePathMap; // Package的路径映射，使用 TGuid 作为键；启动时扫描content目录建立guid到路径虚拟路径映射，world streaming等使用
 	};
 }
 

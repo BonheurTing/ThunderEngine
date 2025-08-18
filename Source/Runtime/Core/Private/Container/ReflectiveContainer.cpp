@@ -178,7 +178,7 @@ namespace Thunder
 
 	void ReflectiveContainer::CopyData(const void* src, size_t offset, size_t size) const
 	{
-		memcpy(Data + offset, src, size);
+		memcpy(static_cast<uint8*>(Data) + offset, src, size);
 	}
 
 	template<typename T>

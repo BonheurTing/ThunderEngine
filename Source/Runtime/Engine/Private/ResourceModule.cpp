@@ -210,7 +210,6 @@ namespace Thunder
 			}
 
 			// 4. 注册到资源管理器
-			newStaticMesh->GenerateGUID();
 			String resourceVirtualPath = CovertFullPathToContentPath(destPath);
 			Package* newPackage = new Package(resourceVirtualPath); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
 			newPackage->AddResource(newStaticMesh);

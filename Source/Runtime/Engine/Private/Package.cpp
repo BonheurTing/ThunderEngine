@@ -1,6 +1,6 @@
 ﻿#include "Package.h"
-
 #include "CRC.h"
+#include "Guid.h"
 #include "ResourceModule.h"
 #include "FileSystem/File.h"
 #include "FileSystem/FileModule.h"
@@ -8,6 +8,16 @@
 
 namespace Thunder
 {
+	Package::Package(const String& name) :
+		PackageName(name)
+	{
+		Header.MagicNumber = 0x50414745; // "PAG" in ASCII
+		Header.CheckSum = 0; // 初始校验和为0
+		Header.Version = THUNDER_ENGINE_VERSION; // 初始版本号
+		TGuid::GenerateGUID(Header.Guid); // 生成一个新的GUID
+		Header.NumGUIDs = 0;
+	}
+
 	void Package::Serialize(MemoryWriter& archive)
 	{
 		archive << Header.MagicNumber;
@@ -30,7 +40,6 @@ namespace Thunder
 		{
 			if(const auto res = static_cast<GameResource*>(Objects[i]))
 			{
-				res->GenerateGUID(); // 确保资源有GUID
 				Header.GuidList.push_back(res->GetGUID());
 				Header.NumGUIDs++;
 				
@@ -54,11 +63,11 @@ namespace Thunder
 		memcpy(fileData, archive.Data(), archive.Size());
 		for(int i = 0; i < Header.NumGUIDs; ++i)
 		{
-			memcpy(fileData + archive.Size() + Header.OffsetSizeList[i].first, 
+			memcpy(static_cast<uint8*>(fileData) + archive.Size() + Header.OffsetSizeList[i].first, 
 				objectData[i], Header.OffsetSizeList[i].second);
 		}
 		Header.CheckSum = FCrc::StrCrc32(static_cast<uint8*>(fileData) + 8);
-		memcpy(fileData + 4, &Header.CheckSum, 4);
+		memcpy(static_cast<uint8*>(fileData) + 4, &Header.CheckSum, 4);
 
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
 		const String tempPath = fullPath + ".tmp";

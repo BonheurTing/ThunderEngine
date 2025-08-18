@@ -43,6 +43,6 @@ namespace Thunder
 		TArray<IMaterial*> DefaultMaterials {};
 
 		// UProperty()
-		// TArray<GUID> DefaultMaterialGuids{};
+		// TArray<TGuid> DefaultMaterialGuids{};
 	};
 }

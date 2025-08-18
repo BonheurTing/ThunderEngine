@@ -1,8 +1,9 @@
 #pragma once
+#include "GameObject.h"
 
-namespace ThunderEngine
+namespace Thunder
 {
-	class ENGINE_API ITexture
+	class ITexture : public GameResource
 	{
 	public:
 		ITexture();

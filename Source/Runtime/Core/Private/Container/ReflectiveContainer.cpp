@@ -73,7 +73,7 @@ namespace Thunder
 
 	ReflectiveContainer::ReflectiveContainer()
 		: Data(nullptr)
-		, TotalSize(0)
+		, Stride(0)
 		, bInitialized(false)
 	{
 	}
@@ -86,7 +86,7 @@ namespace Thunder
 	ReflectiveContainer::ReflectiveContainer(const ReflectiveContainer& other)
 		: Data(nullptr)
 		, Components(other.Components)
-		, TotalSize(other.TotalSize)
+		, Stride(other.Stride)
 		, bInitialized(false)
 	{
 		if (other.bInitialized)
@@ -99,11 +99,11 @@ namespace Thunder
 	ReflectiveContainer::ReflectiveContainer(ReflectiveContainer&& other) noexcept
 		: Data(other.Data)
 		, Components(std::move(other.Components))
-		, TotalSize(other.TotalSize)
+		, Stride(other.Stride)
 		, bInitialized(other.bInitialized)
 	{
 		other.Data = nullptr;
-		other.TotalSize = 0;
+		other.Stride = 0;
 		other.bInitialized = false;
 	}
 
@@ -113,7 +113,7 @@ namespace Thunder
 		{
 			Clear();
 			Components = other.Components;
-			TotalSize = other.TotalSize;
+			Stride = other.Stride;
 			bInitialized = false;
 
 			if (other.bInitialized)
@@ -132,11 +132,11 @@ namespace Thunder
 			Clear();
 			Data = other.Data;
 			Components = std::move(other.Components);
-			TotalSize = other.TotalSize;
+			Stride = other.Stride;
 			bInitialized = other.bInitialized;
 
 			other.Data = nullptr;
-			other.TotalSize = 0;
+			other.Stride = 0;
 			other.bInitialized = false;
 		}
 		return *this;
@@ -174,6 +174,11 @@ namespace Thunder
 		}
 
 		bInitialized = true;
+	}
+
+	void ReflectiveContainer::CopyData(const void* src, size_t offset, size_t size) const
+	{
+		memcpy(Data + offset, src, size);
 	}
 
 	template<typename T>
@@ -283,7 +288,7 @@ namespace Thunder
 		}
 		
 		Components.clear();
-		TotalSize = 0;
+		Stride = 0;
 		bInitialized = false;
 	}
 
@@ -297,14 +302,14 @@ namespace Thunder
 			currentOffset += component.Size;
 		}
 		
-		TotalSize = currentOffset;
+		Stride = currentOffset;
 	}
 
 	void ReflectiveContainer::AllocateData()
 	{
-		if (TotalSize > 0)
+		if (Stride > 0 && DataNum)
 		{
-			Data = std::malloc(TotalSize);
+			Data = std::malloc(Stride * DataNum);
 		}
 	}
 
@@ -328,7 +333,7 @@ namespace Thunder
 
 	void ReflectiveContainer::CopyData(const ReflectiveContainer& other)
 	{
-		if (!Data || !other.Data || TotalSize != other.TotalSize)
+		if (!Data || !other.Data || Stride != other.Stride)
 		{
 			return;
 		}

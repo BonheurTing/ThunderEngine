@@ -63,6 +63,26 @@ namespace Thunder
 		return GetProjectRoot() + "\\Shader\\";
 	}
 
+	String FileModule::GetFileExtension(const String& fileName)
+	{
+		size_t dotPos = fileName.find_last_of('.');
+    
+		// 查找最后一个路径分隔符的位置（支持Windows和Unix风格）
+		size_t slashPos = std::max(
+			fileName.find_last_of('/'),  // Unix风格分隔符
+			fileName.find_last_of('\\')  // Windows风格分隔符
+		);
+    
+		// 如果找到了点号，并且点号在最后一个路径分隔符之后（即确实是文件扩展名）
+		if (dotPos != std::string::npos && (slashPos == std::string::npos || dotPos > slashPos)) {
+			// 返回点号之后的所有字符（即文件扩展名）
+			return fileName.substr(dotPos + 1);
+		}
+    
+		// 如果没有找到有效的扩展名，返回空字符串
+		return "";
+	}
+
 	using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
     
 	bool FileModule::LoadFileToString(const String& fileName, String& outString)

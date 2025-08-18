@@ -14,7 +14,7 @@ namespace Thunder
 		virtual ~IFileSystem();
 
 		virtual IFile* CreateFile(const String& path) = 0;
-		virtual IFile* Open(const String& path) = 0;
+		virtual IFile* Open(const String& path, bool bFullPath = false) = 0;
 		virtual bool FileExists(const String& path) = 0;
 		virtual bool DirectoryExists(const String& path) = 0;
 		virtual bool Delete(const String& path) = 0;
@@ -30,7 +30,7 @@ namespace Thunder
 		virtual ~NativeFileSystem();
 
 		virtual IFile* CreateFile(const String& path) override;
-		virtual IFile* Open(const String& path) override;
+		virtual IFile* Open(const String& path, bool bFullPath = false) override;
 		virtual bool FileExists(const String& path) override;
 		virtual bool DirectoryExists(const String& path) override;
 		virtual bool Delete(const String& path) override;

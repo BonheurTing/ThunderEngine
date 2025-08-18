@@ -3,3 +3,11 @@ set(LinkMode SHARED)
 set(PublicDependencyModuleList
     Core
 )
+
+set(PublicThirdPartyIncludeList
+    ThirdParty/Assimp/include
+)
+
+set(PrivateThirdPartyPathList
+    ThirdParty/Assimp/lib/x64
+)

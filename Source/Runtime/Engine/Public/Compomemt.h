@@ -1,11 +1,20 @@
 #pragma once
+#include "Mesh.h"
 
-namespace ThunderEngine
+namespace Thunder
 {
-	class ENGINE_API IComponent
+	class IComponent : public GameObject
 	{
 	public:
 		IComponent();
 		virtual ~IComponent();
+	};
+
+	class StaticMeshComponent : public IComponent
+	{
+	public:
+	private:
+		StaticMesh* Mesh { nullptr };
+		TArray<IMaterial*> OverrideMaterials {};
 	};
 }

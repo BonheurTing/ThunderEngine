@@ -8,6 +8,7 @@
 #include "Templates/RefCountObject.h"
 
 #define _NODISCARD_ [[nodiscard]]
+#define THUNDER_ENGINE_VERSION 123
 
 namespace Thunder
 {

@@ -2,6 +2,7 @@
 
 #include "Module/ModuleManager.h"
 #include "CoreModule.h"
+#include "ResourceModule.h"
 #include "FileSystem/File.h"
 #include "FileSystem/FileModule.h"
 #include "FileSystem/FileSystem.h"
@@ -11,12 +12,10 @@ namespace Thunder
 {
 	class CoreModule;
 
-
-	
-	int main(int argc, char* argv[])
+	void TestFileSystem()
 	{
-		Thunder::ModuleManager::GetInstance()->LoadModule<Thunder::CoreModule>();
-		Thunder::ModuleManager::GetInstance()->LoadModule<Thunder::FileModule>();
+		ModuleManager::GetInstance()->LoadModule<CoreModule>();
+		ModuleManager::GetInstance()->LoadModule<FileModule>();
 
 		IFileSystem* FileSys = FileModule::GetFileSystem("Content");
 		{
@@ -41,13 +40,18 @@ namespace Thunder
 			std::cout << a << ";" << b << ";" << c << std::endl;
 		}
 
-		return 0;
+	}
+
+	void TestImportResource()
+	{
+		ResourceModule::ImportAll();
 	}
 }
 
 int main(int argc, char* argv[])
 {
-	Thunder::main(argc, argv);
+	Thunder::TestFileSystem();
+	Thunder::TestImportResource();
 }
 
 

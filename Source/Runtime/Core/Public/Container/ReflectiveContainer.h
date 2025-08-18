@@ -3,6 +3,9 @@
 #include "Platform.h"
 #include <functional>
 
+#include "BasicDefinition.h"
+#include "Templates/RefCounting.h"
+
 namespace Thunder
 {
 	enum class ETypeKind : uint8
@@ -55,7 +58,7 @@ namespace Thunder
 		static TypeComponent Create(const String& inName, size_t inOffset);
 	};
 
-	class ReflectiveContainer
+	class ReflectiveContainer : public RefCountedObject
 	{
 	public:
 		ReflectiveContainer();
@@ -71,8 +74,12 @@ namespace Thunder
 		template<typename T>
 		void AddComponent(const String& name);
 
+		void SetDataNum(size_t num) { DataNum = num; }
+
 		// Initialize the container with calculated size
 		void Initialize();
+
+		void CopyData(const void* src, size_t offset, size_t size) const;
 
 		// Get/Set component values
 		template<typename T>
@@ -92,14 +99,17 @@ namespace Thunder
 		const T* GetComponentByIndex(size_t index) const;
 
 		// Utility functions
-		size_t GetComponentCount() const { return Components.size(); }
-		size_t GetTotalSize() const { return TotalSize; }
-		const TypeComponent* GetComponentInfo(const String& name) const;
-		const TypeComponent* GetComponentInfo(size_t index) const;
+		_NODISCARD_ size_t GetComponentCount() const { return Components.size(); }
+		_NODISCARD_ size_t GetStride() const { return Stride; }
+		_NODISCARD_ size_t GetDataNum() const { return DataNum; }
+		_NODISCARD_ size_t GetTotalSize() const { return Stride * DataNum; }
+		_NODISCARD_ const TypeComponent* GetComponentInfo(const String& name) const;
+		_NODISCARD_ const TypeComponent* GetComponentInfo(size_t index) const;
+		_NODISCARD_ size_t GetComponentOffset(const String& name) const { return GetComponentInfo(name)->Offset; }
 		
 		// Data access
-		void* GetData() { return Data; }
-		const void* GetData() const { return Data; }
+		//void* GetData() { return Data; }
+		_NODISCARD_ const void* GetData() const { return Data; }
 
 		// Clear all data
 		void Clear();
@@ -107,7 +117,8 @@ namespace Thunder
 	private:
 		void* Data;
 		TArray<TypeComponent> Components;
-		size_t TotalSize;
+		size_t Stride;
+		size_t DataNum;
 		bool bInitialized;
 
 		// Helper functions
@@ -117,5 +128,6 @@ namespace Thunder
 		void CopyData(const ReflectiveContainer& other);
 		size_t FindComponentIndex(const String& name) const;
 	};
+	using TReflectiveContainerRef = TRefCountPtr<ReflectiveContainer>;
 }
 

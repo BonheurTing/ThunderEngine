@@ -44,11 +44,11 @@
 # build
 *.export.h
 Generated/
-Debug/
+Content/
 Intermediate/
+Reference/
+Resource/
+Saved/
+Debug/
 Source/ThirdParty/EASTL
 Source/ThirdParty/llvm8
-Saved/
-
-#other
-Reference/

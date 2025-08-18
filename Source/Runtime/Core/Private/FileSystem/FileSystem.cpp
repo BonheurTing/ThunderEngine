@@ -30,9 +30,9 @@ namespace Thunder
 		return Open(path);
 	}
 
-	IFile* NativeFileSystem::Open(const String& path)
+	IFile* NativeFileSystem::Open(const String& path, bool bFullPath)
 	{
-		String fullPath = BasePath.empty() ? path : BasePath + path;
+		String fullPath = bFullPath || BasePath.empty()? path : BasePath + path;
 #if THUNDER_WINDOWS
 		HANDLE handle = CreateFileA(fullPath.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
 									nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);

@@ -1,8 +1,8 @@
 #pragma once
 
-namespace ThunderEngine
+namespace Thunder
 {
-	class ENGINE_API IMaterial
+	class IMaterial : public GameResource
 	{
 	public:
 		IMaterial();

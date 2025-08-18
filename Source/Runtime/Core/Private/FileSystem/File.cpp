@@ -4,6 +4,10 @@
     #include <windows.h>
 #elif THUNDER_POSIX
     #include <cstdio>
+    #include <unistd.h>
+    #include <climits>
+    #include <cerrno>
+    #include <cstring>
 #endif
 
 namespace Thunder
@@ -365,6 +369,88 @@ namespace Thunder
 		long size = ftell(FileHandle);
 		fseek(FileHandle, currentPos, SEEK_SET);
 		return size;
+#endif
+	}
+
+	bool NativeFile::Rename(const String& newPath)
+	{
+		if (!FileHandle) return false;
+#if THUNDER_WINDOWS
+		// Get the current file path by getting the file name from handle
+		DWORD bufferSize = GetFinalPathNameByHandleA(FileHandle, nullptr, 0, FILE_NAME_NORMALIZED);
+		if (bufferSize == 0)
+		{
+			const DWORD error = GetLastError();
+			TAssertf(false, "Fail to get file path buffer size, error code: %lu\n", error);
+			return false;
+		}
+		
+		char* currentPath = new char[bufferSize];
+		DWORD result = GetFinalPathNameByHandleA(FileHandle, currentPath, bufferSize, FILE_NAME_NORMALIZED);
+		if (result == 0 || result >= bufferSize)
+		{
+			const DWORD error = GetLastError();
+			TAssertf(false, "Fail to get file path, error code: %lu\n", error);
+			delete[] currentPath;
+			return false;
+		}
+		
+		// Remove the \\?\ prefix if present
+		const char* actualPath = currentPath;
+		if (strncmp(currentPath, "\\\\?\\", 4) == 0)
+		{
+			actualPath = currentPath + 4;
+		}
+		
+		// Close the file before renaming
+		Close();
+		
+		// Perform the rename
+		const bool success = ::MoveFileA(actualPath, newPath.c_str());
+		delete[] currentPath;
+		
+		if (!success)
+		{
+			const DWORD error = GetLastError();
+			TAssertf(false, "Fail to rename file from '%s' to '%s', error code: %lu\n", actualPath, newPath.c_str(), error);
+			return false;
+		}
+		
+		return true;
+#elif THUNDER_POSIX
+		// For POSIX systems, we need to get the file descriptor and then the path
+		int fd = fileno(FileHandle);
+		if (fd == -1)
+		{
+			TAssertf(false, "Fail to get file descriptor\n");
+			return false;
+		}
+		
+		// Get current file path using readlink on /proc/self/fd/[fd] (Linux)
+		char currentPath[PATH_MAX];
+		char fdPath[32];
+		snprintf(fdPath, sizeof(fdPath), "/proc/self/fd/%d", fd);
+		
+		ssize_t pathLen = readlink(fdPath, currentPath, sizeof(currentPath) - 1);
+		if (pathLen == -1)
+		{
+			TAssertf(false, "Fail to get current file path\n");
+			return false;
+		}
+		currentPath[pathLen] = '\0';
+		
+		// Close the file before renaming
+		Close();
+		
+		// Perform the rename
+		const int result = rename(currentPath, newPath.c_str());
+		if (result != 0)
+		{
+			TAssertf(false, "Fail to rename file from '%s' to '%s', errno: %d\n", currentPath, newPath.c_str(), errno);
+			return false;
+		}
+		
+		return true;
 #endif
 	}
 }

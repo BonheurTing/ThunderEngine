@@ -23,7 +23,7 @@ namespace Thunder
 		virtual bool IsEOF() = 0;
 		virtual bool Flush() = 0;
 		virtual size_t Size() = 0;
-		virtual bool Rename(const String& newPath) = 0;
+		virtual bool Rename(const String& oldPath, const String& newPath) = 0;
 	};
 	using IFileRef = TRefCountPtr<IFile>;
 	
@@ -50,7 +50,7 @@ namespace Thunder
 		virtual bool IsEOF() override;
 		virtual bool Flush() override;
 		virtual size_t Size() override;
-		virtual bool Rename(const String& newPath) override;
+		virtual bool Rename(const String& oldPath, const String& newPath) override;
 		
 	private:
 #ifdef THUNDER_WINDOWS

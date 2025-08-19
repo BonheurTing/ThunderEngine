@@ -372,50 +372,20 @@ namespace Thunder
 #endif
 	}
 
-	bool NativeFile::Rename(const String& newPath)
+	bool NativeFile::Rename(const String& oldPath, const String& newPath)
 	{
 		if (!FileHandle) return false;
 #if THUNDER_WINDOWS
-		// Get the current file path by getting the file name from handle
-		DWORD bufferSize = GetFinalPathNameByHandleA(FileHandle, nullptr, 0, FILE_NAME_NORMALIZED);
-		if (bufferSize == 0)
-		{
-			const DWORD error = GetLastError();
-			TAssertf(false, "Fail to get file path buffer size, error code: %lu\n", error);
-			return false;
-		}
-		
-		char* currentPath = new char[bufferSize];
-		DWORD result = GetFinalPathNameByHandleA(FileHandle, currentPath, bufferSize, FILE_NAME_NORMALIZED);
-		if (result == 0 || result >= bufferSize)
-		{
-			const DWORD error = GetLastError();
-			TAssertf(false, "Fail to get file path, error code: %lu\n", error);
-			delete[] currentPath;
-			return false;
-		}
-		
-		// Remove the \\?\ prefix if present
-		const char* actualPath = currentPath;
-		if (strncmp(currentPath, "\\\\?\\", 4) == 0)
-		{
-			actualPath = currentPath + 4;
-		}
-		
-		// Close the file before renaming
 		Close();
-		
 		// Perform the rename
-		const bool success = ::MoveFileA(actualPath, newPath.c_str());
-		delete[] currentPath;
-		
+		const bool success = ::MoveFileA(oldPath.c_str(), newPath.c_str());
 		if (!success)
 		{
 			const DWORD error = GetLastError();
-			TAssertf(false, "Fail to rename file from '%s' to '%s', error code: %lu\n", actualPath, newPath.c_str(), error);
+			TAssertf(false, "Fail to rename file from '%s' to '%s', error code: %lu\n", oldPath, newPath.c_str(), error);
 			return false;
 		}
-		
+
 		return true;
 #elif THUNDER_POSIX
 		// For POSIX systems, we need to get the file descriptor and then the path

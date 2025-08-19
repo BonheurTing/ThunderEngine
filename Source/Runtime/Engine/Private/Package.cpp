@@ -1,4 +1,5 @@
-﻿#include "Package.h"
+﻿#pragma optimize("", off) 
+#include "Package.h"
 #include "CRC.h"
 #include "Guid.h"
 #include "ResourceModule.h"
@@ -8,7 +9,7 @@
 
 namespace Thunder
 {
-	Package::Package(const String& name) :
+	Package::Package(const String& name) : GameObject(), 
 		PackageName(name)
 	{
 		Header.MagicNumber = 0x50414745; // "PAG" in ASCII
@@ -21,35 +22,37 @@ namespace Thunder
 	void Package::Serialize(MemoryWriter& archive)
 	{
 		archive << Header.MagicNumber;
+		archive << Header.CheckSum;
 		archive << Header.Version;
 		archive << Header.Guid;
 		archive << Header.NumGUIDs;
 		archive << Header.GuidList;
-		archive << Header.OffsetSizeList;
-		archive << Header.CheckSum;
+		archive << Header.OffsetList;
+		archive << Header.SizeList;
 	}
 
 	bool Package::Save(const String& fullPath)
 	{
 		TAssert(!(fullPath.empty() || fullPath == "/"));
+		TAssert(Header.NumGUIDs == 0 && Header.GuidList.empty() && Header.OffsetList.empty() && Header.SizeList.empty());
 
-		Header.NumGUIDs = 0;
-		Header.GuidList.clear();
 		TArray<void*> objectData;
-		for(int i = 0, offset = 0; i < Objects.size(); ++i)
+		for(uint32 i = 0, offset = 0; i < static_cast<uint32>(Objects.size()); ++i)
 		{
 			if(const auto res = static_cast<GameResource*>(Objects[i]))
 			{
-				Header.GuidList.push_back(res->GetGUID());
+				TGuid guid = res->GetGUID();
+				Header.GuidList.push_back(guid);
 				Header.NumGUIDs++;
 				
 				uint32 size = 0;
 				MemoryWriter archive;
 				res->Serialize(archive);
 				objectData.push_back(archive.Data());
-				size = archive.Size();
+				size = static_cast<uint32>(archive.Size());
 
-				Header.OffsetSizeList.push_back(std::make_pair(offset, size));
+				Header.OffsetList.push_back(offset);
+				Header.SizeList.push_back(size);
 				offset += size;
 			}
 		}
@@ -57,24 +60,28 @@ namespace Thunder
 		MemoryWriter archive;
 		Serialize(archive);
 
-		int fileSize = archive.Size() + Header.OffsetSizeList[Header.NumGUIDs-1].first + 
-			Header.OffsetSizeList[Header.NumGUIDs-1].second;
+		const size_t fileSize = archive.Size() + Header.OffsetList[Header.NumGUIDs-1] + 
+			Header.SizeList[Header.NumGUIDs-1];
 		void* fileData = TMemory::Malloc<uint8>(fileSize);
 		memcpy(fileData, archive.Data(), archive.Size());
-		for(int i = 0; i < Header.NumGUIDs; ++i)
+		for(uint32 i = 0; i < Header.NumGUIDs; ++i)
 		{
-			memcpy(static_cast<uint8*>(fileData) + archive.Size() + Header.OffsetSizeList[i].first, 
-				objectData[i], Header.OffsetSizeList[i].second);
+			memcpy(static_cast<uint8*>(fileData) + archive.Size() + Header.OffsetList[i], 
+				objectData[i], Header.SizeList[i]);
 		}
 		Header.CheckSum = FCrc::StrCrc32(static_cast<uint8*>(fileData) + 8);
 		memcpy(static_cast<uint8*>(fileData) + 4, &Header.CheckSum, 4);
 
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
 		const String tempPath = fullPath + ".tmp";
-		TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(tempPath, true));
-		file->Write(fileData, fileSize);
+		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(tempPath, true));
+		const size_t ret = file->Write(fileData, fileSize);
+		return ret == fileSize && file->Rename(tempPath, fullPath); // 包含close
+	}
 
-		return file->Rename(fullPath); // 包含close
+	bool Package::Load()
+	{
+		return false; // 这里可以实现加载逻辑
 	}
 
 	void ResourceModule::LoadSync(const String& path)
@@ -94,7 +101,6 @@ namespace Thunder
 		}
 		return package->Save(fullPath);
 	}
-
-
 	
 }
+#pragma optimize("", on) 

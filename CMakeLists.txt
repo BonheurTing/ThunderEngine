@@ -44,6 +44,7 @@ PostBuildModule()
 file(COPY ${CMAKE_SOURCE_DIR}/Shader/shaders.hlsl DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
 file(COPY ${CMAKE_SOURCE_DIR}/Source/ThirdParty/Windows/dxc2025/bin/x64/dxcompiler.dll DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
 file(COPY ${CMAKE_SOURCE_DIR}/Source/ThirdParty/Windows/DirectX/bin/d3dcompiler_47.dll DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
+file(COPY ${CMAKE_SOURCE_DIR}/Source/ThirdParty/Assimp/bin/assimp-vc143-mt.dll DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
 
 # find_program(Python_EXECUTABLE python NO_CMAKE_FIND_ROOT_PATH)
 # set(Python_ARGS "../../Setup.py")

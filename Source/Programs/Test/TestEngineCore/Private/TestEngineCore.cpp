@@ -16,6 +16,7 @@ namespace Thunder
 	{
 		ModuleManager::GetInstance()->LoadModule<CoreModule>();
 		ModuleManager::GetInstance()->LoadModule<FileModule>();
+		ModuleManager::GetInstance()->LoadModule<ResourceModule>();
 
 		IFileSystem* FileSys = FileModule::GetFileSystem("Content");
 		{

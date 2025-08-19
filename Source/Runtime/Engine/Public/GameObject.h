@@ -9,14 +9,14 @@ namespace Thunder
 	class GameObject
 	{
 	public:
-		GameObject();
-		virtual ~GameObject();
+		GameObject() = default;
+		virtual ~GameObject() = default;
 		_NODISCARD_ GameObject* GetOuter() const { return Outer; }
 
-		virtual void Serialize(MemoryWriter& archive){}
+		virtual void Serialize(MemoryWriter& archive) {}
 
 	private:
-		GameObject* Outer;
+		GameObject* Outer { nullptr };
 	};
 
 	class GameResource : public GameObject

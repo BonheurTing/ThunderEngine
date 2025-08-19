@@ -129,7 +129,7 @@ namespace Thunder
 		for (const auto& dirEntry : recursive_directory_iterator(folderPath))
 		{
 			String filePath = dirEntry.path().string();
-			if (fileFormat.empty() || !filePath.ends_with(fileFormat))
+			if (!fileFormat.empty() && !filePath.ends_with(fileFormat))
 				continue;
 			outFileNames.push_back(filePath);
 		}

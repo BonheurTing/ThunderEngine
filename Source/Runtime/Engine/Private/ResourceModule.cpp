@@ -1,4 +1,5 @@
-﻿#include "ResourceModule.h"
+﻿#pragma optimize("", off) 
+#include "ResourceModule.h"
 #include "External/stb_image.h"
 #include <assimp/Importer.hpp>      // 导入接口
 #include <assimp/scene.h>           // 场景数据（模型、材质、动画）
@@ -16,7 +17,7 @@ namespace Thunder
 
 	static TReflectiveContainerRef GenerateVertexBuffer(const aiMesh* mesh)
 	{
-		const auto vertexBuffer = new ReflectiveContainer {};
+		auto vertexBuffer = MakeRefCount<ReflectiveContainer>();
 		vertexBuffer->SetDataNum(mesh->mNumVertices);
 		// 注册顶点数据 layout
 		vertexBuffer->AddComponent<TVector3f>("Position");
@@ -117,12 +118,12 @@ namespace Thunder
 				break;
 			}
 		}
-		return MakeRefCount<ReflectiveContainer>(vertexBuffer);
+		return vertexBuffer;
 	}
 
 	static TReflectiveContainerRef GenerateIndicesBuffer(const aiMesh* mesh)
 	{
-		auto indicesBuffer = new ReflectiveContainer();
+		TReflectiveContainerRef indicesBuffer = MakeRefCount<ReflectiveContainer>();
 		indicesBuffer->AddComponent<int>("Index");
 		indicesBuffer->SetDataNum(static_cast<size_t>(mesh->mNumFaces) * 3); // 每个三角形有3个索引
 		indicesBuffer->Initialize();
@@ -138,22 +139,19 @@ namespace Thunder
 			}
 		}
 
-		return MakeRefCount<ReflectiveContainer>(indicesBuffer);
+		return (indicesBuffer);
 	}
 
 	String ResourceModule::CovertFullPathToContentPath(const String& fullPath)
 	{
-		// 查找"Content"第一次出现的位置
 		size_t contentPos = fullPath.find_first_of("Content");
 		if (contentPos == std::string::npos) {
 			return ""; // 如果没有找到"Content"，返回空字符串
 		}
 
-		// 获取从"Content"开始到字符串末尾的子串
 		std::string result = fullPath.substr(contentPos);
 
-		// 去掉后缀（最后一个'.'之后的内容）
-		size_t lastDotPos = result.find_last_of('.');
+		const size_t lastDotPos = result.find_last_of('.');
 		if (lastDotPos != std::string::npos) {
 			result = result.substr(0, lastDotPos);
 		}
@@ -211,10 +209,11 @@ namespace Thunder
 
 			// 4. 注册到资源管理器
 			String resourceVirtualPath = CovertFullPathToContentPath(destPath);
-			Package* newPackage = new Package(resourceVirtualPath); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
+			auto* newPackage = new Package(resourceVirtualPath); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
 			newPackage->AddResource(newStaticMesh);
-			GetModule()->LoadedResources.emplace(newStaticMesh->GetGUID(), newStaticMesh);
-			GetModule()->LoadedResourcesByPath.emplace(resourceVirtualPath, newStaticMesh->GetGUID());
+			TGuid guid = newStaticMesh->GetGUID();
+			GetModule()->LoadedResources.emplace(guid, newStaticMesh);
+			GetModule()->LoadedResourcesByPath.emplace(resourceVirtualPath, guid);
 
 			// 5. 保存 package 文件
 			return GetModule()->SavePackage(newPackage, destPath);
@@ -222,7 +221,7 @@ namespace Thunder
 		if (fileExtension == "png" || fileExtension == "tga")
 		{
 			int width, height, channels;
-			unsigned char* data = stbi_load(srcPath.c_str(), &width, &height, &channels, 0);
+			unsigned char* data;// = stbi_load(srcPath.c_str(), &width, &height, &channels, 0);
 			if (data)
 			{
 				/*// 创建目标文件夹
@@ -230,7 +229,7 @@ namespace Thunder
 				// 保存图片数据到目标路径
 				TRefCountPtr<NativeFile> file = FileModule::GetFileSystem("Content")->Open(destPath, EFileMode::Write);
 				file->Write(data, width * height * channels);*/
-				stbi_image_free(data);
+				//stbi_image_free(data);
 			}
 			else
 			{
@@ -249,7 +248,6 @@ namespace Thunder
 		{
 			auto srcDict = FileModule::GetProjectRoot() + "\\Resource\\";
 			auto destDict = FileModule::GetProjectRoot() + "\\Content\\";
-			// todo 遍历Resource目录下的所有文件
 			TArray<String> fileNames;
 			FileModule::TraverseFileFromFolder(srcDict, fileNames);
 			for (const auto& fileName : fileNames)
@@ -265,3 +263,4 @@ namespace Thunder
 		}
 	}
 }
+#pragma optimize("", on) 

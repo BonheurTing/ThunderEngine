@@ -11,3 +11,6 @@ set(PublicThirdPartyIncludeList
 set(PrivateThirdPartyPathList
     ThirdParty/Assimp/lib/x64
 )
+set(PrivateThirdPartyNameList
+    assimp-vc143-mt.lib
+)

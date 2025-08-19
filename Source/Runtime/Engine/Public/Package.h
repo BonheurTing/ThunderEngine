@@ -1,8 +1,6 @@
 ﻿#pragma once
 #include "Container.h"
 #include "GameObject.h"
-#include "NameHandle.h"
-#include "Guid.h"
 
 namespace Thunder
 {
@@ -11,7 +9,6 @@ namespace Thunder
 	{
 	public:
 		Package(const String& name);
-
 
 		void AddResource(GameObject* obj)
 		{
@@ -27,7 +24,8 @@ namespace Thunder
 			TGuid Guid; // 包的唯一标识符
 			uint32 NumGUIDs; // 包含的需要序列化的对象数量
 			TArray<TGuid> GuidList; // 包含的对象的GUID列表
-			TArray<std::pair<uint32, uint32>> OffsetSizeList; // 每个对象的偏移和大小
+			TArray<uint32> OffsetList; // 每个对象的偏移
+			TArray<uint32> SizeList; // 每个对象的大小
 		};
 
 		void Serialize(MemoryWriter& archive) override;

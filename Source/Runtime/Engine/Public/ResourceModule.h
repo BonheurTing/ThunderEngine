@@ -10,27 +10,37 @@ namespace Thunder
 		DECLARE_MODULE(Resource, ResourceModule)
 
 	public:
-		void StartUp() override {}
+		void StartUp() override;
 		void ShutDown() override {}
-		
-		static String CovertFullPathToContentPath(const String& fullPath);
-		static String ConvertContentPathToFullPath(const String& contentPath, const String& extension = ".tasset");
+
+		/**
+		 * soft path命名规则：
+		 * 磁盘路径是绝对路径，D:\ThunderEngine\Content\Meshes\FurnitureSet.tasset
+		 * 软路径是相对路径，/Game/Meshes/FurnitureSet 是Package的虚拟路径
+		 * 这个文件中有几个GameResource, /Game/Meshes/FurnitureSet.Table /Game/Meshes/FurnitureSet.Chair 后缀名是resource name
+		 **/
+		static String CovertFullPathToSoftPath(const String& fullPath, const String& resourceName = "");
+		static String ConvertSoftPathToFullPath(const String& softPath, const String& extension = ".tasset");
 		// 离线 fbx/png/tga -> uasset
 		static bool Import(const String& srcPath, const String& destPath);
-		static void ImportAll(bool bForce = true);
+		void ImportAll(bool bForce = true);
 
 		// 运行时
-		void LoadSync(const String& path);
-		void LoadAsync(const String& path);
-		_NODISCARD_ bool IsLoaded(const String& path) const { return LoadedResourcesByPath.contains(path); }
+		// load package
+		bool LoadSync(const NameHandle& softPath, TArray<GameResource*> &outResources, bool bForce = false);
+		// load game resource
+		GameResource* LoadSync(const NameHandle& resourceSoftPath, bool bForce = false);
+		void LoadAsync(const NameHandle& path);
+		_NODISCARD_ bool IsLoaded(const NameHandle& path) const { return LoadedResourcesByPath.contains(path); }
 		_NODISCARD_ bool IsLoaded(const TGuid& guid) const { return LoadedResources.contains(guid); }
 		bool SavePackage(Package* package, const String& fullPath);
+		void RegisterPackage(Package* package);
 
 	private:
-		TMap<TGuid, GameResource*> LoadedResources {}; // 已加载的资源，使用 TGuid 作为键
-		TMap<String, TGuid> LoadedResourcesByPath {}; // 使用虚拟路径作为键, 便于开发者使用，仅editor有
+		TMap<TGuid, GameObject*> LoadedResources {}; // 已加载的资源(Package/GameResource)，使用 TGuid 作为键
+		TMap<NameHandle, TGuid> LoadedResourcesByPath {}; // 使用虚拟路径作为键, 便于开发者使用，仅editor有
 
-		TMap<TGuid, String> ResourcePathMap {}; // Package的路径映射，使用 TGuid 作为键；启动时扫描content目录建立guid到路径虚拟路径映射，world streaming等使用
+		TMap<TGuid, NameHandle> ResourcePathMap {}; // Package的路径映射，使用 TGuid 作为键；启动时扫描content目录建立guid到路径虚拟路径映射，world streaming等使用
 	};
 }
 

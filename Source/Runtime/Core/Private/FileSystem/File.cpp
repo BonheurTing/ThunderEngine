@@ -1,7 +1,8 @@
+#pragma optimize("", off)
 #include "FileSystem/File.h"
 #include "Memory/MemoryBase.h"
 #if THUNDER_WINDOWS
-    #include <windows.h>
+    #include <Windows.h>
 #elif THUNDER_POSIX
     #include <cstdio>
     #include <unistd.h>
@@ -377,13 +378,21 @@ namespace Thunder
 		if (!FileHandle) return false;
 #if THUNDER_WINDOWS
 		Close();
-		// Perform the rename
-		const bool success = ::MoveFileA(oldPath.c_str(), newPath.c_str());
-		if (!success)
+		if (GetFileAttributesA(newPath.c_str()) != INVALID_FILE_ATTRIBUTES) // 如果存在
 		{
-			const DWORD error = GetLastError();
-			TAssertf(false, "Fail to rename file from '%s' to '%s', error code: %lu\n", oldPath, newPath.c_str(), error);
-			return false;
+			if (!::MoveFileExA(oldPath.c_str(), newPath.c_str(), MOVEFILE_REPLACE_EXISTING)) // 替换现有文件
+			{
+				TAssertf(false, "Fail to rename existing file from '%s' to '%s', error code: %lu\n", oldPath, newPath.c_str(), GetLastError());
+				return false;
+			}
+		}
+		else
+		{
+			if (!::MoveFileA(oldPath.c_str(), newPath.c_str()))
+			{
+				TAssertf(false, "Fail to rename file from '%s' to '%s', error code: %lu\n", oldPath, newPath.c_str(), GetLastError());
+				return false;
+			}
 		}
 
 		return true;
@@ -424,3 +433,4 @@ namespace Thunder
 #endif
 	}
 }
+#pragma optimize("", on)

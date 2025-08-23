@@ -6,7 +6,7 @@ namespace Thunder
 	class ITexture : public GameResource
 	{
 	public:
-		ITexture();
-		virtual ~ITexture();
+		ITexture() = default;
+		virtual ~ITexture() = default;
 	};
 }

@@ -5,8 +5,8 @@ namespace Thunder
 	class IMaterial : public GameResource
 	{
 	public:
-		IMaterial();
-		virtual ~IMaterial();
+		IMaterial() = default;
+		virtual ~IMaterial() = default;
 	};
 
 	

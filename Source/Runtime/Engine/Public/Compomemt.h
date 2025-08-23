@@ -6,8 +6,8 @@ namespace Thunder
 	class IComponent : public GameObject
 	{
 	public:
-		IComponent();
-		virtual ~IComponent();
+		IComponent() = default;
+		virtual ~IComponent() = default;
 	};
 
 	class StaticMeshComponent : public IComponent

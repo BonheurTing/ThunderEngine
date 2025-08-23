@@ -43,6 +43,14 @@ namespace Thunder
 		component.Offset = inOffset;
 		component.Kind = GetTypeKind<T>();
 
+		SetupFunctionsForType<T>(component);
+
+		return component;
+	}
+
+	template <typename T>
+	void TypeComponent::SetupFunctionsForType(TypeComponent& component)
+	{
 		// Set up function pointers for type operations
 		component.Constructor = [](void* ptr) {
 			new(ptr) T();
@@ -67,8 +75,6 @@ namespace Thunder
 		component.MoveAssign = [](void* ptr, void* src) {
 			*static_cast<T*>(ptr) = std::move(*static_cast<T*>(src));
 		};
-
-		return component;
 	}
 
 	ReflectiveContainer::ReflectiveContainer()
@@ -292,6 +298,100 @@ namespace Thunder
 		bInitialized = false;
 	}
 
+	void ReflectiveContainer::Serialize(MemoryWriter& archive)
+	{
+		archive << static_cast<uint32>(Components.size());
+		
+		for (const auto& component : Components)
+		{
+			archive << component.Name;
+			archive << component.Size;
+			archive << component.Offset;
+			archive << static_cast<uint8>(component.Kind);
+		}
+		
+		archive << Stride;
+		archive << DataNum;
+		archive << bInitialized;
+		
+		if (bInitialized && Data && DataNum > 0)
+		{
+			archive << static_cast<uint8>(1);
+			size_t totalDataSize = Stride * DataNum;
+			archive << totalDataSize;
+			
+			for (size_t i = 0; i < DataNum; ++i)
+			{
+				const char* elementData = static_cast<const char*>(Data) + (i * Stride);
+				
+				for (const auto& component : Components)
+				{
+					const void* componentData = elementData + component.Offset;
+					SerializeComponent(archive, componentData, component);
+				}
+			}
+		}
+		else
+		{
+			archive << static_cast<uint8>(0);
+		}
+	}
+
+	void ReflectiveContainer::DeSerialize(MemoryReader& archive)
+	{
+		Clear();
+		
+		uint32 componentCount;
+		archive >> componentCount;
+		
+		Components.resize(componentCount);
+		for (uint32 i = 0; i < componentCount; ++i)
+		{
+			archive >> Components[i].Name;
+			archive >> Components[i].Size;
+			archive >> Components[i].Offset;
+			
+			uint8 kindValue;
+			archive >> kindValue;
+			Components[i].Kind = static_cast<ETypeKind>(kindValue);
+
+			
+			SetupComponentFunctions(Components[i]);
+		}
+		
+		archive >> Stride;
+		archive >> DataNum;
+		archive >> bInitialized;
+		
+		uint8 hasData;
+		archive >> hasData;
+		
+		if (hasData && DataNum > 0)
+		{
+			size_t totalDataSize;
+			archive >> totalDataSize;
+			
+			AllocateData();
+			
+			for (size_t i = 0; i < DataNum; ++i)
+			{
+				char* elementData = static_cast<char*>(Data) + (i * Stride);
+				
+				for (const auto& component : Components)
+				{
+					void* componentData = elementData + component.Offset;
+					
+					if (component.Constructor)
+					{
+						component.Constructor(componentData);
+					}
+					
+					DeserializeComponent(archive, componentData, component);
+				}
+			}
+		}
+	}
+
 	void ReflectiveContainer::CalculateLayout()
 	{
 		size_t currentOffset = 0;
@@ -361,6 +461,315 @@ namespace Thunder
 			}
 		}
 		return SIZE_MAX;
+	}
+
+	void ReflectiveContainer::SerializeComponent(MemoryWriter& archive, const void* componentData, const TypeComponent& component) const
+	{
+		switch (component.Kind)
+		{
+		case ETypeKind::Bool:
+			archive << *static_cast<const bool*>(componentData);
+			break;
+		case ETypeKind::Int8:
+			archive << *static_cast<const int8*>(componentData);
+			break;
+		case ETypeKind::Int16:
+			archive << *static_cast<const int16*>(componentData);
+			break;
+		case ETypeKind::Int32:
+			archive << *static_cast<const int32*>(componentData);
+			break;
+		case ETypeKind::Int64:
+			archive << *static_cast<const int64*>(componentData);
+			break;
+		case ETypeKind::UInt8:
+			archive << *static_cast<const uint8*>(componentData);
+			break;
+		case ETypeKind::UInt16:
+			archive << *static_cast<const uint16*>(componentData);
+			break;
+		case ETypeKind::UInt32:
+			archive << *static_cast<const uint32*>(componentData);
+			break;
+		case ETypeKind::UInt64:
+			archive << *static_cast<const uint64*>(componentData);
+			break;
+		case ETypeKind::Float:
+			archive << *static_cast<const float*>(componentData);
+			break;
+		case ETypeKind::Double:
+			archive << *static_cast<const double*>(componentData);
+			break;
+		case ETypeKind::Vector2f:
+			{
+				const TVector2f& vec = *static_cast<const TVector2f*>(componentData);
+				archive << vec.X << vec.Y;
+			}
+			break;
+		case ETypeKind::Vector3f:
+			{
+				const TVector3f& vec = *static_cast<const TVector3f*>(componentData);
+				archive << vec.X << vec.Y << vec.Z;
+			}
+			break;
+		case ETypeKind::Vector4f:
+			{
+				const TVector4f& vec = *static_cast<const TVector4f*>(componentData);
+				archive << vec.X << vec.Y << vec.Z << vec.W;
+			}
+			break;
+		case ETypeKind::Vector2d:
+			{
+				const TVector2d& vec = *static_cast<const TVector2d*>(componentData);
+				archive << vec.X << vec.Y;
+			}
+			break;
+		case ETypeKind::Vector3d:
+			{
+				const TVector3d& vec = *static_cast<const TVector3d*>(componentData);
+				archive << vec.X << vec.Y << vec.Z;
+			}
+			break;
+		case ETypeKind::Vector4d:
+			{
+				const TVector4d& vec = *static_cast<const TVector4d*>(componentData);
+				archive << vec.X << vec.Y << vec.Z << vec.W;
+			}
+			break;
+		case ETypeKind::Vector2i:
+			{
+				const TVector2i& vec = *static_cast<const TVector2i*>(componentData);
+				archive << vec.X << vec.Y;
+			}
+			break;
+		case ETypeKind::Vector3i:
+			{
+				const TVector3i& vec = *static_cast<const TVector3i*>(componentData);
+				archive << vec.X << vec.Y << vec.Z;
+			}
+			break;
+		case ETypeKind::Vector4i:
+			{
+				const TVector4i& vec = *static_cast<const TVector4i*>(componentData);
+				archive << vec.X << vec.Y << vec.Z << vec.W;
+			}
+			break;
+		case ETypeKind::Vector2u:
+			{
+				const TVector2u& vec = *static_cast<const TVector2u*>(componentData);
+				archive << vec.X << vec.Y;
+			}
+			break;
+		case ETypeKind::Vector3u:
+			{
+				const TVector3u& vec = *static_cast<const TVector3u*>(componentData);
+				archive << vec.X << vec.Y << vec.Z;
+			}
+			break;
+		case ETypeKind::Vector4u:
+			{
+				const TVector4u& vec = *static_cast<const TVector4u*>(componentData);
+				archive << vec.X << vec.Y << vec.Z << vec.W;
+			}
+			break;
+		case ETypeKind::Custom:
+		default:
+			break;
+		}
+	}
+
+	void ReflectiveContainer::DeserializeComponent(MemoryReader& archive, void* componentData, const TypeComponent& component) const
+	{
+		switch (component.Kind)
+		{
+		case ETypeKind::Bool:
+			archive >> *static_cast<bool*>(componentData);
+			break;
+		case ETypeKind::Int8:
+			archive >> *static_cast<int8*>(componentData);
+			break;
+		case ETypeKind::Int16:
+			archive >> *static_cast<int16*>(componentData);
+			break;
+		case ETypeKind::Int32:
+			archive >> *static_cast<int32*>(componentData);
+			break;
+		case ETypeKind::Int64:
+			archive >> *static_cast<int64*>(componentData);
+			break;
+		case ETypeKind::UInt8:
+			archive >> *static_cast<uint8*>(componentData);
+			break;
+		case ETypeKind::UInt16:
+			archive >> *static_cast<uint16*>(componentData);
+			break;
+		case ETypeKind::UInt32:
+			archive >> *static_cast<uint32*>(componentData);
+			break;
+		case ETypeKind::UInt64:
+			archive >> *static_cast<uint64*>(componentData);
+			break;
+		case ETypeKind::Float:
+			archive >> *static_cast<float*>(componentData);
+			break;
+		case ETypeKind::Double:
+			archive >> *static_cast<double*>(componentData);
+			break;
+		case ETypeKind::Vector2f:
+			{
+				TVector2f& vec = *static_cast<TVector2f*>(componentData);
+				archive >> vec.X >> vec.Y;
+			}
+			break;
+		case ETypeKind::Vector3f:
+			{
+				TVector3f& vec = *static_cast<TVector3f*>(componentData);
+				archive >> vec.X >> vec.Y >> vec.Z;
+			}
+			break;
+		case ETypeKind::Vector4f:
+			{
+				TVector4f& vec = *static_cast<TVector4f*>(componentData);
+				archive >> vec.X >> vec.Y >> vec.Z >> vec.W;
+			}
+			break;
+		case ETypeKind::Vector2d:
+			{
+				TVector2d& vec = *static_cast<TVector2d*>(componentData);
+				archive >> vec.X >> vec.Y;
+			}
+			break;
+		case ETypeKind::Vector3d:
+			{
+				TVector3d& vec = *static_cast<TVector3d*>(componentData);
+				archive >> vec.X >> vec.Y >> vec.Z;
+			}
+			break;
+		case ETypeKind::Vector4d:
+			{
+				TVector4d& vec = *static_cast<TVector4d*>(componentData);
+				archive >> vec.X >> vec.Y >> vec.Z >> vec.W;
+			}
+			break;
+		case ETypeKind::Vector2i:
+			{
+				TVector2i& vec = *static_cast<TVector2i*>(componentData);
+				archive >> vec.X >> vec.Y;
+			}
+			break;
+		case ETypeKind::Vector3i:
+			{
+				TVector3i& vec = *static_cast<TVector3i*>(componentData);
+				archive >> vec.X >> vec.Y >> vec.Z;
+			}
+			break;
+		case ETypeKind::Vector4i:
+			{
+				TVector4i& vec = *static_cast<TVector4i*>(componentData);
+				archive >> vec.X >> vec.Y >> vec.Z >> vec.W;
+			}
+			break;
+		case ETypeKind::Vector2u:
+			{
+				TVector2u& vec = *static_cast<TVector2u*>(componentData);
+				archive >> vec.X >> vec.Y;
+			}
+			break;
+		case ETypeKind::Vector3u:
+			{
+				TVector3u& vec = *static_cast<TVector3u*>(componentData);
+				archive >> vec.X >> vec.Y >> vec.Z;
+			}
+			break;
+		case ETypeKind::Vector4u:
+			{
+				TVector4u& vec = *static_cast<TVector4u*>(componentData);
+				archive >> vec.X >> vec.Y >> vec.Z >> vec.W;
+			}
+			break;
+		case ETypeKind::Custom:
+		default:
+			break;
+		}
+	}
+
+	void ReflectiveContainer::SetupComponentFunctions(TypeComponent& component) const
+	{
+		switch (component.Kind)
+		{
+		case ETypeKind::Bool:
+			TypeComponent::SetupFunctionsForType<bool>(component);
+			break;
+		case ETypeKind::Int8:
+			TypeComponent::SetupFunctionsForType<int8>(component);
+			break;
+		case ETypeKind::Int16:
+			TypeComponent::SetupFunctionsForType<int16>(component);
+			break;
+		case ETypeKind::Int32:
+			TypeComponent::SetupFunctionsForType<int32>(component);
+			break;
+		case ETypeKind::Int64:
+			TypeComponent::SetupFunctionsForType<int64>(component);
+			break;
+		case ETypeKind::UInt8:
+			TypeComponent::SetupFunctionsForType<uint8>(component);
+			break;
+		case ETypeKind::UInt16:
+			TypeComponent::SetupFunctionsForType<uint16>(component);
+			break;
+		case ETypeKind::UInt32:
+			TypeComponent::SetupFunctionsForType<uint32>(component);
+			break;
+		case ETypeKind::UInt64:
+			TypeComponent::SetupFunctionsForType<uint64>(component);
+			break;
+		case ETypeKind::Float:
+			TypeComponent::SetupFunctionsForType<float>(component);
+			break;
+		case ETypeKind::Double:
+			TypeComponent::SetupFunctionsForType<double>(component);
+			break;
+		case ETypeKind::Vector2f:
+			TypeComponent::SetupFunctionsForType<TVector2f>(component);
+			break;
+		case ETypeKind::Vector3f:
+			TypeComponent::SetupFunctionsForType<TVector3f>(component);
+			break;
+		case ETypeKind::Vector4f:
+			TypeComponent::SetupFunctionsForType<TVector4f>(component);
+			break;
+		case ETypeKind::Vector2d:
+			TypeComponent::SetupFunctionsForType<TVector2d>(component);
+			break;
+		case ETypeKind::Vector3d:
+			TypeComponent::SetupFunctionsForType<TVector3d>(component);
+			break;
+		case ETypeKind::Vector4d:
+			TypeComponent::SetupFunctionsForType<TVector4d>(component);
+			break;
+		case ETypeKind::Vector2i:
+			TypeComponent::SetupFunctionsForType<TVector2i>(component);
+			break;
+		case ETypeKind::Vector3i:
+			TypeComponent::SetupFunctionsForType<TVector3i>(component);
+			break;
+		case ETypeKind::Vector4i:
+			TypeComponent::SetupFunctionsForType<TVector4i>(component);
+			break;
+		case ETypeKind::Vector2u:
+			TypeComponent::SetupFunctionsForType<TVector2u>(component);
+			break;
+		case ETypeKind::Vector3u:
+			TypeComponent::SetupFunctionsForType<TVector3u>(component);
+			break;
+		case ETypeKind::Vector4u:
+			TypeComponent::SetupFunctionsForType<TVector4u>(component);
+			break;
+		case ETypeKind::Custom:
+		default:
+			break;
+		}
 	}
 
 	// Explicit template instantiations for common types

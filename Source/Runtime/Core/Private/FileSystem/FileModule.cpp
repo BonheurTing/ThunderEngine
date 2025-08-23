@@ -83,6 +83,35 @@ namespace Thunder
 		return "";
 	}
 
+	String FileModule::SwitchFileExtension(const String& fileName, const String& newExtension)
+	{
+		size_t dotPos = fileName.find_last_of('.');
+    
+		// 查找最后一个路径分隔符的位置（支持Windows和Unix风格）
+		size_t slashPos = std::max(
+			fileName.find_last_of('/'),  // Unix风格分隔符
+			fileName.find_last_of('\\')  // Windows风格分隔符
+		);
+    
+		// 如果找到了点号，并且点号在最后一个路径分隔符之后（即确实是文件扩展名）
+		if (dotPos != std::string::npos && (slashPos == std::string::npos || dotPos > slashPos)) {
+			// 替换扩展名：取点号之前的部分 + 新扩展名
+			String baseName = fileName.substr(0, dotPos);
+			if (newExtension.empty() || newExtension[0] == '.') {
+				return baseName + newExtension;
+			} else {
+				return baseName + "." + newExtension;
+			}
+		}
+    
+		// 如果没有找到有效的扩展名，直接添加新扩展名
+		if (newExtension.empty() || newExtension[0] == '.') {
+			return fileName + newExtension;
+		} else {
+			return fileName + "." + newExtension;
+		}
+	}
+
 	using recursive_directory_iterator = std::filesystem::recursive_directory_iterator;
     
 	bool FileModule::LoadFileToString(const String& fileName, String& outString)

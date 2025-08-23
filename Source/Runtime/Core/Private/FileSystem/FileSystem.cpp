@@ -30,18 +30,19 @@ namespace Thunder
 		return Open(path);
 	}
 
-	IFile* NativeFileSystem::Open(const String& path, bool bFullPath)
+	IFile* NativeFileSystem::Open(const String& path, bool bNeedJoin)
 	{
-		String fullPath = bFullPath || BasePath.empty()? path : BasePath + path;
+		String fullPath = bNeedJoin && !BasePath.empty()? BasePath + path : path;
 #if THUNDER_WINDOWS
 		HANDLE handle = CreateFileA(fullPath.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
 									nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 		
-		if (handle != INVALID_HANDLE_VALUE)
+		if (handle == INVALID_HANDLE_VALUE)
 		{
-			return new NativeFile(handle);
+			LOG("Fail to Open file with %s, error code: %lu\n", path.c_str(), GetLastError());
+			return nullptr;
 		}
-		return nullptr;
+		return new NativeFile(handle);
 #elif THUNDER_POSIX
 		FILE* file = fopen(fullPath.c_str(), "rb+");
 		

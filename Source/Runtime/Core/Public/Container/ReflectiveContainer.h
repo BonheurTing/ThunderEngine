@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "BasicDefinition.h"
+#include "FileSystem/MemoryArchive.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder
@@ -56,6 +57,9 @@ namespace Thunder
 		
 		template<typename T>
 		static TypeComponent Create(const String& inName, size_t inOffset);
+
+		template<typename T>
+		static void SetupFunctionsForType(TypeComponent& component);
 	};
 
 	class ReflectiveContainer : public RefCountedObject
@@ -114,6 +118,9 @@ namespace Thunder
 		// Clear all data
 		void Clear();
 
+		void Serialize(MemoryWriter& archive);
+		void DeSerialize(MemoryReader& archive);
+
 	private:
 		void* Data;
 		TArray<TypeComponent> Components;
@@ -127,6 +134,11 @@ namespace Thunder
 		void DestroyData();
 		void CopyData(const ReflectiveContainer& other);
 		size_t FindComponentIndex(const String& name) const;
+		
+		// Serialization helper functions
+		void SerializeComponent(MemoryWriter& archive, const void* componentData, const TypeComponent& component) const;
+		void DeserializeComponent(MemoryReader& archive, void* componentData, const TypeComponent& component) const;
+		void SetupComponentFunctions(TypeComponent& component) const;
 	};
 	using TReflectiveContainerRef = TRefCountPtr<ReflectiveContainer>;
 }

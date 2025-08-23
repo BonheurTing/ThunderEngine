@@ -142,26 +142,127 @@ namespace Thunder
 		return (indicesBuffer);
 	}
 
-	String ResourceModule::CovertFullPathToContentPath(const String& fullPath)
+	void ResourceModule::StartUp()
 	{
-		size_t contentPos = fullPath.find_first_of("Content");
-		if (contentPos == std::string::npos) {
-			return ""; // 如果没有找到"Content"，返回空字符串
+		const auto contentDict = FileModule::GetProjectRoot() + "\\Content\\";
+		TArray<String> fileNames;
+		FileModule::TraverseFileFromFolder(contentDict, fileNames);
+		for (const auto& fileName : fileNames)
+		{
+			if (FileModule::GetFileExtension(fileName) == "tasset")
+			{
+				// only load guid
+				TGuid guid;
+				if (Package::LoadOnlyGuid(fileName, guid))
+				{
+					String softPath = CovertFullPathToSoftPath(fileName);
+					ResourcePathMap.emplace(guid, softPath);
+				}
+				else
+				{
+					LOG("Failed to load package guid from %s", fileName.c_str());
+				}
+			}
 		}
-
-		std::string result = fullPath.substr(contentPos);
-
-		const size_t lastDotPos = result.find_last_of('.');
-		if (lastDotPos != std::string::npos) {
-			result = result.substr(0, lastDotPos);
-		}
-
-		return result;
 	}
 
-	String ResourceModule::ConvertContentPathToFullPath(const String& contentPath, const String& extension)
+	String ResourceModule::CovertFullPathToSoftPath(const String& fullPath, const String& resourceName)
 	{
-		return FileModule::GetProjectRoot() + "\\" + contentPath + extension;
+		// 查找"Content"字符串的位置
+		size_t contentPos = fullPath.find("Content");
+		if (contentPos == std::string::npos)
+		{
+			return "";  // 如果没有找到"Content"，返回空字符串
+		}
+		
+		// 提取"Content"后的部分路径
+		String relativePath = fullPath.substr(contentPos + 7); // "Content" = 7个字符
+		
+		// 将反斜杠替换为正斜杠（统一路径分隔符）
+		for (auto& ch : relativePath)
+		{
+			if (ch == '\\')
+			{
+				ch = '/';
+			}
+		}
+		
+		// 确保路径以'/'开始，如果不是则添加
+		if (!relativePath.empty() && relativePath[0] != '/')
+		{
+			relativePath = "/" + relativePath;
+		}
+		
+		// 移除文件扩展名
+		size_t dotPos = relativePath.find_last_of('.');
+		size_t slashPos = relativePath.find_last_of('/');
+		if (dotPos != std::string::npos && (slashPos == std::string::npos || dotPos > slashPos))
+		{
+			relativePath = relativePath.substr(0, dotPos);
+		}
+		
+		// 构建软路径
+		String softPath = "/Game" + relativePath;
+		
+		// 如果resourceName不为空，添加资源名称后缀
+		if (!resourceName.empty())
+		{
+			softPath += "." + resourceName;
+		}
+		
+		return softPath;
+	}
+
+	String ResourceModule::ConvertSoftPathToFullPath(const String& softPath, const String& extension)
+	{
+		String workingPath = softPath;
+		
+		// 移除资源名称后缀（如果存在点号）
+		size_t lastDotPos = workingPath.find_last_of('.');
+		size_t lastSlashPos = workingPath.find_last_of('/');
+		if (lastDotPos != std::string::npos && (lastSlashPos == std::string::npos || lastDotPos > lastSlashPos))
+		{
+			workingPath = workingPath.substr(0, lastDotPos);
+		}
+		
+		// 检查是否以"/Game"开头
+		if (workingPath.substr(0, 5) != "/Game")
+		{
+			return "";  // 不是有效的软路径格式
+		}
+		
+		// 移除"/Game"前缀，获取相对路径
+		String relativePath = workingPath.substr(5); // "/Game" = 5个字符
+		
+		// 将正斜杠替换为系统路径分隔符（Windows使用反斜杠）
+		for (auto& ch : relativePath)
+		{
+			if (ch == '/')
+			{
+				ch = '\\';
+			}
+		}
+		
+		// 获取项目根路径
+		String projectRoot = FileModule::GetProjectRoot();
+		
+		// 构建完整路径
+		String fullPath = projectRoot + "\\Content" + relativePath;
+		
+		// 添加文件扩展名
+		if (!extension.empty())
+		{
+			if (extension[0] == '.')
+			{
+				fullPath += extension;
+			}
+			else
+			{
+				fullPath += "." + extension;
+			}
+		}
+		
+		return fullPath;
 	}
 
 	bool ResourceModule::Import(const String& srcPath, const String& destPath)
@@ -206,17 +307,28 @@ namespace Thunder
 				);
 				newStaticMesh->SubMeshes.push_back(subMesh);
 			}
+			
 
 			// 4. 注册到资源管理器
-			String resourceVirtualPath = CovertFullPathToContentPath(destPath);
-			auto* newPackage = new Package(resourceVirtualPath); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
-			newPackage->AddResource(newStaticMesh);
-			TGuid guid = newStaticMesh->GetGUID();
-			GetModule()->LoadedResources.emplace(guid, newStaticMesh);
-			GetModule()->LoadedResourcesByPath.emplace(resourceVirtualPath, guid);
+			const String resourceName = CovertFullPathToSoftPath(destPath, scene->mName.C_Str());
+			newStaticMesh->SetResourceName(resourceName);
+			TGuid meshGuid = newStaticMesh->GetGUID();
+			GetModule()->LoadedResources.emplace(meshGuid, newStaticMesh);
+			GetModule()->LoadedResourcesByPath.emplace(resourceName, meshGuid);
 
 			// 5. 保存 package 文件
-			return GetModule()->SavePackage(newPackage, destPath);
+			const String pacName = CovertFullPathToSoftPath(destPath);
+			auto* newPackage = new Package(pacName); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
+			newPackage->AddResource(newStaticMesh);
+			
+			if (GetModule()->SavePackage(newPackage, destPath))
+			{
+				TGuid pakGuid = newPackage->GetGUID();
+				GetModule()->LoadedResources.emplace(pakGuid, newPackage);
+				GetModule()->LoadedResourcesByPath.emplace(pacName, meshGuid);
+				GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
+			}
+			return false;
 		}
 		if (fileExtension == "png" || fileExtension == "tga")
 		{
@@ -254,6 +366,7 @@ namespace Thunder
 			{
 				String relativePath = fileName.substr(srcDict.length());
 				String destPath = destDict + relativePath;
+				destPath = FileModule::SwitchFileExtension(destPath, "tasset");
 				Import(fileName, destPath);
 			}
 		}

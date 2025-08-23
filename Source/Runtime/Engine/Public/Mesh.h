@@ -16,6 +16,17 @@ namespace Thunder
 		AABB(const TVector3f& min, const TVector3f& max)
 			: Min(min), Max(max) {}
 		~AABB() = default;
+
+		void Serialize(MemoryWriter& archive) const
+		{
+			archive << Min;
+			archive << Max;
+		}
+		void DeSerialize(MemoryReader& archive)
+		{
+			archive >> Min;
+			archive >> Max;
+		}
 	};
 	
 	class IMesh : public GameResource
@@ -38,6 +49,10 @@ namespace Thunder
 	public:
 		StaticMesh() {}
 		virtual ~StaticMesh() {}
+
+		void Serialize(MemoryWriter& archive) override;
+		void DeSerialize(MemoryReader& archive) override;
+
 	public:
 		TArray<TSubMeshRef> SubMeshes {};
 		TArray<IMaterial*> DefaultMaterials {};

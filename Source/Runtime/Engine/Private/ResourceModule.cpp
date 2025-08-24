@@ -1,12 +1,14 @@
 ﻿#pragma optimize("", off) 
 #include "ResourceModule.h"
-#include "External/stb_image.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "External/stb_image.h"		// 定义 stb_image 实现
 #include <assimp/Importer.hpp>      // 导入接口
 #include <assimp/scene.h>           // 场景数据（模型、材质、动画）
 #include <assimp/postprocess.h>     // 后处理选项（如三角化、优化）
 
 #include "Mesh.h"
 #include "Package.h"
+#include "Texture.h"
 #include "Container/ReflectiveContainer.h"
 #include "FileSystem/FileModule.h"
 #include "Vector.h"
@@ -307,7 +309,6 @@ namespace Thunder
 				);
 				newStaticMesh->SubMeshes.push_back(subMesh);
 			}
-			
 
 			// 4. 注册到资源管理器
 			const String resourceName = CovertFullPathToSoftPath(destPath, scene->mName.C_Str());
@@ -328,27 +329,44 @@ namespace Thunder
 				GetModule()->LoadedResourcesByPath.emplace(pacName, meshGuid);
 				GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
 			}
-			return false;
+			return true;
 		}
 		if (fileExtension == "png" || fileExtension == "tga")
 		{
 			int width, height, channels;
-			unsigned char* data;// = stbi_load(srcPath.c_str(), &width, &height, &channels, 0);
+			unsigned char* data = stbi_load(srcPath.c_str(), &width, &height, &channels, 0);
 			if (data)
 			{
-				/*// 创建目标文件夹
-				FileModule::CreateDirectory(FileModule::GetFilePath(destPath));
-				// 保存图片数据到目标路径
-				TRefCountPtr<NativeFile> file = FileModule::GetFileSystem("Content")->Open(destPath, EFileMode::Write);
-				file->Write(data, width * height * channels);*/
-				//stbi_image_free(data);
+				const auto newTexture = new Texture2D(data, width, height, channels);
+				stbi_image_free(data); // data在Texture2D中拷贝了一份，stbi管理的数据原地释放
+				
+				// 注册到资源管理器
+				const String resourceName = CovertFullPathToSoftPath(destPath, FileModule::GetFileName(destPath));
+				newTexture->SetResourceName(resourceName);
+				TGuid meshGuid = newTexture->GetGUID();
+				GetModule()->LoadedResources.emplace(meshGuid, newTexture);
+				GetModule()->LoadedResourcesByPath.emplace(resourceName, meshGuid);
+
+				// 保存 package 文件
+				const String pacName = CovertFullPathToSoftPath(destPath);
+				auto* newPackage = new Package(pacName); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
+				newPackage->AddResource(newTexture);
+			
+				if (GetModule()->SavePackage(newPackage, destPath))
+				{
+					TGuid pakGuid = newPackage->GetGUID();
+					GetModule()->LoadedResources.emplace(pakGuid, newPackage);
+					GetModule()->LoadedResourcesByPath.emplace(pacName, meshGuid);
+					GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
+				}
+				return true;
 			}
 			else
 			{
 				// 处理加载失败的情况
 				std::cerr << "Failed to load image: " << srcPath << std::endl;
+				return false;
 			}
-			return true;
 		}
 		std::cerr << "Unsupported file type: " << fileExtension << std::endl;
 		return false;

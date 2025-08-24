@@ -5,7 +5,7 @@
 #include <cstring>
 #include "Container.h"
 #include "Memory/MemoryBase.h"
-#include "Templates/RefCountObject.h"
+#include "Templates/RefCounting.h"
 
 #define _NODISCARD_ [[nodiscard]]
 #define THUNDER_ENGINE_VERSION 123
@@ -32,9 +32,8 @@ namespace Thunder
 	{
 		void* Data = nullptr;
 		size_t Size = 0;
-
-		
 	};
+	using TBinaryDataRef = TRefCountPtr<BinaryData>;
 
 	/* Safe Binary Data*/
 	struct ManagedBinaryData

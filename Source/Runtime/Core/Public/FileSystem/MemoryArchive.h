@@ -26,10 +26,10 @@ namespace Thunder
 
 		void* Data() const { return Buffer; }
 		size_t Size() const { return CurrentSize; }
+		void WriteRaw(const void* data, size_t size);
 
 	private:
 		void EnsureCapacity(size_t additionalSize);
-		void WriteRaw(const void* data, size_t size);
 
 		void* Buffer;
 		size_t CurrentSize;
@@ -51,9 +51,9 @@ namespace Thunder
 		{
 			return *this >> guid.A >> guid.B >> guid.C >> guid.D;
 		}
+		void ReadRaw(void* dest, size_t size);
 
 	private:
-		void ReadRaw(void* dest, size_t size);
 
 		const void* Buffer;
 		size_t BufferSize;

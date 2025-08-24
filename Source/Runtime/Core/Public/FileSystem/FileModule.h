@@ -17,8 +17,9 @@ namespace Thunder
 		static String GetEngineRoot();
 		static String GetProjectRoot();
 		static String GetEngineShaderRoot();
-		static String GetFileExtension(const String& fileName);
-		static String SwitchFileExtension(const String& fileName, const String& newExtension);
+		static String GetFileName(const String& filePath);
+		static String GetFileExtension(const String& filePath);
+		static String SwitchFileExtension(const String& filePath, const String& newExtension);
 		static bool LoadFileToString(const String& fileName, String& outString);
 		static bool SaveFileFromString(const String& fileName, const String& inString);
 		static int TraverseFileFromFolder(const String& folderPath,  TArray<String>& outFileNames);

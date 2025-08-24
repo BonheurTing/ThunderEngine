@@ -54,7 +54,7 @@ namespace Thunder
 	String FileModule::GetProjectRoot()
 	{
 		//todo
-		auto currentPath = std::filesystem::current_path();
+		const auto currentPath = std::filesystem::current_path();
 		return currentPath.parent_path().parent_path().string();
 	}
 
@@ -63,40 +63,65 @@ namespace Thunder
 		return GetProjectRoot() + "\\Shader\\";
 	}
 
-	String FileModule::GetFileExtension(const String& fileName)
+	String FileModule::GetFileName(const String& filePath)
 	{
-		size_t dotPos = fileName.find_last_of('.');
+		// 查找最后一个路径分隔符的位置（支持Windows和Unix风格）
+		const size_t slashPos = std::max(
+			filePath.find_last_of('/'),  // Unix风格分隔符
+			filePath.find_last_of('\\')  // Windows风格分隔符
+		);
+		
+		// 提取分隔符之后的文件名部分
+		String fileName;
+		if (slashPos != std::string::npos) {
+			fileName = filePath.substr(slashPos + 1);
+		} else {
+			fileName = filePath; // 没有路径分隔符，整个字符串就是文件名
+		}
+		
+		// 查找最后一个点号的位置以移除扩展名
+		const size_t dotPos = fileName.find_last_of('.');
+		if (dotPos != std::string::npos) {
+			return fileName.substr(0, dotPos); // 返回点号之前的部分
+		}
+		
+		return fileName; // 没有扩展名，返回整个文件名
+	}
+
+	String FileModule::GetFileExtension(const String& filePath)
+	{
+		const size_t dotPos = filePath.find_last_of('.');
     
 		// 查找最后一个路径分隔符的位置（支持Windows和Unix风格）
-		size_t slashPos = std::max(
-			fileName.find_last_of('/'),  // Unix风格分隔符
-			fileName.find_last_of('\\')  // Windows风格分隔符
+		const size_t slashPos = std::max(
+			filePath.find_last_of('/'),  // Unix风格分隔符
+			filePath.find_last_of('\\')  // Windows风格分隔符
 		);
     
 		// 如果找到了点号，并且点号在最后一个路径分隔符之后（即确实是文件扩展名）
 		if (dotPos != std::string::npos && (slashPos == std::string::npos || dotPos > slashPos)) {
 			// 返回点号之后的所有字符（即文件扩展名）
-			return fileName.substr(dotPos + 1);
+			return filePath.substr(dotPos + 1);
 		}
     
 		// 如果没有找到有效的扩展名，返回空字符串
 		return "";
 	}
 
-	String FileModule::SwitchFileExtension(const String& fileName, const String& newExtension)
+	String FileModule::SwitchFileExtension(const String& filePath, const String& newExtension)
 	{
-		size_t dotPos = fileName.find_last_of('.');
+		const size_t dotPos = filePath.find_last_of('.');
     
 		// 查找最后一个路径分隔符的位置（支持Windows和Unix风格）
-		size_t slashPos = std::max(
-			fileName.find_last_of('/'),  // Unix风格分隔符
-			fileName.find_last_of('\\')  // Windows风格分隔符
+		const size_t slashPos = std::max(
+			filePath.find_last_of('/'),  // Unix风格分隔符
+			filePath.find_last_of('\\')  // Windows风格分隔符
 		);
     
 		// 如果找到了点号，并且点号在最后一个路径分隔符之后（即确实是文件扩展名）
 		if (dotPos != std::string::npos && (slashPos == std::string::npos || dotPos > slashPos)) {
 			// 替换扩展名：取点号之前的部分 + 新扩展名
-			String baseName = fileName.substr(0, dotPos);
+			const String baseName = filePath.substr(0, dotPos);
 			if (newExtension.empty() || newExtension[0] == '.') {
 				return baseName + newExtension;
 			} else {
@@ -106,9 +131,9 @@ namespace Thunder
     
 		// 如果没有找到有效的扩展名，直接添加新扩展名
 		if (newExtension.empty() || newExtension[0] == '.') {
-			return fileName + newExtension;
+			return filePath + newExtension;
 		} else {
-			return fileName + "." + newExtension;
+			return filePath + "." + newExtension;
 		}
 	}
 

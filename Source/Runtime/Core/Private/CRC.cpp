@@ -2,6 +2,41 @@
 
 namespace Thunder
 {
+	uint32 FCrc::BinaryCrc32(const uint8* ByteData, uint32 Size, uint32 CRC)
+	{
+		if (!ByteData || Size == 0)
+		{
+			return CRC;
+		}
+
+		CRC = ~CRC;
+		
+		// Process 8 bytes at a time for better performance
+		while (Size >= 8)
+		{
+			CRC ^= ByteData[0] | (ByteData[1] << 8) | (ByteData[2] << 16) | (ByteData[3] << 24);
+			uint32 High = ByteData[4] | (ByteData[5] << 8) | (ByteData[6] << 16) | (ByteData[7] << 24);
+			
+			CRC = CRCTablesSB8[0][(CRC      ) & 0xFF] ^ CRCTablesSB8[1][(CRC >>  8) & 0xFF] ^
+				  CRCTablesSB8[2][(CRC >> 16) & 0xFF] ^ CRCTablesSB8[3][(CRC >> 24) & 0xFF] ^
+				  CRCTablesSB8[4][(High     ) & 0xFF] ^ CRCTablesSB8[5][(High >>  8) & 0xFF] ^
+				  CRCTablesSB8[6][(High >> 16) & 0xFF] ^ CRCTablesSB8[7][(High >> 24) & 0xFF];
+			
+			ByteData += 8;
+			Size -= 8;
+		}
+		
+		// Process remaining bytes one by one
+		while (Size > 0)
+		{
+			CRC = (CRC >> 8) ^ CRCTablesSB8[0][(CRC ^ *ByteData) & 0xFF];
+			ByteData++;
+			Size--;
+		}
+		
+		return ~CRC;
+	}
+
 	uint32 FCrc::CRCTablesSB8[8][256] = 
 	{
 		{

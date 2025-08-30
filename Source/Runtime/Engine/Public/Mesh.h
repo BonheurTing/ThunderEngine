@@ -32,8 +32,10 @@ namespace Thunder
 	class IMesh : public GameResource
 	{
 	public:
-		IMesh() {}
-		virtual ~IMesh() {}
+		IMesh(GameObject* inOuter = nullptr, ETempGameResourceReflective inType = ETempGameResourceReflective::Unknown)
+			: GameResource(inOuter, inType) {}
+
+		~IMesh() override = default;
 	};
 
 	struct SubMesh : public RefCountedObject
@@ -47,8 +49,8 @@ namespace Thunder
 	class StaticMesh : public IMesh
 	{
 	public:
-		StaticMesh() {}
-		virtual ~StaticMesh() {}
+		StaticMesh(GameObject* inOuter = nullptr) : IMesh(inOuter, ETempGameResourceReflective::StaticMesh) {}
+		~StaticMesh() override = default;
 
 		void Serialize(MemoryWriter& archive) override;
 		void DeSerialize(MemoryReader& archive) override;

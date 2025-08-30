@@ -328,8 +328,8 @@ namespace Thunder
 				GetModule()->LoadedResources.emplace(pakGuid, newPackage);
 				GetModule()->LoadedResourcesByPath.emplace(pacName, meshGuid);
 				GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
+				return true;
 			}
-			return true;
 		}
 		if (fileExtension == "png" || fileExtension == "tga")
 		{
@@ -358,8 +358,8 @@ namespace Thunder
 					GetModule()->LoadedResources.emplace(pakGuid, newPackage);
 					GetModule()->LoadedResourcesByPath.emplace(pacName, meshGuid);
 					GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
+					return true;
 				}
-				return true;
 			}
 			else
 			{
@@ -368,7 +368,6 @@ namespace Thunder
 				return false;
 			}
 		}
-		std::cerr << "Unsupported file type: " << fileExtension << std::endl;
 		return false;
 	}
 

@@ -20,14 +20,23 @@ namespace Thunder
 		GameObject* Outer { nullptr };
 	};
 
+	enum class ETempGameResourceReflective : uint32
+	{
+		StaticMesh = 0,
+		Texture2D,
+		Unknown
+	};
+
 	class GameResource : public GameObject
 	{
 	public:
-		GameResource(GameObject* inOuter = nullptr) : GameObject(inOuter)
+		GameResource(GameObject* inOuter = nullptr, ETempGameResourceReflective inType = ETempGameResourceReflective::Unknown)
+			: GameObject(inOuter), ResourceType(inType)
 		{
 			TGuid::GenerateGUID(Guid);
 		}
 		_NODISCARD_ TGuid GetGUID() const { return Guid; }
+		_NODISCARD_ ETempGameResourceReflective GetResourceType() const { return ResourceType; }
 		_NODISCARD_ const NameHandle& GetResourceName() const { return ResourceName; }
 		void AddDependency(const TGuid& guid) { Dependencies.push_back(guid); }
 		void SetResourceName(const NameHandle& name) { ResourceName = name; }
@@ -37,6 +46,7 @@ namespace Thunder
 
 	private:
 		TGuid Guid {};
+		ETempGameResourceReflective ResourceType { ETempGameResourceReflective::Unknown }; // 资源类型
 		NameHandle ResourceName {}; // 资源的虚拟路径（如 "/Game/Textures.Texture1"）
 		TArray<TGuid> Dependencies {}; // 该资源需要的其他资源的guid，加载的时候需要一起加载
 	};

@@ -23,11 +23,11 @@ namespace Thunder
 		archive >> subMeshCount;
 		
 		SubMeshes.clear();
-		SubMeshes.reserve(subMeshCount);
+		SubMeshes.resize(subMeshCount);
 		
 		for (uint32 i = 0; i < subMeshCount; ++i)
 		{
-			auto subMesh = MakeRefCount<SubMesh>();
+			const auto subMesh = MakeRefCount<SubMesh>();
 			
 			// 反序列化顶点缓冲区
 			subMesh->Vertices = MakeRefCount<ReflectiveContainer>();
@@ -40,7 +40,7 @@ namespace Thunder
 			// 反序列化包围盒
 			subMesh->BoundingBox.DeSerialize(archive);
 			
-			SubMeshes.push_back(subMesh);
+			SubMeshes[i] = subMesh;
 		}
 	}
 

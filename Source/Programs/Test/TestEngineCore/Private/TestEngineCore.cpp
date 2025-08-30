@@ -45,10 +45,13 @@ namespace Thunder
 
 	void TestImportResource()
 	{
-		ResourceModule::GetModule()->ImportAll(true);
+		
+		//ResourceModule::GetModule()->ImportAll(true);
 		const String fileName = FileModule::GetProjectRoot() + "\\Resource\\Mesh\\Cube.fbx";
 		const String destPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";
-		//ResourceModule::Import(fileName, destPath);
+		/*const String fileName = FileModule::GetProjectRoot() + "\\Resource\\TestTexture.png";
+		const String destPath = FileModule::GetProjectRoot() + "\\Content\\TestTexture.tasset";*/
+		ResourceModule::Import(fileName, destPath);
 	}
 
 	void TestLoadPackage()
@@ -57,7 +60,7 @@ namespace Thunder
 		// "/Game/123"
 		// "/Game/Mesh/Cube"
 		// "/Game/TestTexture"
-		if(ResourceModule::GetModule()->LoadSync("/Game/TestTexture", res, true))
+		if(ResourceModule::GetModule()->LoadSync("/Game/Mesh/Cube", res, true))
 		{
 			LOG("success load package, resource count: %llu", res.size());
 		}
@@ -72,7 +75,7 @@ int main(int argc, char* argv[])
 {
 	Thunder::TestFileSystem();
 	Thunder::TestImportResource();
-	//Thunder::TestLoadPackage();
+	Thunder::TestLoadPackage();
 }
 
 

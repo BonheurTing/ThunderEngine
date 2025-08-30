@@ -6,8 +6,10 @@ namespace Thunder
 	class ITexture : public GameResource
 	{
 	public:
-		ITexture() = default;
-		virtual ~ITexture() = default;
+		ITexture(GameObject* inOuter = nullptr, ETempGameResourceReflective inType = ETempGameResourceReflective::Unknown)
+			: GameResource(inOuter, inType) {}
+
+		~ITexture() override = default;
 	};
 
 	struct ImageData  : public RefCountedObject
@@ -28,7 +30,9 @@ namespace Thunder
 	class Texture2D : public ITexture
 	{
 	public:
-		Texture2D(unsigned char *data, int width, int height, int channels);
+		Texture2D(GameObject* inOuter = nullptr)
+			: ITexture(inOuter, ETempGameResourceReflective::Texture2D), Data(MakeRefCount<ImageData>()) {}
+		Texture2D(unsigned char *data, int width, int height, int channels, GameObject* inOuter = nullptr);
 		
 		void Serialize(MemoryWriter& archive) override;
 		void DeSerialize(MemoryReader& archive) override;

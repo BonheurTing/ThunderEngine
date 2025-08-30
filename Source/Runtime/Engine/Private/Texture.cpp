@@ -7,8 +7,9 @@
 
 namespace Thunder
 {
-	Texture2D::Texture2D(unsigned char *data, int width, int height, int channels)
-		: Data(MakeRefCount<ImageData>(width, height, channels))
+	Texture2D::Texture2D(unsigned char *data, int width, int height, int channels, GameObject* inOuter)
+		: ITexture(inOuter, ETempGameResourceReflective::Texture2D),
+		Data(MakeRefCount<ImageData>(width, height, channels))
 	{
 		Data->data.assign(data, data + (width * height * channels));
 	}
@@ -55,7 +56,6 @@ namespace Thunder
 	void Texture2D::DeSerialize(MemoryReader& archive)
 	{
 		GameResource::DeSerialize(archive);
-		Data = MakeRefCount<ImageData>();
 		archive >> Data->width;
 		archive >> Data->height;
 		archive >> Data->channels;

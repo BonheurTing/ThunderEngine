@@ -4,6 +4,10 @@
 
 namespace Thunder
 {
+	enum class EPackageVersion : uint32
+	{
+		First = 0
+	};
 	
 	class Package : public GameObject
 	{
@@ -26,6 +30,7 @@ namespace Thunder
 			TArray<TGuid> GuidList; // 包含的对象的GUID列表
 			//TArray<uint32> OffsetList; // 每个对象在胞体的绝对偏移
 			//TArray<uint32> SizeList; // 每个对象的大小
+			//TArray<uint8> TypeList; // 每个对象的类型
 		};
 
 		void Serialize(MemoryWriter& archive) override;

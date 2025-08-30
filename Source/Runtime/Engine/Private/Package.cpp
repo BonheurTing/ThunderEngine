@@ -4,6 +4,7 @@
 #include "Guid.h"
 #include "Mesh.h"
 #include "ResourceModule.h"
+#include "Texture.h"
 #include "FileSystem/File.h"
 #include "FileSystem/FileModule.h"
 #include "FileSystem/FileSystem.h"
@@ -13,9 +14,9 @@ namespace Thunder
 	Package::Package(const NameHandle& name) : GameObject(), 
 		PackageName(name)
 	{
-		Header.MagicNumber = 0x50414745; // "PAG" in ASCII
+		Header.MagicNumber = 0x50414745; // "PAGE" in ASCII
 		Header.CheckSum = 0; // 初始校验和为0
-		Header.Version = THUNDER_ENGINE_VERSION; // 初始版本号
+		Header.Version = static_cast<uint32>(EPackageVersion::First); // 初始版本号
 		TGuid::GenerateGUID(Header.Guid); // 生成一个新的GUID
 	}
 
@@ -25,11 +26,12 @@ namespace Thunder
 		const uint32 size = sizeof(Header.MagicNumber)
 			+ sizeof(Header.CheckSum)
 			+ sizeof(Header.Version)
-			+ sizeof(Header.Guid)
+			+ sizeof(uint32) * 4 // GUID
 			+ sizeof(uint32) // num of Guid
 			+ sizeof(uint32) * 4 * numGuids // GUID列表
 			+ sizeof(uint32) * numGuids // 偏移列表
-			+ sizeof(uint32) * numGuids; // 大小列表
+			+ sizeof(uint32) * numGuids // 大小列表
+			+ sizeof(uint32) * numGuids; // 类型列表（如果需要的话）
 		return size;
 	}
 
@@ -77,56 +79,50 @@ namespace Thunder
 		const auto numGuids = static_cast<uint32>(Objects.size());
 		Header.GuidList.clear();
 		Header.GuidList.resize(numGuids);
-		const uint32 headerSize = CalculateHeaderSize();
-		// Prepare the objects data.
-		TArray<uint32> OffsetList, SizeList;
-		OffsetList.resize(numGuids);
-		SizeList.resize(numGuids);
-		TArray<void*> objectData;
-		objectData.resize(numGuids);
-		uint32 offset = headerSize;
+		for(uint32 i = 0; i < numGuids; ++i)
+		{
+			const GameResource* res = Objects[i];
+			Header.GuidList[i] = res->GetGUID();
+		}
+		// Prepare the objects header data.
+		TArray<uint32> offsetList, sizeList, typeList;
+		offsetList.resize(numGuids);
+		sizeList.resize(numGuids);
+		typeList.resize(numGuids);
+		// Serialize Header
+		MemoryWriter curArchive;
+		Serialize(curArchive);
+		const uint32 headerSize = static_cast<uint32>(curArchive.Size());
+		for (uint32 i = 0; i < numGuids; ++i)
+		{
+			curArchive << offsetList[i];
+			curArchive << sizeList[i];
+			curArchive << typeList[i];
+		}
+		// Serialize Objects
+		uint32 offset = static_cast<uint32>(curArchive.Size());
 		for(uint32 i = 0; i < numGuids; ++i)
 		{
 			GameResource* res = Objects[i];
-			Header.GuidList[i] = res->GetGUID();
-
-			MemoryWriter archive;
-			res->Serialize(archive);
-			objectData[i] = archive.Data();
-			const auto objectSize = static_cast<uint32>(archive.Size()); 
-
-			OffsetList[i] = offset;
-			SizeList[i] = objectSize;
-			offset += 4 + objectSize; // crc + data size
+			res->Serialize(curArchive);
+			offsetList[i] = offset;
+			sizeList[i] = static_cast<uint32>(curArchive.Size()) - offset;
+			typeList[i] = static_cast<uint32>(res->GetResourceType()); // 如果需要类型信息
+			offset += sizeList[i];
 		}
-
-		// Serialize Header
-		MemoryWriter headerArchive;
-		Serialize(headerArchive);
-		for (const uint32& objOffset : OffsetList)
+		// Copy objects header data
+		const uint32 fileSize = offset;
+		void* fileData = curArchive.Data();
+		uint8* fileDataPtr = static_cast<uint8*>(fileData);
+		for (uint32 i = 0, flag = headerSize; i < numGuids; i++, flag += 12)
 		{
-			headerArchive << objOffset;
+			memcpy(fileDataPtr + flag, &offsetList[i], 4);
+			memcpy(fileDataPtr + flag + 4, &sizeList[i], 4);
+			memcpy(fileDataPtr + flag + 8, &typeList[i], 4);
 		}
-		
-		for (const uint32& size : SizeList)
-		{
-			headerArchive << size;
-		}
-		TAssert(headerSize == headerArchive.Size());
-
-		const size_t fileSize = offset; // 4 for the last object CRC
-		void* fileData = TMemory::Malloc<uint8>(fileSize);
-		memcpy(fileData, headerArchive.Data(), headerSize);
-
-		// Serialize Objects
-		for(uint32 i = 0; i < numGuids; ++i)
-		{
-			uint32 objectCheckSum = FCrc::StrCrc32(static_cast<uint8*>(objectData[i]));
-			memcpy(static_cast<uint8*>(fileData) + OffsetList[i], &objectCheckSum, 4);
-			memcpy(static_cast<uint8*>(fileData) + OffsetList[i] + 4, objectData[i], SizeList[i]);
-		}
-		Header.CheckSum = FCrc::StrCrc32(static_cast<uint8*>(fileData) + 8);
-		memcpy(static_cast<uint8*>(fileData) + 4, &Header.CheckSum, 4);
+		// Calculate and write checksum
+		Header.CheckSum = FCrc::BinaryCrc32(fileDataPtr + 8, fileSize - 8);
+		memcpy(fileDataPtr + 4, &Header.CheckSum, 4);
 
 		// Write to .tmp file and rename it to the final path
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
@@ -147,7 +143,7 @@ namespace Thunder
 		{
 			return false;
 		}
-		
+
 		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(fullPath, false));
 		// 获取文件大小并读取全部内容
 		const size_t fileSize = file->Size();
@@ -174,22 +170,19 @@ namespace Thunder
 		// 创建MemoryReader来反序列化头部
 		MemoryReader headerArchive(&binaryData);
 		DeSerialize(headerArchive);
-		const auto numGuids = static_cast<uint32>(Header.GuidList.size());
-		TArray<uint32> OffsetList, SizeList;
-		OffsetList.resize(numGuids);
-		SizeList.resize(numGuids);
+		const uint32 numGuids = static_cast<uint32>(Header.GuidList.size());
+		TArray<uint32> offsetList, sizeList;
+		TArray<ETempGameResourceReflective> typeList;
+		offsetList.resize(numGuids);
+		sizeList.resize(numGuids);
+		typeList.resize(numGuids);
 		for (uint32 i = 0; i < numGuids; ++i)
 		{
-			uint32 offset;
-			headerArchive >> offset;
-			OffsetList[i] = offset;
-		}
-		
-		for (uint32 i = 0; i < numGuids; ++i)
-		{
-			uint32 size;
-			headerArchive >> size;
-			SizeList[i] = size;
+			headerArchive >> offsetList[i];
+			headerArchive >> sizeList[i];
+			uint32 type;
+			headerArchive >> type;
+			typeList[i] = static_cast<ETempGameResourceReflective>(type);
 		}
 
 		// 验证魔数
@@ -200,7 +193,8 @@ namespace Thunder
 		}
 		
 		// 验证校验和（跳过魔数和校验和本身）
-		const uint32 calculatedChecksum = FCrc::StrCrc32(static_cast<uint8*>(fileData) + 8);
+		uint8* fileDataPtr = static_cast<uint8*>(fileData);
+		const uint32 calculatedChecksum = FCrc::BinaryCrc32(fileDataPtr + 8, fileSize - 8);
 		if (Header.CheckSum != calculatedChecksum)
 		{
 			TMemory::Destroy(fileData);
@@ -213,33 +207,29 @@ namespace Thunder
 		// 反序列化每个对象
 		for (uint32 i = 0; i < numGuids; ++i)
 		{
-			const uint32 objectOffset = OffsetList[i];
-			const uint32 objectSize = SizeList[i];
-			
-			// 验证对象的CRC校验和
-			uint32 storedChecksum;
-			memcpy(&storedChecksum, static_cast<const uint8*>(fileData) + objectOffset, 4);
-			const void* objectDataStart = static_cast<const uint8*>(fileData) + objectOffset + 4;
-			const uint32 calculatedObjectChecksum = FCrc::StrCrc32(static_cast<const uint8*>(objectDataStart), 0, objectSize);
-			
-			if (storedChecksum != calculatedObjectChecksum)
-			{
-				TMemory::Destroy(fileData);
-				return false;
-			}
-
 			// 创建BinaryData来包装对象数据
+			const void* objectDataStart = fileDataPtr + offsetList[i];
 			BinaryData objectBinaryData;
 			objectBinaryData.Data = const_cast<void*>(objectDataStart);
-			objectBinaryData.Size = objectSize;
-
+			objectBinaryData.Size = sizeList[i];
 			MemoryReader objectArchive(&objectBinaryData);
 			
-			// 根据GUID类型创建对应的对象（这里假设都是StaticMesh，实际情况可能需要类型识别）
-			// TODO: 需要添加类型识别机制来确定创建哪种类型的对象
-			auto* gameResource = new StaticMesh();
-			gameResource->DeSerialize(objectArchive);
-			
+			GameResource* gameResource;
+			if (typeList[i] == ETempGameResourceReflective::StaticMesh)
+			{
+				gameResource = new StaticMesh();
+			}
+			else if (typeList[i] == ETempGameResourceReflective::Texture2D)
+			{
+				gameResource = new Texture2D();
+			}
+			else
+			{
+				TMemory::Destroy(fileData);
+				return false; // 不支持的资源类型
+			}
+ 			gameResource->DeSerialize(objectArchive);
+
 			Objects[i] = gameResource;
 		}
 		

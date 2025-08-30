@@ -59,18 +59,59 @@ namespace Thunder
 	{
 	}
 
+	template<typename T>
+	struct TVector2
+	{
+		union
+		{
+			struct
+			{
+				/** Vector's X component. */
+				T X;
 
+				/** Vector's Y component. */
+				T Y;
+			};
 
+			T XY[2];
+		};
 
+		/** Default constructor (no initialization). */
+		FORCEINLINE TVector2();
 
+		/**
+		 * Constructor initializing all components to a single T value.
+		 *
+		 * @param InF Value to set all components to.
+		 */
+		explicit FORCEINLINE TVector2(T InF);
 
+		/**
+		 * Constructor using initial values for each component.
+		 *
+		 * @param InX X Coordinate.
+		 * @param InY Y Coordinate.
+		 */
+		FORCEINLINE TVector2(T InX, T InY);
+	};
 
+	template<typename T>
+	FORCEINLINE TVector2<T>::TVector2()
+		: X(0), Y(0)
+	{
+	}
 
+	template<typename T>
+	FORCEINLINE TVector2<T>::TVector2(T InF)
+		: X(InF), Y(InF)
+	{
+	}
 
-
-
-
-	
+	template<typename T>
+	FORCEINLINE TVector2<T>::TVector2(T InX, T InY)
+		: X(InX), Y(InY)
+	{
+	}
 	
 	template<typename T>
 	struct alignas(16) TVector4
@@ -140,19 +181,19 @@ namespace Thunder
 	{
 	}
 
-	using TVector2f = TVector<float>;
+	using TVector2f = TVector2<float>;
 	using TVector3f = TVector<float>;
 	using TVector4f = TVector4<float>;
 
-	using TVector2d = TVector<double>;
+	using TVector2d = TVector2<double>;
 	using TVector3d = TVector<double>;
 	using TVector4d = TVector4<double>;
 
-	using TVector2i = TVector<int32>;
+	using TVector2i = TVector2<int32>;
 	using TVector3i = TVector<int32>;
 	using TVector4i = TVector4<int32>;
 
-	using TVector2u = TVector<uint32>;
+	using TVector2u = TVector2<uint32>;
 	using TVector3u = TVector<uint32>;
 	using TVector4u = TVector4<uint32>;
 	

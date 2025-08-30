@@ -34,12 +34,44 @@ namespace Thunder
 		else return ETypeKind::Custom;
 	}
 
+	size_t TypeComponent::GetSize() const
+	{
+		switch (Kind)
+		{
+		case ETypeKind::Bool: return sizeof(bool);
+		case ETypeKind::Int8: return sizeof(int8);
+		case ETypeKind::Int16: return sizeof(int16);
+		case ETypeKind::Int32: return sizeof(int32);
+		case ETypeKind::Int64: return sizeof(int64);
+		case ETypeKind::UInt8: return sizeof(uint8);
+		case ETypeKind::UInt16: return sizeof(uint16);
+		case ETypeKind::UInt32: return sizeof(uint32);
+		case ETypeKind::UInt64: return sizeof(uint64);
+		case ETypeKind::Float: return sizeof(float);
+		case ETypeKind::Double: return sizeof(double);
+		case ETypeKind::Vector2f: return sizeof(TVector2f);
+		case ETypeKind::Vector3f: return sizeof(TVector3f);
+		case ETypeKind::Vector4f: return sizeof(TVector4f);
+		case ETypeKind::Vector2d: return sizeof(TVector2d);
+		case ETypeKind::Vector3d: return sizeof(TVector3d);
+		case ETypeKind::Vector4d: return sizeof(TVector4d);
+		case ETypeKind::Vector2i: return sizeof(TVector2i);
+		case ETypeKind::Vector3i: return sizeof(TVector3i);
+		case ETypeKind::Vector4i: return sizeof(TVector4i);
+		case ETypeKind::Vector2u: return sizeof(TVector2u);
+		case ETypeKind::Vector3u: return sizeof(TVector3u);
+		case ETypeKind::Vector4u: return sizeof(TVector4u);
+		case ETypeKind::Custom:
+		default:
+			return 0; // Size unknown for custom types
+		}
+	}
+
 	template<typename T>
 	TypeComponent TypeComponent::Create(const String& inName, size_t inOffset)
 	{
 		TypeComponent component;
 		component.Name = inName;
-		component.Size = sizeof(T);
 		component.Offset = inOffset;
 		component.Kind = GetTypeKind<T>();
 
@@ -305,21 +337,17 @@ namespace Thunder
 		for (const auto& component : Components)
 		{
 			archive << component.Name;
-			archive << component.Size;
 			archive << component.Offset;
-			archive << static_cast<uint8>(component.Kind);
+			archive << static_cast<uint32>(component.Kind);
 		}
 		
 		archive << Stride;
 		archive << DataNum;
-		archive << bInitialized;
 		
 		if (bInitialized && Data && DataNum > 0)
 		{
-			archive << static_cast<uint8>(1);
-			size_t totalDataSize = Stride * DataNum;
-			archive << totalDataSize;
-			
+			archive << static_cast<uint32>(1);
+
 			for (size_t i = 0; i < DataNum; ++i)
 			{
 				const char* elementData = static_cast<const char*>(Data) + (i * Stride);
@@ -333,7 +361,7 @@ namespace Thunder
 		}
 		else
 		{
-			archive << static_cast<uint8>(0);
+			archive << static_cast<uint32>(0);
 		}
 	}
 
@@ -348,29 +376,25 @@ namespace Thunder
 		for (uint32 i = 0; i < componentCount; ++i)
 		{
 			archive >> Components[i].Name;
-			archive >> Components[i].Size;
 			archive >> Components[i].Offset;
 			
-			uint8 kindValue;
+			uint32 kindValue;
 			archive >> kindValue;
 			Components[i].Kind = static_cast<ETypeKind>(kindValue);
 
-			
 			SetupComponentFunctions(Components[i]);
 		}
 		
 		archive >> Stride;
 		archive >> DataNum;
-		archive >> bInitialized;
 		
-		uint8 hasData;
+		uint32 hasData;
 		archive >> hasData;
 		
-		if (hasData && DataNum > 0)
+		if (hasData > 0 && DataNum > 0)
 		{
-			size_t totalDataSize;
-			archive >> totalDataSize;
-			
+			bInitialized = true;
+
 			AllocateData();
 			
 			for (size_t i = 0; i < DataNum; ++i)
@@ -385,10 +409,14 @@ namespace Thunder
 					{
 						component.Constructor(componentData);
 					}
-					
+
 					DeserializeComponent(archive, componentData, component);
 				}
 			}
+		}
+		else
+		{
+			bInitialized = false;
 		}
 	}
 
@@ -399,9 +427,9 @@ namespace Thunder
 		for (auto& component : Components)
 		{
 			component.Offset = currentOffset;
-			currentOffset += component.Size;
+			currentOffset += component.GetSize();
 		}
-		
+
 		Stride = currentOffset;
 	}
 

@@ -9,7 +9,7 @@
 
 namespace Thunder
 {
-	enum class ETypeKind : uint8
+	enum class ETypeKind : uint32
 	{
 		Invalid = 0,
 		Bool,
@@ -40,7 +40,6 @@ namespace Thunder
 
 	struct TypeComponent
 	{
-		size_t Size;
 		size_t Offset;
 		String Name;
 		ETypeKind Kind;
@@ -53,7 +52,9 @@ namespace Thunder
 		std::function<void(void*, const void*)> CopyAssign;
 		std::function<void(void*, void*)> MoveAssign;
 
-		TypeComponent() : Size(0), Offset(0), Kind(ETypeKind::Invalid) {}
+		TypeComponent() : Offset(0), Kind(ETypeKind::Invalid) {}
+
+		size_t GetSize() const;
 		
 		template<typename T>
 		static TypeComponent Create(const String& inName, size_t inOffset);

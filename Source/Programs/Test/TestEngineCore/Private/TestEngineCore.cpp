@@ -47,10 +47,10 @@ namespace Thunder
 	{
 		
 		//ResourceModule::GetModule()->ImportAll(true);
-		const String fileName = FileModule::GetProjectRoot() + "\\Resource\\Mesh\\Cube.fbx";
-		const String destPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";
-		/*const String fileName = FileModule::GetProjectRoot() + "\\Resource\\TestTexture.png";
-		const String destPath = FileModule::GetProjectRoot() + "\\Content\\TestTexture.tasset";*/
+		/*const String fileName = FileModule::GetProjectRoot() + "\\Resource\\Mesh\\Cube.fbx";
+		const String destPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";*/
+		const String fileName = FileModule::GetProjectRoot() + "\\Resource\\TestTexture.png";
+		const String destPath = FileModule::GetProjectRoot() + "\\Content\\TestTexture.tasset";
 		ResourceModule::Import(fileName, destPath);
 	}
 
@@ -60,7 +60,7 @@ namespace Thunder
 		// "/Game/123"
 		// "/Game/Mesh/Cube"
 		// "/Game/TestTexture"
-		if(ResourceModule::GetModule()->LoadSync("/Game/Mesh/Cube", res, true))
+		if(ResourceModule::LoadSync("/Game/TestTexture", res, true))
 		{
 			LOG("success load package, resource count: %llu", res.size());
 		}

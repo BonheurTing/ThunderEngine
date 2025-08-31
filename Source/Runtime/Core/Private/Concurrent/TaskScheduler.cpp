@@ -1,6 +1,7 @@
 
 #include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
+#include "Templates/FunctionMy.h"
 
 namespace Thunder
 {
@@ -86,6 +87,26 @@ namespace Thunder
 		{
 			Thread->Resume();
 		}
+	}
+
+	void PooledTaskScheduler::PushTask(const TFunction<void()>& InFunction)
+	{
+		class FunctionTask : public ITask
+		{
+		public:
+			FunctionTask(const TFunction<void()>& InFunc) : Function(InFunc) {}
+
+			void DoWork() override 
+			{ 
+				Function(); 
+			}
+
+		private:
+			TFunction<void()> Function;
+		};
+
+		auto* Task = new FunctionTask(InFunction);
+		PushTask(Task);
 	}
 
 	void PooledTaskScheduler::PushTask(int Index, ITask* InQueuedWork) const

@@ -1,5 +1,6 @@
 #pragma once
 #include "GameObject.h"
+#include "RenderResource.h"
 
 namespace Thunder
 {
@@ -9,7 +10,9 @@ namespace Thunder
 		ITexture(GameObject* inOuter = nullptr, ETempGameResourceReflective inType = ETempGameResourceReflective::Unknown)
 			: GameResource(inOuter, inType) {}
 
-		~ITexture() override = default;
+		~ITexture() override;
+	private:
+		RenderTextureRef TextureResource {};
 	};
 
 	struct ImageData  : public RefCountedObject

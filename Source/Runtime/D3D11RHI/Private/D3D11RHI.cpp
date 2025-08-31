@@ -56,9 +56,8 @@ namespace Thunder
 		
 		ShaderCombination* combination = shaderModule->GetShaderCombination(initializer.ShaderIdentifier.ToString());
 		TAssertf(combination != nullptr, "Failed to get shader combination");
-		BinaryData shaderByteCode{};
-		combination->GetByteCode(EShaderStageType::Vertex, shaderByteCode);
-		TAssertf(shaderByteCode.Data != nullptr, "Failed to get vertex shader byte code");
+		const BinaryData* shaderByteCode = combination->GetByteCode(EShaderStageType::Vertex);
+		TAssertf(shaderByteCode->Data != nullptr, "Failed to get vertex shader byte code");
 		
 		TArray<D3D11_INPUT_ELEMENT_DESC> descs;
 		for(const RHIVertexElement& element : inElements)
@@ -76,7 +75,7 @@ namespace Thunder
 		}
 		TAssertf(inElements.size() < MaxVertexElementCount, "Too many vertex elements in declaration");
 		ID3D11InputLayout* inputLayout;
-		const HRESULT hr = Device->CreateInputLayout(descs.data(), static_cast<UINT>(inElements.size()), shaderByteCode.Data, shaderByteCode.Size, &inputLayout);
+		const HRESULT hr = Device->CreateInputLayout(descs.data(), static_cast<UINT>(inElements.size()), shaderByteCode->Data, shaderByteCode->Size, &inputLayout);
 		if (SUCCEEDED(hr))
 		{
 			//todo return MakeRefCount<D3D11RHIVertexDeclaration>(inElements, inputLayout);

@@ -41,7 +41,7 @@ namespace Thunder
 
 		_NODISCARD_ TGuid GetGUID() const { return Header.Guid; }
 		_NODISCARD_ const NameHandle& GetPackageName() const { return PackageName; }
-		_NODISCARD_ void GetPackageObjects(TArray<GameResource*> outObj) const { outObj = Objects; }
+		_NODISCARD_ TArray<GameResource*>& GetPackageObjects() { return Objects; }
 
 	private:
 		_NODISCARD_ uint32 CalculateHeaderSize() const;

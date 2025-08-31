@@ -5,11 +5,13 @@
 #include "D3D12RHIModule.h"
 #include "D3D11RHIModule.h"
 #include "ParallelRendering.h"
+#include "ResourceModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
 #include "Memory/MallocMinmalloc.h"
+#include "FileSystem/FileModule.h"
 
 namespace Thunder
 {
@@ -29,6 +31,8 @@ namespace Thunder
     void EngineMain::FastInit()
     {
         ModuleManager::GetInstance()->LoadModule<CoreModule>();
+        ModuleManager::GetInstance()->LoadModule<FileModule>();
+        ModuleManager::GetInstance()->LoadModule<ResourceModule>();
 
         TaskSchedulerManager::StartUp();
     }
@@ -71,6 +75,8 @@ namespace Thunder
     {
         TaskSchedulerManager::ShutDown();
         ModuleManager::GetInstance()->UnloadModule<CoreModule>();
+        ModuleManager::GetInstance()->UnloadModule<FileModule>();
+        ModuleManager::GetInstance()->UnloadModule<ResourceModule>();
     }
 }
 

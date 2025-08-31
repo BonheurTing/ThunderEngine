@@ -5,6 +5,7 @@
 #include "Mesh.h"
 #include "ResourceModule.h"
 #include "Texture.h"
+#include "Concurrent/TaskScheduler.h"
 #include "FileSystem/File.h"
 #include "FileSystem/FileModule.h"
 #include "FileSystem/FileSystem.h"
@@ -235,6 +236,7 @@ namespace Thunder
 		
 		// 注册包本身到资源管理器
 		ResourceModule::GetModule()->RegisterPackage(this);
+		LOG("load package : %s complete, resource count: %llu", fullPath.c_str(), Objects.size());
 
 		TMemory::Destroy(fileData);
 		return true;
@@ -289,14 +291,16 @@ namespace Thunder
 
 	bool ResourceModule::LoadSync(const NameHandle& softPath, TArray<GameResource*>& outResources, bool bForce)
 	{
-		if (!bForce && IsLoaded(softPath))
+		auto& LoadedResByPath = GetModule()->LoadedResourcesByPath;
+		auto& LoadedRes = GetModule()->LoadedResources;
+		if (!bForce && GetModule()->IsLoaded(softPath))
 		{
-			const TGuid guid = LoadedResourcesByPath[softPath];
-			if (LoadedResources.contains(guid))
+			const TGuid guid = LoadedResByPath[softPath];
+			if (LoadedRes.contains(guid))
 			{
-				if (const auto pak = static_cast<Package*>(LoadedResources[guid]))
+				if (const auto pak = static_cast<Package*>(LoadedRes[guid]))
 				{
-					pak->GetPackageObjects(outResources);
+					outResources = pak->GetPackageObjects();
 					return true;
 				}
 				TAssertf(false, "ResourceModule::LoadSync: Loaded resource is not a Package, softPath: %s", softPath.c_str());
@@ -307,21 +311,25 @@ namespace Thunder
 		const auto newPackage = new Package(softPath);
 		if (newPackage->Load())
 		{
-			newPackage->GetPackageObjects(outResources);
+			outResources = newPackage->GetPackageObjects();
+			LOG("get package resources count: %llu", outResources.size());
 			return true;
 		}
 
+		delete newPackage;
 		return false;
 	}
 
 	GameResource* ResourceModule::LoadSync(const NameHandle& resourceSoftPath, bool bForce)
 	{
-		if (!bForce && IsLoaded(resourceSoftPath))
+		auto& LoadedResByPath = GetModule()->LoadedResourcesByPath;
+		auto& LoadedRes = GetModule()->LoadedResources;
+		if (!bForce && GetModule()->IsLoaded(resourceSoftPath))
 		{
-			const TGuid guid = LoadedResourcesByPath[resourceSoftPath];
-			if (LoadedResources.contains(guid))
+			const TGuid guid = LoadedResByPath[resourceSoftPath];
+			if (LoadedRes.contains(guid))
 			{
-				const auto res = static_cast<GameResource*>(LoadedResources[guid]);
+				const auto res = static_cast<GameResource*>(LoadedRes[guid]);
 				TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource, softPath: %s", resourceSoftPath.c_str());
 				return res;
 			}
@@ -332,16 +340,28 @@ namespace Thunder
 		const auto newPackage = new Package(pakSoftPath);
 		if (newPackage->Load())
 		{
-			const TGuid guid = LoadedResourcesByPath[resourceSoftPath];
-			const auto res = static_cast<GameResource*>(LoadedResources[guid]);
+			const TGuid guid = LoadedResByPath[resourceSoftPath];
+			const auto res = static_cast<GameResource*>(LoadedRes[guid]);
 			TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource, softPath: %s", resourceSoftPath.c_str());
 			return res;
 		}
+
+		delete newPackage;
 		return nullptr;
 	}
 
 	void ResourceModule::LoadAsync(const NameHandle& path)
 	{
+		GAsyncWorkers->PushTask([path]()
+		{
+			TArray<GameResource*> outResources;
+			LoadSync(path, outResources, false);
+			LOG("load game resource : %s async complete, resource count: %llu", path.ToString().c_str(), outResources.size());
+			for (const auto res : outResources)
+			{
+				res->OnResourceLoaded();
+			}
+		});
 	}
 
 	bool ResourceModule::SavePackage(Package* package, const String& fullPath)
@@ -359,13 +379,21 @@ namespace Thunder
 		LoadedResources.emplace(pakGuid, package);
 		LoadedResourcesByPath.emplace(package->GetPackageName(), pakGuid);
 
-		TArray<GameResource*> objects;
-		package->GetPackageObjects(objects);
+		const TArray<GameResource*> objects = package->GetPackageObjects();
 		for (auto obj : objects)
 		{
 			TGuid objGuid = obj->GetGUID();
 			LoadedResources.emplace(objGuid, obj);
 			LoadedResourcesByPath.emplace(obj->GetResourceName(), objGuid);
+		}
+	}
+
+	void ResourceModule::ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& Function)
+	{
+		const auto& resMap = GetModule()->ResourcePathMap;
+		for (auto& pair : resMap)
+		{
+			Function(pair.first, pair.second);
 		}
 	}
 }

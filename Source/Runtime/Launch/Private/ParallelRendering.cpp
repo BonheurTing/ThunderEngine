@@ -1,6 +1,7 @@
 ﻿#include "ParallelRendering.h"
 #include "EngineMain.h"
 #include "SimulatedTasks.h"
+#include "StreamableManager.h"
 #include "Memory/MallocMinmalloc.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
@@ -26,6 +27,7 @@ namespace Thunder
     
     void GameTask::Init()
     {
+        // init task scheduler
         const auto ThreadNum = FPlatformProcess::NumberOfLogicalProcessors();
 
         TaskSchedulerManager::InitWorkerThread();
@@ -33,6 +35,9 @@ namespace Thunder
         TaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
 
         GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
+
+        // init game resource
+        StreamableManager::LoadAllAsync();
     }
 
     void GameTask::EngineLoop()

@@ -43,6 +43,10 @@ namespace Thunder
 
 		void Serialize(MemoryWriter& archive) override;
 		void DeSerialize(MemoryReader& archive) override;
+		virtual void OnResourceLoaded()
+		{
+			LOG("success OnResourceLoaded");
+		}
 
 	private:
 		TGuid Guid {};

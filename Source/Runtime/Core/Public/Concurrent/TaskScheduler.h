@@ -45,6 +45,7 @@ namespace Thunder
 		void AddSingleScheduler(SingleScheduler* InSingleScheduler);
 		void PushTask(ITask* InQueuedWork)  override;
 		void PushTask(int Index, ITask* InQueuedWork) const;
+		void PushTask(const TFunction<void()>& InFunction);
 		void DetachFromThread(ThreadProxy* InThreadProxy) override;
 		void WaitForCompletionAndThreadExit() override;
 

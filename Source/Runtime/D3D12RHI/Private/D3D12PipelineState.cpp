@@ -76,9 +76,9 @@ namespace Thunder
 		{
 			if (shaderBound.contains(sourceStage))
 			{
-				const auto& byteCode = shaderBound[sourceStage].ByteCode;
-				destination.pShaderBytecode = byteCode.Data;
-				destination.BytecodeLength = byteCode.Size;
+				const BinaryData* byteCode = shaderBound[sourceStage]->ByteCode;
+				destination.pShaderBytecode = byteCode->Data;
+				destination.BytecodeLength = byteCode->Size;
 			}
 		};
 		CopyShader(outD3D12Desc.Desc.VS, EShaderStageType::Vertex);

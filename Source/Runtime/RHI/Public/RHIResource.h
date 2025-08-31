@@ -81,6 +81,7 @@ namespace Thunder
         RHIRenderTargetViewRef RTV;
         RHIDepthStencilViewRef DSV;
     };
+    using RHITextureRef = TRefCountPtr<RHITexture>;
     
     class RHITexture1D : public RHITexture
     {

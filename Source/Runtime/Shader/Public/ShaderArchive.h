@@ -41,8 +41,9 @@ namespace Thunder
 		TShaderRegisterCounts RegisterCounts{};
     	TArray<VariantMeta> VariantDefinitionTable; // 改了之后相关递归mask都要改
     	THashMap<EShaderStageType, StageMeta> StageMetas;
-    	THashMap<uint64, TRefCountPtr<ShaderCombination>> Variants;
+    	THashMap<uint64, ShaderCombinationRef> Variants;
     };
+	using ShaderPassRef = TRefCountPtr<ShaderPass>;
     
     class ShaderArchive
     {
@@ -52,7 +53,7 @@ namespace Thunder
     
     	void AddPass(NameHandle name, ShaderPass* inPass)
     	{
-    		Passes.emplace(name, TRefCountPtr<ShaderPass>(inPass));
+    		Passes.emplace(name, ShaderPassRef(inPass));
     	}
     	void AddPropertyMeta(const ShaderPropertyMeta& meta)
     	{
@@ -81,7 +82,7 @@ namespace Thunder
     	TArray<ShaderParameterMeta> ParameterMeta;
     	THashMap<NameHandle, TArray<ShaderParameterMeta>> PasseParameterMeta;
     	RenderStateMeta renderState {};
-    	THashMap<NameHandle, TRefCountPtr<ShaderPass>> Passes;
+    	THashMap<NameHandle, ShaderPassRef> Passes;
     };
     
 }

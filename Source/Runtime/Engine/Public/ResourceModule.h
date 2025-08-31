@@ -27,14 +27,17 @@ namespace Thunder
 
 		// 运行时
 		// load package
-		bool LoadSync(const NameHandle& softPath, TArray<GameResource*> &outResources, bool bForce = false);
+		static bool LoadSync(const NameHandle& softPath, TArray<GameResource*> &outResources, bool bForce = false);
 		// load game resource
-		GameResource* LoadSync(const NameHandle& resourceSoftPath, bool bForce = false);
-		void LoadAsync(const NameHandle& path);
+		static GameResource* LoadSync(const NameHandle& resourceSoftPath, bool bForce = false);
+		static void LoadAsync(const NameHandle& path);
 		_NODISCARD_ bool IsLoaded(const NameHandle& path) const { return LoadedResourcesByPath.contains(path); }
 		_NODISCARD_ bool IsLoaded(const TGuid& guid) const { return LoadedResources.contains(guid); }
 		bool SavePackage(Package* package, const String& fullPath);
 		void RegisterPackage(Package* package);
+
+		_NODISCARD_ TMap<TGuid, NameHandle> const& GetResourcePathMap() const { return ResourcePathMap; }
+		static void ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& Function);
 
 	private:
 		TMap<TGuid, GameObject*> LoadedResources {}; // 已加载的资源(Package/GameResource)，使用 TGuid 作为键

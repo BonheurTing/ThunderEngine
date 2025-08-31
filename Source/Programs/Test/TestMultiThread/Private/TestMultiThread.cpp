@@ -9,6 +9,7 @@
 #include "Concurrent/TaskGraph.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Templates/FunctionMy.h"
+#include <random>
 
 using namespace Thunder;
 
@@ -293,47 +294,67 @@ private:
 	IEvent* Event{};
 };
 
-/*void TestThreadPool()
+void TestPoolScheduler()
 {
+	const auto threadNum = FPlatformProcess::NumberOfLogicalProcessors();
+	const auto testThreadPool = new (TMemory::Malloc<ThreadPoolBase>()) ThreadPoolBase(threadNum > 3 ? (threadNum - 3) : threadNum, 96 * 1024, "SyncWorkerThread");
+	PooledTaskScheduler* poolScheduler = new (TMemory::Malloc<PooledTaskScheduler>()) PooledTaskScheduler();
+	testThreadPool->AttachToScheduler(poolScheduler);
 
-	ThreadPoolBase* WorkerThreadPool = new ThreadPoolBase(8, 96 * 1024);
-
-
-	// 测试1: 测试添加任务并执行
+	// Parallel for.
 	{
-		const auto TestAsyncTask = new (TMemory::Malloc<TTask<ExampleTask2>>()) TTask<ExampleTask>(214);
-		WorkerThreadPool->AddQueuedWork(TestAsyncTask);
+		// Generate test data.
+		std::vector<float> randomFloat(1024);
+		std::vector<bool> isGreaterThanZeroResult(1024);
+		for (uint32 floatIndex = 0; floatIndex < 1024; ++floatIndex)
+		{
+			thread_local std::mt19937 gen(std::random_device{}());
+			std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
+			randomFloat[floatIndex] = dis(gen);
+		}
+
+		// Dispatch.
+		const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+		auto* Dispatcher = new TaskCounter(DoWorkEvent);
+		Dispatcher->Promise(1024);
+		poolScheduler->ParallelFor([&randomFloat, &isGreaterThanZeroResult, Dispatcher](uint32 bundleBegin, uint32 bundleSize)
+		{
+			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
+			{
+				isGreaterThanZeroResult[index] = randomFloat[index] > 0.f;
+				LOG("Execute [%d] : random float %f, is greater than zero : %s.", index, randomFloat[index], isGreaterThanZeroResult[index] ? "true" : "false");
+				Dispatcher->Notify();
+			}
+		}, 1024, 256);
+		DoWorkEvent->Wait();
+		LOG("================================================");
 	}
 
-	// 测试2: 添加多个任务，乱序执行
+	// Push task.
 	{
-		for (int i = 0; i < 10; i++)
+		// Generate test data.
+		int constexpr taskCount = 128;
+		std::vector<float> randomFloat(taskCount);
+		std::vector<bool> isGreaterThanZeroResult(taskCount);
+		for (uint32 floatIndex = 0; floatIndex < taskCount; ++floatIndex)
 		{
-			const auto testAsyncTask = new (TMemory::Malloc<TTask<ExampleTask>>()) TTask<ExampleTask>(i);
-			WorkerThreadPool->AddQueuedWork(testAsyncTask);
+			thread_local std::mt19937 gen(std::random_device{}());
+			std::uniform_real_distribution<float> dis(-1.0f, 1.0f);
+			randomFloat[floatIndex] = dis(gen);
 		}
+
+		// Push task.
+		for (int floatIndex = 0; floatIndex < taskCount; floatIndex++)
+		{
+			poolScheduler->PushTask([floatIndex, &randomFloat, &isGreaterThanZeroResult]()
+			{
+				isGreaterThanZeroResult[floatIndex] = randomFloat[floatIndex] > 0.f;
+				LOG("Execute [%d] : random float %f, is greater than zero : %s.", floatIndex, randomFloat[floatIndex], isGreaterThanZeroResult[floatIndex] ? "true" : "false");
+			});
+		}
+		::Sleep(1000);
 	}
-
-	// 测试2: ParallelFor
-			
-	std::vector<BoundingBox> ObjectsBounding(1024);
-	std::vector<bool> CullResult(1024);
-
-	const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-	auto* Dispatcher = new TaskCounter(DoWorkEvent);
-	Dispatcher->Promise(1024);
-	WorkerThreadPool->ParallelFor([&CullResult, &ObjectsBounding, Dispatcher](uint32 bundleBegin, uint32 bundleSize)
-	{
-		for (int i = bundleBegin; i < bundleBegin + bundleSize; i++)
-		{
-			CullResult[i] = CullObject(ObjectsBounding[i]);
-			LOG("Execute CullResult[%d]", i);
-			Dispatcher->Notify();
-		}
-	}, 1024, 256);
-
-	DoWorkEvent->Wait();
-}*/
+}
 
 #pragma endregion
 
@@ -415,8 +436,9 @@ int main()
 	//TestTFunction(); // failed
 	//TestTask(); // successful
 	//TestIThread(); // successful
-	//TestThreadPool(); // successful
-	TestTaskGraph(); // successful
+	TestPoolScheduler(); // successful
+	//TestTaskGraph(); // successful
+	
 }
 
 

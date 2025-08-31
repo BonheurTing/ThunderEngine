@@ -7,6 +7,14 @@
 
 namespace Thunder
 {
+	ITexture::~ITexture()
+	{
+		//todo
+		/*ENQUEUE_RENDER_COMMAND([TextureResource = this->TextureResource]()
+		{
+		});*/
+	}
+
 	Texture2D::Texture2D(unsigned char *data, int width, int height, int channels, GameObject* inOuter)
 		: ITexture(inOuter, ETempGameResourceReflective::Texture2D),
 		Data(MakeRefCount<ImageData>(width, height, channels))

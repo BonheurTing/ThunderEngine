@@ -28,6 +28,7 @@ namespace Thunder
     	BinaryData* ByteCode;
     	uint64 VariantId;
     };
+	using ShaderStageRef = TRefCountPtr<ShaderStage>;
     
     struct ShaderCombination : public RefCountedObject
     {
@@ -64,8 +65,9 @@ namespace Thunder
     		return nullptr;
     	}
 
-    	THashMap<EShaderStageType, ShaderStage*> Shaders;
+    	THashMap<EShaderStageType, ShaderStageRef> Shaders;
     };
+	using ShaderCombinationRef = TRefCountPtr<ShaderCombination>;
     
     struct VariantMeta
     {

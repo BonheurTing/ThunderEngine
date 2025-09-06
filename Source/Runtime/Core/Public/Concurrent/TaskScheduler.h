@@ -15,6 +15,7 @@ namespace Thunder
 		virtual void AttachToThread(class ThreadProxy* InThreadProxy) = 0;
 		virtual void DetachFromThread(ThreadProxy* InThreadProxy) = 0;
 		virtual void PushTask(ITask* InQueuedWork) = 0;
+		virtual void PushTask(const TFunction<void()>& InFunction);
 		ITask* GetNextQueuedWork();
 		_NODISCARD_ bool IsEmptyWork() const { return QueuedWork.IsEmpty(); }
 		virtual void WaitForCompletionAndThreadExit() = 0;
@@ -30,6 +31,7 @@ namespace Thunder
 		void AttachToThread(ThreadProxy* InThreadProxy) override;
 		void DetachFromThread(ThreadProxy* InThreadProxy) override;
 		void PushTask(ITask* InQueuedWork) override;
+		void PushTask(const TFunction<void()>& InFunction) override;
 		void WaitForCompletionAndThreadExit() override;
 	private:
 		ThreadProxy* Thread {};
@@ -45,7 +47,7 @@ namespace Thunder
 		void AddSingleScheduler(SingleScheduler* InSingleScheduler);
 		void PushTask(ITask* InQueuedWork)  override;
 		void PushTask(int Index, ITask* InQueuedWork) const;
-		void PushTask(const TFunction<void()>& InFunction);
+		void PushTask(const TFunction<void()>& InFunction) override;
 		void DetachFromThread(ThreadProxy* InThreadProxy) override;
 		void WaitForCompletionAndThreadExit() override;
 

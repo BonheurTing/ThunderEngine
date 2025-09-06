@@ -204,6 +204,9 @@ namespace Thunder
 	{
 		UINT Count;
 		UINT Quality;
+
+		RHIResourceSampleDescriptor() : Count(0), Quality(0) {}
+		RHIResourceSampleDescriptor(UINT inCount, UINT inQuality) :	Count(inCount), Quality(inQuality) {}
 	};
 	
     struct RHIResourceDescriptor

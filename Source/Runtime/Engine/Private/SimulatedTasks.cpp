@@ -24,17 +24,4 @@ namespace Thunder
 		FPlatformProcess::BusyWaiting(1000);
 	}
 
-	void SimulatedAddMeshBatchTask::DoWork()
-	{
-		ThunderZoneScopedN("AddMeshBatch");
-		FPlatformProcess::BusyWaiting(50);
-		Dispatcher->Notify();
-	}
-
-	void SimulatedPopulateCommandList::DoWork()
-	{
-		ThunderZoneScopedN("PopulateCommandList");
-		FPlatformProcess::BusyWaiting(50);
-		Dispatcher->Notify();
-	}
 }

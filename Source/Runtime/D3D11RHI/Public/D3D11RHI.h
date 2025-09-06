@@ -49,6 +49,12 @@ namespace Thunder
     
 		RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
 
+		void* RHIMapTexture2D(RHITexture2D* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride) override;
+
+		void RHIUnmapTexture2D(RHITexture2D* Texture, uint32 MipIndex) override;
+
+		void RHIUpdateTexture(RHITexture* Texture) override;
+
 		bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId) override;
 
 	private:

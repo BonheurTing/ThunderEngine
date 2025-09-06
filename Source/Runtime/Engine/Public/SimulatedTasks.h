@@ -60,27 +60,4 @@ namespace Thunder
 		
 	};
 
-	class SimulatedAddMeshBatchTask : public ITask
-	{
-	public:
-		SimulatedAddMeshBatchTask(TaskDispatcher* inDispatcher)
-			: Dispatcher(inDispatcher) {}
-
-		void DoWork() override;
-
-	private:
-		TaskDispatcher* Dispatcher{};
-	};
-
-	class SimulatedPopulateCommandList : public ITask
-	{
-	public:
-		SimulatedPopulateCommandList(TaskDispatcher* inDispatcher)
-			: Dispatcher(inDispatcher) {}
-
-		void DoWork() override;
-
-	private:
-		TaskDispatcher* Dispatcher{};
-	};
 }

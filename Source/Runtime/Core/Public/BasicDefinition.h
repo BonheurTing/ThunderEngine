@@ -33,7 +33,7 @@ namespace Thunder
 		void* Data = nullptr;
 		size_t Size = 0;
 	};
-	using TBinaryDataRef = TRefCountPtr<BinaryData>;
+	using BinaryDataRef = TRefCountPtr<BinaryData>;
 
 	/* Safe Binary Data*/
 	struct ManagedBinaryData

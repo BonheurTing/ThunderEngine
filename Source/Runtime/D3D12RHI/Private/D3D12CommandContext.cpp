@@ -155,7 +155,7 @@ namespace Thunder
 		}
 	}
 
-	void D3D12CommandContext::CopyTextureRegion(RHIResource* dst, uint32 dstMip, RHIResource* src, uint32 srcMip, const RHITextureCopyRegion* copyRegion)
+	void D3D12CommandContext::CopyTextureRegion(RHIResource* dst, uint32 dstMip, RHIResource* src, uint32 srcMip, const RHITextureRegion* copyRegion)
 	{
 		const auto d3d12Dst = static_cast<ID3D12Resource*>(dst->GetResource());
 		const auto d3d12Src = static_cast<ID3D12Resource*>(src->GetResource());
@@ -283,5 +283,11 @@ namespace Thunder
 		TAssertf(SUCCEEDED(hr), "Failed to reset command allocator");
 		hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
 		TAssertf(SUCCEEDED(hr), "Failed to reset command list");
+	}
+
+	void D3D12CommandContext::FlushCommands(bool WaitForCompletion)
+	{
+		ID3D12Device* Device = GetParentDevice();
+		
 	}
 }

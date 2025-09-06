@@ -438,7 +438,7 @@ namespace Thunder
     };
     static_assert(MaxVertexElementCount <= (1 << MaxVertexElementCount_NumBits), "MaxVertexElementCount will not fit on MaxVertexElementCount_NumBits");
 
-    struct RHITextureCopyRegion
+    struct RHITextureRegion
     {
         uint32 DstX;
         uint32 DstY;

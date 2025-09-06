@@ -615,6 +615,19 @@ namespace Thunder
 		}
 	}
 
+	void* D3D11DynamicRHI::RHIMapTexture2D(RHITexture2D* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
+	{
+		return nullptr;
+	}
+
+	void D3D11DynamicRHI::RHIUnmapTexture2D(RHITexture2D* Texture, uint32 MipIndex)
+	{
+	}
+
+	void D3D11DynamicRHI::RHIUpdateTexture(RHITexture* Texture)
+	{
+	}
+
 	bool D3D11DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)
 	{
 		TAssertf(false, "Not implemented");

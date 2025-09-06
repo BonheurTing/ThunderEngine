@@ -10,7 +10,28 @@ namespace Thunder
 	SingleScheduler* GRHIScheduler {};
 	PooledTaskScheduler* GSyncWorkers {};
 	PooledTaskScheduler* GAsyncWorkers {};
+
+	void IScheduler::PushTask(const TFunction<void()>& InFunction)
+	{
+		class FunctionTask : public ITask
+		{
+		public:
+			FunctionTask(const TFunction<void()>& InFunc) : Function(InFunc) {}
+
+			void DoWork() override 
+			{ 
+				Function(); 
+			}
+
+		private:
+			TFunction<void()> Function;
+		};
+
+		auto* Task = new FunctionTask(InFunction);
+		PushTask(Task);
+	}
 	
+
 	ITask* IScheduler::GetNextQueuedWork()
 	{
 		ITask* Work = nullptr;
@@ -54,6 +75,11 @@ namespace Thunder
 		Thread->Resume();
 	}
 
+	void SingleScheduler::PushTask(const TFunction<void()>& InFunction)
+	{
+		IScheduler::PushTask(InFunction);
+	}
+
 	void SingleScheduler::WaitForCompletionAndThreadExit()
 	{
 		if (Thread)
@@ -91,24 +117,9 @@ namespace Thunder
 
 	void PooledTaskScheduler::PushTask(const TFunction<void()>& InFunction)
 	{
-		class FunctionTask : public ITask
-		{
-		public:
-			FunctionTask(const TFunction<void()>& InFunc) : Function(InFunc) {}
-
-			void DoWork() override 
-			{ 
-				Function(); 
-			}
-
-		private:
-			TFunction<void()> Function;
-		};
-
-		auto* Task = new FunctionTask(InFunction);
-		PushTask(Task);
+		IScheduler::PushTask(InFunction);
 	}
-
+	
 	void PooledTaskScheduler::PushTask(int Index, ITask* InQueuedWork) const
 	{
 		TAssert(Index < static_cast<int>(TaskSchedulers.size()));

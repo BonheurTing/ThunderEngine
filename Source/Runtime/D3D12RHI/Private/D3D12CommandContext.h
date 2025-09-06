@@ -30,7 +30,7 @@ namespace Thunder
 		
 		// Copy
 		void CopyBufferRegion(RHIResource* dst, uint64 dstOffset, RHIResource* src, uint64 srcOffset, uint64 numBytes) override;
-		void CopyTextureRegion(RHIResource* dst, uint32 dstMip, RHIResource* src, uint32 srcMip, const RHITextureCopyRegion* copyRegion) override;
+		void CopyTextureRegion(RHIResource* dst, uint32 dstMip, RHIResource* src, uint32 srcMip, const RHITextureRegion* copyRegion) override;
 		void CopyResource(RHIResource* dst, RHIResource* src) override;
 		void DiscardResource(RHIResource* resource, TArray<RHIRect> const& rects) override;
 		void ResolveSubresource(RHIResource* dst, uint32 dstSubId, RHIResource* src, uint32 srcSubId) override;
@@ -43,6 +43,9 @@ namespace Thunder
 		// Misc
 		void Close() override;
 		void Reset() override;
+
+		// dx12 only
+		void FlushCommands(bool WaitForCompletion = false);
 		
 	private:
 		ComPtr<ID3D12CommandQueue> CommandQueue;

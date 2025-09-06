@@ -32,7 +32,7 @@ namespace Thunder
     	
     	// Copy
     	virtual void CopyBufferRegion(RHIResource* dst, uint64 dstOffset, RHIResource* src, uint64 srcOffset, uint64 numBytes) = 0;
-    	virtual void CopyTextureRegion(RHIResource* dst, uint32 dstMip, RHIResource* src, uint32 srcMip, const RHITextureCopyRegion* copyRegion) = 0;
+    	virtual void CopyTextureRegion(RHIResource* dst, uint32 dstMip, RHIResource* src, uint32 srcMip, const RHITextureRegion* copyRegion) = 0;
     	virtual void CopyResource(RHIResource* dst, RHIResource* src) = 0;
     	virtual void DiscardResource(RHIResource* resource, TArray<RHIRect> const& rects) = 0;
     	virtual void ResolveSubresource(RHIResource* dst, uint32 dstSubId, RHIResource* src, uint32 srcSubId) = 0; // Resolve multi-sampled texture to non-multi-sampled texture

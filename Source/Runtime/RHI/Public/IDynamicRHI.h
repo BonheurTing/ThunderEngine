@@ -49,6 +49,12 @@ namespace Thunder
     
         virtual RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
 
+        virtual void* RHIMapTexture2D(RHITexture2D* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride) = 0;
+
+        virtual void RHIUnmapTexture2D(RHITexture2D* Texture, uint32 MipIndex) = 0;
+
+        virtual void RHIUpdateTexture(RHITexture* Texture) = 0;
+
         virtual bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId) = 0;
     };
     
@@ -147,6 +153,21 @@ namespace Thunder
     FORCEINLINE RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr)
     {
         return GDynamicRHI->RHICreateTexture3D(desc, usage, resourceData);
+    }
+
+    FORCEINLINE void* RHIMapTexture2D(RHITexture2D* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
+    {
+        return GDynamicRHI->RHIMapTexture2D(Texture, MipIndex, LockMode, DestStride);
+    }
+
+    FORCEINLINE void RHIUnmapTexture2D(RHITexture2D* Texture, uint32 MipIndex)
+    {
+        return GDynamicRHI->RHIUnmapTexture2D(Texture, MipIndex);
+    }
+
+    FORCEINLINE void RHIUpdateTexture(RHITexture* Texture)
+    {
+        return GDynamicRHI->RHIUpdateTexture(Texture);
     }
 
     FORCEINLINE bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)

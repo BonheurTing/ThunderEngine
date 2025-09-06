@@ -1,10 +1,9 @@
 #pragma optimize("", off)
 #include "EngineMain.h"
-#include "SimulatedTasks.h"
 #include "CoreModule.h"
 #include "D3D12RHIModule.h"
 #include "D3D11RHIModule.h"
-#include "ParallelRendering.h"
+#include "GameTask.h"
 #include "ResourceModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
@@ -30,10 +29,41 @@ namespace Thunder
 
     void EngineMain::FastInit()
     {
+        // setup module
         ModuleManager::GetInstance()->LoadModule<CoreModule>();
         ModuleManager::GetInstance()->LoadModule<FileModule>();
+        ModuleManager::GetInstance()->LoadModule<ShaderModule>();
         ModuleManager::GetInstance()->LoadModule<ResourceModule>();
 
+        // setup rhi
+        String configRHIType = GConfigManager->GetConfig("BaseEngine")->GetString("RHI");
+        EGfxApiType rhiType = EGfxApiType::Invalid;
+        if (configRHIType == "DX11")
+        {
+            rhiType = EGfxApiType::D3D11;
+        }
+        else if (configRHIType == "DX12")
+        {
+            rhiType = EGfxApiType::D3D12;
+        }
+        else
+        {
+            TAssertf(false, "Invalid RHI Type");
+        }
+        if (!RHIInit(rhiType))
+        {
+            return;
+        }
+        std::cout << IRHIModule::GetModule()->GetName().c_str() << std::endl;
+
+        RHICreateDevice();
+        if (const auto context = RHICreateCommandContext())
+        {
+            IRHIModule::GetModule()->SetCommandContext(context);
+            std::cout << "Succeed to Create Command Context" << std::endl;
+        }
+
+        // setup task scheduler
         TaskSchedulerManager::StartUp();
     }
 

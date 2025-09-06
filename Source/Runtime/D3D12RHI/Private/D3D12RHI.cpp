@@ -1,3 +1,4 @@
+#pragma optimize("", off)
 #include "D3D12RHI.h"
 #include "D3D12Resource.h"
 #include "D3D12DescriptorHeap.h"
@@ -491,7 +492,10 @@ namespace Thunder
         TAssertf(desc.Type == ERHIResourceType::Texture1D, "Type should be Texture1D.");
         TAssertf(desc.Height == 1, "Height should be 1 for Texture1D.");
         TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture1D.");
-        constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
+        const D3D12_HEAP_PROPERTIES heapType = {
+            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
+        };
         const D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_TEXTURE1D,
             desc.Alignment,
@@ -527,7 +531,9 @@ namespace Thunder
         ID3D12Resource* texture;
         TAssertf(desc.Type == ERHIResourceType::Texture2D, "Type should be Texture2D.");
         TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture12D.");
-        constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
+        const D3D12_HEAP_PROPERTIES heapType = {
+            D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         const D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_TEXTURE2D,
             desc.Alignment,
@@ -562,7 +568,9 @@ namespace Thunder
     {
         ID3D12Resource* texture;
         TAssertf(desc.Type == ERHIResourceType::Texture2DArray, "Type should be Texture2DArray.");
-        D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
+        D3D12_HEAP_PROPERTIES heapType = {
+            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_TEXTURE2D,
             desc.Alignment,
@@ -597,7 +605,9 @@ namespace Thunder
     {
         ID3D12Resource* texture;
         TAssertf(desc.Type == ERHIResourceType::Texture3D, "Type should be Texture3D.");
-        constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
+        const D3D12_HEAP_PROPERTIES heapType = {
+            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         const D3D12_RESOURCE_DESC d3d12Desc = {
             D3D12_RESOURCE_DIMENSION_TEXTURE2D,
             desc.Alignment,
@@ -626,6 +636,21 @@ namespace Thunder
             TAssertf(false, "Fail to create texture3d");
             return nullptr;
         }
+    }
+
+    void* D3D12DynamicRHI::RHIMapTexture2D(RHITexture2D* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
+    {
+        //todo
+        return nullptr;
+    }
+
+    void D3D12DynamicRHI::RHIUnmapTexture2D(RHITexture2D* Texture, uint32 MipIndex)
+    {
+        //todo
+    }
+
+    void D3D12DynamicRHI::RHIUpdateTexture(RHITexture* Texture)
+    {
     }
 
     bool D3D12DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)

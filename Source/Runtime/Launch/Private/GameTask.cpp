@@ -1,5 +1,6 @@
-﻿#include "ParallelRendering.h"
+﻿#include "GameTask.h"
 #include "EngineMain.h"
+#include "RenderCore.h"
 #include "SimulatedTasks.h"
 #include "StreamableManager.h"
 #include "Memory/MallocMinmalloc.h"
@@ -8,23 +9,11 @@
 #include "Concurrent/TheadPool.h"
 #include "HAL/Event.h"
 #include "Misc/TraceProfile.h"
+#include "Misc/CoreGlabal.h"
 #include "Module/ModuleManager.h"
 
 namespace Thunder
 {
-    struct FrameState {
-        std::atomic<int> FrameNumberGameThread{0};      // GameThread 的当前帧
-        std::atomic<int> FrameNumberRenderThread{0};    // RenderThread 的当前帧
-        std::atomic<int> FrameNumberRHIThread{0};       // RHIThread 的当前帧
-
-        std::mutex GameRenderMutex;         // GameThread 和 RenderThread 的同步锁
-        std::condition_variable GameRenderCV; // GameThread 和 RenderThread 的条件变量
-
-        std::mutex RenderRHIMutex;          // RenderThread 和 RHIThread 的同步锁
-        std::condition_variable RenderRHICV; // RenderThread 和 RHIThread 的条件变量
-    };
-    static FrameState* GFrameState;
-    
     void GameTask::Init()
     {
         // init task scheduler
@@ -126,70 +115,4 @@ namespace Thunder
         
         TaskGraph->WaitAndReset();
     }
-
-    void RenderingTask::RenderMain()
-    {
-        {
-            std::unique_lock<std::mutex> lock(GFrameState->RenderRHIMutex);
-            if (GFrameState->FrameNumberRenderThread - GFrameState->FrameNumberRHIThread > 1)
-            {
-                GFrameState->RenderRHICV.wait(lock, [] {
-                    return GFrameState->FrameNumberRenderThread - GFrameState->FrameNumberRHIThread <= 1;
-                });
-            }
-        }
-
-        ThunderZoneScopedN("RenderMain");
-        
-        LOG("Execute render thread in frame: %d with thread: %lu", GFrameState->FrameNumberRenderThread.load(), __threadid());
-
-        SimulatingAddingMeshBatch();
-        
-        ++GFrameState->FrameNumberRenderThread;
-        GFrameState->GameRenderCV.notify_all();
-
-        // rhi thread
-        auto* RHIThreadTask = new (TMemory::Malloc<TTask<RHITask>>()) TTask<RHITask>(0);
-        GRHIScheduler->PushTask(RHIThreadTask);
-    }
-
-    void RenderingTask::SimulatingAddingMeshBatch()
-    {
-        const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-        auto* Dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(DoWorkEvent);
-        Dispatcher->Promise(1000);
-        int i = 1000;
-        while (i-- > 0)
-        {
-            auto* Task = new (TMemory::Malloc<SimulatedAddMeshBatchTask>()) SimulatedAddMeshBatchTask(Dispatcher);
-            GSyncWorkers->PushTask(Task);
-        }
-        DoWorkEvent->Wait();
-        FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
-    }
-
-    void RHITask::RHIMain()
-    {
-        ThunderZoneScopedN("RHIMain");
-
-        LOG("Execute rhi thread in frame: %d with thread: %lu", GFrameState->FrameNumberRHIThread.load(), __threadid());
-
-        const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-        auto* Dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(DoWorkEvent);
-        Dispatcher->Promise(1000);
-        int i = 1000;
-        while (i-- > 0)
-        {
-            auto* Task = new (TMemory::Malloc<SimulatedPopulateCommandList>()) SimulatedPopulateCommandList(Dispatcher);
-            GSyncWorkers->PushTask(Task);
-        }
-        DoWorkEvent->Wait();
-        FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
-
-        LOG("Present");
-
-        ++GFrameState->FrameNumberRHIThread;
-        GFrameState->RenderRHICV.notify_all();
-    }
-
 }

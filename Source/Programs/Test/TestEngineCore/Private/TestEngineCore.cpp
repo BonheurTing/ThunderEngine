@@ -30,7 +30,7 @@ namespace Thunder
 
 		{
 			TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(FileSys->Open("myfile.bin"));
-			TBinaryDataRef data = file->ReadData();
+			BinaryDataRef data = file->ReadData();
 			MemoryReader archive(data.Get());
 			float a;
 			int b;

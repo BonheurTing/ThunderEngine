@@ -42,7 +42,7 @@ namespace Thunder
 		virtual void Dispatch(uint32 threadGroupCountX, uint32 threadGroupCountY, uint32 threadGroupCountZ) = 0;
     	virtual void DrawIndexedInstanced(uint32 indexCountPerInstance, uint32 instanceCount, uint32 startIndexLocation, int32 baseVertexLocation, uint32 startInstanceLocation) = 0;
     	virtual void DrawInstanced(uint32 vertexCountPerInstance, uint32 instanceCount, uint32 startVertexLocation, uint32 startInstanceLocation) = 0;
-    	virtual void ExecuteIndirect() {} // Indirect Drawing for gpu driven rendering
+    	virtual void Execute() = 0;
     	
     	// Misc
     	virtual void Close() = 0;

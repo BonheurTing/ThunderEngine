@@ -17,7 +17,7 @@ namespace Thunder
         TaskDispatcher* Dispatcher{};
     };
 
-    class RenderingTask //临时放在这 后续移到RenderCore
+    class RenderingTask
     {
     public:
         friend class TTask<RenderingTask>;

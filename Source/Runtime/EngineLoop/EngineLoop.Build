@@ -1,4 +1,4 @@
-set(ModuleName Launch)
+set(ModuleName EngineLoop)
 set(LinkMode SHARED)
 set(PublicDependencyModuleList
 	Core

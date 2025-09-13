@@ -1,4 +1,4 @@
-set(ModuleName RenderCore)
+set(ModuleName Renderer)
 set(LinkMode SHARED)
 set(PublicDependencyModuleList
     Core

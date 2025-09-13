@@ -5,6 +5,9 @@
 
 namespace Thunder
 {
+	static TArray<RenderResource*> GRHIUpdateSyncQueue {};
+	static TArray<RenderResource*> GRHIUpdateAsyncQueue {};
+	
 	void RenderResource::InitResource()
 	{
 		//check(IsInRenderingThread());
@@ -60,14 +63,22 @@ namespace Thunder
 		desc.Flags = {0, 0, 0, 0, 0};
 		
 		TextureRHI = RHICreateTexture2D(desc, bDynamic ? EResourceUsageFlags::Dynamic : EResourceUsageFlags::None);
-		RHITexture2D* dstTexture = static_cast<RHITexture2D*>(TextureRHI.Get());
 
-		if (dstTexture == nullptr || MipLevels > 1)
+		if (!TextureRHI.IsValid() || MipLevels > 1)
 		{
 			return;
 		}
 
-		
+		GRHIScheduler->PushTask([res = this]()
+		{
+			GRHIUpdateSyncQueue.push_back(res);
+		});
+	}
+
+	void RenderTexture2D::UpdateResource_RHIThread()
+	{
+		RHITexture2D* dstTexture = static_cast<RHITexture2D*>(TextureRHI.Get());
+
 		for (uint16 mipId = 0; mipId < MipLevels; ++mipId)
 		{
 			uint32 dstStride;
@@ -76,11 +87,7 @@ namespace Thunder
 			memcpy(mipData, RawData->Data, RawData->Size);
 
 			RHIUnmapTexture2D(dstTexture, mipId );
-			// RHIUpdateTexture(dstTexture);
-			GRHIScheduler->PushTask([]()
-			{
-				GRHISyncQueue->push(RHIUpdateTexture(dstTexture));
-			});
+			RHIUpdateTexture(dstTexture);
 		}
 	}
 }

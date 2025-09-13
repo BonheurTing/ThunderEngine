@@ -17,6 +17,7 @@ namespace Thunder
 		{
 			RHICommandList = context;
 		}
+		RHICommandContextRef GetCommandContext() const { return RHICommandList; }
 		
 		static IRHIModule* GetModule()
 		{

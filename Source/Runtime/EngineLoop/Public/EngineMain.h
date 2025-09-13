@@ -1,10 +1,9 @@
 #pragma once
-#include "Launch.export.h"
 #include "Platform.h"
 
 namespace Thunder
 {
-	class LAUNCH_API EngineMain
+	class ENGINELOOP_API EngineMain
     {
     public:
     	EngineMain(){}

@@ -1,4 +1,5 @@
-﻿#include "D3D12CommandContext.h"
+﻿#pragma optimize("", off)
+#include "D3D12CommandContext.h"
 #include "D3D12DescriptorHeap.h"
 #include "D3D12PipelineState.h"
 #include "D3D12Resource.h"
@@ -271,6 +272,12 @@ namespace Thunder
 		CommandList->DrawInstanced(vertexCountPerInstance, instanceCount, startVertexLocation, startInstanceLocation);
 	}
 
+	void D3D12CommandContext::Execute()
+	{
+		ID3D12CommandList* ppCommandLists[] = { CommandList.Get() };
+		CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	}
+
 	void D3D12CommandContext::Close()
 	{
 		const HRESULT hr = CommandList->Close();
@@ -283,11 +290,5 @@ namespace Thunder
 		TAssertf(SUCCEEDED(hr), "Failed to reset command allocator");
 		hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
 		TAssertf(SUCCEEDED(hr), "Failed to reset command list");
-	}
-
-	void D3D12CommandContext::FlushCommands(bool WaitForCompletion)
-	{
-		ID3D12Device* Device = GetParentDevice();
-		
 	}
 }

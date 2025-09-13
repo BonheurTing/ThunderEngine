@@ -3,7 +3,7 @@
 #include "CoreModule.h"
 #include "D3D12RHIModule.h"
 #include "D3D11RHIModule.h"
-#include "GameTask.h"
+#include "GameMain.h"
 #include "ResourceModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"

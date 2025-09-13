@@ -39,13 +39,11 @@ namespace Thunder
 		void Dispatch(uint32 threadGroupCountX, uint32 threadGroupCountY, uint32 threadGroupCountZ) override;
 		void DrawIndexedInstanced(uint32 indexCountPerInstance, uint32 instanceCount, uint32 startIndexLocation, int32 baseVertexLocation, uint32 startInstanceLocation) override;
 		void DrawInstanced(uint32 vertexCountPerInstance, uint32 instanceCount, uint32 startVertexLocation, uint32 startInstanceLocation) override;
+		void Execute() override;
     	
 		// Misc
 		void Close() override;
 		void Reset() override;
-
-		// dx12 only
-		void FlushCommands(bool WaitForCompletion = false);
 		
 	private:
 		ComPtr<ID3D12CommandQueue> CommandQueue;

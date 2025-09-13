@@ -1,6 +1,6 @@
-﻿#include "GameTask.h"
+﻿#include "GameMain.h"
 #include "EngineMain.h"
-#include "RenderCore.h"
+#include "RenderMain.h"
 #include "SimulatedTasks.h"
 #include "StreamableManager.h"
 #include "Memory/MallocMinmalloc.h"

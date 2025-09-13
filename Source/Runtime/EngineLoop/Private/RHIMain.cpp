@@ -1,4 +1,7 @@
-﻿#include "RHITask.h"
+﻿#include "RHIMain.h"
+
+#include "IRHIModule.h"
+#include "RenderResource.h"
 #include "Memory/MallocMinmalloc.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
@@ -20,15 +23,22 @@ namespace Thunder
 
     void RHITask::RHIMain()
     {
+        /**
+         * 1. sync command
+         * 2. leit naxt render thread go
+         * 3. async command
+         * 4. draw command
+         **/
         ThunderZoneScopedN("RHIMain");
 
         LOG("Execute rhi thread in frame: %d with thread: %lu", GFrameState->FrameNumberRHIThread.load(), __threadid());
 
-        for (auto command : GRHISyncQueue)
+        for (auto res : GRHIUpdateSyncQueue)
         {
-            command->doWork();
+            res->UpdateResource_RHIThread();
         }
-        context->commandqueue->ExecuteCommandLists(commandlists);
+
+        IRHIModule::GetModule()->GetCommandContext()->Execute();
 
         
 

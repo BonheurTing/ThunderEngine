@@ -5,7 +5,7 @@ set(PublicDependencyModuleList
     Shader
     Core
     D3D12RHI
-    Launch
+    EngineLoop
 )
 set(PrecompileHeaderImportList
     Runtime/RHI/Public/RHI.export.h

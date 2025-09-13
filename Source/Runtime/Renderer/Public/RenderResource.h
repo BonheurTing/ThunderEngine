@@ -3,18 +3,22 @@
 
 namespace Thunder
 {
-	class RENDERCORE_API RenderResource : public RefCountedObject
+	class RENDERER_API RenderResource : public RefCountedObject
 	{
 	public:
 		RenderResource() = default;
 		virtual ~RenderResource() = default;
 
-		virtual void InitRHI() {}
-		virtual void ReleaseRHI() {}
-
+		// render thread
 		virtual void InitResource();
 		virtual void ReleaseResource();
+
+		virtual void InitRHI() {}
+		virtual void ReleaseRHI() {}
 		void UpdateRHI();
+
+		// rhi thread
+		virtual void UpdateResource_RHIThread() = 0;
 
 		/*virtual bool IsValid() const = 0;
 		virtual size_t GetMemorySize() const = 0;*/
@@ -59,10 +63,14 @@ namespace Thunder
 			PixelFormat = format;
 			RawData = inData;
 		}
+
+		void UpdateResource_RHIThread() override;
 			
 	private:
-		void CreateTexture_RenderThread() final override;
+		void CreateTexture_RenderThread() final;
 	};
-	
+
+	extern RENDERER_API TArray<RenderResource*> GRHIUpdateSyncQueue;
+	extern RENDERER_API TArray<RenderResource*> GRHIUpdateAsyncQueue;
 }
 

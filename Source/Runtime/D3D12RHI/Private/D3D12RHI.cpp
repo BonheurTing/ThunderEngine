@@ -486,165 +486,90 @@ namespace Thunder
         }
     }
     
-    RHITexture1DRef D3D12DynamicRHI::RHICreateTexture1D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
+    RHITextureRef D3D12DynamicRHI::RHICreateTexture(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
     {
-        ID3D12Resource* texture;
-        TAssertf(desc.Type == ERHIResourceType::Texture1D, "Type should be Texture1D.");
-        TAssertf(desc.Height == 1, "Height should be 1 for Texture1D.");
-        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture1D.");
-        const D3D12_HEAP_PROPERTIES heapType = {
+        ID3D12Resource* texture = nullptr;
+        
+        // Configure common heap properties
+        D3D12_HEAP_PROPERTIES heapType = {
             EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
-        const D3D12_RESOURCE_DESC d3d12Desc = {
-            D3D12_RESOURCE_DIMENSION_TEXTURE1D,
-            desc.Alignment,
-            desc.Width,
-            1,
-            1,
-            desc.MipLevels,
-            ConvertRHIFormatToD3DFormat(desc.Format),
-            {1,0},
-            D3D12_TEXTURE_LAYOUT_UNKNOWN,
-            GetRHIResourceFlags(desc.Flags)
-        };
-        const HRESULT hr = Device->CreateCommittedResource(&heapType,
-                                                           D3D12_HEAP_FLAG_NONE,
-                                                           &d3d12Desc,
-                                                           D3D12_RESOURCE_STATE_GENERIC_READ,
-                                                           nullptr,
-                                                           IID_PPV_ARGS(&texture));
-    
-        if(SUCCEEDED(hr))
+        
+        // Configure common resource desc
+        D3D12_RESOURCE_DESC d3d12Desc = {};
+        d3d12Desc.Alignment = desc.Alignment;
+        d3d12Desc.Width = desc.Width;
+        d3d12Desc.Height = desc.Height;
+        d3d12Desc.MipLevels = desc.MipLevels;
+        d3d12Desc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
+        d3d12Desc.SampleDesc = {1, 0};
+        d3d12Desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        d3d12Desc.Flags = GetRHIResourceFlags(desc.Flags);
+
+        switch (desc.Type)
         {
-            return MakeRefCount<D3D12RHITexture1D>(desc, texture);
+        case ERHIResourceType::Texture1D:
+        {
+            TAssertf(desc.Height == 1, "Height should be 1 for Texture1D.");
+            TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture1D.");
+            
+            d3d12Desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+            d3d12Desc.Height = 1;
+            d3d12Desc.DepthOrArraySize = 1;
+            break;
         }
-        else
+        case ERHIResourceType::Texture2D:
         {
-            TAssertf(false, "Fail to create texture1d");
+            TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture2D.");
+            
+            d3d12Desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+            d3d12Desc.DepthOrArraySize = 1;
+            break;
+        }
+        case ERHIResourceType::Texture2DArray:
+        {
+            d3d12Desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+            d3d12Desc.DepthOrArraySize = desc.DepthOrArraySize;
+            break;
+        }
+        case ERHIResourceType::Texture3D:
+        {
+            // Note: D3D12 uses TEXTURE3D dimension for 3D textures, not TEXTURE2D
+            d3d12Desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+            d3d12Desc.DepthOrArraySize = desc.DepthOrArraySize;
+            break;
+        }
+        default:
+            TAssertf(false, "Unsupported texture type");
             return nullptr;
         }
-    }
-    
-    RHITexture2DRef D3D12DynamicRHI::RHICreateTexture2D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
-    {
-        ID3D12Resource* texture;
-        TAssertf(desc.Type == ERHIResourceType::Texture2D, "Type should be Texture2D.");
-        TAssertf(desc.DepthOrArraySize == 1, "DepthOrArraySize should be 1 for Texture12D.");
-        const D3D12_HEAP_PROPERTIES heapType = {
-            D3D12_HEAP_TYPE_DEFAULT,
-            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
-        const D3D12_RESOURCE_DESC d3d12Desc = {
-            D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-            desc.Alignment,
-            desc.Width,
-            desc.Height,
-            1,
-            desc.MipLevels,
-            ConvertRHIFormatToD3DFormat(desc.Format),
-            {1,0},
-            D3D12_TEXTURE_LAYOUT_UNKNOWN,
-            GetRHIResourceFlags(desc.Flags)
-        };
-        const HRESULT hr = Device->CreateCommittedResource(&heapType,
-                                                           D3D12_HEAP_FLAG_NONE,
-                                                           &d3d12Desc,
-                                                           D3D12_RESOURCE_STATE_GENERIC_READ,
-                                                           nullptr,
-                                                           IID_PPV_ARGS(&texture));
-    
+
+        HRESULT hr = Device->CreateCommittedResource(&heapType,
+                                               D3D12_HEAP_FLAG_NONE,
+                                               &d3d12Desc,
+                                               D3D12_RESOURCE_STATE_GENERIC_READ,
+                                               nullptr,
+                                               IID_PPV_ARGS(&texture));
+        
         if(SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHITexture2D>(desc, texture);
+            return MakeRefCount<D3D12RHITexture>(desc, texture);
         }
         else
         {
-            TAssertf(false, "Fail to create texture2d");
-            return nullptr;
-        }
-    }
-    
-    RHITexture2DArrayRef D3D12DynamicRHI::RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
-    {
-        ID3D12Resource* texture;
-        TAssertf(desc.Type == ERHIResourceType::Texture2DArray, "Type should be Texture2DArray.");
-        D3D12_HEAP_PROPERTIES heapType = {
-            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
-            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
-        D3D12_RESOURCE_DESC d3d12Desc = {
-            D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-            desc.Alignment,
-            desc.Width,
-            desc.Height,
-            desc.DepthOrArraySize,
-            desc.MipLevels,
-            ConvertRHIFormatToD3DFormat(desc.Format),
-            {1,0},
-            D3D12_TEXTURE_LAYOUT_UNKNOWN,
-            GetRHIResourceFlags(desc.Flags)
-        };
-        const HRESULT hr = Device->CreateCommittedResource(&heapType,
-                                                           D3D12_HEAP_FLAG_NONE,
-                                                           &d3d12Desc,
-                                                           D3D12_RESOURCE_STATE_GENERIC_READ,
-                                                           nullptr,
-                                                           IID_PPV_ARGS(&texture));
-    
-        if(SUCCEEDED(hr))
-        {
-            return MakeRefCount<D3D12RHITexture2DArray>(desc, texture);
-        }
-        else
-        {
-            TAssertf(false, "Fail to create texture2DArray");
-            return nullptr;
-        }
-    }
-    
-    RHITexture3DRef D3D12DynamicRHI::RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
-    {
-        ID3D12Resource* texture;
-        TAssertf(desc.Type == ERHIResourceType::Texture3D, "Type should be Texture3D.");
-        const D3D12_HEAP_PROPERTIES heapType = {
-            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
-            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
-        const D3D12_RESOURCE_DESC d3d12Desc = {
-            D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-            desc.Alignment,
-            desc.Width,
-            desc.Height,
-            desc.DepthOrArraySize,
-            desc.MipLevels,
-            ConvertRHIFormatToD3DFormat(desc.Format),
-            {1,0},
-            D3D12_TEXTURE_LAYOUT_UNKNOWN,
-            GetRHIResourceFlags(desc.Flags)
-        };
-        const HRESULT hr = Device->CreateCommittedResource(&heapType,
-                                                           D3D12_HEAP_FLAG_NONE,
-                                                           &d3d12Desc,
-                                                           D3D12_RESOURCE_STATE_GENERIC_READ,
-                                                           nullptr,
-                                                           IID_PPV_ARGS(&texture));
-    
-        if(SUCCEEDED(hr))
-        {
-            return MakeRefCount<D3D12RHITexture3D>(desc, texture);
-        }
-        else
-        {
-            TAssertf(false, "Fail to create texture3d");
+            TAssertf(false, "Fail to create texture");
             return nullptr;
         }
     }
 
-    void* D3D12DynamicRHI::RHIMapTexture2D(RHITexture2D* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
+    void* D3D12DynamicRHI::RHIMapTexture2D(RHITexture* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
     {
         //todo
         return nullptr;
     }
 
-    void D3D12DynamicRHI::RHIUnmapTexture2D(RHITexture2D* Texture, uint32 MipIndex)
+    void D3D12DynamicRHI::RHIUnmapTexture2D(RHITexture* Texture, uint32 MipIndex)
     {
         //todo
     }

@@ -41,17 +41,11 @@ namespace Thunder
         
         virtual RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
     
-        virtual RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
-    
-        virtual RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
-    
-        virtual RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
-    
-        virtual RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
+        virtual RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
 
-        virtual void* RHIMapTexture2D(RHITexture2D* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride) = 0;
+        virtual void* RHIMapTexture2D(RHITexture* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride) = 0;
 
-        virtual void RHIUnmapTexture2D(RHITexture2D* Texture, uint32 MipIndex) = 0;
+        virtual void RHIUnmapTexture2D(RHITexture* Texture, uint32 MipIndex) = 0;
 
         virtual void RHIUpdateTexture(RHITexture* Texture) = 0;
 
@@ -135,32 +129,17 @@ namespace Thunder
         return GDynamicRHI->RHICreateConstantBuffer(size, usage, resourceData);
     }
 
-    FORCEINLINE RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr)
+    FORCEINLINE RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateTexture1D(desc, usage, resourceData);
+        return GDynamicRHI->RHICreateTexture(desc, usage, resourceData);
     }
 
-    FORCEINLINE RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr)
-    {
-        return GDynamicRHI->RHICreateTexture2D(desc, usage, resourceData);
-    }
-
-    FORCEINLINE RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr)
-    {
-        return GDynamicRHI->RHICreateTexture2DArray(desc, usage, resourceData);
-    }
-
-    FORCEINLINE RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr)
-    {
-        return GDynamicRHI->RHICreateTexture3D(desc, usage, resourceData);
-    }
-
-    FORCEINLINE void* RHIMapTexture2D(RHITexture2D* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
+    FORCEINLINE void* RHIMapTexture2D(RHITexture* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
     {
         return GDynamicRHI->RHIMapTexture2D(Texture, MipIndex, LockMode, DestStride);
     }
 
-    FORCEINLINE void RHIUnmapTexture2D(RHITexture2D* Texture, uint32 MipIndex)
+    FORCEINLINE void RHIUnmapTexture2D(RHITexture* Texture, uint32 MipIndex)
     {
         return GDynamicRHI->RHIUnmapTexture2D(Texture, MipIndex);
     }

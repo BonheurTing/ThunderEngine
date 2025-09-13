@@ -69,48 +69,15 @@ namespace Thunder
         ComPtr<ID3D11Resource> ConstantBuffer;
     };
     
-    class D3D11RHITexture1D : public RHITexture1D
+    class D3D11RHITexture : public RHITexture
     {
     public:
-        D3D11RHITexture1D() = delete;
-        D3D11RHITexture1D(RHIResourceDescriptor const& desc, ID3D11Texture1D* texture) : RHITexture1D(desc), Texture1D(texture) {}
+        D3D11RHITexture() = delete;
+        D3D11RHITexture(RHIResourceDescriptor const& desc, ID3D11Resource* texture) : RHITexture(desc), Texture(texture) {}
     
-        _NODISCARD_ void * GetResource() const override { return Texture1D.Get(); }
+        _NODISCARD_ void * GetResource() const override { return Texture.Get(); }
     private:
-        ComPtr<ID3D11Texture1D> Texture1D;
-    };
-    
-    class D3D11RHITexture2D : public RHITexture2D
-    {
-    public:
-        D3D11RHITexture2D() = delete;
-        D3D11RHITexture2D(RHIResourceDescriptor const& desc, ID3D11Texture2D* texture) : RHITexture2D(desc), Texture2D(texture) {}
-    
-        _NODISCARD_ void * GetResource() const override { return Texture2D.Get(); }
-    private:
-        ComPtr<ID3D11Texture2D> Texture2D;
-    };
-    
-    class D3D11RHITexture2DArray : public RHITexture2DArray
-    {
-    public:
-        D3D11RHITexture2DArray() = delete;
-        D3D11RHITexture2DArray(RHIResourceDescriptor const& desc, ID3D11Texture2D* texture) : RHITexture2DArray(desc), Texture2DArray(texture) {}
-    
-        _NODISCARD_ void * GetResource() const override { return Texture2DArray.Get(); }
-    private:
-        ComPtr<ID3D11Texture2D> Texture2DArray;
-    };
-    
-    class D3D11RHITexture3D : public RHITexture3D
-    {
-    public:
-        D3D11RHITexture3D() = delete;
-        D3D11RHITexture3D(RHIResourceDescriptor const& desc, ID3D11Texture3D* texture) : RHITexture3D(desc), Texture3D(texture) {}
-    
-        _NODISCARD_ void * GetResource() const override { return Texture3D.Get(); }
-    private:
-        ComPtr<ID3D11Texture3D> Texture3D;
+        ComPtr<ID3D11Resource> Texture;
     };
 
     UINT GetRHIResourceBindFlags(RHIResourceFlags flags);

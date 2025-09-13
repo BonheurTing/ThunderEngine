@@ -83,29 +83,6 @@ namespace Thunder
     };
     using RHITextureRef = TRefCountPtr<RHITexture>;
     
-    class RHITexture1D : public RHITexture
-    {
-    public:
-        RHITexture1D(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
-    };
-    
-    class RHITexture2D : public RHITexture
-    {
-    public:
-        RHITexture2D(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
-    };
-    
-    class RHITexture2DArray : public RHITexture
-    {
-    public:
-        RHITexture2DArray(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
-    };
-    
-    class RHITexture3D : public RHITexture
-    {
-    public:
-        RHITexture3D(RHIResourceDescriptor const& desc) : RHITexture(desc) {}
-    };
     
     /**
      * \brief buffer
@@ -198,8 +175,5 @@ namespace Thunder
     typedef TRefCountPtr<RHIIndexBuffer> RHIIndexBufferRef;
     typedef TRefCountPtr<RHIStructuredBuffer> RHIStructuredBufferRef;
     typedef TRefCountPtr<RHIConstantBuffer> RHIConstantBufferRef;
-    typedef TRefCountPtr<RHITexture1D> RHITexture1DRef;
-    typedef TRefCountPtr<RHITexture2D> RHITexture2DRef;
-    typedef TRefCountPtr<RHITexture2DArray> RHITexture2DArrayRef;
-    typedef TRefCountPtr<RHITexture3D> RHITexture3DRef;
+    typedef TRefCountPtr<RHITexture> RHITextureRef;
 }

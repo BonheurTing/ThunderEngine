@@ -41,17 +41,11 @@ namespace Thunder
     
 		RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
     
-		RHITexture1DRef RHICreateTexture1D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
-    
-		RHITexture2DRef RHICreateTexture2D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
-    
-		RHITexture2DArrayRef RHICreateTexture2DArray(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
-    
-		RHITexture3DRef RHICreateTexture3D(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+		RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
 
-		void* RHIMapTexture2D(RHITexture2D* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride) override;
+		void* RHIMapTexture2D(RHITexture* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride) override;
 
-		void RHIUnmapTexture2D(RHITexture2D* Texture, uint32 MipIndex) override;
+		void RHIUnmapTexture2D(RHITexture* Texture, uint32 MipIndex) override;
 
 		void RHIUpdateTexture(RHITexture* Texture) override;
 

@@ -315,7 +315,8 @@ namespace Thunder
 			LOG("get package resources count: %llu", outResources.size());
 			return true;
 		}
-
+		
+		TAssertf(false, "ResourceModule::LoadSync: fail to load a Package, softPath: %s", softPath.c_str());
 		delete newPackage;
 		return false;
 	}
@@ -346,6 +347,7 @@ namespace Thunder
 			return res;
 		}
 
+		TAssertf(false, "ResourceModule::LoadSync: fail to load a Package, softPath: %s", pakSoftPath.c_str());
 		delete newPackage;
 		return nullptr;
 	}
@@ -397,4 +399,3 @@ namespace Thunder
 		}
 	}
 }
-#pragma optimize("", on) 

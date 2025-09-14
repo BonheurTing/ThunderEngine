@@ -5,8 +5,8 @@
 
 namespace Thunder
 {
-	static TArray<RenderResource*> GRHIUpdateSyncQueue {};
-	static TArray<RenderResource*> GRHIUpdateAsyncQueue {};
+	static TArray<RHIResource*>GRHIUpdateSyncQueue {};
+	static TArray<RHIResource*> GRHIUpdateAsyncQueue {};
 	
 	void RenderResource::InitResource()
 	{
@@ -62,32 +62,20 @@ namespace Thunder
 		desc.Layout = ERHITextureLayout::RowMajor;
 		desc.Flags = {0, 0, 0, 0, 0};
 		
-		TextureRHI = RHICreateTexture2D(desc, bDynamic ? EResourceUsageFlags::Dynamic : EResourceUsageFlags::None);
+		TextureRHI = RHICreateTexture(desc, CreationFlags);
 
 		if (!TextureRHI.IsValid() || MipLevels > 1)
 		{
 			return;
 		}
 
-		GRHIScheduler->PushTask([res = this]()
+		/**
+		 * 把binary data放在 rhi resource中，防止rhi线程访问渲染线程的数据
+		 **/
+		GRHIScheduler->PushTask([renderRes = this, bin = RawData, rhiRes = TextureRHI]()
 		{
-			GRHIUpdateSyncQueue.push_back(res);
+			rhiRes->SetBinaryData(bin);
+			GRHIUpdateSyncQueue.push_back(rhiRes);
 		});
-	}
-
-	void RenderTexture2D::UpdateResource_RHIThread()
-	{
-		RHITexture2D* dstTexture = static_cast<RHITexture2D*>(TextureRHI.Get());
-
-		for (uint16 mipId = 0; mipId < MipLevels; ++mipId)
-		{
-			uint32 dstStride;
-			void* mipData = RHIMapTexture2D(dstTexture, mipId, 0/*RLM_WriteOnly*/, dstStride);
-
-			memcpy(mipData, RawData->Data, RawData->Size);
-
-			RHIUnmapTexture2D(dstTexture, mipId );
-			RHIUpdateTexture(dstTexture);
-		}
 	}
 }

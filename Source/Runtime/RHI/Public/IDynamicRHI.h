@@ -33,23 +33,19 @@ namespace Thunder
 
         virtual RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) = 0;
     
-        virtual RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
+        virtual RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, ETextureCreateFlags usage, void* resourceData = nullptr) = 0;
     
-        virtual RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
+        virtual RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, ETextureCreateFlags usage, void* resourceData = nullptr) = 0;
     
-        virtual RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
+        virtual RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, ETextureCreateFlags usage, void* resourceData = nullptr) = 0;
         
-        virtual RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
+        virtual RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, ETextureCreateFlags usage, void* resourceData = nullptr) = 0;
     
-        virtual RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr) = 0;
-
-        virtual void* RHIMapTexture2D(RHITexture* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride) = 0;
-
-        virtual void RHIUnmapTexture2D(RHITexture* Texture, uint32 MipIndex) = 0;
-
-        virtual void RHIUpdateTexture(RHITexture* Texture) = 0;
+        virtual RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void* resourceData = nullptr) = 0;
 
         virtual bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId) = 0;
+
+        virtual void RHIReleaseResource() = 0;
     };
     
     extern RHI_API IDynamicRHI* GDynamicRHI;
@@ -109,49 +105,39 @@ namespace Thunder
         return GDynamicRHI->RHICreateFence(initValue, fenceFlags);
     }
     
-    FORCEINLINE RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, EResourceUsageFlags usage, void* resourceData = nullptr)
+    FORCEINLINE RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, ETextureCreateFlags usage, void* resourceData = nullptr)
     {
         return GDynamicRHI->RHICreateVertexBuffer(sizeInBytes, StrideInBytes, usage, resourceData);
     }
     
-    FORCEINLINE RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EResourceUsageFlags usage, void* resourceData = nullptr)
+    FORCEINLINE RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, ETextureCreateFlags usage, void* resourceData = nullptr)
     {
         return GDynamicRHI->RHICreateIndexBuffer(width, type, usage, resourceData);
     }
     
-    FORCEINLINE RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EResourceUsageFlags usage, void* resourceData = nullptr)
+    FORCEINLINE RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, ETextureCreateFlags usage, void* resourceData = nullptr)
     {
         return GDynamicRHI->RHICreateStructuredBuffer(size, usage, resourceData);
     }
     
-    FORCEINLINE RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void* resourceData = nullptr)
+    FORCEINLINE RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, ETextureCreateFlags usage, void* resourceData = nullptr)
     {
         return GDynamicRHI->RHICreateConstantBuffer(size, usage, resourceData);
     }
 
-    FORCEINLINE RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void* resourceData = nullptr)
+    FORCEINLINE RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void* resourceData = nullptr)
     {
         return GDynamicRHI->RHICreateTexture(desc, usage, resourceData);
-    }
-
-    FORCEINLINE void* RHIMapTexture2D(RHITexture* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
-    {
-        return GDynamicRHI->RHIMapTexture2D(Texture, MipIndex, LockMode, DestStride);
-    }
-
-    FORCEINLINE void RHIUnmapTexture2D(RHITexture* Texture, uint32 MipIndex)
-    {
-        return GDynamicRHI->RHIUnmapTexture2D(Texture, MipIndex);
-    }
-
-    FORCEINLINE void RHIUpdateTexture(RHITexture* Texture)
-    {
-        return GDynamicRHI->RHIUpdateTexture(Texture);
     }
 
     FORCEINLINE bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)
     {
         return GDynamicRHI->RHIUpdateSharedMemoryResource(resource, resourceData, size, subresourceId);
+    }
+
+    FORCEINLINE void RHIReleaseResource()
+    {
+        return GDynamicRHI->RHIReleaseResource();
     }
 }
 

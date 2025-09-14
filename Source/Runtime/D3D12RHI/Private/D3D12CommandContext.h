@@ -11,6 +11,9 @@ namespace Thunder
 		D3D12CommandContext(ID3D12CommandQueue* inCommandQueue, ID3D12CommandAllocator* inCommandAllocator, ID3D12GraphicsCommandList* inCommandList)
 		: CommandQueue(inCommandQueue), CommandAllocator(inCommandAllocator), CommandList(inCommandList) {}
 
+		//Get
+		ComPtr<ID3D12GraphicsCommandList> GetCommandList() { return CommandList; }
+
 		// Clear
 		void ClearDepthStencilView(RHIDepthStencilView* dsv, ERHIClearFlags clearFlags, float depthValue, uint8 stencilValue) override;
 		void ClearRenderTargetView(RHIRenderTargetView* rtv, TVector4f clearColor) override;
@@ -44,7 +47,7 @@ namespace Thunder
 		// Misc
 		void Close() override;
 		void Reset() override;
-		
+
 	private:
 		ComPtr<ID3D12CommandQueue> CommandQueue;
 		ComPtr<ID3D12CommandAllocator> CommandAllocator;

@@ -13,6 +13,8 @@ namespace Thunder
 		/////// RHI Methods
 		RHIDeviceRef RHICreateDevice() override;
 
+		ID3D11Device* GetDevice() const { return Device.Get(); }
+
 		RHICommandContextRef RHICreateCommandContext() override;
 		
 		TRHIGraphicsPipelineState* RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer) override;
@@ -33,23 +35,19 @@ namespace Thunder
 		
         RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) override;
 
-		RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+		RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, ETextureCreateFlags usage, void *resourceData = nullptr) override;
         
-		RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+		RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, ETextureCreateFlags usage, void *resourceData = nullptr) override;
     
-		RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+		RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, ETextureCreateFlags usage, void *resourceData = nullptr) override;
     
-		RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData = nullptr) override;
+		RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, ETextureCreateFlags usage, void *resourceData = nullptr) override;
     
-		RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData = nullptr) override;
-
-		void* RHIMapTexture2D(RHITexture* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride) override;
-
-		void RHIUnmapTexture2D(RHITexture* Texture, uint32 MipIndex) override;
-
-		void RHIUpdateTexture(RHITexture* Texture) override;
+		RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void *resourceData = nullptr) override;
 
 		bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId) override;
+
+		void RHIReleaseResource() override {}
 
 	private:
 		ComPtr<ID3D11Device> Device;

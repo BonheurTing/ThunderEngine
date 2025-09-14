@@ -3,7 +3,6 @@
 #include "D3D12RHICommon.h"
 #include "d3dx12.h"
 #include "RHI.h"
-#include "RHIResource.h"
 
 namespace Thunder
 {

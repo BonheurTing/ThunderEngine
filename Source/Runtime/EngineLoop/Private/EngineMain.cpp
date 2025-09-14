@@ -109,5 +109,3 @@ namespace Thunder
         ModuleManager::GetInstance()->UnloadModule<ResourceModule>();
     }
 }
-
-#pragma optimize("", on)

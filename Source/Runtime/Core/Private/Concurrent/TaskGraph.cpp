@@ -96,4 +96,3 @@ namespace Thunder
         DebugSpot();
     }
 }
-#pragma optimize("", on)

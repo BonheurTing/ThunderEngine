@@ -49,10 +49,11 @@ namespace Thunder
 
 		static void GenerateGUID(TGuid& Result)
 		{
-			Result.A = rand() | (rand() << 16);
+			TAssert( CoCreateGuid( (GUID*)&Result )==S_OK );
+			/*Result.A = rand() | (rand() << 16);
 			Result.B = rand() | (rand() << 16);
 			Result.C = rand() | (rand() << 16);
-			Result.D = rand() | (rand() << 16);
+			Result.D = rand() | (rand() << 16);*/
 		}
 
 	};

@@ -1665,4 +1665,3 @@ namespace Thunder
         return t.token_id;
     }
 }
-#pragma optimize("", on)

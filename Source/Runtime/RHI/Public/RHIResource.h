@@ -33,6 +33,8 @@ namespace Thunder
             UAV = view;
         }
 
+        virtual void Update() {};
+
         _NODISCARD_ RHIShaderResourceViewRef GetSRV() const { return SRV; }
         _NODISCARD_ RHIUnorderedAccessViewRef GetUAV() const { return UAV; }
 
@@ -64,7 +66,7 @@ namespace Thunder
     class RHITexture : public RHIResource
     {
     public:
-        RHITexture(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
+        RHITexture(RHIResourceDescriptor const& desc, ETextureCreateFlags const& flags) : RHIResource(desc), CreateFlags(flags) {}
 
         void SetRTV(RHIRenderTargetView* view)
         {
@@ -74,12 +76,20 @@ namespace Thunder
         {
             DSV = view;
         }
+
+        void SetBinaryData(BinaryDataRef src)
+        {
+            Data = src;
+        }
         
         _NODISCARD_ virtual RHIRenderTargetViewRef GetRTV() const { return RTV; }
         _NODISCARD_ virtual RHIDepthStencilViewRef GetDSV() const { return DSV; }
     protected:
         RHIRenderTargetViewRef RTV;
         RHIDepthStencilViewRef DSV;
+
+        ETextureCreateFlags CreateFlags;
+        BinaryDataRef Data;
     };
     using RHITextureRef = TRefCountPtr<RHITexture>;
     

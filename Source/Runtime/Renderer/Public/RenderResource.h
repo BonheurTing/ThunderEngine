@@ -17,9 +17,6 @@ namespace Thunder
 		virtual void ReleaseRHI() {}
 		void UpdateRHI();
 
-		// rhi thread
-		virtual void UpdateResource_RHIThread() = 0;
-
 		/*virtual bool IsValid() const = 0;
 		virtual size_t GetMemorySize() const = 0;*/
 	};
@@ -33,6 +30,7 @@ namespace Thunder
 		virtual uint32 GetSizeX() const { return 0; }
 		virtual uint32 GetSizeY() const { return 0; }
 		virtual uint32 GetSizeZ() const { return 0; }
+		bool IsDynamic() const { return (static_cast<uint32>(CreationFlags) & static_cast<uint32>(ETextureCreateFlags::AnyDynamic)) > 0; }
 
 		void InitRHI() override;
 		void ReleaseRHI() override;
@@ -47,8 +45,8 @@ namespace Thunder
 
 		NameHandle TextureName;
 		RHIFormat PixelFormat = RHIFormat::UNKNOWN;
-		//todo ETextureCreateFlags  CreationFlags = TexCreate_None;
-		bool bDynamic = false;
+		ETextureCreateFlags CreationFlags = ETextureCreateFlags::Static;
+		//bool bDynamic = false;
 		BinaryDataRef RawData;
 	};
 	using RenderTextureRef = TRefCountPtr<RenderTexture>;
@@ -63,14 +61,11 @@ namespace Thunder
 			PixelFormat = format;
 			RawData = inData;
 		}
-
-		void UpdateResource_RHIThread() override;
-			
 	private:
 		void CreateTexture_RenderThread() final;
 	};
 
-	extern RENDERER_API TArray<RenderResource*> GRHIUpdateSyncQueue;
-	extern RENDERER_API TArray<RenderResource*> GRHIUpdateAsyncQueue;
+	extern RENDERER_API TArray<RHIResource*> GRHIUpdateSyncQueue;
+	extern RENDERER_API TArray<RHIResource*> GRHIUpdateAsyncQueue;
 }
 

@@ -73,7 +73,8 @@ namespace Thunder
     {
     public:
         D3D11RHITexture() = delete;
-        D3D11RHITexture(RHIResourceDescriptor const& desc, ID3D11Resource* texture) : RHITexture(desc), Texture(texture) {}
+        D3D11RHITexture(RHIResourceDescriptor const& desc, ETextureCreateFlags const& flags, ID3D11Resource* texture)
+        : RHITexture(desc, flags), Texture(texture) {}
     
         _NODISCARD_ void * GetResource() const override { return Texture.Get(); }
     private:

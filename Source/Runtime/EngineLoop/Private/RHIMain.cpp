@@ -1,5 +1,7 @@
-﻿#include "RHIMain.h"
+﻿#pragma optimize("", off)
+#include "RHIMain.h"
 
+#include "IDynamicRHI.h"
 #include "IRHIModule.h"
 #include "RenderResource.h"
 #include "Memory/MallocMinmalloc.h"
@@ -35,10 +37,13 @@ namespace Thunder
 
         for (auto res : GRHIUpdateSyncQueue)
         {
-            res->UpdateResource_RHIThread();
+            res->Update();
         }
-
-        IRHIModule::GetModule()->GetCommandContext()->Execute();
+        if (GRHIUpdateSyncQueue.size() > 0)
+        {
+            IRHIModule::GetModule()->GetCommandContext()->Execute();
+            GRHIUpdateSyncQueue.clear();
+        }
 
         
 
@@ -57,6 +62,8 @@ namespace Thunder
         FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
 
         LOG("Present");
+
+        RHIReleaseResource();
 
         ++GFrameState->FrameNumberRHIThread;
         GFrameState->RenderRHICV.notify_all();

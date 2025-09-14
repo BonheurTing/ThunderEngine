@@ -3,6 +3,8 @@
 
 namespace Thunder
 {
+    #define MAX_FRAME_LAG 3
+    
     enum class ERHIIndexBufferType : uint8
     {
         Uint16 = 0,
@@ -208,7 +210,7 @@ namespace Thunder
         DepthStencil = Depth | Stencil
     };
 
-    enum class EResourceUsageFlags : uint32
+    enum class ETextureCreateFlags : uint32
     {
         None                    = 0,
         /** The buffer will be written to once. */

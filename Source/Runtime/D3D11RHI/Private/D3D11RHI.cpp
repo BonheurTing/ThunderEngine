@@ -347,13 +347,13 @@ namespace Thunder
 		}
 	}
 
-	RHIVertexBufferRef D3D11DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  EResourceUsageFlags usage, void *resourceData)
+	RHIVertexBufferRef D3D11DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  ETextureCreateFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC vbDesc;
 		vbDesc.ByteWidth = sizeInBytes;
 		vbDesc.Usage = D3D11_USAGE_DEFAULT;
 		vbDesc.CPUAccessFlags = 0;
-		if (EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic))
+		if (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic))
 		{
 			vbDesc.Usage = D3D11_USAGE_DYNAMIC;
 			vbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -378,13 +378,13 @@ namespace Thunder
 		}
 	}
 
-	RHIIndexBufferRef D3D11DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EResourceUsageFlags usage, void *resourceData)
+	RHIIndexBufferRef D3D11DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, ETextureCreateFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC ibDesc;
 		ibDesc.ByteWidth = width;
 		ibDesc.Usage = D3D11_USAGE_DEFAULT;
 		ibDesc.CPUAccessFlags = 0;
-		if (EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic))
+		if (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic))
 		{
 			ibDesc.Usage = D3D11_USAGE_DYNAMIC;
 			ibDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -409,13 +409,13 @@ namespace Thunder
 		}
 	}
 
-	RHIStructuredBufferRef D3D11DynamicRHI::RHICreateStructuredBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
+	RHIStructuredBufferRef D3D11DynamicRHI::RHICreateStructuredBuffer(uint32 size,  ETextureCreateFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC sbDesc;
 		sbDesc.ByteWidth = size;
 		sbDesc.Usage = D3D11_USAGE_DEFAULT;
 		sbDesc.CPUAccessFlags = 0;
-		if (EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic))
+		if (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic))
 		{
 			sbDesc.Usage = D3D11_USAGE_DYNAMIC;
 			sbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -440,13 +440,13 @@ namespace Thunder
 		}
 	}
 
-	RHIConstantBufferRef D3D11DynamicRHI::RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData)
+	RHIConstantBufferRef D3D11DynamicRHI::RHICreateConstantBuffer(uint32 size, ETextureCreateFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC sbDesc;
 		sbDesc.ByteWidth = size;
 		sbDesc.Usage = D3D11_USAGE_DEFAULT;
 		sbDesc.CPUAccessFlags = 0;
-		if (EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic))
+		if (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic))
 		{
 			sbDesc.Usage = D3D11_USAGE_DYNAMIC;
 			sbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -471,14 +471,14 @@ namespace Thunder
 		}
 	}
 
-	RHITextureRef D3D11DynamicRHI::RHICreateTexture(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
+	RHITextureRef D3D11DynamicRHI::RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void *resourceData)
 	{
 		ID3D11Resource* texture = nullptr;
 		
 		// Configure common usage flags
 		D3D11_USAGE d3dUsage = D3D11_USAGE_DEFAULT;
 		UINT cpuAccessFlags = 0;
-		if (EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic))
+		if (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic))
 		{
 			d3dUsage = D3D11_USAGE_DYNAMIC;
 			cpuAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -578,26 +578,13 @@ namespace Thunder
 		
 		if(SUCCEEDED(hr))
 		{
-			return MakeRefCount<D3D11RHITexture>(desc, texture);
+			return MakeRefCount<D3D11RHITexture>(desc, usage, texture);
 		}
 		else
 		{
 			TAssertf(false, "Fail to create texture");
 			return nullptr;
 		}
-	}
-
-	void* D3D11DynamicRHI::RHIMapTexture2D(RHITexture* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
-	{
-		return nullptr;
-	}
-
-	void D3D11DynamicRHI::RHIUnmapTexture2D(RHITexture* Texture, uint32 MipIndex)
-	{
-	}
-
-	void D3D11DynamicRHI::RHIUpdateTexture(RHITexture* Texture)
-	{
 	}
 
 	bool D3D11DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)

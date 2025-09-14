@@ -167,12 +167,15 @@ namespace Thunder
 			const RHIResourceDescriptor* srcDesc = src->GetResourceDescriptor();
 			
 			TAssertf(dstDesc->Format == srcDesc->Format, "Resource format mismatch");
-			TAssertf(static_cast<uint32>(dstDesc->Width) / pow(2, dstMip) >= (copyRegion->DstX + copyRegion->Width), "sub resource size mismatch");
-			TAssertf(static_cast<uint32>(dstDesc->Height) / pow(2, dstMip) >= (copyRegion->DstY + copyRegion->Height), "sub resource size mismatch");
-			TAssertf(static_cast<uint32>(dstDesc->DepthOrArraySize) / pow(2, dstMip) >= (copyRegion->DstZ + copyRegion->DepthOrArraySize), "sub resource size mismatch");
-			TAssertf(static_cast<uint32>(srcDesc->Width) / pow(2, srcMip) >= (copyRegion->SrcX + copyRegion->Width), "sub resource size mismatch");
-			TAssertf(static_cast<uint32>(srcDesc->Height) / pow(2, srcMip) >= (copyRegion->SrcY + copyRegion->Height), "sub resource size mismatch");
-			TAssertf(static_cast<uint32>(srcDesc->DepthOrArraySize) / pow(2, srcMip) >= (copyRegion->SrcZ + copyRegion->DepthOrArraySize), "sub resource size mismatch");
+			if (copyRegion != nullptr)
+			{
+				TAssertf(static_cast<uint32>(dstDesc->Width) / pow(2, dstMip) >= (copyRegion->DstX + copyRegion->Width), "sub resource size mismatch");
+				TAssertf(static_cast<uint32>(dstDesc->Height) / pow(2, dstMip) >= (copyRegion->DstY + copyRegion->Height), "sub resource size mismatch");
+				TAssertf(static_cast<uint32>(dstDesc->DepthOrArraySize) / pow(2, dstMip) >= (copyRegion->DstZ + copyRegion->DepthOrArraySize), "sub resource size mismatch");
+				TAssertf(static_cast<uint32>(srcDesc->Width) / pow(2, srcMip) >= (copyRegion->SrcX + copyRegion->Width), "sub resource size mismatch");
+				TAssertf(static_cast<uint32>(srcDesc->Height) / pow(2, srcMip) >= (copyRegion->SrcY + copyRegion->Height), "sub resource size mismatch");
+				TAssertf(static_cast<uint32>(srcDesc->DepthOrArraySize) / pow(2, srcMip) >= (copyRegion->SrcZ + copyRegion->DepthOrArraySize), "sub resource size mismatch");
+			}
 			TAssertf(dstDesc->Type == srcDesc->Type, "Resource type mismatch");
 			TAssertf(dstDesc->Type != ERHIResourceType::Buffer, "Resource is not buffer");
 			const auto dstTexture = static_cast<const RHITexture*>(dst);
@@ -186,13 +189,20 @@ namespace Thunder
 			const CD3DX12_TEXTURE_COPY_LOCATION dstLocation(d3d12Dst, dstMip);
 			const CD3DX12_TEXTURE_COPY_LOCATION srcLocation(d3d12Src, srcMip);
 			D3D12_BOX sourceRegion;
-			sourceRegion.left = copyRegion->SrcX;
-			sourceRegion.top = copyRegion->SrcY;
-			sourceRegion.right = copyRegion->SrcX + copyRegion->Width;
-			sourceRegion.bottom = copyRegion->SrcY + copyRegion->Height;
-			sourceRegion.front = copyRegion->SrcZ;
-			sourceRegion.back = copyRegion->SrcZ + copyRegion->DepthOrArraySize;
-			CommandList->CopyTextureRegion(&dstLocation, copyRegion->DstX, copyRegion->DstY, copyRegion->DstZ, &srcLocation, &sourceRegion);
+			if (copyRegion != nullptr)
+			{
+				sourceRegion.left = copyRegion->SrcX;
+				sourceRegion.top = copyRegion->SrcY;
+				sourceRegion.right = copyRegion->SrcX + copyRegion->Width;
+				sourceRegion.bottom = copyRegion->SrcY + copyRegion->Height;
+				sourceRegion.front = copyRegion->SrcZ;
+				sourceRegion.back = copyRegion->SrcZ + copyRegion->DepthOrArraySize;
+				CommandList->CopyTextureRegion(&dstLocation, copyRegion->DstX, copyRegion->DstY, copyRegion->DstZ, &srcLocation, &sourceRegion);
+			}
+			else
+			{
+				CommandList->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
+			}
 		}
 	}
 

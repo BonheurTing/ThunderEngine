@@ -166,4 +166,3 @@ LockFreeLinkPolicy::TLinkPtr LockFreeLinkPolicy::AllocLockFreeLink()
 LockFreeLinkPolicy::TAllocator LockFreeLinkPolicy::LinkAllocator;
 
 }
-#pragma optimize("", on)

@@ -752,5 +752,3 @@ namespace Thunder
 
 	
 }
-
-#pragma optimize("", on)

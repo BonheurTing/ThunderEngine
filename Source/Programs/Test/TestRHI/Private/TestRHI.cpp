@@ -69,12 +69,12 @@ int main()
     };
     uint16 indices[] = { 0, 1, 2 };
     constexpr uint32 vertexBufferSize = sizeof(triangleVertices);
-    RHICreateVertexBuffer(vertexBufferSize, sizeof(Vertex), EResourceUsageFlags::Dynamic, triangleVertices);
-    RHICreateIndexBuffer( 3, ERHIIndexBufferType::Uint16, EResourceUsageFlags::Dynamic, indices);
+    RHICreateVertexBuffer(vertexBufferSize, sizeof(Vertex), ETextureCreateFlags::Dynamic, triangleVertices);
+    RHICreateIndexBuffer( 3, ERHIIndexBufferType::Uint16, ETextureCreateFlags::Dynamic, indices);
     //RHICreateStructuredBuffer();
     auto cbvDesc = RHIResourceDescriptor::Buffer(10);
     cbvDesc.Format = RHIFormat::R32G32B32A32_FLOAT;
-    const auto cbv = RHICreateConstantBuffer(256, EResourceUsageFlags::None);
+    const auto cbv = RHICreateConstantBuffer(256, ETextureCreateFlags::None);
     RHICreateConstantBufferView(*cbv, 256);
     
     RHIResourceDescriptor desc {};
@@ -88,7 +88,7 @@ int main()
     desc.SampleDesc = {1, 0};
     desc.Layout = ERHITextureLayout::RowMajor;
     desc.Flags = {0, 0, 0, 0, 0};
-    if(const auto resource = RHICreateTexture(desc, EResourceUsageFlags::None))
+    if(const auto resource = RHICreateTexture(desc, ETextureCreateFlags::None))
     {
         RHICreateShaderResourceView(*resource, {desc.Format, ERHIViewDimension::Texture1D, desc.Width, desc.Height, desc.DepthOrArraySize});
         std::cout << "Succeed to Create Texture1D and its SRV" << std::endl;
@@ -96,7 +96,7 @@ int main()
     desc.Type = ERHIResourceType::Texture2D;
     desc.Height = 64;
     desc.Flags = {0, 0, 0, 1, 0};
-    if(const auto resource = RHICreateTexture(desc, EResourceUsageFlags::None))
+    if(const auto resource = RHICreateTexture(desc, ETextureCreateFlags::None))
     {
         RHICreateRenderTargetView(*resource, {desc.Format, ERHIViewDimension::Texture2D, desc.Width, desc.Height, desc.DepthOrArraySize});
         std::cout << "Succeed to Create Texture2D and its RTV" << std::endl;
@@ -104,13 +104,13 @@ int main()
     desc.Type = ERHIResourceType::Texture2DArray;
     desc.DepthOrArraySize = 2;
     desc.Flags = {0, 0, 1, 0, 0};
-    if(const auto resource = RHICreateTexture(desc, EResourceUsageFlags::None))
+    if(const auto resource = RHICreateTexture(desc, ETextureCreateFlags::None))
     {
         RHICreateUnorderedAccessView(*resource, {desc.Format, ERHIViewDimension::Texture2DArray, desc.Width, desc.Height, desc.DepthOrArraySize});
         std::cout << "Succeed to Create Texture2DArray and its UAV" << std::endl;
     }
     desc.Type = ERHIResourceType::Texture3D;
-    if(RHICreateTexture(desc, EResourceUsageFlags::None))
+    if(RHICreateTexture(desc, ETextureCreateFlags::None))
     {
         std::cout << "Succeed to Create Texture3D" << std::endl;
     }
@@ -177,5 +177,4 @@ int main()
     //system("pause");
     return 0;
 }
-#pragma optimize("", on)
 

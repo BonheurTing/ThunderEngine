@@ -11,12 +11,19 @@
 
 #include "D3D12RHIModule.h"
 #include "D3D12RootSignature.h"
+#define INITGUID
 #include "d3dx12.h"
+#include "Concurrent/TaskScheduler.h"
+#include "Misc/CoreGlabal.h"
 
 namespace Thunder
 {
     D3D12DynamicRHI::D3D12DynamicRHI()
     {
+        for (auto& i : GReleaseQueue)
+        {
+            i = TArray<ComPtr<ID3D12Object>>();
+        }
     }
     
     RHIDeviceRef D3D12DynamicRHI::RHICreateDevice()
@@ -77,18 +84,22 @@ namespace Thunder
         queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
         HRESULT hr = Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&CommandQueue));
-        hr = hr && Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
-        hr = hr && Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&CommandList));
+        if (FAILED(hr))
+        {
+            TAssertf(false, "Fail to create command queue");
+        }
+        hr = Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
+        if (FAILED(hr))
+        {
+            TAssertf(false, "Fail to create command allocator");
+        }
+        hr = Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&CommandList));
+        if (FAILED(hr))
+        {
+            TAssertf(false, "Fail to create command list");
+        }
 
-        if (SUCCEEDED(hr))
-        {
-            return MakeRefCount<D3D12CommandContext>(CommandQueue.Get(), CommandAllocator.Get(), CommandList.Get());
-        }
-        else
-        {
-            TAssertf(false, "Fail to Create Command Context");
-            return nullptr;
-        }
+        return MakeRefCount<D3D12CommandContext>(CommandQueue.Get(), CommandAllocator.Get(), CommandList.Get());
     }
 
     TRHIGraphicsPipelineState* D3D12DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer)
@@ -373,11 +384,11 @@ namespace Thunder
         }
     }
 
-    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  EResourceUsageFlags usage, void *resourceData)
+    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  ETextureCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* vertexBuffer;
         const D3D12_HEAP_PROPERTIES heapType = {
-            (EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT),
+            (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT),
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
 
@@ -409,11 +420,11 @@ namespace Thunder
         }
     }
     
-    RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EResourceUsageFlags usage, void *resourceData)
+    RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, ETextureCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* indexBuffer;
         const D3D12_HEAP_PROPERTIES heapType = {
-            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
+            EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
         const auto desc = CD3DX12_RESOURCE_DESC::Buffer(width);
@@ -435,11 +446,11 @@ namespace Thunder
         }
     }
     
-    RHIStructuredBufferRef D3D12DynamicRHI::RHICreateStructuredBuffer(uint32 size,  EResourceUsageFlags usage, void *resourceData)
+    RHIStructuredBufferRef D3D12DynamicRHI::RHICreateStructuredBuffer(uint32 size,  ETextureCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* structuredBuffer;
         const D3D12_HEAP_PROPERTIES heapType = {
-            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
+            EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
         
@@ -462,7 +473,7 @@ namespace Thunder
         }
     }
     
-    RHIConstantBufferRef D3D12DynamicRHI::RHICreateConstantBuffer(uint32 size, EResourceUsageFlags usage, void *resourceData)
+    RHIConstantBufferRef D3D12DynamicRHI::RHICreateConstantBuffer(uint32 size, ETextureCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* constantBuffer;
         constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
@@ -486,15 +497,12 @@ namespace Thunder
         }
     }
     
-    RHITextureRef D3D12DynamicRHI::RHICreateTexture(const RHIResourceDescriptor& desc, EResourceUsageFlags usage, void *resourceData)
+    RHITextureRef D3D12DynamicRHI::RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* texture = nullptr;
         
         // Configure common heap properties
-        D3D12_HEAP_PROPERTIES heapType = {
-            EnumHasAnyFlags(usage, EResourceUsageFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
-            D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
-        };
+        constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
         
         // Configure common resource desc
         D3D12_RESOURCE_DESC d3d12Desc = {};
@@ -554,28 +562,21 @@ namespace Thunder
         
         if(SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHITexture>(desc, texture);
+            return MakeRefCount<D3D12RHITexture>(desc, usage, texture);
         }
         else
         {
+            if (hr == DXGI_ERROR_DEVICE_REMOVED)
+            {
+                HRESULT removeReason = Device->GetDeviceRemovedReason();
+                if (removeReason == DXGI_ERROR_DEVICE_REMOVED)
+                {
+                    TAssertf(false, "Fail to create texture");
+                }
+            }
             TAssertf(false, "Fail to create texture");
             return nullptr;
         }
-    }
-
-    void* D3D12DynamicRHI::RHIMapTexture2D(RHITexture* Texture, uint32 MipIndex, uint32 LockMode, uint32& DestStride)
-    {
-        //todo
-        return nullptr;
-    }
-
-    void D3D12DynamicRHI::RHIUnmapTexture2D(RHITexture* Texture, uint32 MipIndex)
-    {
-        //todo
-    }
-
-    void D3D12DynamicRHI::RHIUpdateTexture(RHITexture* Texture)
-    {
     }
 
     bool D3D12DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)
@@ -594,5 +595,27 @@ namespace Thunder
             return true;
         }
         return false;
+    }
+
+    void D3D12DynamicRHI::RHIReleaseResource()
+    {
+        uint32 index = (GFrameState->FrameNumberRenderThread.load() + 1) % MAX_FRAME_LAG;
+        /**
+         * GReleaseQueue存ComPre方便自己释放
+         * 1. 不能for array 中每一个元素，调push task，如果元素很多，task会慢
+         * 2. 不能copy array，很多个元素，如果元素很多，拷贝会慢
+         * 3. 最好就是整个array move给task，自己释放，为保险再调一次clear
+         **/
+        if (!GReleaseQueue[index].empty())
+        {
+            GAsyncWorkers->PushTask([releaseQueue = std::move(GReleaseQueue[index])](){});
+            GReleaseQueue[index].clear();
+        }
+    }
+
+    void D3D12DynamicRHI::AddReleaseObject(ComPtr<ID3D12Object> object)
+    {
+        uint32 index = GFrameState->FrameNumberRHIThread % MAX_FRAME_LAG;
+        GReleaseQueue[index].push_back(object);
     }
 }

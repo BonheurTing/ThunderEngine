@@ -433,4 +433,3 @@ namespace Thunder
 #endif
 	}
 }
-#pragma optimize("", on)

@@ -1,7 +1,5 @@
 #pragma once
-#include "dxgiformat.h"
 #include "RHIDefinition.h"
-#include <wrl/client.h>
 #include "Templates/RefCountObject.h"
 
 namespace Thunder

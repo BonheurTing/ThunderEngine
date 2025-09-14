@@ -84,6 +84,7 @@ namespace Thunder
 			break;
 			case 4:
 			format = RHIFormat::R32G32B32A32_UINT;
+			break;
 			default:
 			TAssertf(false, "Invalid format");
 			return nullptr;

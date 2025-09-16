@@ -3,7 +3,7 @@
 
 namespace Thunder
 {
-	class RENDERER_API RenderResource : public RefCountedObject
+	class RENDERCORE_API RenderResource : public RefCountedObject
 	{
 	public:
 		RenderResource() = default;
@@ -65,7 +65,7 @@ namespace Thunder
 		void CreateTexture_RenderThread() final;
 	};
 
-	extern RENDERER_API TArray<RHIResource*> GRHIUpdateSyncQueue;
-	extern RENDERER_API TArray<RHIResource*> GRHIUpdateAsyncQueue;
+	extern RENDERCORE_API TArray<RHIResource*> GRHIUpdateSyncQueue;
+	extern RENDERCORE_API TArray<RHIResource*> GRHIUpdateAsyncQueue;
 }
 

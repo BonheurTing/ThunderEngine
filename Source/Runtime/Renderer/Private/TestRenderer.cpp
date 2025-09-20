@@ -1,7 +1,6 @@
 #pragma optimize("", off)
 #include "TestRenderer.h"
 #include "FrameGraph.h"
-#include <iostream>
 
 namespace Thunder
 {

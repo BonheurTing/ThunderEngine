@@ -57,6 +57,12 @@ namespace Thunder
         // rhi thread
         auto* RHIThreadTask = new (TMemory::Malloc<TTask<RHITask>>()) TTask<RHITask>(0);
         GRHIScheduler->PushTask(RHIThreadTask);
+
+        // Tick unused frame counters and release long unused render targets
+        if (GTestRenderer && GTestRenderer->GetFrameGraph())
+        {
+            GTestRenderer->GetFrameGraph()->ClearRenderTargetPool();
+        }
     }
 
     void RenderingTask::SimulatingAddingMeshBatch()

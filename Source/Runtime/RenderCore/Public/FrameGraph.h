@@ -1,67 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RenderCore.export.h"
 #include "RenderResource.h"
+#include "RenderTargetPool.h"
 #include "RHI.h"
-#include <functional>
-#include <vector>
-#include <memory>
-#include <unordered_map>
-#include <unordered_set>
-#include <string>
 
 namespace Thunder
 {
-    enum class EPixelFormat : uint8
-    {
-        UNKNOWN,
-        RGBA8888,
-        RGBA16F,
-        RGBA32F,
-        RGB10A2,
-        R16F,
-        R32F,
-        D24S8,
-        D32F
-    };
-
-    struct FGRenderTargetDesc
-    {
-        uint32 Width = 0;
-        uint32 Height = 0;
-        EPixelFormat Format = EPixelFormat::UNKNOWN;
-        bool bIsDepthStencil = false;
-
-        FGRenderTargetDesc() = default;
-        FGRenderTargetDesc(uint32 InWidth, uint32 InHeight, EPixelFormat InFormat, bool bInIsDepthStencil = false)
-            : Width(InWidth), Height(InHeight), Format(InFormat), bIsDepthStencil(bInIsDepthStencil) {}
-
-        bool operator==(const FGRenderTargetDesc& Other) const
-        {
-            return Width == Other.Width && Height == Other.Height &&
-                   Format == Other.Format && bIsDepthStencil == Other.bIsDepthStencil;
-        }
-    };
-
-    class RENDERCORE_API FGRenderTarget
-    {
-    public:
-        FGRenderTarget() = default;
-        FGRenderTarget(uint32 Width, uint32 Height, EPixelFormat Format);
-
-        const FGRenderTargetDesc& GetDesc() const { return Desc; }
-        uint32 GetWidth() const { return Desc.Width; }
-        uint32 GetHeight() const { return Desc.Height; }
-        EPixelFormat GetFormat() const { return Desc.Format; }
-
-        uint32 GetID() const { return ID; }
-
-    private:
-        FGRenderTargetDesc Desc;
-        uint32 ID = 0;
-        static uint32 NextID;
-    };
 
     class RENDERCORE_API PassOperations
     {
@@ -90,47 +35,22 @@ namespace Thunder
             : Name(InName), Operations(std::move(InOperations)), ExecuteFunction(std::move(InExecuteFunction)) {}
     };
 
-    class RENDERCORE_API RenderTargetPool
+    class RENDERCORE_API FrameGraph : public RefCountedObject
     {
     public:
-        RenderTextureRef AcquireRenderTarget(const FGRenderTargetDesc& Desc);
-        void ReleaseRenderTarget(RenderTextureRef RenderTarget);
-        void Reset();
-
-    private:
-        TArray<RenderTextureRef> AvailableTargets;
-        TArray<RenderTextureRef> UsedTargets;
-    };
-
-    class RENDERCORE_API FrameGraph
-    {
-    public:
-        FrameGraph();
-        ~FrameGraph();
-
-        // Delete copy constructor and copy assignment operator
-        FrameGraph(const FrameGraph&) = delete;
-        FrameGraph& operator=(const FrameGraph&) = delete;
-
-        // Allow move constructor and move assignment operator
-        FrameGraph(FrameGraph&&) = default;
-        FrameGraph& operator=(FrameGraph&&) = default;
-
         void Setup();
         void Compile();
         void Execute();
         void Reset();
 
-        // Get allocated render target for a given ID
-        RenderTextureRef GetAllocatedRenderTarget(uint32 RenderTargetID) const;
-
         // Internal methods used by FrameGraphBuilder
         void AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction);
         void SetPresentTarget(const FGRenderTarget& RenderTarget);
         void RegisterRenderTarget(const FGRenderTarget& RenderTarget);
+        void ClearRenderTargetPool();
 
     private:
-        void CullUnusedPasses();
+        void CullUnusedPasses() const;
         void TopologicalSort();
         void ScheduleRenderTargetLifetime();
         void AllocateRenderTargets();
@@ -152,8 +72,8 @@ namespace Thunder
     public:
         explicit FrameGraphBuilder(FrameGraph* InFrameGraph);
 
-        void AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction);
-        void Present(const FGRenderTarget& RenderTarget);
+        void AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction) const;
+        void Present(const FGRenderTarget& RenderTarget) const;
 
     private:
         FrameGraph* FrameGraphPtr;

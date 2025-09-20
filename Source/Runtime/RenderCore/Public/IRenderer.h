@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CoreMinimal.h"
 #include "RenderCore.export.h"
 #include "FrameGraph.h"
 
@@ -30,7 +29,9 @@ namespace Thunder
             }
         }
 
+        FrameGraph* GetFrameGraph() const { return mFrameGraph; }
+
     protected:
-        FrameGraph* mFrameGraph;
+        TRefCountPtr<FrameGraph> mFrameGraph;
     };
 }

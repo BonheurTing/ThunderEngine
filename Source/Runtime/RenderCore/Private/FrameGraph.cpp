@@ -1,19 +1,10 @@
 #include "FrameGraph.h"
 #include "RenderResource.h"
 #include <algorithm>
-#include <queue>
-#include <iostream>
-#include <unordered_set>
+
 
 namespace Thunder
 {
-    uint32 FGRenderTarget::NextID = 1;
-
-    FGRenderTarget::FGRenderTarget(uint32 Width, uint32 Height, EPixelFormat Format)
-        : Desc(Width, Height, Format), ID(NextID++)
-    {
-    }
-
     void PassOperations::read(const FGRenderTarget& RenderTarget)
     {
         ReadTargets.push_back(RenderTarget.GetID());
@@ -22,70 +13,6 @@ namespace Thunder
     void PassOperations::write(const FGRenderTarget& RenderTarget)
     {
         WriteTargets.push_back(RenderTarget.GetID());
-    }
-
-    RenderTextureRef RenderTargetPool::AcquireRenderTarget(const FGRenderTargetDesc& Desc)
-    {
-        // Find compatible render target in available pool
-        for (auto it = AvailableTargets.begin(); it != AvailableTargets.end(); ++it)
-        {
-            auto& target = *it;
-            if (target->GetSizeX() == Desc.Width &&
-                target->GetSizeY() == Desc.Height)
-            {
-                RenderTextureRef result = target;
-                AvailableTargets.erase(it);
-                UsedTargets.push_back(result);
-                return result;
-            }
-        }
-
-        // Create new render target if no compatible one found
-        RHIFormat rhiFormat = RHIFormat::UNKNOWN;
-        switch (Desc.Format)
-        {
-        case EPixelFormat::RGBA8888:
-            rhiFormat = RHIFormat::R8G8B8A8_UNORM;
-            break;
-        case EPixelFormat::RGBA16F:
-            rhiFormat = RHIFormat::R16G16B16A16_FLOAT;
-            break;
-        case EPixelFormat::RGBA32F:
-            rhiFormat = RHIFormat::R32G32B32A32_FLOAT;
-            break;
-        default:
-            rhiFormat = RHIFormat::R8G8B8A8_UNORM;
-            break;
-        }
-
-        RenderTextureRef newTarget = new RenderTexture2D(
-            Desc.Width, Desc.Height, rhiFormat, nullptr);
-        UsedTargets.push_back(newTarget);
-        return newTarget;
-    }
-
-    void RenderTargetPool::ReleaseRenderTarget(RenderTextureRef RenderTarget)
-    {
-        auto it = std::find(UsedTargets.begin(), UsedTargets.end(), RenderTarget);
-        if (it != UsedTargets.end())
-        {
-            AvailableTargets.push_back(*it);
-            UsedTargets.erase(it);
-        }
-    }
-
-    void RenderTargetPool::Reset()
-    {
-        AvailableTargets.clear();
-        UsedTargets.clear();
-    }
-
-    FrameGraph::FrameGraph()
-    {
-    }
-
-    FrameGraph::~FrameGraph()
-    {
     }
 
     void FrameGraph::Setup()
@@ -130,8 +57,6 @@ namespace Thunder
                             if (it != AllocatedRenderTargets.end())
                             {
                                 Pool.ReleaseRenderTarget(it->second);
-                                // Note: We keep the entry in AllocatedRenderTargets for potential debugging
-                                // but the actual resource is returned to pool for reuse
                             }
                         }
                     }
@@ -157,12 +82,6 @@ namespace Thunder
         bHasPresentTarget = false;
     }
 
-    RenderTextureRef FrameGraph::GetAllocatedRenderTarget(uint32 RenderTargetID) const
-    {
-        auto it = AllocatedRenderTargets.find(RenderTargetID);
-        return (it != AllocatedRenderTargets.end()) ? it->second : nullptr;
-    }
-
     void FrameGraph::AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction)
     {
         auto pass = MakeRefCount<PassData>(Name, std::move(Operations), std::move(ExecuteFunction));
@@ -181,7 +100,13 @@ namespace Thunder
         RenderTargetDescs[RenderTarget.GetID()] = RenderTarget.GetDesc();
     }
 
-    void FrameGraph::CullUnusedPasses()
+    void FrameGraph::ClearRenderTargetPool()
+    {
+        Pool.TickUnusedFrameCounters();
+        Pool.ReleaseLongUnusedTargets();
+    }
+
+    void FrameGraph::CullUnusedPasses() const
     {
         if (!bHasPresentTarget)
         {
@@ -401,7 +326,7 @@ namespace Thunder
     {
     }
 
-    void FrameGraphBuilder::AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction)
+    void FrameGraphBuilder::AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction) const
     {
         if (FrameGraphPtr)
         {
@@ -409,7 +334,7 @@ namespace Thunder
         }
     }
 
-    void FrameGraphBuilder::Present(const FGRenderTarget& RenderTarget)
+    void FrameGraphBuilder::Present(const FGRenderTarget& RenderTarget) const
     {
         if (FrameGraphPtr)
         {

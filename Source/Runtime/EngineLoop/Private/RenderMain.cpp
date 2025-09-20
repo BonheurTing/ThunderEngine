@@ -8,6 +8,7 @@
 #include "Misc/CoreGlabal.h"
 #include "Misc/TraceProfile.h"
 #include "Module/ModuleManager.h"
+#include "TestRenderer.h"
 
 namespace Thunder
 {
@@ -31,11 +32,22 @@ namespace Thunder
         }
 
         ThunderZoneScopedN("RenderMain");
-        
+
         LOG("Execute render thread in frame: %d with thread: %lu", GFrameState->FrameNumberRenderThread.load(), __threadid());
 
+        // Initialize TestRenderer if not already done
+        if (!GTestRenderer)
+        {
+            GTestRenderer = new TestRenderer;
+        }
+
+        // Execute FrameGraph rendering pipeline
+        GTestRenderer->Setup();
+        GTestRenderer->Compile();
+        GTestRenderer->Execute();
+
         SimulatingAddingMeshBatch();
-        
+
         ++GFrameState->FrameNumberRenderThread;
         GFrameState->GameRenderCV.notify_all();
     }

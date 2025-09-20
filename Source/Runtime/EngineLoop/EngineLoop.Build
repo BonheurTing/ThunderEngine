@@ -4,6 +4,8 @@ set(PublicDependencyModuleList
 	Core
     Engine
     RHI
+    RenderCore
+    Renderer
     D3D11RHI
 	D3D12RHI
 )

@@ -7,9 +7,9 @@
 
 namespace Thunder
 {
-	/************************ 任务 ************************************/
+	/************************ task ************************************/
 	#define SUSPEND_THRESHOLD 50 
-	//单个线程管理者
+	//single thread manager
 	class ThreadProxy
 	{
 	public:
@@ -23,7 +23,7 @@ namespace Thunder
 		_NODISCARD_ uint32 GetThreadId() const;
 		_NODISCARD_ NameHandle GetThreadName() const;
 
-		//多线程安全
+		//Thread-safe
 		//friend class PooledTaskScheduler;
 		void AttachToScheduler(class IScheduler* InScheduler);
 		void DetachFromScheduler(IScheduler* InScheduler);
@@ -32,7 +32,7 @@ namespace Thunder
 		void Suspend() const { DoWorkEvent->Reset(); }
 		void Resume() const { DoWorkEvent->Trigger(); }
 		uint32 Run();
-		void WaitForCompletion(); // 线程结束
+		void WaitForCompletion(); // Thread termination
 
 	private:
 		bool CreatePhysicalThread(uint32 InStackSize = 0, const String& InThreadName = "");
@@ -47,7 +47,7 @@ namespace Thunder
 		SharedLock SchedulersSharedLock;
 	};
 	
-	/************************ 线程池 ************************************/
+	/************************ thread pool ************************************/
 
 	class ThreadPoolBase
 	{
@@ -67,7 +67,7 @@ namespace Thunder
 		void AttachToScheduler(IScheduler* InScheduler) const;
 		void AttachToScheduler(int32 Index, IScheduler* InScheduler) const;
 
-		void WaitForCompletion() const; //等待所有任务完成, 结束线程, debug用
+		void WaitForCompletion() const; //Wait for all tasks to complete and then terminate the thread (for debug)
 
 	private:
 		TArray<ThreadProxy*> Threads {};

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "BinaryData.h"
 #include "CoreMinimal.h"
 #include "CommonUtilities.h"
 #include "Templates/RefCountObject.h"

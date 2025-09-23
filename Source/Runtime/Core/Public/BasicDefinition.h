@@ -2,10 +2,7 @@
 #pragma warning(error:4834)
 
 #include "Platform.h"
-#include <cstring>
 #include "Container.h"
-#include "Memory/MemoryBase.h"
-#include "Templates/RefCounting.h"
 
 #define _NODISCARD_ [[nodiscard]]
 #define THUNDER_ENGINE_VERSION 123
@@ -26,51 +23,6 @@ namespace Thunder
 	template <typename Result>
 	class TEnableIf<false, Result>
 	{ };
-	
-	/* Unsafe Binary Data*/
-	struct BinaryData : RefCountedObject
-	{
-		void* Data = nullptr;
-		size_t Size = 0;
-	};
-	using BinaryDataRef = TRefCountPtr<BinaryData>;
-
-	/* Safe Binary Data*/
-	struct ManagedBinaryData
-	{
-		ManagedBinaryData() = default;
-		ManagedBinaryData(const void* inData, size_t inSize)
-			: Size(inSize)
-		{
-			Data = TMemory::Malloc<uint8>(inSize);
-			memcpy(Data, inData, inSize);
-		}
-		~ManagedBinaryData()
-		{
-			TMemory::Destroy(Data);
-		}
-		void SetData(const void* inData, size_t inSize)
-		{
-			if (Data)
-			{
-				TMemory::Destroy(Data);
-			}
-			Size = inSize;
-			Data = TMemory::Malloc<uint8>(inSize);
-			memcpy(Data, inData, inSize);
-		}
-		_NODISCARD_ void* GetData()
-		{
-			return Data;
-		}
-		_NODISCARD_ size_t GetSize()
-		{
-			return Size;
-		}
-	protected:
-		void* Data = nullptr;
-		size_t Size = 0;
-	};
 
 	// root signature
 	struct TShaderRegisterCounts
@@ -91,9 +43,6 @@ namespace Thunder
 			return 0 == memcmp(this, &rhs, sizeof(rhs));
 		}
 	};
-
-	
-	
 
 	template<typename Enum>
 	constexpr bool EnumHasAnyFlags(Enum Flags, Enum Contains)

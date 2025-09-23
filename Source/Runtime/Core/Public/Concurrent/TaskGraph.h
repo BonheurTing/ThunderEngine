@@ -1,6 +1,7 @@
 #pragma once
 #include "NameHandle.h"
 #include "Task.h"
+#include "Memory/MemoryBase.h"
 
 namespace Thunder
 {

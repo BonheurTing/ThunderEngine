@@ -2,49 +2,30 @@
 #include "Container.h"
 #include "GameObject.h"
 #include "Material.h"
-#include "Vector.h"
-#include "Container/ReflectiveContainer.h"
+#include "RenderMesh.h"
 
 namespace Thunder
 {
-	struct AABB
-	{
-		TVector3f Min { TVector3f(0.f, 0.f, 0.f) };
-		TVector3f Max { TVector3f(0.f, 0.f, 0.f) };
-
-		AABB() = default;
-		AABB(const TVector3f& min, const TVector3f& max)
-			: Min(min), Max(max) {}
-		~AABB() = default;
-
-		void Serialize(MemoryWriter& archive) const
-		{
-			archive << Min;
-			archive << Max;
-		}
-		void DeSerialize(MemoryReader& archive)
-		{
-			archive >> Min;
-			archive >> Max;
-		}
-	};
-	
 	class IMesh : public GameResource
 	{
 	public:
 		IMesh(GameObject* inOuter = nullptr, ETempGameResourceReflective inType = ETempGameResourceReflective::Unknown)
 			: GameResource(inOuter, inType) {}
 
-		~IMesh() override = default;
-	};
+		~IMesh() override;
 
-	struct SubMesh : public RefCountedObject
-	{
-		TReflectiveContainerRef Vertices { nullptr };
-		TReflectiveContainerRef Indices { nullptr };
-		AABB BoundingBox {};
+		// game object
+		void OnResourceLoaded() override;
+
+		// render resource
+		virtual class RenderMesh* CreateResource_GameThread() = 0;
+		void SetResource(RenderMesh* Resource);
+		void ReleaseResource();
+		void InitResource();
+
+	private:
+		RenderMeshRef MeshResource {};
 	};
-	using TSubMeshRef = TRefCountPtr<SubMesh>;
 
 	class StaticMesh : public IMesh
 	{
@@ -54,6 +35,8 @@ namespace Thunder
 
 		void Serialize(MemoryWriter& archive) override;
 		void DeSerialize(MemoryReader& archive) override;
+
+		RenderMesh* CreateResource_GameThread() override;
 
 	public:
 		TArray<TSubMeshRef> SubMeshes {};

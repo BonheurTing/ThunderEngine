@@ -13,11 +13,10 @@ namespace Thunder
 		virtual ~ITask() = default;
 	};
 
-	// 任务模板：任意实现了DoWork函数的类型，可用TTask<TaskType>创建任务(有点像仿函数的原理)
+	// task template: any type which implement DoWork() can use "TTask<TaskType>" to creat task (like functor)
 	template<typename TaskType>
 	class TTask : public ITask
 	{
-		// 内嵌任务类型
 		TaskType Task;
 
 	public:

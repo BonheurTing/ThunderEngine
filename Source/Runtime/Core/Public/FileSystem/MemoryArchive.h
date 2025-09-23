@@ -1,8 +1,6 @@
 #pragma once
-#include "BasicDefinition.h"
+#include "BinaryData.h"
 #include "Container.h"
-#include <cstring>
-
 #include "Guid.h"
 
 namespace Thunder

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "RenderResource.h"
+#include "RenderTexture.h"
 
 namespace Thunder
 {

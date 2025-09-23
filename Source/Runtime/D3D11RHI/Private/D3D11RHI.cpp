@@ -347,13 +347,13 @@ namespace Thunder
 		}
 	}
 
-	RHIVertexBufferRef D3D11DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  ETextureCreateFlags usage, void *resourceData)
+	RHIVertexBufferRef D3D11DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  EBufferCreateFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC vbDesc;
 		vbDesc.ByteWidth = sizeInBytes;
 		vbDesc.Usage = D3D11_USAGE_DEFAULT;
 		vbDesc.CPUAccessFlags = 0;
-		if (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic))
+		if (EnumHasAnyFlags(usage, EBufferCreateFlags::AnyDynamic))
 		{
 			vbDesc.Usage = D3D11_USAGE_DYNAMIC;
 			vbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -369,7 +369,7 @@ namespace Thunder
 
 		if (SUCCEEDED(hr))
 		{
-			return MakeRefCount<D3D11RHIVertexBuffer>(RHIResourceDescriptor::Buffer(sizeInBytes), vertexBuffer);
+			return MakeRefCount<D3D11RHIVertexBuffer>(RHIResourceDescriptor::Buffer(sizeInBytes),usage, vertexBuffer);
 		}
 		else
 		{
@@ -378,13 +378,13 @@ namespace Thunder
 		}
 	}
 
-	RHIIndexBufferRef D3D11DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, ETextureCreateFlags usage, void *resourceData)
+	RHIIndexBufferRef D3D11DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC ibDesc;
 		ibDesc.ByteWidth = width;
 		ibDesc.Usage = D3D11_USAGE_DEFAULT;
 		ibDesc.CPUAccessFlags = 0;
-		if (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic))
+		if (EnumHasAnyFlags(usage, EBufferCreateFlags::AnyDynamic))
 		{
 			ibDesc.Usage = D3D11_USAGE_DYNAMIC;
 			ibDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -400,7 +400,7 @@ namespace Thunder
 
 		if (SUCCEEDED(hr))
 		{
-			return MakeRefCount<D3D11RHIIndexBuffer>(RHIResourceDescriptor::Buffer(width), indexBuffer);
+			return MakeRefCount<D3D11RHIIndexBuffer>(RHIResourceDescriptor::Buffer(width), usage, indexBuffer);
 		}
 		else
 		{
@@ -409,13 +409,13 @@ namespace Thunder
 		}
 	}
 
-	RHIStructuredBufferRef D3D11DynamicRHI::RHICreateStructuredBuffer(uint32 size,  ETextureCreateFlags usage, void *resourceData)
+	RHIStructuredBufferRef D3D11DynamicRHI::RHICreateStructuredBuffer(uint32 size,  EBufferCreateFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC sbDesc;
 		sbDesc.ByteWidth = size;
 		sbDesc.Usage = D3D11_USAGE_DEFAULT;
 		sbDesc.CPUAccessFlags = 0;
-		if (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic))
+		if (EnumHasAnyFlags(usage, EBufferCreateFlags::AnyDynamic))
 		{
 			sbDesc.Usage = D3D11_USAGE_DYNAMIC;
 			sbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -440,13 +440,13 @@ namespace Thunder
 		}
 	}
 
-	RHIConstantBufferRef D3D11DynamicRHI::RHICreateConstantBuffer(uint32 size, ETextureCreateFlags usage, void *resourceData)
+	RHIConstantBufferRef D3D11DynamicRHI::RHICreateConstantBuffer(uint32 size, EBufferCreateFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC sbDesc;
 		sbDesc.ByteWidth = size;
 		sbDesc.Usage = D3D11_USAGE_DEFAULT;
 		sbDesc.CPUAccessFlags = 0;
-		if (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic))
+		if (EnumHasAnyFlags(usage, EBufferCreateFlags::AnyDynamic))
 		{
 			sbDesc.Usage = D3D11_USAGE_DYNAMIC;
 			sbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;

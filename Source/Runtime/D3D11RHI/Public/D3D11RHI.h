@@ -35,13 +35,13 @@ namespace Thunder
 		
         RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) override;
 
-		RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, ETextureCreateFlags usage, void *resourceData = nullptr) override;
+		RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, EBufferCreateFlags usage, void *resourceData = nullptr) override;
         
-		RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, ETextureCreateFlags usage, void *resourceData = nullptr) override;
+		RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void *resourceData = nullptr) override;
     
-		RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, ETextureCreateFlags usage, void *resourceData = nullptr) override;
+		RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EBufferCreateFlags usage, void *resourceData = nullptr) override;
     
-		RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, ETextureCreateFlags usage, void *resourceData = nullptr) override;
+		RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EBufferCreateFlags usage, void *resourceData = nullptr) override;
     
 		RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void *resourceData = nullptr) override;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Platform.h"
+
 namespace Thunder
 {
 	template<typename T>

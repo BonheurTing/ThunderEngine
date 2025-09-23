@@ -1,6 +1,7 @@
 #pragma once
 #include "Container.h"
 #include "NameHandle.h"
+#include "Memory/MemoryBase.h"
 #include "Templates/RefCountObject.h"
 
 namespace Thunder

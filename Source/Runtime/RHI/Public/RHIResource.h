@@ -1,8 +1,8 @@
 #pragma once
 
+#include "BinaryData.h"
 #include "RHI.h"
-#include "CoreMinimal.h"
-#include "RHI.export.h"
+#include "Container/ReflectiveContainer.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder
@@ -33,7 +33,7 @@ namespace Thunder
             UAV = view;
         }
 
-        virtual void Update() {};
+        virtual void Update(/*RHICommandList* commandList*/) {}
 
         _NODISCARD_ RHIShaderResourceViewRef GetSRV() const { return SRV; }
         _NODISCARD_ RHIUnorderedAccessViewRef GetUAV() const { return UAV; }
@@ -47,7 +47,8 @@ namespace Thunder
     class RHIBuffer : public RHIResource
     {
     public:
-        RHIBuffer(RHIResourceDescriptor const& desc) : RHIResource(desc) {}
+        RHIBuffer(RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags = EBufferCreateFlags::None)
+            : RHIResource(desc), CreateFlags(flags) {}
         
         void SetCBV(RHIConstantBufferView* view)
         {
@@ -57,6 +58,7 @@ namespace Thunder
         _NODISCARD_ virtual RHIConstantBufferViewRef GetCBV() const { return CBV; }
     protected:
         RHIConstantBufferViewRef CBV;
+        EBufferCreateFlags CreateFlags;
     };
     
     /**
@@ -88,25 +90,37 @@ namespace Thunder
         RHIRenderTargetViewRef RTV;
         RHIDepthStencilViewRef DSV;
 
-        ETextureCreateFlags CreateFlags;
+        ETextureCreateFlags CreateFlags = ETextureCreateFlags::None;
         BinaryDataRef Data;
     };
-    using RHITextureRef = TRefCountPtr<RHITexture>;
-    
     
     /**
      * \brief buffer
      */
-     class RHIVertexBuffer : public RHIBuffer
+    class RHIVertexBuffer : public RHIBuffer
     {
     public:
-        RHIVertexBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
+        RHIVertexBuffer(RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags) : RHIBuffer(desc, flags) {}
+
+        void SetBinaryData(TReflectiveContainerRef src)
+        {
+            Data = src;
+        }
+    protected:
+        TReflectiveContainerRef Data;
     };
     
     class RHIIndexBuffer : public RHIBuffer
     {
     public:
-        RHIIndexBuffer(RHIResourceDescriptor const& desc) : RHIBuffer(desc) {}
+        RHIIndexBuffer(RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags) : RHIBuffer(desc, flags) {}
+
+        void SetBinaryData(TReflectiveContainerRef src)
+        {
+            Data = src;
+        }
+    protected:
+        TReflectiveContainerRef Data;
     };
     
     class RHIStructuredBuffer : public RHIBuffer
@@ -173,17 +187,19 @@ namespace Thunder
     };
 
     ////// REF
-    typedef TRefCountPtr<RHIDevice> RHIDeviceRef;
-    typedef TRefCountPtr<RHIBlendState> RHIBlendStateRef;
-    typedef TRefCountPtr<RHIRasterizerState> RHIRasterizerStateRef;
-    typedef TRefCountPtr<RHIDepthStencilState> RHIDepthStencilStateRef;
-    typedef TRefCountPtr<RHIVertexDeclarationDescriptor> RHIVertexDeclarationRef;
-    typedef TRefCountPtr<TRHIGraphicsPipelineState> RHGraphicsPipelineStateIRef;    
-    typedef TRefCountPtr<RHISampler> RHISamplerRef;
-    typedef TRefCountPtr<RHIFence> RHIFenceRef;
-    typedef TRefCountPtr<RHIVertexBuffer> RHIVertexBufferRef;
-    typedef TRefCountPtr<RHIIndexBuffer> RHIIndexBufferRef;
-    typedef TRefCountPtr<RHIStructuredBuffer> RHIStructuredBufferRef;
-    typedef TRefCountPtr<RHIConstantBuffer> RHIConstantBufferRef;
-    typedef TRefCountPtr<RHITexture> RHITextureRef;
+    using RHIDeviceRef = TRefCountPtr<RHIDevice>;
+    using RHIBlendStateRef = TRefCountPtr<RHIBlendState>;
+    using RHIRasterizerStateRef = TRefCountPtr<RHIRasterizerState>;
+    using RHIDepthStencilStateRef = TRefCountPtr<RHIDepthStencilState>;
+    using RHIVertexDeclarationRef = TRefCountPtr<RHIVertexDeclarationDescriptor>;
+    using RHGraphicsPipelineStateIRef = TRefCountPtr<TRHIGraphicsPipelineState>;
+    using RHComputePipelineStateIRef = TRefCountPtr<TRHIComputePipelineState>;
+    using RHISamplerRef = TRefCountPtr<RHISampler>;
+    using RHIFenceRef = TRefCountPtr<RHIFence>;
+    using RHITextureRef = TRefCountPtr<RHITexture>;
+    using RHIVertexBufferRef = TRefCountPtr<RHIVertexBuffer>;
+    using RHIIndexBufferRef = TRefCountPtr<RHIIndexBuffer>;
+    using RHIStructuredBufferRef = TRefCountPtr<RHIStructuredBuffer>;
+    using RHIConstantBufferRef = TRefCountPtr<RHIConstantBuffer>;
+    
 }

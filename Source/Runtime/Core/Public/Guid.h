@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include <format>
-#include "Container.h"
-#include "Platform.h"
+#include "Assertion.h"
 
 namespace Thunder
 {

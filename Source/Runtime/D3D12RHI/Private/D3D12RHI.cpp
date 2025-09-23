@@ -384,11 +384,11 @@ namespace Thunder
         }
     }
 
-    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  ETextureCreateFlags usage, void *resourceData)
+    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  EBufferCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* vertexBuffer;
         const D3D12_HEAP_PROPERTIES heapType = {
-            (EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT),
+            (EnumHasAnyFlags(usage, EBufferCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT),
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
 
@@ -399,10 +399,10 @@ namespace Thunder
                                                            D3D12_RESOURCE_STATE_GENERIC_READ,
                                                            nullptr,
                                                            IID_PPV_ARGS(&vertexBuffer));
-        
+
         if (SUCCEEDED(hr))
         {
-            RHIVertexBufferRef vertexBufferRef = MakeRefCount<D3D12RHIVertexBuffer>(sizeInBytes, StrideInBytes, RHIResourceDescriptor::Buffer(sizeInBytes), vertexBuffer);
+            RHIVertexBufferRef vertexBufferRef = MakeRefCount<D3D12RHIVertexBuffer>(sizeInBytes, StrideInBytes, RHIResourceDescriptor::Buffer(sizeInBytes), usage, vertexBuffer);
             if (RHIUpdateSharedMemoryResource(vertexBufferRef.Get(), resourceData, sizeInBytes, 0))
             {
                 return vertexBufferRef;
@@ -420,11 +420,11 @@ namespace Thunder
         }
     }
     
-    RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, ETextureCreateFlags usage, void *resourceData)
+    RHIIndexBufferRef D3D12DynamicRHI::RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* indexBuffer;
         const D3D12_HEAP_PROPERTIES heapType = {
-            EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
+            EnumHasAnyFlags(usage, EBufferCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
         const auto desc = CD3DX12_RESOURCE_DESC::Buffer(width);
@@ -434,10 +434,10 @@ namespace Thunder
                                                            D3D12_RESOURCE_STATE_GENERIC_READ,
                                                            nullptr,
                                                            IID_PPV_ARGS(&indexBuffer));
-    
+
         if (SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHIIndexBuffer>(type, RHIResourceDescriptor::Buffer(width), indexBuffer);
+            return MakeRefCount<D3D12RHIIndexBuffer>(type, RHIResourceDescriptor::Buffer(width), usage, indexBuffer);
         }
         else
         {
@@ -446,14 +446,14 @@ namespace Thunder
         }
     }
     
-    RHIStructuredBufferRef D3D12DynamicRHI::RHICreateStructuredBuffer(uint32 size,  ETextureCreateFlags usage, void *resourceData)
+    RHIStructuredBufferRef D3D12DynamicRHI::RHICreateStructuredBuffer(uint32 size,  EBufferCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* structuredBuffer;
         const D3D12_HEAP_PROPERTIES heapType = {
-            EnumHasAnyFlags(usage, ETextureCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
+            EnumHasAnyFlags(usage, EBufferCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
-        
+
         const auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                             D3D12_HEAP_FLAG_NONE,
@@ -461,7 +461,7 @@ namespace Thunder
                                                             D3D12_RESOURCE_STATE_GENERIC_READ,
                                                             nullptr,
                                                             IID_PPV_ARGS(&structuredBuffer));
-    
+
         if (SUCCEEDED(hr))
         {
             return MakeRefCount<D3D12RHIStructuredBuffer>(RHIResourceDescriptor::Buffer(size), structuredBuffer);
@@ -473,7 +473,7 @@ namespace Thunder
         }
     }
     
-    RHIConstantBufferRef D3D12DynamicRHI::RHICreateConstantBuffer(uint32 size, ETextureCreateFlags usage, void *resourceData)
+    RHIConstantBufferRef D3D12DynamicRHI::RHICreateConstantBuffer(uint32 size, EBufferCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* constantBuffer;
         constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};

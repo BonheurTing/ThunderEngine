@@ -3,7 +3,6 @@
 #include <iostream>
 #include "Platform.h"
 #include "Container.h"
-#include "Vector.h"
 #include "NameHandle.h"
 #include "BasicDefinition.h"
 #include <ranges>

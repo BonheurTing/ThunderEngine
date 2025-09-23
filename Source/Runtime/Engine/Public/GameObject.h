@@ -50,8 +50,8 @@ namespace Thunder
 
 	private:
 		TGuid Guid {};
-		ETempGameResourceReflective ResourceType { ETempGameResourceReflective::Unknown }; // 资源类型
-		NameHandle ResourceName {}; // 资源的虚拟路径（如 "/Game/Textures.Texture1"）
-		TArray<TGuid> Dependencies {}; // 该资源需要的其他资源的guid，加载的时候需要一起加载
+		ETempGameResourceReflective ResourceType { ETempGameResourceReflective::Unknown };
+		NameHandle ResourceName {}; // Virtual path of resources (like "/Game/Textures.Texture1")
+		TArray<TGuid> Dependencies {}; // The GUID of other resources required by this resource needs to be loaded together when it is being loaded.
 	};
 }

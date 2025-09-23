@@ -28,7 +28,7 @@ private:
 
 enum class EEventMode : uint8 { AutoReset, ManualReset };
 
-// 给IEvent包了一层，析构的时候释放
+// Release when destruction
 class SafeRecyclableEvent  final: public IEvent
 {
 public:
@@ -68,8 +68,9 @@ public:
 };
 
 /**
- * 模板事件池
- * 提供一种高效地回收和重用事件对象的方法，以减少事件对象的创建和销毁开销。通过使用事件对象池，可以避免频繁地创建和销毁事件对象，提高性能和效率
+ * thread pool template
+ * Provide an efficient method for recycling and reusing event objects to reduce the cost of creating and destroying event objects.
+ * By using an event object pool, frequent creation and destruction of event objects can be avoided, thereby improving performance and efficiency.
  */
 template<EEventMode PoolType>
 class TEventPool

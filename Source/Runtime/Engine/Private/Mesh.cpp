@@ -1,7 +1,63 @@
-﻿#include "Mesh.h"
+﻿#pragma optimize("", off)
+#include "Mesh.h"
+#include "Concurrent/TaskScheduler.h"
 
 namespace Thunder
 {
+	IMesh::~IMesh()
+	{
+		GRenderScheduler->PushTask([Resource = this->MeshResource]()
+		{
+			Resource->ReleaseResource();
+		});
+	}
+
+	void IMesh::OnResourceLoaded()
+	{
+		GameResource::OnResourceLoaded();
+
+		ReleaseResource();
+		RenderMesh* NewResource = CreateResource_GameThread(); //纯虚函数
+		SetResource(NewResource);
+		InitResource();
+	}
+
+	void IMesh::SetResource(RenderMesh* Resource)
+	{
+		GRenderScheduler->PushTask([this, Resource]()
+		{
+			this->MeshResource = Resource;
+		});
+	}
+
+	void IMesh::ReleaseResource()
+	{
+		GRenderScheduler->PushTask([Resource = this->MeshResource]()
+		{
+			if (Resource)
+			{
+				Resource->ReleaseResource();
+			}
+		});
+	}
+
+	void IMesh::InitResource()
+	{
+		GRenderScheduler->PushTask([Resource = MeshResource.Get()]()
+		{
+			if (Resource)
+			{
+				Resource->InitResource();
+			}
+		});
+	}
+
+	RenderMesh* StaticMesh::CreateResource_GameThread()
+	{
+		auto renderMesh = MakeRefCount<RenderStaticMesh>(SubMeshes);
+		return renderMesh.Get();
+	}
+
 	void StaticMesh::Serialize(MemoryWriter& archive)
 	{
 		GameResource::Serialize(archive);
@@ -18,28 +74,28 @@ namespace Thunder
 	void StaticMesh::DeSerialize(MemoryReader& archive)
 	{
 		GameResource::DeSerialize(archive);
-		
+
 		uint32 subMeshCount;
 		archive >> subMeshCount;
-		
+
 		SubMeshes.clear();
 		SubMeshes.resize(subMeshCount);
-		
+
 		for (uint32 i = 0; i < subMeshCount; ++i)
 		{
 			const auto subMesh = MakeRefCount<SubMesh>();
-			
+
 			// 反序列化顶点缓冲区
 			subMesh->Vertices = MakeRefCount<ReflectiveContainer>();
 			subMesh->Vertices->DeSerialize(archive);
-			
+
 			// 反序列化索引缓冲区
 			subMesh->Indices = MakeRefCount<ReflectiveContainer>();
 			subMesh->Indices->DeSerialize(archive);
-			
+
 			// 反序列化包围盒
 			subMesh->BoundingBox.DeSerialize(archive);
-			
+
 			SubMeshes[i] = subMesh;
 		}
 	}

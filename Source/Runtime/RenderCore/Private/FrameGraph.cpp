@@ -1,6 +1,5 @@
 #include "FrameGraph.h"
-#include "RenderResource.h"
-#include <algorithm>
+#include "RenderTexture.h"
 
 
 namespace Thunder

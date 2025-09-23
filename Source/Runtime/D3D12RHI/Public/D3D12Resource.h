@@ -20,12 +20,14 @@ namespace Thunder
     {
     public:
         D3D12RHIVertexBuffer() = delete;
-        D3D12RHIVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, RHIResourceDescriptor const& desc, ID3D12Resource* vb) : RHIVertexBuffer(desc), VertexBuffer(vb)
+        D3D12RHIVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags, ID3D12Resource* vb) : RHIVertexBuffer(desc, flags), VertexBuffer(vb)
         {
             VertexBufferView.BufferLocation = VertexBuffer->GetGPUVirtualAddress();
             VertexBufferView.StrideInBytes = StrideInBytes;
             VertexBufferView.SizeInBytes = sizeInBytes;
         }
+
+        void Update() override;
 
         _NODISCARD_ void* GetResource() const override { return VertexBuffer.Get(); }
         _NODISCARD_ const D3D12_VERTEX_BUFFER_VIEW* GetVertexBufferView() const { return &VertexBufferView; }
@@ -38,12 +40,14 @@ namespace Thunder
     {
     public:
         D3D12RHIIndexBuffer() = delete;
-        D3D12RHIIndexBuffer(ERHIIndexBufferType type, RHIResourceDescriptor const& desc, ID3D12Resource* ib) : RHIIndexBuffer(desc), IndexBuffer(ib)
+        D3D12RHIIndexBuffer(ERHIIndexBufferType type, RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags, ID3D12Resource* ib) : RHIIndexBuffer(desc, flags), IndexBuffer(ib)
         {
             IndexBufferView.BufferLocation = IndexBuffer->GetGPUVirtualAddress();
             IndexBufferView.Format = type == ERHIIndexBufferType::Uint16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
             IndexBufferView.SizeInBytes = static_cast<UINT>(desc.Width) * (type == ERHIIndexBufferType::Uint16 ? 2 : 4);
         }
+
+        void Update() override;
     
         _NODISCARD_ void* GetResource() const override { return IndexBuffer.Get(); }
         _NODISCARD_ const D3D12_INDEX_BUFFER_VIEW* GetIndexBufferView() const { return &IndexBufferView; }

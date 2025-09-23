@@ -1,5 +1,5 @@
 #pragma once
-#include "BasicDefinition.h"
+#include "BinaryData.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder

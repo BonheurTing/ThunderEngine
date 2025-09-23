@@ -29,7 +29,7 @@ namespace Thunder
     {
     public:
         D3D11RHIVertexBuffer() = delete;
-        D3D11RHIVertexBuffer(RHIResourceDescriptor const& desc, ID3D11Resource* vb) : RHIVertexBuffer(desc), VertexBuffer(vb) {}
+        D3D11RHIVertexBuffer(RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags, ID3D11Resource* vb) : RHIVertexBuffer(desc, flags), VertexBuffer(vb) {}
 
         _NODISCARD_ void * GetResource() const override { return VertexBuffer.Get(); }
     private:
@@ -40,7 +40,7 @@ namespace Thunder
     {
     public:
         D3D11RHIIndexBuffer() = delete;
-        D3D11RHIIndexBuffer(RHIResourceDescriptor const& desc, ID3D11Resource* vb) : RHIIndexBuffer(desc), IndexBuffer(vb) {}
+        D3D11RHIIndexBuffer(RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags, ID3D11Resource* ib) : RHIIndexBuffer(desc, flags), IndexBuffer(ib) {}
     
         _NODISCARD_ void * GetResource() const override { return IndexBuffer.Get(); }
     private:

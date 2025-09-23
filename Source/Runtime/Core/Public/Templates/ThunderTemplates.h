@@ -2,13 +2,12 @@
 
 namespace Thunder
 {
-    //禁止拷贝类，继承此类则不可拷贝
     class Noncopyable
     {
     protected:
-        // 确保不能直接构造类
+        // Make sure not to directly construct classes
         Noncopyable() = default;
-        // 类不应该以多态方式使用
+        // Classes should not be used in a polymorphic manner.
         ~Noncopyable() = default;
     private:
         Noncopyable(const Noncopyable&);

@@ -1,7 +1,8 @@
 #pragma once
-#include "CoreMinimal.h"
+
 #include "RHI.h"
 #include "RHIResource.h"
+#include "Vector.h"
 
 namespace Thunder
 {

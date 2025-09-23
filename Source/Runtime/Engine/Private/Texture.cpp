@@ -12,6 +12,7 @@ namespace Thunder
 	{
 		GRenderScheduler->PushTask([Resource = this->TextureResource]()
 		{
+			Resource->ReleaseResource();
 		});
 	}
 

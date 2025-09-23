@@ -69,12 +69,12 @@ int main()
     };
     uint16 indices[] = { 0, 1, 2 };
     constexpr uint32 vertexBufferSize = sizeof(triangleVertices);
-    RHICreateVertexBuffer(vertexBufferSize, sizeof(Vertex), ETextureCreateFlags::Dynamic, triangleVertices);
-    RHICreateIndexBuffer( 3, ERHIIndexBufferType::Uint16, ETextureCreateFlags::Dynamic, indices);
+    RHICreateVertexBuffer(vertexBufferSize, sizeof(Vertex), EBufferCreateFlags::Dynamic, triangleVertices);
+    RHICreateIndexBuffer( 3, ERHIIndexBufferType::Uint16, EBufferCreateFlags::Dynamic, indices);
     //RHICreateStructuredBuffer();
     auto cbvDesc = RHIResourceDescriptor::Buffer(10);
     cbvDesc.Format = RHIFormat::R32G32B32A32_FLOAT;
-    const auto cbv = RHICreateConstantBuffer(256, ETextureCreateFlags::None);
+    const auto cbv = RHICreateConstantBuffer(256, EBufferCreateFlags::None);
     RHICreateConstantBufferView(*cbv, 256);
     
     RHIResourceDescriptor desc {};

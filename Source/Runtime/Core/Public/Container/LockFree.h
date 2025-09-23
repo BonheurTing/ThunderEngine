@@ -10,15 +10,16 @@
 #include "Templates/ThunderTemplates.h"
 
 #define MAX_LOCK_FREE_NODES_AS_BITS (26)
-#define MAX_LOCK_FREE_NODES (1 << 26) //最多支持2^26个节点
+#define MAX_LOCK_FREE_NODES (1 << 26) //supports a maximum of 2^26 nodes
 #define checkLockFreePointerList TAssert
 #define MAX_TagBitsValue (uint64(1) << (64 - MAX_LOCK_FREE_NODES_AS_BITS))
 
 namespace Thunder
 {
 	/*
-	 * 填充结构体:多线程重减少缓存争用(cache contention)
-	 * 用法是结构体中添加填充字节，以避免多个线程在访问相邻的数据时产生缓存行（cache line）的竞争，从而提高多线程程序的性能
+	 * Fill in the structure: Multi-threading reduces cache contention (cache contention)
+	 * The usage is to add padding bytes in the structure to prevent cache line conflicts when multiple threads access adjacent data,
+	 * thereby improving the performance of multi-threaded programs.
 	 **/
 	template<int PaddingForCacheContention>
 	struct TPaddingForCacheContention

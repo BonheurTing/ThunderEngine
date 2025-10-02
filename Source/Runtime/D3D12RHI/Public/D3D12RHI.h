@@ -53,11 +53,15 @@ namespace Thunder
         /// dx12 only
         
         ComPtr<ID3D12Device> GetDevice() const { return Device; }
+        ID3D12CommandQueue* RHIGetD3DCommandQueue() const { return CommandQueue.Get(); }
 
         void AddReleaseObject(ComPtr<ID3D12Object> object);
     
     private:
         ComPtr<ID3D12Device> Device;
+
+        // command queue
+        ComPtr<ID3D12CommandQueue> CommandQueue;
 
         // descriptor heap
         TRefCountPtr<TD3D12DescriptorHeap> CommonDescriptorHeap; //cbv srv uav

@@ -8,8 +8,8 @@ namespace Thunder
 	{
 	public:
 		D3D12CommandContext() = delete;
-		D3D12CommandContext(ID3D12CommandQueue* inCommandQueue, ID3D12CommandAllocator* inCommandAllocator, ID3D12GraphicsCommandList* inCommandList)
-		: CommandQueue(inCommandQueue), CommandAllocator(inCommandAllocator), CommandList(inCommandList) {}
+		D3D12CommandContext(ID3D12CommandAllocator* inCommandAllocator, ID3D12GraphicsCommandList* inCommandList)
+		: CommandAllocator(inCommandAllocator), CommandList(inCommandList) {}
 
 		//Get
 		ComPtr<ID3D12GraphicsCommandList> GetCommandList() { return CommandList; }
@@ -49,7 +49,6 @@ namespace Thunder
 		void Reset() override;
 
 	private:
-		ComPtr<ID3D12CommandQueue> CommandQueue;
 		ComPtr<ID3D12CommandAllocator> CommandAllocator;
 		ComPtr<ID3D12GraphicsCommandList> CommandList;
 	};

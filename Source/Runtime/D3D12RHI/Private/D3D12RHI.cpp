@@ -76,7 +76,6 @@ namespace Thunder
 
     RHICommandContextRef D3D12DynamicRHI::RHICreateCommandContext()
     {
-        ComPtr<ID3D12CommandQueue> CommandQueue;
         ComPtr<ID3D12CommandAllocator> CommandAllocator;
         ComPtr<ID3D12GraphicsCommandList> CommandList;
         
@@ -99,7 +98,7 @@ namespace Thunder
             TAssertf(false, "Fail to create command list");
         }
 
-        return MakeRefCount<D3D12CommandContext>(CommandQueue.Get(), CommandAllocator.Get(), CommandList.Get());
+        return MakeRefCount<D3D12CommandContext>(CommandAllocator.Get(), CommandList.Get());
     }
 
     TRHIGraphicsPipelineState* D3D12DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer)

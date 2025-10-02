@@ -3,6 +3,8 @@
 #include "D3D12DescriptorHeap.h"
 #include "D3D12PipelineState.h"
 #include "D3D12Resource.h"
+#include "D3D12RHI.h"
+#include "IDynamicRHI.h"
 
 namespace Thunder
 {
@@ -285,7 +287,11 @@ namespace Thunder
 	void D3D12CommandContext::Execute()
 	{
 		ID3D12CommandList* ppCommandLists[] = { CommandList.Get() };
-		CommandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		if (auto dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI))
+		{
+			auto commandQueue = dx12RHI->RHIGetD3DCommandQueue();
+			commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		}
 	}
 
 	void D3D12CommandContext::Close()

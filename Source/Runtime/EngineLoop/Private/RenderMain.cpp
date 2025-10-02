@@ -1,5 +1,7 @@
+#pragma optimize("", off)
 #include "RenderMain.h"
 
+#include "IRHIModule.h"
 #include "RHIMain.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
@@ -47,13 +49,23 @@ namespace Thunder
         GTestRenderer->Execute();
 
         SimulatingAddingMeshBatch();
-
-        ++GFrameState->FrameNumberRenderThread;
-        GFrameState->GameRenderCV.notify_all();
     }
 
     void RenderingTask::EndRendering()
     {
+        // begin frame: reset allocator
+        int resetIndex = GFrameState->FrameNumberRenderThread.load() % MAX_FRAME_LAG;
+        IRHIModule::GetModule()->ResetCommandContext(resetIndex);
+        // sync with render thread
+        for (auto res : GRHIUpdateSyncQueue)
+        {
+            res->Update();
+        }
+        GRHIUpdateSyncQueue.clear();
+
+        ++GFrameState->FrameNumberRenderThread;
+        GFrameState->GameRenderCV.notify_all();
+
         // rhi thread
         auto* RHIThreadTask = new (TMemory::Malloc<TTask<RHITask>>()) TTask<RHITask>(0);
         GRHIScheduler->PushTask(RHIThreadTask);
@@ -78,6 +90,7 @@ namespace Thunder
         }
         DoWorkEvent->Wait();
         FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
+        TMemory::Destroy(Dispatcher);
     }
 
 }

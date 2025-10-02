@@ -11,6 +11,12 @@ namespace Thunder
 
 		void Promise(int Num)
 		{
+			if (Num == 0)
+			{
+				TAssertf(false, "Promise called with zero num.");
+				OnCompleted();
+				return;
+			}
 #if _TRELEASE
 			Counter.store(Num, std::memory_order_release);
 #else

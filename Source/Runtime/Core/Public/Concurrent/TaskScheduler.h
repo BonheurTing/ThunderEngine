@@ -51,8 +51,8 @@ namespace Thunder
 		void DetachFromThread(ThreadProxy* InThreadProxy) override;
 		void WaitForCompletionAndThreadExit() override;
 
-		void ParallelFor(TFunction<void(uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize);
-		void ParallelFor(TFunction<void(uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize);
+		void ParallelFor(TFunction<void(uint32, uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize);
+		void ParallelFor(TFunction<void(uint32, uint32, uint32)> &&Body, uint32 NumTask, uint32 BundleSize);
 
 	private:
 		friend class ThreadProxy;

@@ -49,11 +49,7 @@ int main()
     
     //test RHI
     RHICreateDevice();
-    if (const auto context = RHICreateCommandContext())
-    {
-        IRHIModule::GetModule()->SetCommandContext(context);
-        std::cout << "Succeed to Create Command Context" << std::endl;
-    }
+    IRHIModule::GetModule()->InitCommandContext();
     
     struct Vertex
     {

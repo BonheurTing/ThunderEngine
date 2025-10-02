@@ -317,7 +317,7 @@ void TestPoolScheduler()
 		const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
 		auto* Dispatcher = new TaskCounter(DoWorkEvent);
 		Dispatcher->Promise(1024);
-		poolScheduler->ParallelFor([&randomFloat, &isGreaterThanZeroResult, Dispatcher](uint32 bundleBegin, uint32 bundleSize)
+		poolScheduler->ParallelFor([&randomFloat, &isGreaterThanZeroResult, Dispatcher](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId)
 		{
 			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
 			{
@@ -432,12 +432,12 @@ int main()
 {
 	GMalloc = new TMallocMinmalloc();
 	//TestLock();
-	//TestWorkerThread(); // successful
+	TestWorkerThread(); // successful
 	//TestTFunction(); // failed
-	//TestTask(); // successful
+	TestTask(); // successful
 	//TestIThread(); // successful
 	TestPoolScheduler(); // successful
-	//TestTaskGraph(); // successful
+	TestTaskGraph(); // successful
 	
 }
 

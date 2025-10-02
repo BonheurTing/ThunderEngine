@@ -1,6 +1,6 @@
 #pragma once
 #include "Container.h"
-
+#include "NameHandle.h"
 
 namespace Thunder
 {
@@ -9,8 +9,11 @@ namespace Thunder
 	public:
 		virtual void DoWork() = 0;
 		virtual void Abandon() {}
+		NameHandle GetName() const { return DebugName; }
 	public:
 		virtual ~ITask() = default;
+	private:
+		NameHandle DebugName = "UnKnown";
 	};
 
 	// task template: any type which implement DoWork() can use "TTask<TaskType>" to creat task (like functor)

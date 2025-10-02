@@ -1,5 +1,11 @@
+#pragma optimize("", off) 
 #include "FrameGraph.h"
 #include "RenderTexture.h"
+#include "RenderContext.h"
+#include "RHICommand.h"
+#include "IRHIModule.h"
+#include "Concurrent/TaskGraph.h"
+#include "Misc/CoreGlabal.h"
 
 
 namespace Thunder
@@ -14,10 +20,21 @@ namespace Thunder
         WriteTargets.push_back(RenderTarget.GetID());
     }
 
-    void FrameGraph::Setup()
+    void FrameGraph::Reset()
     {
-        // Clear previous frame data
-        Reset();
+        // Release all allocated render targets back to pool
+        for (const auto& [rtID, renderTarget] : AllocatedRenderTargets)
+        {
+            Pool.ReleaseRenderTarget(renderTarget);
+        }
+
+        Passes.clear();
+        ExecutionOrder.clear();
+        RenderTargetDescs.clear();
+        AllocatedRenderTargets.clear();
+        RenderTargetLifetimes.clear();
+        PresentTargetID = 0;
+        bHasPresentTarget = false;
     }
 
     void FrameGraph::Compile()
@@ -37,12 +54,42 @@ namespace Thunder
 
     void FrameGraph::Execute()
     {
+        // Clear commands from previous frame
+        int frameIndex = GFrameState->FrameNumberRenderThread % 2;
+        AllCommands[frameIndex].clear();
+        for (auto& context : RenderContexts)
+        {
+            context->ClearCommands();
+            context->FreeAllocator();
+        }
+        MainContext->ClearCommands();
+        MainContext->FreeAllocator();
+
+        // Execute passes according to pseudo-code design
         for (size_t i = 0; i < ExecutionOrder.size(); ++i)
         {
             size_t passIndex = ExecutionOrder[i];
             if (passIndex < Passes.size() && !Passes[passIndex]->bCulled)
             {
-                Passes[passIndex]->ExecuteFunction();
+                auto& pass = Passes[passIndex];
+
+                if (pass->bIsMeshDrawPass)
+                {
+                    // TODO: Implement mesh draw pass execution with parallel workers
+                    // This matches the pseudo-code for parallel primitive processing
+                    // For now, we'll skip this as requested - to be implemented later
+                }
+                else
+                {
+                    // Execute regular pass with main context
+                    pass->ExecuteFunction(MainContext);
+
+                    // Add main context commands to consolidated list
+                    const auto& commands = MainContext->GetCommands();
+                    
+                    AllCommands[frameIndex].insert(AllCommands[frameIndex].end(), commands.begin(), commands.end());
+                    MainContext->ClearCommands();
+                }
 
                 // After pass execution, release render targets that are no longer needed
                 for (const auto& [rtID, lifetime] : RenderTargetLifetimes)
@@ -64,27 +111,32 @@ namespace Thunder
         }
     }
 
-    void FrameGraph::Reset()
+    void FrameGraph::AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction, bool bIsMeshDrawPass)
     {
-        // Release all allocated render targets back to pool
-        for (const auto& [rtID, renderTarget] : AllocatedRenderTargets)
-        {
-            Pool.ReleaseRenderTarget(renderTarget);
-        }
-
-        Passes.clear();
-        ExecutionOrder.clear();
-        RenderTargetDescs.clear();
-        AllocatedRenderTargets.clear();
-        RenderTargetLifetimes.clear();
-        PresentTargetID = 0;
-        bHasPresentTarget = false;
+        auto pass = MakeRefCount<PassData>(Name, std::move(Operations), std::move(ExecuteFunction), bIsMeshDrawPass);
+        Passes.push_back(pass);
     }
 
-    void FrameGraph::AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction)
+    void FrameGraph::InitializeRenderContexts(uint32 threadCount)
     {
-        auto pass = MakeRefCount<PassData>(Name, std::move(Operations), std::move(ExecuteFunction));
-        Passes.push_back(pass);
+        if (!MainContext)
+        {
+            MainContext = new FRenderContext();
+        }
+
+        // Clear existing contexts
+        for (auto& context : RenderContexts)
+        {
+            delete context;
+        }
+        RenderContexts.clear();
+
+        // Create new contexts for each thread
+        RenderContexts.reserve(threadCount);
+        for (uint32 i = 0; i < threadCount; ++i)
+        {
+            RenderContexts.push_back(new FRenderContext());
+        }
     }
 
     void FrameGraph::SetPresentTarget(const FGRenderTarget& RenderTarget)
@@ -317,27 +369,6 @@ namespace Thunder
 
             // Keep availableTargets sorted by end time
             std::sort(availableTargets.begin(), availableTargets.end());
-        }
-    }
-
-    FrameGraphBuilder::FrameGraphBuilder(FrameGraph* InFrameGraph)
-        : FrameGraphPtr(InFrameGraph)
-    {
-    }
-
-    void FrameGraphBuilder::AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction) const
-    {
-        if (FrameGraphPtr)
-        {
-            FrameGraphPtr->AddPass(Name, std::move(Operations), std::move(ExecuteFunction));
-        }
-    }
-
-    void FrameGraphBuilder::Present(const FGRenderTarget& RenderTarget) const
-    {
-        if (FrameGraphPtr)
-        {
-            FrameGraphPtr->SetPresentTarget(RenderTarget);
         }
     }
 }

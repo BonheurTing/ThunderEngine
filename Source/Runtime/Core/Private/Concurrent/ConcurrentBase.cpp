@@ -5,7 +5,7 @@ namespace Thunder
 {
 	void TaskDispatcher::OnCompleted()
 	{
-		LOG("TaskCounter OnCompleted");
+		LOG("TaskDispatcher OnCompleted");
 		Event->Trigger();
 	}
 }

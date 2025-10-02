@@ -1,16 +1,19 @@
+#pragma optimize("", off)
 #include "Memory/TransientAllocator.h"
 #include <algorithm>
 #include <cassert>
 
 namespace Thunder
 {
-    TransientAllocator* GTransientAllocator = nullptr;
 
     // MemoryBlock implementation
     TransientAllocator::MemoryBlock::MemoryBlock(size_t size)
         : Size(size), Used(0)
     {
         Memory = std::malloc(size);
+// #if !SHIPPING
+        memset(Memory, 0xce, Size);
+// #endif
         assert(Memory != nullptr && "Failed to allocate memory block");
     }
 
@@ -36,6 +39,9 @@ namespace Thunder
         }
 
         void* result = static_cast<char*>(Memory) + alignedOffset;
+// #if !SHIPPING
+        memset(result, 0, alignedSize);
+// #endif
         Used = alignedOffset + alignedSize;
         return result;
     }
@@ -43,6 +49,9 @@ namespace Thunder
     void TransientAllocator::MemoryBlock::Reset()
     {
         Used = 0;
+// #if !SHIPPING
+        memset(Memory, 0xce, Size);
+// #endif
     }
 
     // TransientAllocator implementation
@@ -96,6 +105,10 @@ namespace Thunder
             assert(result != nullptr && "Failed to allocate from new block");
         }
 
+// #if !SHIPPING
+        memset(result, 0xce, size);
+// #endif
+
         return result;
     }
 
@@ -111,6 +124,9 @@ namespace Thunder
         // No reusable allocation found, create new one
         void* memory = std::malloc(size);
         assert(memory != nullptr && "Failed to allocate large memory");
+// #if !SHIPPING
+        memset(memory, 0xce, size);
+// #endif
 
         LargeBlocks.emplace(size, LargeAllocation(memory, size));
         return memory;

@@ -62,9 +62,9 @@ namespace Thunder
         void* Allocate(size_t size, uint32 alignment = 8);
 
         template<typename T>
-        T* Allocate(size_t count = 1)
+        void* Allocate(size_t count = 1)
         {
-            return static_cast<T*>(Allocate(sizeof(T) * count, alignof(T)));
+            return Allocate(sizeof(T) * count, alignof(T));
         }
 
         void FreeAll();
@@ -89,6 +89,4 @@ namespace Thunder
 
         static size_t AlignUp(size_t value, size_t alignment);
     };
-
-    extern CORE_API TransientAllocator* GTransientAllocator;
 }

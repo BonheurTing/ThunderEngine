@@ -13,20 +13,22 @@ namespace Thunder
 	public:
 		IRHIModule(NameHandle name) : IModule(name) {}
 		virtual ~IRHIModule() = default;
-		void SetCommandContext(const RHICommandContextRef context)
-		{
-			RHICommandList = context;
-		}
-		RHICommandContextRef GetCommandContext() const { return RHICommandList; }
+
+		void InitCommandContext();
+		void ResetCommandContext(uint32 index) const;
 		
+		bool TryGetCopyCommandContext() const { return CommandContexts.size() > 1 && CommandContexts.back().IsValid(); }
+		RHICommandContext* GetCopyCommandContext() const { return CommandContexts.size() > 1 ? CommandContexts.back().Get() : nullptr; }
+		const TArray<RHICommandContextRef>& GetRHICommandContexts() const { return CommandContexts; }
+
 		static IRHIModule* GetModule()
 		{
 			return ModuleInstance;
 		}
-		
+
 	protected:
 		IDynamicRHI* DynamicRHI;
-		RHICommandContextRef RHICommandList;
+		TArray<RHICommandContextRef> CommandContexts;
 		static IRHIModule* ModuleInstance;
 	};
 }

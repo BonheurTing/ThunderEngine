@@ -61,7 +61,7 @@ namespace Thunder
         if (LoadingSignal == 0)
         {
             uint32 LoadingIndex = GFrameState->FrameNumberGameThread / 400;
-            GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 ModelIndex, uint32 dummy)
+            GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 ModelIndex, uint32 dummy, uint32 bundleId)
             {
                 ThunderZoneScopedN("AsyncLoading");
                 FPlatformProcess::BusyWaiting(100000);

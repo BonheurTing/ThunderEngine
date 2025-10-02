@@ -36,6 +36,8 @@ namespace Thunder
         }
     private:
         void RHIMain();
+        void ExecuteCommands();
+        
     };
 
     

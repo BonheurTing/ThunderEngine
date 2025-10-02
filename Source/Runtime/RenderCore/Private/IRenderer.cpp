@@ -1,10 +1,12 @@
 #include "IRenderer.h"
 
+#include "Concurrent/TaskScheduler.h"
+
 namespace Thunder
 {
     IRenderer::IRenderer()
-        : mFrameGraph(new FrameGraph())
     {
+        mFrameGraph = new FrameGraph(GAsyncWorkers->GetNumThreads());
     }
 
     IRenderer::~IRenderer()

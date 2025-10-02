@@ -23,6 +23,8 @@ namespace Thunder
         void InitRHI() override;
         void ReleaseRHI() override;
 
+        bool isDynamic() const override { return bDynamic; }
+
     protected:
         virtual void CreateMesh_RenderThread() = 0;
 

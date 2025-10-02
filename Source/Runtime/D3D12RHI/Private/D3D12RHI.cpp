@@ -76,7 +76,7 @@ namespace Thunder
 
     RHICommandContextRef D3D12DynamicRHI::RHICreateCommandContext()
     {
-        ComPtr<ID3D12CommandAllocator> CommandAllocator;
+        ComPtr<ID3D12CommandAllocator> CommandAllocator[MAX_FRAME_LAG];
         ComPtr<ID3D12GraphicsCommandList> CommandList;
         
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -87,18 +87,21 @@ namespace Thunder
         {
             TAssertf(false, "Fail to create command queue");
         }
-        hr = Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
-        if (FAILED(hr))
+        for (auto& i : CommandAllocator)
         {
-            TAssertf(false, "Fail to create command allocator");
+            hr = Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&i));
+            if (FAILED(hr))
+            {
+                TAssertf(false, "Fail to create command allocator");
+            }
         }
-        hr = Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocator.Get(), nullptr, IID_PPV_ARGS(&CommandList));
+        hr = Device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, CommandAllocator[0].Get(), nullptr, IID_PPV_ARGS(&CommandList));
         if (FAILED(hr))
         {
             TAssertf(false, "Fail to create command list");
         }
 
-        return MakeRefCount<D3D12CommandContext>(CommandAllocator.Get(), CommandList.Get());
+        return MakeRefCount<D3D12CommandContext>(CommandAllocator, CommandList.Get());
     }
 
     TRHIGraphicsPipelineState* D3D12DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer)
@@ -607,7 +610,9 @@ namespace Thunder
          **/
         if (!GReleaseQueue[index].empty())
         {
-            GAsyncWorkers->PushTask([releaseQueue = std::move(GReleaseQueue[index])](){});
+            GAsyncWorkers->PushTask([releaseQueue = std::move(GReleaseQueue[index])]()
+            {
+            });
             GReleaseQueue[index].clear();
         }
     }

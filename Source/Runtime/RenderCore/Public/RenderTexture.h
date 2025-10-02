@@ -14,7 +14,7 @@ namespace Thunder
         virtual uint32 GetSizeX() const { return 0; }
         virtual uint32 GetSizeY() const { return 0; }
         virtual uint32 GetSizeZ() const { return 0; }
-        bool IsDynamic() const { return (static_cast<uint32>(CreationFlags) & static_cast<uint32>(ETextureCreateFlags::AnyDynamic)) > 0; }
+        bool isDynamic() const override { return (static_cast<uint32>(CreationFlags) & static_cast<uint32>(ETextureCreateFlags::AnyDynamic)) > 0; }
 
         void InitRHI() override;
         void ReleaseRHI() override;

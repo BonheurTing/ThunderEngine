@@ -8,6 +8,18 @@
 
 namespace Thunder
 {
+	D3D12CommandContext::D3D12CommandContext(const ComPtr<ID3D12CommandAllocator>* inCommandAllocator,
+	ID3D12GraphicsCommandList* inCommandList) :CommandList(inCommandList)
+	{
+		for (int i = 0; i < MAX_FRAME_LAG; i++)
+		{
+			CommandAllocator[i] = inCommandAllocator[i];
+		}
+
+		const HRESULT hr = CommandList->Close();
+		TAssertf(SUCCEEDED(hr), "Failed to close command list");
+	}
+
 	void D3D12CommandContext::ClearDepthStencilView(RHIDepthStencilView* dsv, ERHIClearFlags clearFlags, float depthValue, uint8 stencilValue)
 	{
 		if (const auto d3d12Dsv = static_cast<D3D12RHIDepthStencilView*>(dsv))
@@ -286,6 +298,9 @@ namespace Thunder
 
 	void D3D12CommandContext::Execute()
 	{
+		const HRESULT hr = CommandList->Close();
+		TAssertf(SUCCEEDED(hr), "Failed to close command list");
+
 		ID3D12CommandList* ppCommandLists[] = { CommandList.Get() };
 		if (auto dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI))
 		{
@@ -294,17 +309,11 @@ namespace Thunder
 		}
 	}
 
-	void D3D12CommandContext::Close()
+	void D3D12CommandContext::Reset(uint32 index)
 	{
-		const HRESULT hr = CommandList->Close();
-		TAssertf(SUCCEEDED(hr), "Failed to close command list");
-	}
-
-	void D3D12CommandContext::Reset()
-	{
-		HRESULT hr = CommandAllocator->Reset();
+		HRESULT hr = CommandAllocator[index]->Reset();
 		TAssertf(SUCCEEDED(hr), "Failed to reset command allocator");
-		hr = CommandList->Reset(CommandAllocator.Get(), nullptr);
+		hr = CommandList->Reset(CommandAllocator[index].Get(), nullptr);
 		TAssertf(SUCCEEDED(hr), "Failed to reset command list");
 	}
 }

@@ -46,8 +46,7 @@ namespace Thunder
     	virtual void Execute() = 0;
     	
     	// Misc
-    	virtual void Close() = 0;
-    	virtual void Reset() = 0;
+    	virtual void Reset(uint32 index) = 0;
     	virtual void ResourceBarrier() {} //todo
     };
 

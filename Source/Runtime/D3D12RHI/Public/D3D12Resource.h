@@ -94,4 +94,6 @@ namespace Thunder
 
     
     D3D12_RESOURCE_FLAGS GetRHIResourceFlags(RHIResourceFlags flags);
+
+    uint32 BytesPerPixelFromDXGIFormat(DXGI_FORMAT format);
 }

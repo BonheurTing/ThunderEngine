@@ -57,11 +57,7 @@ namespace Thunder
         std::cout << IRHIModule::GetModule()->GetName().c_str() << std::endl;
 
         RHICreateDevice();
-        if (const auto context = RHICreateCommandContext())
-        {
-            IRHIModule::GetModule()->SetCommandContext(context);
-            std::cout << "Succeed to Create Command Context" << std::endl;
-        }
+        IRHIModule::GetModule()->InitCommandContext();
 
         // setup task scheduler
         TaskSchedulerManager::StartUp();

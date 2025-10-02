@@ -47,10 +47,17 @@ namespace Thunder
         /**
          * 把binary data放在 rhi resource中，防止rhi线程访问渲染线程的数据
          **/
-        GRHIScheduler->PushTask([bin = RawData, rhiRes = TextureRHI]()
+        GRHIScheduler->PushTask([bin = RawData, rhiRes = TextureRHI, bAsync = isDoubleBuffered() || (!isDynamic())]()
         {
             rhiRes->SetBinaryData(bin);
-            GRHIUpdateSyncQueue.push_back(rhiRes);
+            if (bAsync)
+            {
+                GRHIUpdateAsyncQueue.push_back(rhiRes);
+            }
+            else
+            {
+                GRHIUpdateSyncQueue.push_back(rhiRes);
+            }
         });
     }
 }

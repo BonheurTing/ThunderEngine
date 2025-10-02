@@ -43,8 +43,7 @@ namespace Thunder
 		void Execute() override {}
     	
 		// Misc
-		void Close() override {}
-		void Reset() override {}
+		void Reset(uint32 index) override {}
 		
 	private:
 		ComPtr<ID3D11DeviceContext> DeferredContext;

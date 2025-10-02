@@ -2,6 +2,7 @@
 #include "intrin.h"
 #include "Misc/LazySingleton.h"
 #include "Windows/WindowsThread.h"
+#include "Platform.h"
 
 namespace Thunder
 {
@@ -48,9 +49,15 @@ namespace Thunder
 
     int32 FPlatformProcess::NumberOfCores()
     {
+#if THUNDER_WINDOWS
         SYSTEM_INFO sysInfo;
         GetSystemInfo(&sysInfo);
         return static_cast<int32>(sysInfo.dwNumberOfProcessors);
+#elif THUNDER_POSIX
+        long numCores = sysconf(_SC_NPROCESSORS_ONLN);
+        return static_cast<int32>(numCores > 0 ? numCores : 1);
+#endif
+        return 0;
     }
 
     DWORD CountSetBits(ULONG_PTR bitMask) {
@@ -64,9 +71,9 @@ namespace Thunder
 
     int32 FPlatformProcess::NumberOfLogicalProcessors()
     {
+#if THUNDER_WINDOWS
         DWORD logicalProcessorCount = 0;
         DWORD physicalCoreCount = 0;
-
         // 获取缓冲区大小
         DWORD bufferSize = 0;
         GetLogicalProcessorInformation(nullptr, &bufferSize);
@@ -85,8 +92,13 @@ namespace Thunder
             std::cerr << "获取处理器信息失败！" << std::endl;
             return 1;
         }
-
         return static_cast<int32>(logicalProcessorCount);
+#elif THUNDER_POSIX
+        // POSIX系统使用sysconf获取逻辑处理器数量
+        long logicalProcessorCount = sysconf(_SC_NPROCESSORS_ONLN);
+        return static_cast<int32>(logicalProcessorCount > 0 ? logicalProcessorCount : 1);
+#endif
+        return 0;
     }
 
     IThread* FPlatformProcess::CreateRunnableThread()

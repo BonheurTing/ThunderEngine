@@ -8,8 +8,7 @@ namespace Thunder
 	{
 	public:
 		D3D12CommandContext() = delete;
-		D3D12CommandContext(ID3D12CommandAllocator* inCommandAllocator, ID3D12GraphicsCommandList* inCommandList)
-		: CommandAllocator(inCommandAllocator), CommandList(inCommandList) {}
+		D3D12CommandContext(const ComPtr<ID3D12CommandAllocator>* inCommandAllocator, ID3D12GraphicsCommandList* inCommandList);
 
 		//Get
 		ComPtr<ID3D12GraphicsCommandList> GetCommandList() { return CommandList; }
@@ -45,11 +44,10 @@ namespace Thunder
 		void Execute() override;
     	
 		// Misc
-		void Close() override;
-		void Reset() override;
+		void Reset(uint32 index) override;
 
 	private:
-		ComPtr<ID3D12CommandAllocator> CommandAllocator;
+		ComPtr<ID3D12CommandAllocator> CommandAllocator[MAX_FRAME_LAG];
 		ComPtr<ID3D12GraphicsCommandList> CommandList;
 	};
 }

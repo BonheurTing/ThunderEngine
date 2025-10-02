@@ -19,6 +19,8 @@ namespace Thunder
 
 		/*virtual bool IsValid() const = 0;
 		virtual size_t GetMemorySize() const = 0;*/
+		virtual bool isDynamic() const { return false; }
+		virtual bool isDoubleBuffered() const { return false; }
 	};
 
 	extern RENDERCORE_API TArray<RHIResource*> GRHIUpdateSyncQueue;

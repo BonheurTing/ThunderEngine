@@ -38,8 +38,8 @@ namespace Thunder
     {
         //check(bRenderThread)
         TAssert(bDynamic == false);
-        VBs.reserve(NumSubMeshes);
-        IBs.reserve(NumSubMeshes);
+        VBs.resize(NumSubMeshes);
+        IBs.resize(NumSubMeshes);
         for (uint32 i = 0; i < NumSubMeshes; i++)
         {
             // vb
@@ -69,14 +69,22 @@ namespace Thunder
             }
         }
 
-        GRHIScheduler->PushTask([num = NumSubMeshes, binVertex = RawVerticesData, binIndex = RawIndicesData, rhiResVB = VBs, rhiResIB = IBs]()
+        GRHIScheduler->PushTask([num = NumSubMeshes, binVertex = RawVerticesData, binIndex = RawIndicesData, rhiResVB = VBs, rhiResIB = IBs, bAsync = isDoubleBuffered() || (!isDynamic())]()
         {
             for (uint32 i = 0; i < num; i++)
             {
                 rhiResVB[i]->SetBinaryData(binVertex[i]);
                 rhiResIB[i]->SetBinaryData(binIndex[i]);
-                GRHIUpdateSyncQueue.push_back(rhiResVB[i]);
-                GRHIUpdateSyncQueue.push_back(rhiResIB[i]);
+                if (bAsync)
+                {
+                    GRHIUpdateAsyncQueue.push_back(rhiResVB[i]);
+                    GRHIUpdateAsyncQueue.push_back(rhiResIB[i]);
+                }
+                else
+                {
+                    GRHIUpdateSyncQueue.push_back(rhiResVB[i]);
+                    GRHIUpdateSyncQueue.push_back(rhiResIB[i]);
+                }
             }
         });
     }

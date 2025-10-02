@@ -75,16 +75,13 @@ namespace Thunder
 		switch (Data->Channels)
 		{
 			case 1:
-			format = RHIFormat::R32_UINT;
+			format = RHIFormat::R8_UINT;
 			break;
 			case 2:
-			format = RHIFormat::R32G32_UINT;
-			break;
-			case 3:
-			format = RHIFormat::R32G32B32_UINT;
+			format = RHIFormat::R8G8_UINT;
 			break;
 			case 4:
-			format = RHIFormat::R32G32B32A32_UINT;
+			format = RHIFormat::R8G8B8A8_UINT;
 			break;
 			default:
 			TAssertf(false, "Invalid format");
@@ -103,9 +100,27 @@ namespace Thunder
 		{
 			ImgData = MakeRefCount<BinaryData>();
 		}
-		ImgData->Size = static_cast<size_t>(Width) * Height * Channels;
+		ImgData->Size = static_cast<size_t>(Width) * Height * 4;
 		ImgData->Data = TMemory::Malloc(ImgData->Size);
-		memcpy(ImgData->Data, inData, ImgData->Size);
+		if (Channels == 4)
+		{
+			memcpy(ImgData->Data, inData, ImgData->Size);
+		}
+		else if (Channels == 3)
+		{
+			unsigned char * dstData = static_cast<unsigned char *>(ImgData->Data);
+			for (int i = 0; i < Width * Height; i++) {
+				dstData[i * 4 + 0] = inData[i * 3 + 0]; // R
+				dstData[i * 4 + 1] = inData[i * 3 + 1]; // G
+				dstData[i * 4 + 2] = inData[i * 3 + 2]; // B
+				dstData[i * 4 + 3] = 255; // A - 填充为不透明
+			}
+			Channels = 4;
+		}
+		else
+		{
+			TAssertf(false, "Invalid Data");
+		}
 	}
 
 	void Texture2D::Serialize(MemoryWriter& archive)

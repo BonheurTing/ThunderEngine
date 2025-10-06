@@ -32,18 +32,28 @@ namespace Thunder
 				IID_PPV_ARGS(&uploadBuffer)));
 		}
 
-		void* mappedData = nullptr;
-		HRESULT hr = uploadBuffer->Map(0, nullptr, &mappedData);
-		TAssertf(SUCCEEDED(hr), "Map failed");
-		const uint8* srcData = static_cast<const uint8*>(Data->GetData());
-		memcpy(mappedData, srcData, uploadBufferSize);
-		uploadBuffer->Unmap(0, nullptr);
-
-		if (!isDynamic)
+		if (isDynamic)
 		{
+			void* mappedData = nullptr;
+			HRESULT hr = uploadBuffer->Map(0, nullptr, &mappedData);
+			TAssertf(SUCCEEDED(hr), "Map failed");
+			const uint8* srcData = static_cast<const uint8*>(Data->GetData());
+			memcpy(mappedData, srcData, uploadBufferSize);
+			uploadBuffer->Unmap(0, nullptr);
+		}
+		else
+		{
+			// Prepare subresource data for UpdateSubresources
+			D3D12_SUBRESOURCE_DATA vertexData = {};
+			vertexData.pData = Data->GetData();
+			vertexData.RowPitch = uploadBufferSize;
+			vertexData.SlicePitch = vertexData.RowPitch;
+
 			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext()))
 			{
-				dx12Context->GetCommandList()->CopyResource(VertexBuffer.Get(), uploadBuffer.Get());
+				UpdateSubresources<1>(dx12Context->GetCommandList().Get(), VertexBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &vertexData);
+				CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(VertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+				dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
 			}
 
 			dx12RHI->AddReleaseObject(uploadBuffer);
@@ -73,18 +83,28 @@ namespace Thunder
 				IID_PPV_ARGS(&uploadBuffer)));
 		}
 
-		void* mappedData = nullptr;
-		HRESULT hr = uploadBuffer->Map(0, nullptr, &mappedData);
-		TAssertf(SUCCEEDED(hr), "Map failed");
-		const uint8* srcData = static_cast<const uint8*>(Data->GetData());
-		memcpy(mappedData, srcData, uploadBufferSize);
-		uploadBuffer->Unmap(0, nullptr);
-
-		if (!isDynamic)
+		if (isDynamic)
 		{
+			void* mappedData = nullptr;
+			HRESULT hr = uploadBuffer->Map(0, nullptr, &mappedData);
+			TAssertf(SUCCEEDED(hr), "Map failed");
+			const uint8* srcData = static_cast<const uint8*>(Data->GetData());
+			memcpy(mappedData, srcData, uploadBufferSize);
+			uploadBuffer->Unmap(0, nullptr);
+		}
+		else
+		{
+			// Prepare subresource data for UpdateSubresources
+			D3D12_SUBRESOURCE_DATA indexData = {};
+			indexData.pData = Data->GetData();
+			indexData.RowPitch = uploadBufferSize;
+			indexData.SlicePitch = indexData.RowPitch;
+
 			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext()))
 			{
-				dx12Context->GetCommandList()->CopyResource(IndexBuffer.Get(), uploadBuffer.Get());
+				UpdateSubresources<1>(dx12Context->GetCommandList().Get(), IndexBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &indexData);
+				CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(IndexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+				dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
 			}
 
 			dx12RHI->AddReleaseObject(uploadBuffer);
@@ -122,91 +142,43 @@ namespace Thunder
 	        nullptr,
 	        IID_PPV_ARGS(&uploadBuffer)));
 
-	    // 3. copy data to Upload Buffer
-	    uint8_t* mappedData = nullptr;
-	    ThrowIfFailed(uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mappedData)));
+	    // 3. Prepare subresource data for UpdateSubresources
+	    std::vector<D3D12_SUBRESOURCE_DATA> subresourceData(subresourceCount);
+	    UINT64 srcOffset = 0;
 
-	    UINT64 srcOffset = 0; // Source data offset
 	    for (UINT arraySlice = 0; arraySlice < textureDesc.DepthOrArraySize; ++arraySlice)
 	    {
 	        for (UINT mip = 0; mip < textureDesc.MipLevels; ++mip)
 	        {
 	            UINT subresourceIndex = D3D12CalcSubresource(mip, arraySlice, 0, textureDesc.MipLevels, textureDesc.DepthOrArraySize);
 
-	            // Get footprint (Pitch, Offset, size, etc.)
-	            D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
-	            UINT numRows = 0;
-	            UINT64 rowSizeInBytes = 0;
-	            UINT64 totalBytes = 0;
-	            d3dDevice->GetCopyableFootprints(
-	                &textureDesc,  // Use texture desc instead of buffer desc
-	                subresourceIndex,
-	                1,
-	                0,
-	                &footprint,
-	                &numRows,
-	                &rowSizeInBytes,
-	                &totalBytes);
-
-	            // Copy data row by row (considering RowPitch alignment)
-	            const uint8* srcData = static_cast<const uint8*>(Data->Data) + srcOffset;
-	            uint8* dstData = mappedData + footprint.Offset;
+	            // Calculate dimensions for this mip level
+	            UINT mipWidth = std::max(uint64(1), textureDesc.Width >> mip);
+	            UINT mipHeight = std::max(1u, textureDesc.Height >> mip);
 
 	            uint32 bytesPerPixel = BytesPerPixelFromDXGIFormat(textureDesc.Format);
-	            uint32 rowPitch = footprint.Footprint.RowPitch;
-	            uint32 rowBytes = footprint.Footprint.Width * bytesPerPixel;
+	            uint32 rowBytes = mipWidth * bytesPerPixel;
+	            uint32 sliceBytes = rowBytes * mipHeight;
 
-	            for (uint32 z = 0; z < footprint.Footprint.Depth; ++z)
-	            {
-	                const uint8* srcSlice = srcData + z * rowBytes * numRows;
-	                uint8* dstSlice = dstData + z * rowPitch * numRows;
+	            // Fill D3D12_SUBRESOURCE_DATA
+	            subresourceData[subresourceIndex].pData = static_cast<const uint8*>(Data->Data) + srcOffset;
+	            subresourceData[subresourceIndex].RowPitch = rowBytes;
+	            subresourceData[subresourceIndex].SlicePitch = sliceBytes;
 
-	                for (uint32 y = 0; y < numRows; ++y)
-	                {
-	                    memcpy(dstSlice + y * rowPitch, srcSlice + y * rowBytes, rowBytes);
-	                }
-	            }
-
-	            // Update source offset
-	            srcOffset += rowBytes * numRows * footprint.Footprint.Depth;
+	            srcOffset += sliceBytes * textureDesc.DepthOrArraySize;
 	        }
 	    }
 
-	    uploadBuffer->Unmap(0, nullptr);
-
-	    // 4. 生成 CopyTextureRegion 命令
+	    // 4. Use UpdateSubresources to copy data from CPU to GPU
 	    if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext()))
 	    {
-	        for (UINT arraySlice = 0; arraySlice < textureDesc.DepthOrArraySize; ++arraySlice)
-	        {
-	            for (UINT mip = 0; mip < textureDesc.MipLevels; ++mip)
-	            {
-	                UINT subresourceIndex = D3D12CalcSubresource(mip, arraySlice, 0, textureDesc.MipLevels, textureDesc.DepthOrArraySize);
-
-	                D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
-	                UINT numRows = 0;
-	                UINT64 rowSizeInBytes = 0;
-	                UINT64 totalBytes = 0;
-	                d3dDevice->GetCopyableFootprints(
-	                    &textureDesc,  // Use texture desc instead of buffer desc
-	                    subresourceIndex,
-	                    1,
-	                    0,
-	                    &footprint,
-	                    &numRows,
-	                    &rowSizeInBytes,
-	                    &totalBytes);
-
-	                CD3DX12_TEXTURE_COPY_LOCATION dstLocation(Texture.Get(), subresourceIndex);
-
-	                D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-	                srcLocation.pResource = uploadBuffer.Get();
-	                srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-	                srcLocation.PlacedFootprint = footprint;
-
-	                dx12Context->GetCommandList()->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, nullptr);
-	            }
-	        }
+	        UpdateSubresources(dx12Context->GetCommandList().Get(), Texture.Get(), uploadBuffer.Get(), 0, 0, subresourceCount, subresourceData.data());
+	    	CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(Texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	    	dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
+	    }
+	    else
+	    {
+		    TAssertf(false, "fail to get dx12 command context");
 	    }
 
 	    dx12RHI->AddReleaseObject(uploadBuffer);

@@ -15,6 +15,7 @@ public:
 	virtual void Reset() = 0;
 	virtual bool Wait( uint32 WaitTime, const bool bIgnoreThreadIdleStats = false ) = 0;
 	bool Wait() { return Wait((uint32)0xffffffff); }
+	virtual void* GetNativeHandle() = 0;
 public:
 	IEvent() = default;
 	virtual ~IEvent() = default;
@@ -63,6 +64,11 @@ public:
 	virtual bool Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats = false) override
 	{
 		return InnerEvent->Wait(WaitTime, bIgnoreThreadIdleStats);
+	}
+
+	virtual void* GetNativeHandle() override
+	{
+		return InnerEvent->GetNativeHandle();
 	}
 
 };

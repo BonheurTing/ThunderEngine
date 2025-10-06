@@ -1,6 +1,7 @@
 #pragma optimize("", off)
 #include "RenderMain.h"
 
+#include "IDynamicRHI.h"
 #include "IRHIModule.h"
 #include "RHIMain.h"
 #include "Concurrent/ConcurrentBase.h"
@@ -53,6 +54,10 @@ namespace Thunder
 
     void RenderingTask::EndRendering()
     {
+        // BeginFrame: Wait for fence (3 frames ago) to ensure GPU has completed previous work
+        uint32 currentFrameIndex = GFrameState->FrameNumberRenderThread.load() % MAX_FRAME_LAG;
+        GDynamicRHI->RHIWaitForFrame(currentFrameIndex);
+
         // begin frame: reset allocator
         int resetIndex = GFrameState->FrameNumberRenderThread.load() % MAX_FRAME_LAG;
         IRHIModule::GetModule()->ResetCommandContext(resetIndex);

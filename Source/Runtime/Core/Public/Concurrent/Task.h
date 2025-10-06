@@ -10,7 +10,7 @@ namespace Thunder
 		virtual void DoWork() = 0;
 		virtual void Abandon() {}
 		NameHandle GetName() const { return DebugName; }
-	public:
+
 		virtual ~ITask() = default;
 	private:
 		NameHandle DebugName = "UnKnown";

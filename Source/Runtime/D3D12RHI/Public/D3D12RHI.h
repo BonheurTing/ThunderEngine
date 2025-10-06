@@ -3,6 +3,7 @@
 #include "IDynamicRHI.h"
 #include "d3d12.h"
 #include "D3D12DescriptorHeap.h"
+#include "HAL/Event.h"
 
 namespace Thunder
 {
@@ -12,6 +13,7 @@ namespace Thunder
     {
     public:
         D3D12DynamicRHI();
+        ~D3D12DynamicRHI();
         
     /////// RHI Methods
         RHIDeviceRef RHICreateDevice() override;
@@ -56,12 +58,21 @@ namespace Thunder
         ID3D12CommandQueue* RHIGetD3DCommandQueue() const { return CommandQueue.Get(); }
 
         void AddReleaseObject(ComPtr<ID3D12Object> object);
-    
+
+        void RHISignalFence(uint32 frameIndex) override;
+        void RHIWaitForFrame(uint32 frameIndex) override;
+
     private:
         ComPtr<ID3D12Device> Device;
 
         // command queue
         ComPtr<ID3D12CommandQueue> CommandQueue;
+
+        // fence synchronization
+        ComPtr<ID3D12Fence> Fence;
+        IEvent* FenceEvent;
+        uint64 ExpectedFenceValues[MAX_FRAME_LAG] = {0};
+        uint64 CurrentFenceValue = 0;
 
         // descriptor heap
         TRefCountPtr<TD3D12DescriptorHeap> CommonDescriptorHeap; //cbv srv uav

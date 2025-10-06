@@ -46,6 +46,10 @@ namespace Thunder
         virtual bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId) = 0;
 
         virtual void RHIReleaseResource() = 0;
+
+        // CPU-GPU synchronization
+        virtual void RHISignalFence(uint32 frameIndex) = 0;
+        virtual void RHIWaitForFrame(uint32 frameIndex) = 0;
     };
     
     extern RHI_API IDynamicRHI* GDynamicRHI;
@@ -138,6 +142,16 @@ namespace Thunder
     FORCEINLINE void RHIReleaseResource()
     {
         return GDynamicRHI->RHIReleaseResource();
+    }
+
+    FORCEINLINE void RHISignalFence(uint32 frameIndex)
+    {
+        return GDynamicRHI->RHISignalFence(frameIndex);
+    }
+
+    FORCEINLINE void RHIWaitForFrame(uint32 frameIndex)
+    {
+        return GDynamicRHI->RHIWaitForFrame(frameIndex);
     }
 }
 

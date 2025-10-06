@@ -125,5 +125,6 @@ namespace Thunder
         {
             rhiCommandContexts[i]->Execute(); // Order-preserving
         }
+        GDynamicRHI->RHISignalFence(frameIndex);
     }
 }

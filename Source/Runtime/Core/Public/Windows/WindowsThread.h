@@ -46,6 +46,11 @@ public:
 	}
 	virtual bool Wait( uint32 WaitTime, const bool bIgnoreThreadIdleStats = false ) override;
 
+	virtual void* GetNativeHandle() override
+	{
+		return static_cast<void*>(Event);
+	}
+
 private:
 	/** Holds the handle to the event. */
 	HANDLE Event;

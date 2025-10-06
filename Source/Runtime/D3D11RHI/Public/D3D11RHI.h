@@ -49,6 +49,10 @@ namespace Thunder
 
 		void RHIReleaseResource() override {}
 
+		void RHISignalFence(uint32 frameIndex) override {}
+
+		void RHIWaitForFrame(uint32 frameIndex) override {}
+
 	private:
 		ComPtr<ID3D11Device> Device;
 	};

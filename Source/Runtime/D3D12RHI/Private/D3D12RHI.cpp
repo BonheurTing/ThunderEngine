@@ -10,7 +10,7 @@
 #include <dxgi1_4.h>
 
 #include "D3D12RHIModule.h"
-#include "D3D12RootSignature.h"
+#include "PlatformProcess.h"
 #define INITGUID
 #include "d3dx12.h"
 #include "Concurrent/TaskScheduler.h"
@@ -24,8 +24,23 @@ namespace Thunder
         {
             i = TArray<ComPtr<ID3D12Object>>();
         }
+
+        FenceEvent = nullptr;
+        CurrentFenceValue = 0;
+        for (unsigned long long& FenceValue : ExpectedFenceValues)
+        {
+            FenceValue = 0;
+        }
     }
-    
+
+    D3D12DynamicRHI::~D3D12DynamicRHI()
+    {
+        if (FenceEvent != nullptr)
+        {
+            FPlatformProcess::ReturnSyncEventToPool(FenceEvent);
+        }
+    }
+
     RHIDeviceRef D3D12DynamicRHI::RHICreateDevice()
     {
         ComPtr<IDXGIFactory4> factory;
@@ -62,7 +77,15 @@ namespace Thunder
         SamplerDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, SamplerDescriptorHeapSize);
 
         TD3D12RHIModule::GetModule()->InitD3D12Context(Device.Get());
-        
+
+        // Create fence for CPU-GPU synchronization
+        HRESULT fenceHr = Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&Fence));
+        TAssertf(SUCCEEDED(fenceHr), "Failed to create fence");
+
+        // Create event for fence waiting
+        FenceEvent = FPlatformProcess::GetSyncEventFromPool(false);
+        TAssertf(FenceEvent != nullptr, "Failed to create fence event");
+
         if(SUCCEEDED(hr))
         {
             return MakeRefCount<D3D12Device>(Device.Get());
@@ -621,5 +644,32 @@ namespace Thunder
     {
         uint32 index = GFrameState->FrameNumberRHIThread % MAX_FRAME_LAG;
         GReleaseQueue[index].push_back(object);
+    }
+
+    void D3D12DynamicRHI::RHISignalFence(uint32 frameIndex)
+    {
+        ++CurrentFenceValue;
+        ExpectedFenceValues[frameIndex] = CurrentFenceValue;
+
+        HRESULT hr = CommandQueue->Signal(Fence.Get(), CurrentFenceValue);
+        TAssertf(SUCCEEDED(hr), "Failed to signal fence");
+    }
+
+    void D3D12DynamicRHI::RHIWaitForFrame(uint32 frameIndex)
+    {
+        uint64 fenceValue = ExpectedFenceValues[frameIndex];
+
+        if (fenceValue == 0)
+        {
+            return; // No fence value recorded yet
+        }
+
+        uint64 completedValue = Fence->GetCompletedValue();
+        if (completedValue < fenceValue)
+        {
+            HRESULT hr = Fence->SetEventOnCompletion(fenceValue, static_cast<HANDLE>(FenceEvent->GetNativeHandle()));
+            TAssertf(SUCCEEDED(hr), "Failed to set fence event");
+            FenceEvent->Wait();
+        }
     }
 }

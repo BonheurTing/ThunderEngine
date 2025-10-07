@@ -6,10 +6,7 @@ namespace Thunder
 {
 	IMesh::~IMesh()
 	{
-		GRenderScheduler->PushTask([Resource = this->MeshResource]()
-		{
-			Resource->ReleaseResource();
-		});
+		ReleaseResource();
 	}
 
 	void IMesh::OnResourceLoaded()
@@ -32,13 +29,13 @@ namespace Thunder
 
 	void IMesh::ReleaseResource()
 	{
-		GRenderScheduler->PushTask([Resource = this->MeshResource]()
+		if (MeshResource)
 		{
-			if (Resource)
+			GRenderScheduler->PushTask([Resource = this->MeshResource]()
 			{
 				Resource->ReleaseResource();
-			}
-		});
+			});
+		}
 	}
 
 	void IMesh::InitResource()
@@ -54,8 +51,19 @@ namespace Thunder
 
 	RenderMesh* StaticMesh::CreateResource_GameThread()
 	{
-		auto renderMesh = MakeRefCount<RenderStaticMesh>(SubMeshes);
-		return renderMesh.Get();
+		auto renderMesh = new RenderStaticMesh(SubMeshes);
+		return renderMesh;
+	}
+
+	StaticMesh::~StaticMesh()
+	{
+		for (auto subMesh : SubMeshes)
+		{
+			if (subMesh)
+			{
+				TMemory::Destroy(subMesh);
+			}
+		}
 	}
 
 	void StaticMesh::Serialize(MemoryWriter& archive)
@@ -83,7 +91,7 @@ namespace Thunder
 
 		for (uint32 i = 0; i < subMeshCount; ++i)
 		{
-			const auto subMesh = MakeRefCount<SubMesh>();
+			const auto subMesh = new (TMemory::Malloc<SubMesh>()) SubMesh();
 
 			// 反序列化顶点缓冲区
 			subMesh->Vertices = MakeRefCount<ReflectiveContainer>();

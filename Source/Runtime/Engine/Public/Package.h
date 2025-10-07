@@ -33,8 +33,8 @@ namespace Thunder
 			//TArray<uint8> TypeList; // 每个对象的类型
 		};
 
-		void Serialize(MemoryWriter& archive) override;
-		void DeSerialize(MemoryReader& archive) override;
+		void Serialize(MemoryWriter& archive);
+		void DeSerialize(MemoryReader& archive);
 		bool Save(const String& fullPath);
 		bool Load();
 		static bool LoadOnlyGuid(const String& fullPath, TGuid& outGuid);

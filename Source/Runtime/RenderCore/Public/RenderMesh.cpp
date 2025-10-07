@@ -23,7 +23,7 @@ namespace Thunder
         }
     }
 
-    RenderStaticMesh::RenderStaticMesh(const TArray<TSubMeshRef>& subMeshes)
+    RenderStaticMesh::RenderStaticMesh(const TArray<SubMesh*>& subMeshes)
     {
         NumSubMeshes = static_cast<uint32>(subMeshes.size());
         for (auto& subMesh : subMeshes)

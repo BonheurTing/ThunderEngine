@@ -11,48 +11,76 @@
 #include "Misc/TraceProfile.h"
 #include "Misc/CoreGlabal.h"
 #include "Module/ModuleManager.h"
+#include "Scene.h"
 
 namespace Thunder
 {
-    void GameTask::Init()
+    Scene* TestGenerateExampleScene()
     {
-        // init task scheduler
-        const auto ThreadNum = FPlatformProcess::NumberOfLogicalProcessors();
+        // Create a new scene
+        Scene* NewScene = new Scene();
+        NewScene->SetSceneName("ExampleLevel");
 
-        TaskSchedulerManager::InitWorkerThread();
+        // Create a root entity (like a game object)
+        Entity* RootEntity = NewScene->CreateEntity("PlayerCharacter");
 
-        TaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
+        // Add a transform component
+        TransformComponent* Transform = RootEntity->AddComponent<TransformComponent>();
+        Transform->SetPosition(TVector3f(10.0f, 10.0f, 10.0f));
+        Transform->SetRotation(TVector3f(0.0f, 0.0f, 0.0f));
+        Transform->SetScale(TVector3f(1.0f, 1.0f, 1.0f));
 
-        GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
+        // Add a static mesh component
+        StaticMeshComponent* MeshComp = RootEntity->AddComponent<StaticMeshComponent>();
+        // Set mesh and materials would be done here after loading resources
 
-        // init game resource
-        StreamableManager::LoadAllAsync();
+        // Add entity to scene
+        NewScene->AddRootEntity(RootEntity);
+
+        // Create a child entity
+        Entity* ChildEntity = NewScene->CreateEntity("Weapon");
+        TransformComponent* ChildTransform = ChildEntity->AddComponent<TransformComponent>();
+        ChildTransform->SetPosition(TVector3f(1.0f, 0.0f, 0.5f));
+        RootEntity->AddChild(ChildEntity);
+
+        
+
+        // Save scene to file
+        //NewScene->Save("D:/Game/Levels/ExampleLevel.tmap");
+
+        return NewScene;
     }
 
-    void GameTask::EngineLoop()
+    GameTask::GameTask()
     {
-        Init();
+        TaskGraph = GameModule::GetGameThreadTaskGraph();
+    }
 
-        while (!EngineMain::IsEngineExitRequested())
+    GameTask::~GameTask()
+    {
+        TaskGraph = nullptr;
+    }
+
+    void GameTask::DoWork()
+    {
+        ThunderFrameMark;
+
+        AsyncLoading(); //todo: delete
+
+        GameMain();
+
+        if (GFrameState->FrameNumberGameThread++ >= 100000)
         {
-            ThunderFrameMark;
-
-            AsyncLoading();
-
-            GameMain();
-
-            if (GFrameState->FrameNumberGameThread++ >= 100000)
-            {
-                EngineMain::IsRequestingExit = true;
-            }
-
-            // push render command
-            const auto RenderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>(0);
-            GRenderScheduler->PushTask(RenderThreadTask);
+            EngineMain::IsRequestingExit = true;
         }
 
-        LOG("End GameThread Execute");
-        EngineMain::EngineExitSignal->Trigger();
+        // push render command
+        const auto RenderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>(0);
+        GRenderScheduler->PushTask(RenderThreadTask);
+
+        // push game task for next frame
+        auto* GameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
+        GGameScheduler->PushTask(GameThreadTask);
     }
 
     void GameTask::AsyncLoading()
@@ -98,6 +126,12 @@ namespace Thunder
         // game thread
         LOG("Execute game thread in frame: %d with thread: %lu", FrameNum, __threadid());
 
+        // Tick.
+        auto const& tickables = GameModule::GetTickables();
+        for (auto const& tickable : tickables)
+        {
+            tickable->Tick();
+        }
         
         // physics
         auto* TaskPhysics = new (TMemory::Malloc<SimulatedPhysicsTask>()) SimulatedPhysicsTask(FrameNum, "PhysicsTask");
@@ -114,5 +148,85 @@ namespace Thunder
         TaskGraph->Submit();
         
         TaskGraph->WaitAndReset();
+    }
+
+    Scene* GameTask::LoadExampleScene(const String& FilePath)
+    {
+        // Create a new scene
+        Scene* LoadedScene = new Scene();
+
+        // Load scene from file
+        if (!LoadedScene->Load(FilePath))
+        {
+            delete LoadedScene;
+            return nullptr;
+        }
+
+        // Stream scene resources asynchronously
+        LoadedScene->StreamScene();
+
+        return LoadedScene;
+    }
+
+    void GameTask::GameStart()
+    {
+        // Load scene file
+        String SceneFilePath = "D:/Game/Levels/MainLevel.tmap";
+
+        // Create scene
+        Scene* GameScene = new Scene();
+
+        // Load scene from file
+        if (GameScene->Load(SceneFilePath))
+        {
+            // Stream all resources asynchronously
+            GameScene->StreamScene();
+
+            // Scene will call OnLoaded() when all resources are ready
+        }
+        else
+        {
+            LOG("Failed to load scene: %s", SceneFilePath.c_str());
+            delete GameScene;
+        }
+    }
+
+    IMPLEMENT_MODULE(Game, GameModule)
+
+    void GameModule::StartUp()
+    {
+        // The InitGameThread() cannot be executed because the TaskSchedulerManager is not yet ready
+    }
+
+    void GameModule::ShutDown()
+    {
+        TMemory::Free(GameThreadTaskGraph);
+    }
+
+    void GameModule::InitGameThread()
+    {
+        // init task scheduler
+        TaskSchedulerManager::InitWorkerThread(); // GSyncWorkers Ready
+
+        GameThreadTaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
+
+        GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
+
+        // Informal: load all game resource ( in content directory )
+        StreamableManager::LoadAllAsync();
+
+        // Informal
+        TestScene = TestGenerateExampleScene();
+    }
+
+    void GameModule::RegisterTickable(ITickable* Tickable)
+    {
+        GetModule()->Tickables.push_back(Tickable);
+    }
+
+    void GameModule::UnregisterTickable(ITickable* Tickable)
+    {
+        auto tickableIt = std::ranges::find(GetModule()->Tickables, Tickable);
+        GetModule()->Tickables.erase(tickableIt);
     }
 }

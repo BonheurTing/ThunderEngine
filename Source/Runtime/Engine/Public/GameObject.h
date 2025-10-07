@@ -13,9 +13,6 @@ namespace Thunder
 		virtual ~GameObject() = default;
 		_NODISCARD_ GameObject* GetOuter() const { return Outer; }
 
-		virtual void Serialize(MemoryWriter& archive) {}
-		virtual void DeSerialize(MemoryReader& archive) {}
-
 	private:
 		GameObject* Outer { nullptr };
 	};
@@ -24,6 +21,7 @@ namespace Thunder
 	{
 		StaticMesh = 0,
 		Texture2D,
+		Material,
 		Unknown
 	};
 
@@ -41,8 +39,8 @@ namespace Thunder
 		void AddDependency(const TGuid& guid) { Dependencies.push_back(guid); }
 		void SetResourceName(const NameHandle& name) { ResourceName = name; }
 
-		void Serialize(MemoryWriter& archive) override;
-		void DeSerialize(MemoryReader& archive) override;
+		virtual void Serialize(MemoryWriter& archive);
+		virtual void DeSerialize(MemoryReader& archive);
 		virtual void OnResourceLoaded()
 		{
 			LOG("success OnResourceLoaded");

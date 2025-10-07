@@ -34,6 +34,7 @@ namespace Thunder
         ModuleManager::GetInstance()->LoadModule<FileModule>();
         ModuleManager::GetInstance()->LoadModule<ShaderModule>();
         ModuleManager::GetInstance()->LoadModule<ResourceModule>();
+        ModuleManager::GetInstance()->LoadModule<GameModule>();
 
         // setup rhi
         String configRHIType = GConfigManager->GetConfig("BaseEngine")->GetString("RHI");
@@ -61,6 +62,8 @@ namespace Thunder
 
         // setup task scheduler
         TaskSchedulerManager::StartUp();
+
+        GameModule::GetModule()->InitGameThread();
     }
 
     bool EngineMain::RHIInit(EGfxApiType type)
@@ -89,6 +92,18 @@ namespace Thunder
     {
         auto* GameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
         GGameScheduler->PushTask(GameThreadTask);
+        /**
+         * plan a: the main thread push a game task.
+         *      then, at the end of the game task's function (DoWork), the game task submits the next game task
+         * plan b: the main thread push a game task within a while loop
+         *      and uses a signal to wait for the game task's function (DoWork) to complete.
+         *      at the end of DoWork, this signal is triggered.
+         * at last, i choose plan a because main thread may handle IO operations (such as keyboard and mouse input)
+         *      that require immediate response in the future,
+         *      while the "while expression" needs to wait for the completion of the game task before responding.
+        **/
+
+        // may be handle IO operations (such as keyboard and mouse input)
 
         GGameScheduler->WaitForCompletionAndThreadExit();
         GRenderScheduler->WaitForCompletionAndThreadExit();
@@ -100,8 +115,10 @@ namespace Thunder
     void EngineMain::Exit()
     {
         TaskSchedulerManager::ShutDown();
-        ModuleManager::GetInstance()->UnloadModule<CoreModule>();
-        ModuleManager::GetInstance()->UnloadModule<FileModule>();
+        ModuleManager::GetInstance()->UnloadModule<GameModule>();
         ModuleManager::GetInstance()->UnloadModule<ResourceModule>();
+        ModuleManager::GetInstance()->UnloadModule<ShaderModule>();
+        ModuleManager::GetInstance()->UnloadModule<FileModule>();
+        ModuleManager::GetInstance()->UnloadModule<CoreModule>();
     }
 }

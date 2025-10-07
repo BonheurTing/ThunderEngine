@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Concurrent/TaskGraph.h"
+#include "Module/ModuleManager.h"
 
 namespace Thunder
 {
@@ -8,21 +9,19 @@ namespace Thunder
     public:
         friend class TTask<GameTask>;
 
-        GameTask()
-        {
-        }
+        GameTask();
+        ~GameTask();
 
-        void DoWork()
-        {
-            EngineLoop();
-        }
+        void DoWork();
 
         virtual void CustomBeginFrame() {}
         virtual void CustomEndFrame() {}
 
+    public:
+        class Scene* LoadExampleScene(const String& FilePath);
+        void GameStart();
+
     private:
-        void Init();
-        void EngineLoop();
         void AsyncLoading();
         void GameMain();
 		
@@ -31,6 +30,38 @@ namespace Thunder
 
         int ModelData[1024] { 0 };
         bool ModelLoaded[1024] { false };
+    };
+
+    class ITickable
+    {
+    public:
+        virtual ~ITickable() = default;
+        virtual void Tick() = 0;
+    };
+
+    class ENGINELOOP_API GameModule : public IModule
+    {
+        DECLARE_MODULE(Game, GameModule)
+
+    public:
+        void StartUp() override;
+        void ShutDown() override;
+
+        void InitGameThread();
+
+        static void RegisterTickable(ITickable* Tickable);
+        static void UnregisterTickable(ITickable* Tickable);
+        static TArray<ITickable*> const& GetTickables() { return GetModule()->Tickables; }
+
+    private:
+        friend class GameTask;
+        static TaskGraphProxy* GetGameThreadTaskGraph() { return GetModule()->GameThreadTaskGraph; }
+        
+
+        TArray<ITickable*> Tickables;
+        TaskGraphProxy* GameThreadTaskGraph { nullptr };
+
+        Scene* TestScene { nullptr };
     };
 }
 

@@ -2,17 +2,15 @@
 
 #include "MathUtilities.h"
 #include "RenderResource.h"
-#include "Container/ReflectiveContainer.h"
 
 namespace Thunder
 {
-    struct SubMesh : public RefCountedObject
+    struct SubMesh
     {
         TReflectiveContainerRef Vertices { nullptr };
         TReflectiveContainerRef Indices { nullptr };
         AABB BoundingBox {};
     };
-    using TSubMeshRef = TRefCountPtr<SubMesh>;
 
     class RenderMesh : public RenderResource
     {
@@ -39,7 +37,7 @@ namespace Thunder
     class RenderStaticMesh final : public RenderMesh
     {
     public:
-        RenderStaticMesh(const TArray<TSubMeshRef>& subMeshes);
+        RenderStaticMesh(const TArray<SubMesh*>& subMeshes);
 
     private:
         void CreateMesh_RenderThread() override;

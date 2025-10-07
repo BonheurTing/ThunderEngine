@@ -300,7 +300,8 @@ namespace Thunder
 				const aiMesh* mesh = scene->mMeshes[i];
 				LOG("Mesh %d: %d vertices\n", i, mesh->mNumVertices);
 
-				const auto subMesh = MakeRefCount<SubMesh>();
+				const auto subMesh = new (TMemory::Malloc<SubMesh>()) SubMesh();
+
 				subMesh->Vertices = GenerateVertexBuffer(mesh);
 				subMesh->Indices = GenerateIndicesBuffer(mesh);
 				subMesh->BoundingBox = AABB(
@@ -331,7 +332,7 @@ namespace Thunder
 				return true;
 			}
 		}
-		if (fileExtension == "png" || fileExtension == "tga")
+		else if (fileExtension == "png" || fileExtension == "tga")
 		{
 			int width, height, channels;
 			unsigned char* data = stbi_load(srcPath.c_str(), &width, &height, &channels, 0);
@@ -367,6 +368,14 @@ namespace Thunder
 				std::cerr << "Failed to load image: " << srcPath << std::endl;
 				return false;
 			}
+		}
+		else if (fileExtension == "shader")
+		{
+			//todo: import .shader file
+			// open file, read josn
+			// new Material and fill in data
+			// generate guid
+			// save to tasset
 		}
 		return false;
 	}

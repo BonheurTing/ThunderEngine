@@ -10,10 +10,7 @@ namespace Thunder
 {
 	ITexture::~ITexture()
 	{
-		GRenderScheduler->PushTask([Resource = this->TextureResource]()
-		{
-			Resource->ReleaseResource();
-		});
+		ReleaseResource();
 	}
 
 	void ITexture::OnResourceLoaded()
@@ -48,13 +45,13 @@ namespace Thunder
 
 	void ITexture::ReleaseResource()
 	{
-		GRenderScheduler->PushTask([this]()
+		if (TextureResource)
 		{
-			if (this->TextureResource)
+			GRenderScheduler->PushTask([Resource = this->TextureResource]()
 			{
-				this->TextureResource->ReleaseResource();
-			}
-		});
+				Resource->ReleaseResource();
+			});
+		}
 	}
 
 	void ITexture::InitResource()

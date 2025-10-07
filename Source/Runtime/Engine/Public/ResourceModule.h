@@ -29,10 +29,12 @@ namespace Thunder
 		// load package
 		static bool LoadSync(const NameHandle& softPath, TArray<GameResource*> &outResources, bool bForce = false);
 		// load game resource
+		static GameResource* LoadSync(const TGuid& guid, bool bForce = false);
 		static GameResource* LoadSync(const NameHandle& resourceSoftPath, bool bForce = false);
+		static void LoadAsync(const TGuid& guid);
 		static void LoadAsync(const NameHandle& path);
-		_NODISCARD_ bool IsLoaded(const NameHandle& path) const { return LoadedResourcesByPath.contains(path); }
-		_NODISCARD_ bool IsLoaded(const TGuid& guid) const { return LoadedResources.contains(guid); }
+		static bool IsLoaded(const NameHandle& path) { return GetModule()->LoadedResourcesByPath.contains(path); }
+		static bool IsLoaded(const TGuid& guid) { return GetModule()->LoadedResources.contains(guid); }
 		bool SavePackage(Package* package, const String& fullPath);
 		void RegisterPackage(Package* package);
 

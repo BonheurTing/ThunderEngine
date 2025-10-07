@@ -224,6 +224,10 @@ namespace Thunder
 			{
 				gameResource = new Texture2D();
 			}
+			else if (typeList[i] == ETempGameResourceReflective::Material)
+			{
+				gameResource = new Material(); //todo
+			}
 			else
 			{
 				TMemory::Destroy(fileData);
@@ -293,7 +297,7 @@ namespace Thunder
 	{
 		auto& LoadedResByPath = GetModule()->LoadedResourcesByPath;
 		auto& LoadedRes = GetModule()->LoadedResources;
-		if (!bForce && GetModule()->IsLoaded(softPath))
+		if (!bForce && IsLoaded(softPath))
 		{
 			const TGuid guid = LoadedResByPath[softPath];
 			if (LoadedRes.contains(guid))
@@ -321,11 +325,21 @@ namespace Thunder
 		return false;
 	}
 
+	GameResource* ResourceModule::LoadSync(const TGuid& guid, bool bForce)
+	{
+		if (!GetModule()->ResourcePathMap.contains(guid))
+		{
+			TAssertf(false, "ResourceModule::LoadSync: fail to load a resource by guid: %u-%u-%u-%u", guid.A, guid.B, guid.C, guid.D);
+			return nullptr;
+		}
+		return LoadSync(GetModule()->ResourcePathMap[guid], bForce);
+	}
+
 	GameResource* ResourceModule::LoadSync(const NameHandle& resourceSoftPath, bool bForce)
 	{
 		auto& LoadedResByPath = GetModule()->LoadedResourcesByPath;
 		auto& LoadedRes = GetModule()->LoadedResources;
-		if (!bForce && GetModule()->IsLoaded(resourceSoftPath))
+		if (!bForce && IsLoaded(resourceSoftPath))
 		{
 			const TGuid guid = LoadedResByPath[resourceSoftPath];
 			if (LoadedRes.contains(guid))
@@ -350,6 +364,15 @@ namespace Thunder
 		TAssertf(false, "ResourceModule::LoadSync: fail to load a Package, softPath: %s", pakSoftPath.c_str());
 		delete newPackage;
 		return nullptr;
+	}
+
+	void ResourceModule::LoadAsync(const TGuid& guid)
+	{
+		if (!GetModule()->ResourcePathMap.contains(guid))
+		{
+			TAssertf(false, "ResourceModule::LoadAsync: fail to load a resource by guid: %u-%u-%u-%u", guid.A, guid.B, guid.C, guid.D);
+		}
+		return LoadAsync(GetModule()->ResourcePathMap[guid]);
 	}
 
 	void ResourceModule::LoadAsync(const NameHandle& path)

@@ -17,7 +17,7 @@ namespace Thunder
 		FORCEINLINE TRefCountPtr():
 			Reference(nullptr)
 		{ }
-		
+
 		TRefCountPtr(ReferencedType* InReference, bool bAddRef = true)
 		{
 			Reference = InReference;
@@ -38,8 +38,9 @@ namespace Thunder
 
 		template<typename CopyReferencedType>
 		explicit TRefCountPtr(const TRefCountPtr<CopyReferencedType, IsManaged>& Copy)
+			requires std::is_convertible_v<CopyReferencedType, ReferencedType>
+			: Reference(static_cast<ReferencedType*>(Copy.Get()))
 		{
-			Reference = static_cast<ReferencedType*>(Copy.Get());
 			if (Reference)
 			{
 				Reference->AddRef();

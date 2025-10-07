@@ -18,7 +18,7 @@ namespace Thunder
 		void OnResourceLoaded() override;
 
 		// render resource
-		virtual class RenderMesh* CreateResource_GameThread() = 0;
+		virtual RenderMesh* CreateResource_GameThread() = 0;
 		void SetResource(RenderMesh* Resource);
 		void ReleaseResource();
 		void InitResource();
@@ -31,7 +31,7 @@ namespace Thunder
 	{
 	public:
 		StaticMesh(GameObject* inOuter = nullptr) : IMesh(inOuter, ETempGameResourceReflective::StaticMesh) {}
-		~StaticMesh() override = default;
+		~StaticMesh() override;
 
 		void Serialize(MemoryWriter& archive) override;
 		void DeSerialize(MemoryReader& archive) override;
@@ -39,7 +39,7 @@ namespace Thunder
 		RenderMesh* CreateResource_GameThread() override;
 
 	public:
-		TArray<TSubMeshRef> SubMeshes {};
+		TArray<SubMesh*> SubMeshes {};
 		TArray<IMaterial*> DefaultMaterials {};
 
 		// UProperty()

@@ -99,13 +99,12 @@ namespace Thunder
         const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
         auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
         dispatcher->Promise(commandNum);
-        GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, dispatcher](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
+        GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
         {
-            uint32 totalNum = static_cast<uint32>(consolidatedCommands.size());
             RHICommandContext* commandList = rhiCommandContexts[bundleId];
             for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
             {
-                if (index < totalNum)
+                if (index < commandNum)
                 {
                     size_t currentSize = consolidatedCommands.size();
                     consolidatedCommands.resize(currentSize * 2);

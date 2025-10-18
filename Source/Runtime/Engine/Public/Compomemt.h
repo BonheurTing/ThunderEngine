@@ -6,33 +6,65 @@
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/document.h"
-#include <atomic>
+#include "Concurrent/TaskScheduler.h"
+#include "Concurrent/ConcurrentBase.h"
 
 namespace Thunder
 {
+	/**
+	 * Generic load event callback template
+	 * Used for notifying when asynchronous resource loading is complete
+	 */
+	template <typename T>
+	class OnSceneLoaded : public IOnCompleted
+	{
+	public:
+		OnSceneLoaded(T* inLoadItem) : LoadItem(inLoadItem) {}
+
+		void OnCompleted() override
+		{
+			if (LoadItem)
+			{
+				GGameScheduler->PushTask([item = LoadItem]()
+				{
+					item->OnLoaded();
+				});
+			}
+		}
+
+	private:
+		T* LoadItem { nullptr };
+	};
+
 	class IComponent : public GameObject
 	{
 	public:
 		IComponent() = default;
-		virtual ~IComponent() = default;
+		~IComponent() override;
 
 		// Component identification
 		virtual NameHandle GetComponentName() const = 0;
 
 		// Dependency collection for resource streaming
-		virtual void GetDependencies(TArray<TGuid>& OutDependencies) const {}
+		virtual void GetDependencies(TList<TGuid>& OutDependencies) const {}
 
 		// JSON serialization
-		virtual void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const {}
-		virtual void DeserializeJson(const rapidjson::Value& JsonValue) {}
+		virtual void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const = 0;
+		virtual void DeserializeJson(const rapidjson::Value& JsonValue) = 0;
 
 		// Asynchronous resource loading
-		virtual void AsyncLoad() {}
-		virtual bool IsLoaded() const { return true; }
-		virtual void OnLoaded() {}
+		void SyncLoad();
+		void AsyncLoad();
+		bool IsLoaded() const;
+		virtual void OnLoaded();
 
 		// Factory method for creating components by name
 		static IComponent* CreateComponentByName(const NameHandle& componentName);
+
+	private:
+		// Loading state
+		std::atomic<bool> Loaded { false };
+		OnSceneLoaded<IComponent>* StreamingEvent { nullptr };
 	};
 
 	class PrimitiveComponent : public IComponent
@@ -53,19 +85,14 @@ namespace Thunder
 		NameHandle GetComponentName() const override { return "StaticMeshComponent"; }
 
 		// Dependency collection
-		void GetDependencies(TArray<TGuid>& outDependencies) const override;
+		void GetDependencies(TList<TGuid>& outDependencies) const override;
 
 		// JSON serialization
 		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const override;
 		void DeserializeJson(const rapidjson::Value& jsonValue) override;
 
-		// Asynchronous resource loading
-		void AsyncLoad() override;
-		bool IsLoaded() const override;
+		// resource loading
 		void OnLoaded() override;
-
-		// Synchronous resource loading (blocking)
-		void SyncLoad();
 
 		// Mesh and material management
 		void SetMesh(StaticMesh* inMesh) { Mesh = inMesh; }
@@ -77,9 +104,6 @@ namespace Thunder
 	private:
 		StaticMesh* Mesh { nullptr };
 		TArray<IMaterial*> OverrideMaterials {};
-
-		// Loading state
-		std::atomic<bool> Loaded { false };
 
 		// GUIDs for serialization
 		TGuid MeshGuid {};

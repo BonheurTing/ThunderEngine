@@ -70,41 +70,55 @@ namespace Thunder
 
 	String FileModule::GetFileName(const String& filePath)
 	{
-		// 查找最后一个路径分隔符的位置（支持Windows和Unix风格）
-		const size_t slashPos = std::max(
-			filePath.find_last_of('/'),  // Unix风格分隔符
-			filePath.find_last_of('\\')  // Windows风格分隔符
-		);
-		
-		// 提取分隔符之后的文件名部分
+		// find lash '/' or '\\'
+		size_t slashPosWin = filePath.find_last_of('\\');
+		if (slashPosWin == String::npos)
+		{
+			slashPosWin = 0;
+		}
+		size_t slashPosUnix = filePath.find_last_of('/');
+		if (slashPosUnix == String::npos)
+		{
+			slashPosUnix = 0;
+		}
+		const size_t slashPos = std::max(slashPosWin, slashPosUnix);
+
+		// split file name
 		String fileName;
-		if (slashPos != std::string::npos) {
+		if (slashPos > 0 && slashPos < filePath.length()) {
 			fileName = filePath.substr(slashPos + 1);
 		} else {
-			fileName = filePath; // 没有路径分隔符，整个字符串就是文件名
+			fileName = filePath; // if no '/', file name is whole name
 		}
 		
-		// 查找最后一个点号的位置以移除扩展名
+		// find last '.'
 		const size_t dotPos = fileName.find_last_of('.');
-		if (dotPos != std::string::npos) {
-			return fileName.substr(0, dotPos); // 返回点号之前的部分
+		if (dotPos != String::npos) {
+			return fileName.substr(0, dotPos); // return substr before '.'
 		}
 		
-		return fileName; // 没有扩展名，返回整个文件名
+		return fileName;
 	}
 
 	String FileModule::GetFileExtension(const String& filePath)
 	{
 		const size_t dotPos = filePath.find_last_of('.');
     
-		// 查找最后一个路径分隔符的位置（支持Windows和Unix风格）
-		const size_t slashPos = std::max(
-			filePath.find_last_of('/'),  // Unix风格分隔符
-			filePath.find_last_of('\\')  // Windows风格分隔符
-		);
+		// find lash '/' or '\\'
+		size_t slashPosWin = filePath.find_last_of('\\');
+		if (slashPosWin == String::npos)
+		{
+			slashPosWin = 0;
+		}
+		size_t slashPosUnix = filePath.find_last_of('/');
+		if (slashPosUnix == String::npos)
+		{
+			slashPosUnix = 0;
+		}
+		const size_t slashPos = std::max(slashPosWin, slashPosUnix);
     
 		// 如果找到了点号，并且点号在最后一个路径分隔符之后（即确实是文件扩展名）
-		if (dotPos != std::string::npos && (slashPos == std::string::npos || dotPos > slashPos)) {
+		if (dotPos != std::string::npos && dotPos > slashPos) {
 			// 返回点号之后的所有字符（即文件扩展名）
 			return filePath.substr(dotPos + 1);
 		}

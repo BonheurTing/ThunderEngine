@@ -21,21 +21,6 @@ namespace Thunder
 		TGuid::GenerateGUID(Header.Guid); // 生成一个新的GUID
 	}
 
-	uint32 Package::CalculateHeaderSize() const
-	{
-		const auto numGuids = static_cast<uint32>(Header.GuidList.size());
-		const uint32 size = sizeof(Header.MagicNumber)
-			+ sizeof(Header.CheckSum)
-			+ sizeof(Header.Version)
-			+ sizeof(uint32) * 4 // GUID
-			+ sizeof(uint32) // num of Guid
-			+ sizeof(uint32) * 4 * numGuids // GUID列表
-			+ sizeof(uint32) * numGuids // 偏移列表
-			+ sizeof(uint32) * numGuids // 大小列表
-			+ sizeof(uint32) * numGuids; // 类型列表（如果需要的话）
-		return size;
-	}
-
 	void Package::Serialize(MemoryWriter& archive)
 	{
 		archive << Header.MagicNumber;
@@ -85,15 +70,24 @@ namespace Thunder
 			const GameResource* res = Objects[i];
 			Header.GuidList[i] = res->GetGUID();
 		}
+		
+		// Serialize Header
+		MemoryWriter curArchive;
+		uint32 headerSize = 0;
+		curArchive << headerSize;
+		Serialize(curArchive);
+		for (auto obj : Objects)
+		{
+			String resourceSuffix = FileModule::GetFileExtension(obj->GetResourceName().ToString());
+			curArchive << resourceSuffix;
+		}
+		headerSize = static_cast<uint32>(curArchive.Size());
+
 		// Prepare the objects header data.
 		TArray<uint32> offsetList, sizeList, typeList;
 		offsetList.resize(numGuids);
 		sizeList.resize(numGuids);
 		typeList.resize(numGuids);
-		// Serialize Header
-		MemoryWriter curArchive;
-		Serialize(curArchive);
-		const uint32 headerSize = static_cast<uint32>(curArchive.Size());
 		for (uint32 i = 0; i < numGuids; ++i)
 		{
 			curArchive << offsetList[i];
@@ -115,6 +109,7 @@ namespace Thunder
 		const uint32 fileSize = offset;
 		void* fileData = curArchive.Data();
 		uint8* fileDataPtr = static_cast<uint8*>(fileData);
+		memcpy(fileDataPtr, &headerSize, 4);
 		for (uint32 i = 0, flag = headerSize; i < numGuids; i++, flag += 12)
 		{
 			memcpy(fileDataPtr + flag, &offsetList[i], 4);
@@ -122,8 +117,8 @@ namespace Thunder
 			memcpy(fileDataPtr + flag + 8, &typeList[i], 4);
 		}
 		// Calculate and write checksum
-		Header.CheckSum = FCrc::BinaryCrc32(fileDataPtr + 8, fileSize - 8);
-		memcpy(fileDataPtr + 4, &Header.CheckSum, 4);
+		Header.CheckSum = FCrc::BinaryCrc32(fileDataPtr + 12, fileSize - 12);
+		memcpy(fileDataPtr + 8, &Header.CheckSum, 4);
 
 		// Write to .tmp file and rename it to the final path
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
@@ -170,8 +165,17 @@ namespace Thunder
 		
 		// 创建MemoryReader来反序列化头部
 		MemoryReader headerArchive(&binaryData);
+		uint32 headerSize = 0;
+		headerArchive >> headerSize;
 		DeSerialize(headerArchive);
 		const uint32 numGuids = static_cast<uint32>(Header.GuidList.size());
+		TArray<String> resourceSuffixList;
+		resourceSuffixList.resize(numGuids);
+		for (uint32 i = 0; i < numGuids; ++i)
+		{
+			headerArchive >> resourceSuffixList[i];
+		}
+
 		TArray<uint32> offsetList, sizeList;
 		TArray<ETempGameResourceReflective> typeList;
 		offsetList.resize(numGuids);
@@ -195,7 +199,7 @@ namespace Thunder
 		
 		// 验证校验和（跳过魔数和校验和本身）
 		uint8* fileDataPtr = static_cast<uint8*>(fileData);
-		const uint32 calculatedChecksum = FCrc::BinaryCrc32(fileDataPtr + 8, fileSize - 8);
+		const uint32 calculatedChecksum = FCrc::BinaryCrc32(fileDataPtr + 12, fileSize - 12);
 		if (Header.CheckSum != calculatedChecksum)
 		{
 			TMemory::Destroy(fileData);
@@ -233,8 +237,10 @@ namespace Thunder
 				TMemory::Destroy(fileData);
 				return false; // 不支持的资源类型
 			}
- 			gameResource->DeSerialize(objectArchive);
-
+			gameResource->DeSerialize(objectArchive);
+			gameResource->SetGuid(Header.GuidList[i]);
+			String resourceName = PackageName.ToString() + "." + resourceSuffixList[i];
+			gameResource->SetResourceName(resourceName);
 			Objects[i] = gameResource;
 		}
 		
@@ -246,7 +252,7 @@ namespace Thunder
 		return true;
 	}
 
-	bool Package::LoadOnlyGuid(const String& fullPath, TGuid& outGuid)
+	bool Package::TraverseGuidInPackage(const String& fullPath, TGuid& outGuid)
 	{
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
 		if (!fileSystem)
@@ -255,27 +261,23 @@ namespace Thunder
 		}
 		
 		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(fullPath, false));
-		// 获取文件大小并读取全部内容
-		constexpr size_t neededSize = 28;
-		if (file->Size() <= neededSize)
-		{
-			return false;
-		}
-
-		void* fileData = TMemory::Malloc<uint8>(neededSize);
-		const size_t bytesRead = file->Read(fileData, neededSize);
+		TAssert(file->Size() >= 4);
+		uint32 headerSize;
+		size_t bytesRead = file->Read(&headerSize, 4);
+		TAssert(bytesRead == 4);
+		
+		// read header
+		TAssert(file->Size() >= headerSize);
+		const size_t needSize = headerSize - 4;
+		void* fileData = TMemory::Malloc<uint8>(needSize);
+		bytesRead = file->Read(fileData, needSize);
 		file->Close();
-
-		if (bytesRead != neededSize)
-		{
-			TMemory::Destroy(fileData);
-			return false;
-		}
+		TAssert(bytesRead == needSize);
 
 		BinaryData binaryData;
 		binaryData.Data = fileData;
-		binaryData.Size = neededSize;
-		
+		binaryData.Size = needSize;
+
 		// 创建MemoryReader来反序列化头部
 		MemoryReader headerArchive(&binaryData);
 		uint32 magicNumber, checkSum, version;
@@ -288,6 +290,29 @@ namespace Thunder
 		headerArchive >> checkSum; // 读取校验和
 		headerArchive >> version; // 读取版本号
 		headerArchive >> outGuid; // 读取GUID
+
+		String softPath = ResourceModule::CovertFullPathToSoftPath(fullPath);
+		ResourceModule::AddResourcePathPair(outGuid, softPath);
+
+		uint32 numGuids;
+		headerArchive >> numGuids;
+		TArray<TGuid> guidList;
+		guidList.resize(numGuids);
+		for (uint32 i = 0; i < numGuids; ++i)
+		{
+			TGuid guid;
+			headerArchive >> guid;
+			guidList[i] = guid;
+		}
+		TArray<String> resourceSuffixList;
+		resourceSuffixList.resize(numGuids);
+		for (uint32 i = 0; i < numGuids; ++i)
+		{
+			headerArchive >> resourceSuffixList[i];
+
+			String resSoftPath = ResourceModule::CovertFullPathToSoftPath(fullPath, resourceSuffixList[i]);
+			ResourceModule::AddResourcePathPair(guidList[i], resSoftPath);
+		}
 
 		TMemory::Destroy(fileData);
 		return true;
@@ -358,6 +383,12 @@ namespace Thunder
 			const TGuid guid = loadedResByPath[resourceSoftPath];
 			const auto res = static_cast<GameResource*>(loadedRes[guid]);
 			TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource, softPath: %s", resourceSoftPath.c_str());
+			TArray<TGuid> dependencies;
+			res->GetDependencies(dependencies);
+			for (const auto& dependency : dependencies)
+			{
+				LoadSync(dependency, false);
+			}
 			return res;
 		}
 
@@ -402,23 +433,27 @@ namespace Thunder
 	{
 		TGuid pakGuid = package->GetGUID();
 		LoadedResources.emplace(pakGuid, package);
+#ifdef WITH_EDITOR
 		LoadedResourcesByPath.emplace(package->GetPackageName(), pakGuid);
+#endif
 
 		const TArray<GameResource*> objects = package->GetPackageObjects();
 		for (auto obj : objects)
 		{
 			TGuid objGuid = obj->GetGUID();
 			LoadedResources.emplace(objGuid, obj);
+#ifdef WITH_EDITOR
 			LoadedResourcesByPath.emplace(obj->GetResourceName(), objGuid);
+#endif
 		}
 	}
 
-	void ResourceModule::ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& Function)
+	void ResourceModule::ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function)
 	{
 		const auto& resMap = GetModule()->ResourcePathMap;
 		for (auto& pair : resMap)
 		{
-			Function(pair.first, pair.second);
+			function(pair.first, pair.second);
 		}
 	}
 }

@@ -58,10 +58,14 @@ namespace Thunder
 	{
 	public:
 		Texture2D(GameObject* inOuter = nullptr)
-			: ITexture(inOuter, ETempGameResourceReflective::Texture2D), Data(MakeRefCount<ImageData>()) {}
+			: ITexture(inOuter, ETempGameResourceReflective::Texture2D), Data(MakeRefCount<ImageData>())
+		{
+		}
 		Texture2D(unsigned char *data, int width, int height, int channels, GameObject* inOuter = nullptr)
 			: ITexture(inOuter, ETempGameResourceReflective::Texture2D),
-			Data(MakeRefCount<ImageData>(width, height, channels, data)) {}
+			Data(MakeRefCount<ImageData>(width, height, channels, data))
+		{
+		}
 		
 		void Serialize(MemoryWriter& archive) override;
 		void DeSerialize(MemoryReader& archive) override;

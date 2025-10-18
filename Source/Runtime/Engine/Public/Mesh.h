@@ -30,7 +30,10 @@ namespace Thunder
 	class StaticMesh : public IMesh
 	{
 	public:
-		StaticMesh(GameObject* inOuter = nullptr) : IMesh(inOuter, ETempGameResourceReflective::StaticMesh) {}
+		StaticMesh(GameObject* inOuter = nullptr)
+			: IMesh(inOuter, ETempGameResourceReflective::StaticMesh)
+		{
+		}
 		~StaticMesh() override;
 
 		void Serialize(MemoryWriter& archive) override;

@@ -37,6 +37,7 @@ namespace Thunder
 		_NODISCARD_ ETempGameResourceReflective GetResourceType() const { return ResourceType; }
 		_NODISCARD_ const NameHandle& GetResourceName() const { return ResourceName; }
 		void AddDependency(const TGuid& guid) { Dependencies.push_back(guid); }
+		_NODISCARD_ void GetDependencies(TArray<TGuid>& outDependencies) const { outDependencies = Dependencies; }
 		void SetResourceName(const NameHandle& name) { ResourceName = name; }
 
 		virtual void Serialize(MemoryWriter& archive);
@@ -45,6 +46,10 @@ namespace Thunder
 		{
 			LOG("success OnResourceLoaded");
 		}
+
+	private:
+		friend class Package;
+		void SetGuid(const TGuid& guid) { Guid = guid; }
 
 	private:
 		TGuid Guid {};

@@ -1,3 +1,4 @@
+#pragma optimize("", off)
 #include "Entity.h"
 #include "rapidjson/document.h"
 
@@ -6,13 +7,21 @@ namespace Thunder
 	Entity::Entity(GameObject* inOuter)
 		: GameObject(inOuter)
 	{
+		Transform = new (TMemory::Malloc<TransformComponent>()) TransformComponent();
+		NameHandle componentName = Transform->GetComponentName();
+		ComponentTable[componentName] = Transform;
 	}
 
 	Entity::~Entity()
 	{
+		if (Transform)
+		{
+			TMemory::Destroy(Transform);
+		}
+
 		for (IComponent* component : Components)
 		{
-			delete component;
+			TMemory::Destroy(component);
 		}
 		Components.clear();
 		ComponentTable.clear();
@@ -32,6 +41,24 @@ namespace Thunder
 			return it->second;
 		}
 		return nullptr;
+	}
+
+	void Entity::GetAllHierarchyComponents(TList<IComponent*>& outComponents) const
+	{
+		// Add this entity's Transform component
+		outComponents.push_back(Transform);
+
+		// Add this entity's other components
+		for (IComponent* comp : Components)
+		{
+			outComponents.push_back(comp);
+		}
+
+		// Recursively add children's components
+		for (Entity* child : Children)
+		{
+			child->GetAllHierarchyComponents(outComponents);
+		}
 	}
 
 	void Entity::AddChild(Entity* child)
@@ -57,22 +84,7 @@ namespace Thunder
 		}
 	}
 
-	void Entity::AsyncLoad()
-	{
-		// Load all components
-		for (IComponent* component : Components)
-		{
-			component->AsyncLoad();
-		}
-
-		// Load all children recursively
-		for (Entity* child : Children)
-		{
-			child->AsyncLoad();
-		}
-	}
-
-	void Entity::GetDependencies(TArray<TGuid>& outDependencies) const
+	void Entity::GetDependencies(TList<TGuid>& outDependencies) const
 	{
 		for (IComponent* component : Components)
 		{
@@ -97,6 +109,9 @@ namespace Thunder
 		// Serialize components
 		writer.Key("Components");
 		writer.StartObject();
+		TAssert( Transform != nullptr);
+		writer.Key(Transform->GetComponentName().c_str());
+		Transform->SerializeJson(writer);
 		for (IComponent* component : Components)
 		{
 			writer.Key(component->GetComponentName().c_str());
@@ -136,6 +151,7 @@ namespace Thunder
 		if (jsonValue.HasMember("Components") && jsonValue["Components"].IsObject())
 		{
 			const rapidjson::Value& componentsObj = jsonValue["Components"];
+			bool isFirstComponent = true;
 			for (auto it = componentsObj.MemberBegin(); it != componentsObj.MemberEnd(); ++it)
 			{
 				const char* componentTypeName = it->name.GetString();
@@ -146,8 +162,25 @@ namespace Thunder
 				if (newComponent)
 				{
 					newComponent->DeserializeJson(ComponentData);
-					Components.push_back(newComponent);
-					ComponentTable[newComponent->GetComponentName()] = newComponent;
+
+					// First component should be TransformComponent
+					if (isFirstComponent)
+					{
+						isFirstComponent = false;
+						TransformComponent* transformComp = dynamic_cast<TransformComponent*>(newComponent);
+						TAssert( transformComp != nullptr && Transform != nullptr );
+
+						// Delete existing Transform and assign the deserialized one
+						TMemory::Destroy(Transform);
+						Transform = transformComp;
+						ComponentTable[Transform->GetComponentName()] = Transform;
+					}
+					else
+					{
+						// All other components go into the Components array
+						Components.push_back(newComponent);
+						ComponentTable[newComponent->GetComponentName()] = newComponent;
+					}
 				}
 			}
 		}

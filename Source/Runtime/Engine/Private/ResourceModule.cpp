@@ -144,7 +144,7 @@ namespace Thunder
 		return (indicesBuffer);
 	}
 
-	void ResourceModule::StartUp()
+	void ResourceModule::InitResourcePathMap()
 	{
 		const auto contentDict = FileModule::GetResourceContentRoot();
 		TArray<String> fileNames;
@@ -155,12 +155,7 @@ namespace Thunder
 			{
 				// only load guid
 				TGuid guid;
-				if (Package::LoadOnlyGuid(fileName, guid))
-				{
-					String softPath = CovertFullPathToSoftPath(fileName);
-					ResourcePathMap.emplace(guid, softPath);
-				}
-				else
+				if (!Package::TraverseGuidInPackage(fileName, guid))
 				{
 					LOG("Failed to load package guid from %s", fileName.c_str());
 				}
@@ -205,7 +200,7 @@ namespace Thunder
 		
 		// 构建软路径
 		String softPath = "/Game" + relativePath;
-		
+
 		// 如果resourceName不为空，添加资源名称后缀
 		if (!resourceName.empty())
 		{
@@ -267,8 +262,32 @@ namespace Thunder
 		return fullPath;
 	}
 
+	bool ResourceModule::CheckUniqueSoftPath(String& softPath)
+	{
+		// check duplicate name
+		String checkPath = softPath;
+		int suffix = 1;
+		bool bUnique = true;
+		while (GetModule()->LoadedResourcesByPath.contains(checkPath))
+		{
+			bUnique = false;
+			checkPath = softPath + "_" + std::to_string(suffix);
+			suffix++;
+		}
+		if (!bUnique)
+		{
+			softPath = checkPath;
+		}
+		return bUnique;
+	}
+
+	// todo: 导入还没处理重名的问题
 	bool ResourceModule::Import(const String& srcPath, const String& destPath)
 	{
+		// 先简单认为package重名就是覆盖，或者在import外面就解决destPath重名的问题
+		const String pacName = CovertFullPathToSoftPath(destPath); //已经是unique
+		auto* newPackage = new Package(pacName); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
+
 		// 获取源文件类型
 		String fileExtension = FileModule::GetFileExtension(srcPath);
 		if (fileExtension == "fbx")
@@ -312,23 +331,21 @@ namespace Thunder
 			}
 
 			// 4. 注册到资源管理器
-			const String resourceName = CovertFullPathToSoftPath(destPath, scene->mName.C_Str());
+			String resourceSuffix = scene->mName.length > 0 ? scene->mName.C_Str() : FileModule::GetFileName(destPath);
+			String resourceName = CovertFullPathToSoftPath(destPath, resourceSuffix);
+			CheckUniqueSoftPath(resourceName);
 			newStaticMesh->SetResourceName(resourceName);
 			TGuid meshGuid = newStaticMesh->GetGUID();
-			GetModule()->LoadedResources.emplace(meshGuid, newStaticMesh);
-			GetModule()->LoadedResourcesByPath.emplace(resourceName, meshGuid);
+			GetModule()->ResourcePathMap.emplace(meshGuid, resourceName);
 
 			// 5. 保存 package 文件
-			const String pacName = CovertFullPathToSoftPath(destPath);
-			auto* newPackage = new Package(pacName); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
 			newPackage->AddResource(newStaticMesh);
 			
 			if (GetModule()->SavePackage(newPackage, destPath))
 			{
 				TGuid pakGuid = newPackage->GetGUID();
-				GetModule()->LoadedResources.emplace(pakGuid, newPackage);
-				GetModule()->LoadedResourcesByPath.emplace(pacName, meshGuid);
 				GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
+				GetModule()->RegisterPackage(newPackage);
 				return true;
 			}
 		}
@@ -345,20 +362,16 @@ namespace Thunder
 				const String resourceName = CovertFullPathToSoftPath(destPath, FileModule::GetFileName(destPath));
 				newTexture->SetResourceName(resourceName);
 				TGuid meshGuid = newTexture->GetGUID();
-				GetModule()->LoadedResources.emplace(meshGuid, newTexture);
-				GetModule()->LoadedResourcesByPath.emplace(resourceName, meshGuid);
+				GetModule()->ResourcePathMap.emplace(meshGuid, resourceName);
 
 				// 保存 package 文件
-				const String pacName = CovertFullPathToSoftPath(destPath);
-				auto* newPackage = new Package(pacName); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
 				newPackage->AddResource(newTexture);
 			
 				if (GetModule()->SavePackage(newPackage, destPath))
 				{
 					TGuid pakGuid = newPackage->GetGUID();
-					GetModule()->LoadedResources.emplace(pakGuid, newPackage);
-					GetModule()->LoadedResourcesByPath.emplace(pacName, meshGuid);
 					GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
+					GetModule()->RegisterPackage(newPackage);
 					return true;
 				}
 			}

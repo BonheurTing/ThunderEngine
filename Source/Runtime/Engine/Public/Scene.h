@@ -5,37 +5,10 @@
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
-#include "Concurrent/TaskScheduler.h"
-#include "Concurrent/ConcurrentBase.h"
 
 namespace Thunder
 {
 	class IRenderer;
-
-	/**
-	 * Generic load event callback template
-	 * Used for notifying when asynchronous resource loading is complete
-	 */
-	template <typename T>
-	class OnSceneLoaded : public IOnCompleted
-	{
-	public:
-		OnSceneLoaded(T* inLoadItem) : LoadItem(inLoadItem) {}
-
-		void OnCompleted() override
-		{
-			if (LoadItem)
-			{
-				GGameScheduler->PushTask([item = LoadItem]()
-				{
-					item->OnLoaded();
-				});
-			}
-		}
-
-	private:
-		T* LoadItem { nullptr };
-	};
 
 	/**
 	 * Scene represents a game level/map
@@ -57,19 +30,13 @@ namespace Thunder
 		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const;
 		void DeserializeJson(const rapidjson::Value& jsonValue);
 
-		// Scene persistence
 		bool Save(const String& fileFullPath);
-
-		// Synchronous scene loading
 		bool LoadSync(const String& fileFullPath);
-
-		// Asynchronous scene loading
 		void LoadAsync(const String& fileFullPath);
 
 		// Asynchronous resource streaming
 		void StreamScene();
 
-		// Called when all scene resources are loaded
 		virtual void OnLoaded();
 
 		// Renderer association
@@ -82,11 +49,13 @@ namespace Thunder
 
 	private:
 		// Collect all resource dependencies in the scene
-		void CollectDependencies(TArray<TGuid>& outDependencies) const;
+		void SimulateStreamingWithDistance(TList<IComponent*>& outDependencies) const;
 
 		NameHandle SceneName;
 		TArray<Entity*> RootEntities;
 		IRenderer* Renderer { nullptr };
+
+		OnSceneLoaded<Scene>* StreamingEvent { nullptr };
 	};
 
 	/**

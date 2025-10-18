@@ -1,3 +1,4 @@
+#pragma optimize("", off)
 #include "Scene.h"
 #include "ResourceModule.h"
 #include "Concurrent/ConcurrentBase.h"
@@ -20,6 +21,10 @@ namespace Thunder
 
 	Scene::~Scene()
 	{
+		if (StreamingEvent)
+		{
+			TMemory::Destroy(StreamingEvent);
+		}
 		for (Entity* rootEntity : RootEntities)
 		{
 			delete rootEntity;
@@ -177,45 +182,54 @@ namespace Thunder
 		});
 	}
 
-	void Scene::CollectDependencies(TArray<TGuid>& outDependencies) const
+	void Scene::SimulateStreamingWithDistance(TList<IComponent*>& outDependencies) const
 	{
+		TVector3f cameraLocation { TVector3f(0.f, 0.f, 0.f) };
 		for (Entity* rootEntity : RootEntities)
 		{
-			rootEntity->GetDependencies(outDependencies);
+			if (Math::Distance(cameraLocation, rootEntity->GetTransform()->GetPosition()) > 0.5f)
+			{
+				 rootEntity->GetAllHierarchyComponents(outDependencies);
+			}
 		}
 	}
 
 	void Scene::StreamScene()
 	{
 		// Collect all resource dependencies
-		TArray<TGuid> guidList;
-		CollectDependencies(guidList);
-		uint32 guidNum = static_cast<uint32>(guidList.size());
-
-		if (guidList.empty())
+		TList<IComponent*> compList;
+		SimulateStreamingWithDistance(compList);
+		if (compList.empty())
 		{
-			// No resources to load, call OnLoaded directly
 			OnLoaded();
 			return;
 		}
 
-		auto* callback = new (TMemory::Malloc<OnSceneLoaded<Scene>>()) OnSceneLoaded(this);
-		callback->Promise(guidNum);
-		uint32 taskBundleSize = guidNum / GAsyncWorkers->GetNumThreads();
-		GAsyncWorkers->ParallelFor([guidList, callback](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
+		if (StreamingEvent == nullptr)
+		{
+			StreamingEvent = new (TMemory::Malloc<OnSceneLoaded<Scene>>()) OnSceneLoaded(this);
+		}
+		
+		uint32 compNum = static_cast<uint32>(compList.size());
+		TArray<IComponent*> compTable(compList.begin(), compList.end());
+
+		StreamingEvent->Promise(static_cast<int>(compNum));
+		uint32 taskBundleSize = (compNum + GAsyncWorkers->GetNumThreads()+1) / GAsyncWorkers->GetNumThreads();
+		GAsyncWorkers->ParallelFor([compTable, compNum, event = StreamingEvent](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
 		{
 			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
 			{
-				auto guid = guidList[index];
-				ResourceModule::LoadSync(guid);
-				callback->Notify();
+				if (index < compNum)
+				{
+					compTable[index]->SyncLoad();
+					event->Notify();
+				}
 			}
-		}, guidNum, taskBundleSize);
-		TMemory::Destroy(callback);
+		}, compNum, taskBundleSize);
 	}
 
 	void Scene::OnLoaded()
 	{
-		LOG("Scene Loaded: %s", SceneName.c_str());
+		LOG("Scene ended streaming: %s", SceneName.c_str());
 	}
 }

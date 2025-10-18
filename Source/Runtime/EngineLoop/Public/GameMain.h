@@ -4,6 +4,8 @@
 
 namespace Thunder
 {
+    class Scene;
+
     class GameTask //临时放在这
     {
     public:
@@ -44,6 +46,9 @@ namespace Thunder
         void ShutDown() override;
 
         void InitGameThread();
+        static void SimulateAddMeshToScene();
+        static void SimulateSceneStreaming();
+        static Scene* GetTestScene() { return GetModule()->TestScene; }
 
         static void RegisterTickable(ITickable* tickable);
         static void UnregisterTickable(ITickable* tickable);
@@ -52,12 +57,11 @@ namespace Thunder
     private:
         friend class GameTask;
         static TaskGraphProxy* GetGameThreadTaskGraph() { return GetModule()->GameThreadTaskGraph; }
-        
 
         TArray<ITickable*> Tickables;
         TaskGraphProxy* GameThreadTaskGraph { nullptr };
 
-        class Scene* TestScene { nullptr };
+        Scene* TestScene { nullptr };
     };
 }
 

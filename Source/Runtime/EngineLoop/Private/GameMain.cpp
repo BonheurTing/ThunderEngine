@@ -1,6 +1,7 @@
 ﻿#include "GameMain.h"
 #include "EngineMain.h"
 #include "RenderMain.h"
+#include "ResourceModule.h"
 #include "SimulatedTasks.h"
 #include "StreamableManager.h"
 #include "Memory/MallocMinmalloc.h"
@@ -28,7 +29,7 @@ namespace Thunder
         Entity* rootEntity = newScene->CreateEntity("PlayerCharacter");
 
         // Add a transform component
-        TransformComponent* transform = rootEntity->AddComponent<TransformComponent>();
+        TransformComponent* transform = rootEntity->GetTransform();
         transform->SetPosition(TVector3f(10.0f, 10.0f, 10.0f));
         transform->SetRotation(TVector3f(0.0f, 0.0f, 0.0f));
         transform->SetScale(TVector3f(1.0f, 1.0f, 1.0f));
@@ -42,7 +43,7 @@ namespace Thunder
 
         // Create a child entity
         Entity* childEntity = newScene->CreateEntity("Weapon");
-        TransformComponent* childTransform = childEntity->AddComponent<TransformComponent>();
+        TransformComponent* childTransform = childEntity->GetTransform();
         childTransform->SetPosition(TVector3f(1.0f, 0.0f, 0.5f));
         rootEntity->AddChild(childEntity);
 
@@ -71,6 +72,18 @@ namespace Thunder
         AsyncLoading(); //todo: delete
 
         GameMain();
+
+        if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 5)
+        {
+            // Informal: load all game resource ( in content directory )
+            //StreamableManager::LoadAllAsync();
+        }
+
+        if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 50)
+        {
+            GameModule::SimulateSceneStreaming();
+            //GameModule::SimulateAddMeshToScene();
+        }
 
         if (GFrameState->FrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) >= EXIT_FRAME_THRESHOLD)
         {
@@ -185,13 +198,42 @@ namespace Thunder
 
         GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
 
-        // Informal: load all game resource ( in content directory )
-        StreamableManager::LoadAllAsync();
-
         // Informal
         TestScene = new Scene(); //TestGenerateExampleScene();
         String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
         TestScene->LoadAsync(fullPath);
+    }
+
+    void GameModule::SimulateAddMeshToScene()
+    {
+        auto meshs = ResourceModule::GetResourceByClass<StaticMesh>();
+
+        if (!meshs.empty())
+        {
+            auto scene = GetTestScene();
+            auto entities = scene->GetRootEntities();
+            for (auto entity : entities)
+            {
+                TArray<IComponent*> comps = entity->GetComponentByClass<StaticMeshComponent>();
+                if (!comps.empty())
+                {
+                    if (auto stmComp = static_cast<StaticMeshComponent*>(comps[0]))
+                    {
+                        if (auto mesh = static_cast<StaticMesh*>(meshs[0]))
+                        {
+                            stmComp->SetMesh(mesh);
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+        
+    }
+
+    void GameModule::SimulateSceneStreaming()
+    {
+        GetTestScene()->StreamScene();
     }
 
     void GameModule::RegisterTickable(ITickable* tickable)

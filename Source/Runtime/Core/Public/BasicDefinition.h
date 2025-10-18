@@ -6,6 +6,7 @@
 
 #define _NODISCARD_ [[nodiscard]]
 #define THUNDER_ENGINE_VERSION 123
+#define WITH_EDITOR 1
 
 namespace Thunder
 {

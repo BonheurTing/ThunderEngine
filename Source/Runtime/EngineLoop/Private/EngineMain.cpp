@@ -36,6 +36,9 @@ namespace Thunder
         ModuleManager::GetInstance()->LoadModule<ResourceModule>();
         ModuleManager::GetInstance()->LoadModule<GameModule>();
 
+        // setup resource map
+        ResourceModule::InitResourcePathMap();
+
         // setup rhi
         String configRHIType = GConfigManager->GetConfig("BaseEngine")->GetString("RHI");
         EGfxApiType rhiType = EGfxApiType::Invalid;

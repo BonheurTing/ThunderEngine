@@ -1,3 +1,4 @@
+#pragma optimize("", off)
 #include "Compomemt.h"
 #include "Guid.h"
 #include "ResourceModule.h"
@@ -7,7 +8,70 @@
 
 namespace Thunder
 {
-	// Component factory
+	IComponent::~IComponent()
+	{
+		if (StreamingEvent)
+		{
+			TMemory::Destroy(StreamingEvent);
+		}
+	}
+
+	void IComponent::SyncLoad()
+	{
+		TList<TGuid> guidList;
+		GetDependencies(guidList);
+
+		if (guidList.empty())
+		{
+			// No dependencies, mark as loaded
+			OnLoaded();
+			return;
+		}
+
+		if (StreamingEvent == nullptr)
+		{
+			StreamingEvent = new (TMemory::Malloc<OnSceneLoaded<StaticMeshComponent>>()) OnSceneLoaded(this);
+		}
+
+		// Load all dependencies synchronously using ParallelFor
+		uint32 guidNum = static_cast<uint32>(guidList.size());
+		TArray<TGuid> guidTable(guidList.begin(), guidList.end());
+
+		StreamingEvent->Promise(static_cast<int>(guidNum));
+
+		uint32 taskBundleSize = (guidNum + GAsyncWorkers->GetNumThreads()+1) / GAsyncWorkers->GetNumThreads();
+		GAsyncWorkers->ParallelFor([guidTable, guidNum, event = StreamingEvent](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
+		{
+			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
+			{
+				if (index < guidNum)
+				{
+					ResourceModule::LoadSync(guidTable[index]);
+					event->Notify(); // may not be in this frame
+				}
+			}
+		}, guidNum, taskBundleSize);
+	}
+
+	void IComponent::AsyncLoad()
+	{
+		GAsyncWorkers->PushTask([this]()
+		{
+			SyncLoad();
+		});
+	}
+
+	bool IComponent::IsLoaded() const
+	{
+		return Loaded.load(std::memory_order_acquire);
+	}
+
+	void IComponent::OnLoaded()
+	{
+		Loaded.store(true, std::memory_order_release);
+	}
+
+	// todo Component factory
 	IComponent* IComponent::CreateComponentByName(const NameHandle& componentName)
 	{
 		if (componentName == "StaticMeshComponent")
@@ -18,43 +82,24 @@ namespace Thunder
 		{
 			return new TransformComponent();
 		}
-		else if (componentName == "PrimitiveComponent")
-		{
-			return new PrimitiveComponent();
-		}
 		// Add more component types as needed
 		return nullptr;
 	}
 
 	// StaticMeshComponent implementation
-	void StaticMeshComponent::GetDependencies(TArray<TGuid>& outDependencies) const
+	void StaticMeshComponent::GetDependencies(TList<TGuid>& outDependencies) const
 	{
 		// Add mesh GUID
-		if (Mesh)
-		{
-			outDependencies.push_back(Mesh->GetGUID());
-		}
-		else if (MeshGuid.IsValid())
+		if (MeshGuid.IsValid())
 		{
 			outDependencies.push_back(MeshGuid);
 		}
 
 		// Add material GUIDs
-		for (IMaterial* material : OverrideMaterials)
-		{
-			if (material)
-			{
-				outDependencies.push_back(material->GetGUID());
-			}
-		}
-
-		// Also add from MaterialGuids
 		for (const TGuid& matGuid : MaterialGuids)
 		{
-			if (matGuid.IsValid())
-			{
-				outDependencies.push_back(matGuid);
-			}
+			TAssert(matGuid.IsValid());
+			outDependencies.push_back(matGuid);
 		}
 	}
 
@@ -145,92 +190,28 @@ namespace Thunder
 		}
 	}
 
-	// StaticMeshComponent loading implementation
-	void StaticMeshComponent::SyncLoad()
-	{
-		TArray<TGuid> guidList;
-		GetDependencies(guidList);
-
-		if (guidList.empty())
-		{
-			// No dependencies, mark as loaded
-			OnLoaded();
-			return;
-		}
-
-		// Load all dependencies synchronously using ParallelFor
-		uint32 guidNum = static_cast<uint32>(guidList.size());
-
-		// Create a simple counter-based completion tracker
-		/*class LoadEvent : public IOnCompleted
-		{
-		public:
-			LoadEvent(StaticMeshComponent* InComponent) : Component(InComponent) {}
-			void OnCompleted() override
-			{
-				if (Component)
-				{
-					Component->OnLoaded();
-				}
-			}
-		private:
-			StaticMeshComponent* Component;
-		};*/
-
-		auto* callback = new (TMemory::Malloc<OnSceneLoaded<StaticMeshComponent>>()) OnSceneLoaded(this);
-		callback->Promise(guidNum);
-
-		uint32 taskBundleSize = guidNum / GAsyncWorkers->GetNumThreads();
-		if (taskBundleSize == 0) taskBundleSize = 1;
-
-		GAsyncWorkers->ParallelFor([guidList, callback](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
-		{
-			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
-			{
-				auto guid = guidList[index];
-				ResourceModule::LoadSync(guid);
-				callback->Notify();
-			}
-		}, guidNum, taskBundleSize);
-
-		TMemory::Destroy(callback);
-	}
-
-	void StaticMeshComponent::AsyncLoad()
-	{
-		GAsyncWorkers->PushTask([this]()
-		{
-			SyncLoad();
-		});
-	}
-
-	bool StaticMeshComponent::IsLoaded() const
-	{
-		return Loaded.load(std::memory_order_acquire);
-	}
-
 	void StaticMeshComponent::OnLoaded()
 	{
 		// Verify all resources are loaded
-		TAssert(ResourceModule::IsLoaded(MeshGuid));
-		Mesh = static_cast<StaticMesh*>(ResourceModule::LoadSync(MeshGuid));
+		if (MeshGuid.IsValid())
+		{
+			TAssert(ResourceModule::IsLoaded(MeshGuid));
+			Mesh = static_cast<StaticMesh*>(ResourceModule::LoadSync(MeshGuid));
+		}
 
-		int slot = 0;
 		OverrideMaterials.clear();
 		for (const TGuid& materialGuid : MaterialGuids)
 		{
+			TAssert(materialGuid.IsValid());
 			TAssert(ResourceModule::IsLoaded(materialGuid));
-			IMaterial* material = static_cast<IMaterial*>(ResourceModule::LoadSync(materialGuid));
-			if (material)
+			if (IMaterial* material = static_cast<IMaterial*>(ResourceModule::LoadSync(materialGuid)))
 			{
 				OverrideMaterials.push_back(material);
 			}
-			++slot;
 		}
 
 		// Mark as loaded
-		Loaded.store(true, std::memory_order_release);
-
+		IComponent::OnLoaded();
 		LOG("StaticMeshComponent loaded successfully");
 	}
 

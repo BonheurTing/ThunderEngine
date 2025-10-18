@@ -12,6 +12,9 @@
 #include "Misc/CoreGlabal.h"
 #include "Module/ModuleManager.h"
 #include "Scene.h"
+#include "FileSystem/FileModule.h"
+
+#define EXIT_FRAME_THRESHOLD 100
 
 namespace Thunder
 {
@@ -69,14 +72,21 @@ namespace Thunder
 
         GameMain();
 
-        if (GFrameState->FrameNumberGameThread++ >= 100000)
+        if (GFrameState->FrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) >= EXIT_FRAME_THRESHOLD)
         {
-            EngineMain::IsRequestingExit = true;
+            EngineMain::IsRequestingExit.store(true, std::memory_order_acq_rel);
         }
 
         // push render command
         const auto RenderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>(0);
         GRenderScheduler->PushTask(RenderThreadTask);
+
+        if (EngineMain::IsRequestingExit.load(std::memory_order_acquire) == true)
+        {
+            LOG("==================== exit engine ====================");
+            EngineMain::EngineExitSignal->Trigger();
+            return;
+        }
 
         // push game task for next frame
         auto* GameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
@@ -85,10 +95,11 @@ namespace Thunder
 
     void GameTask::AsyncLoading()
     {
-        const int LoadingSignal = GFrameState->FrameNumberGameThread % 400;
+        int frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
+        const int LoadingSignal = frameNum % 400;
         if (LoadingSignal == 0)
         {
-            uint32 LoadingIndex = GFrameState->FrameNumberGameThread / 400;
+            uint32 LoadingIndex = frameNum / 400;
             GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 ModelIndex, uint32 dummy, uint32 bundleId)
             {
                 ThunderZoneScopedN("AsyncLoading");
@@ -200,6 +211,7 @@ namespace Thunder
 
     void GameModule::ShutDown()
     {
+        TestScene->Save("Map/TestScene.tmap");
         TMemory::Free(GameThreadTaskGraph);
     }
 

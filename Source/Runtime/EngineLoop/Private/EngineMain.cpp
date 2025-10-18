@@ -15,7 +15,7 @@
 namespace Thunder
 {
     
-    bool EngineMain::IsRequestingExit = false;
+    std::atomic<bool> EngineMain::IsRequestingExit = false;
     IEvent* EngineMain::EngineExitSignal = FPlatformProcess::GetSyncEventFromPool();
 
     EngineMain::~EngineMain()

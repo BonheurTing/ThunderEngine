@@ -113,7 +113,7 @@ namespace Thunder
 		// Write to file
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
 		const String tempPath = FilePath + ".tmp";
-		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(tempPath, false));
+		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(tempPath, true));
 		const size_t ret = file->Write(JsonString, JsonLength);
 
 		file->Close();

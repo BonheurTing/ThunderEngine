@@ -87,7 +87,7 @@ namespace Thunder
 					{
 						if (ITask* CurrentWork = Scheduler->GetNextQueuedWork())
 						{
-							LOG(CurrentWork->GetName().c_str());
+							//LOG(CurrentWork->GetName().c_str());
 							bHasWork = true;
 							NumOfFailed = SUSPEND_THRESHOLD;
 							CurrentWork->DoWork();

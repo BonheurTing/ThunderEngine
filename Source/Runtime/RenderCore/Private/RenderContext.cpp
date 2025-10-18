@@ -39,13 +39,13 @@ namespace Thunder
 
     TransientAllocator* FRenderContext::GetTransientAllocator_RenderThread() const
     {
-        int index = GFrameState->FrameNumberRenderThread % 2;
+        int index = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
         return TransientAllocatorPtr[index];
     }
 
     TransientAllocator* FRenderContext::GetTransientAllocator_RHIThread() const
     {
-        int index = GFrameState->FrameNumberRHIThread % 2;
+        int index = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
         return TransientAllocatorPtr[index];
     }
 }

@@ -624,7 +624,7 @@ namespace Thunder
 
     void D3D12DynamicRHI::RHIReleaseResource()
     {
-        uint32 index = (GFrameState->FrameNumberRenderThread.load() + 1) % MAX_FRAME_LAG;
+        uint32 index = (GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) + 1) % MAX_FRAME_LAG;
         /**
          * GReleaseQueue存ComPre方便自己释放
          * 1. 不能for array 中每一个元素，调push task，如果元素很多，task会慢
@@ -642,7 +642,7 @@ namespace Thunder
 
     void D3D12DynamicRHI::AddReleaseObject(ComPtr<ID3D12Object> object)
     {
-        uint32 index = GFrameState->FrameNumberRHIThread % MAX_FRAME_LAG;
+        uint32 index = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % MAX_FRAME_LAG;
         GReleaseQueue[index].push_back(object);
     }
 

@@ -146,7 +146,7 @@ namespace Thunder
 
 	void ResourceModule::StartUp()
 	{
-		const auto contentDict = FileModule::GetProjectRoot() + "\\Content\\";
+		const auto contentDict = FileModule::GetResourceContentRoot();
 		TArray<String> fileNames;
 		FileModule::TraverseFileFromFolder(contentDict, fileNames);
 		for (const auto& fileName : fileNames)
@@ -385,7 +385,7 @@ namespace Thunder
 		if (bForce)
 		{
 			auto srcDict = FileModule::GetProjectRoot() + "\\Resource\\";
-			auto destDict = FileModule::GetProjectRoot() + "\\Content\\";
+			auto destDict = FileModule::GetResourceContentRoot();
 			TArray<String> fileNames;
 			FileModule::TraverseFileFromFolder(srcDict, fileNames);
 			for (const auto& fileName : fileNames)

@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include "Platform.h"
 
 namespace Thunder
@@ -15,11 +16,11 @@ namespace Thunder
 		int32 Run();
         void Exit();
 
-		static bool IsRequestingExit;
+		static std::atomic<bool> IsRequestingExit;
 		static class IEvent* EngineExitSignal;
 		static  bool IsEngineExitRequested()
 		{
-			return IsRequestingExit;
+			return IsRequestingExit.load(std::memory_order_acquire);
 		}
     };
 }

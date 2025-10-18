@@ -1,4 +1,5 @@
 #include "PlatformProcess.h"
+#include <chrono>
 #include "intrin.h"
 #include "Misc/LazySingleton.h"
 #include "Windows/WindowsThread.h"

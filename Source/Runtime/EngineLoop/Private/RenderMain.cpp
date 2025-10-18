@@ -55,11 +55,12 @@ namespace Thunder
     void RenderingTask::EndRendering()
     {
         // BeginFrame: Wait for fence (3 frames ago) to ensure GPU has completed previous work
-        uint32 currentFrameIndex = GFrameState->FrameNumberRenderThread.load() % MAX_FRAME_LAG;
+        int frameNum = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
+        uint32 currentFrameIndex = frameNum % MAX_FRAME_LAG;
         GDynamicRHI->RHIWaitForFrame(currentFrameIndex);
 
         // begin frame: reset allocator
-        int resetIndex = GFrameState->FrameNumberRenderThread.load() % MAX_FRAME_LAG;
+        int resetIndex = frameNum % MAX_FRAME_LAG;
         IRHIModule::GetModule()->ResetCommandContext(resetIndex);
         // sync with render thread
         for (auto res : GRHIUpdateSyncQueue)
@@ -68,7 +69,7 @@ namespace Thunder
         }
         GRHIUpdateSyncQueue.clear();
 
-        ++GFrameState->FrameNumberRenderThread;
+        GFrameState->FrameNumberRenderThread.fetch_add(1, std::memory_order_acq_rel);
         GFrameState->GameRenderCV.notify_all();
 
         // rhi thread

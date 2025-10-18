@@ -68,7 +68,7 @@ namespace Thunder
 
         RHIReleaseResource();
 
-        ++GFrameState->FrameNumberRHIThread;
+        GFrameState->FrameNumberRHIThread.fetch_add(1, std::memory_order_acq_rel);
         GFrameState->RenderRHICV.notify_all();
     }
 
@@ -86,7 +86,7 @@ namespace Thunder
             --contextNum;
         }
 
-        int frameIndex = GFrameState->FrameNumberRHIThread % 2;
+        int frameIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
         auto consolidatedCommands = GTestRenderer->GetFrameGraph()->GetCurrentAllCommands(frameIndex);
         int commandNum = static_cast<int>(consolidatedCommands.size());
         if (commandNum == 0)

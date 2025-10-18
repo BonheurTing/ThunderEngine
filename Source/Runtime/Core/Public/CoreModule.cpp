@@ -1,4 +1,6 @@
 ﻿#include "CoreModule.h"
+
+#include "HAL/Thread.h"
 #include "Memory/MallocAnsi.h"
 #include "Memory/MallocMinmalloc.h"
 
@@ -18,6 +20,8 @@ namespace Thunder
 
 	void CoreModule::ShutDown()
 	{
+		ThreadManager::Get().~ThreadManager(); // must before ~MemoryAllocator
+
 		if (MemoryAllocator)
 		{
 			delete MemoryAllocator;

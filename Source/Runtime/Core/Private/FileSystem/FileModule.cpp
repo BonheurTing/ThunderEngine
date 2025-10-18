@@ -63,6 +63,11 @@ namespace Thunder
 		return GetProjectRoot() + "\\Shader\\";
 	}
 
+	String FileModule::GetResourceContentRoot()
+	{
+		return GetProjectRoot() + "\\Content\\";
+	}
+
 	String FileModule::GetFileName(const String& filePath)
 	{
 		// 查找最后一个路径分隔符的位置（支持Windows和Unix风格）

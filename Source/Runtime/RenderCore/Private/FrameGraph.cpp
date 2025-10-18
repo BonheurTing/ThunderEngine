@@ -1,5 +1,6 @@
 #pragma optimize("", off) 
 #include "FrameGraph.h"
+#include <algorithm>
 #include "RenderTexture.h"
 #include "RenderContext.h"
 #include "RHICommand.h"
@@ -55,7 +56,7 @@ namespace Thunder
     void FrameGraph::Execute()
     {
         // Clear commands from previous frame
-        int frameIndex = GFrameState->FrameNumberRenderThread % 2;
+        int frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
         AllCommands[frameIndex].clear();
         for (auto& context : RenderContexts)
         {

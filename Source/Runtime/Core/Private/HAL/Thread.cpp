@@ -1,7 +1,6 @@
+#pragma optimize("", off)
 #include "HAL/Thread.h"
-
 #include <ranges>
-
 #include "Assertion.h"
 #include "PlatformProcess.h"
 

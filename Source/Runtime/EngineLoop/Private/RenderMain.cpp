@@ -85,18 +85,18 @@ namespace Thunder
 
     void RenderingTask::SimulatingAddingMeshBatch()
     {
-        const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-        auto* Dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(DoWorkEvent);
-        Dispatcher->Promise(1000);
+        const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+        auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
+        dispatcher->Promise(1000);
         int i = 1000;
         while (i-- > 0)
         {
-            auto* Task = new (TMemory::Malloc<SimulatedAddMeshBatchTask>()) SimulatedAddMeshBatchTask(Dispatcher);
+            auto* Task = new (TMemory::Malloc<SimulatedAddMeshBatchTask>()) SimulatedAddMeshBatchTask(dispatcher);
             GSyncWorkers->PushTask(Task);
         }
-        DoWorkEvent->Wait();
-        FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
-        TMemory::Destroy(Dispatcher);
+        doWorkEvent->Wait();
+        FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
+        TMemory::Destroy(dispatcher);
     }
 
 }

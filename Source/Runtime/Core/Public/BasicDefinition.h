@@ -45,9 +45,9 @@ namespace Thunder
 	};
 
 	template<typename Enum>
-	constexpr bool EnumHasAnyFlags(Enum Flags, Enum Contains)
+	constexpr bool EnumHasAnyFlags(Enum flags, Enum contains)
 	{
-		return ( static_cast<__underlying_type(Enum)>(Flags) & static_cast<__underlying_type(Enum)>(Contains) ) != 0;
+		return ( static_cast<__underlying_type(Enum)>(flags) & static_cast<__underlying_type(Enum)>(contains) ) != 0;
 	}
 }
 

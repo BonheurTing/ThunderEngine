@@ -70,34 +70,34 @@ namespace Thunder
 			{
 				return nullptr;
 			}
-			uint32 BlockIndex = Index / ItemsPerPage;
-			uint32 SubIndex = Index % ItemsPerPage;
-			TAssert(Index < (uint32)NextIndex.load(std::memory_order_acquire) && Index < MaxTotalItems && BlockIndex < MaxBlocks && Pages[BlockIndex]);
-			return Pages[BlockIndex] + SubIndex;
+			uint32 blockIndex = Index / ItemsPerPage;
+			uint32 subIndex = Index % ItemsPerPage;
+			TAssert(Index < (uint32)NextIndex.load(std::memory_order_acquire) && Index < MaxTotalItems && blockIndex < MaxBlocks && Pages[blockIndex]);
+			return Pages[blockIndex] + subIndex;
 		}
 
 	private:
 		void* GetRawItem(uint32 Index)
 		{
-			uint32 BlockIndex = Index / ItemsPerPage;
-			uint32 SubIndex = Index % ItemsPerPage;
-			TAssert(Index && Index < (uint32)NextIndex.load(std::memory_order_acquire) && Index < MaxTotalItems && BlockIndex < MaxBlocks);
-			if (!Pages[BlockIndex])
+			uint32 blockIndex = Index / ItemsPerPage;
+			uint32 subIndex = Index % ItemsPerPage;
+			TAssert(Index && Index < (uint32)NextIndex.load(std::memory_order_acquire) && Index < MaxTotalItems && blockIndex < MaxBlocks);
+			if (!Pages[blockIndex])
 			{
-				T* NewBlock = new (TMemory::Malloc(ItemsPerPage)) T{};
-				TAssert(IsAligned(NewBlock, alignof(T)));
-				if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Pages[BlockIndex], NewBlock, nullptr) != nullptr)
+				T* newBlock = new (TMemory::Malloc(ItemsPerPage)) T{};
+				TAssert(IsAligned(newBlock, alignof(T)));
+				if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Pages[blockIndex], newBlock, nullptr) != nullptr)
 				{
 					// we lost discard block
-					TAssert(Pages[BlockIndex] && Pages[BlockIndex] != NewBlock);
-					TMemory::Destroy(NewBlock);
+					TAssert(Pages[blockIndex] && Pages[blockIndex] != newBlock);
+					TMemory::Destroy(newBlock);
 				}
 				else
 				{
-					checkLockFreePointerList(Pages[BlockIndex]);
+					checkLockFreePointerList(Pages[blockIndex]);
 				}
 			}
-			return (void*)(Pages[BlockIndex] + SubIndex);
+			return (void*)(Pages[blockIndex] + subIndex);
 		}
 
 		alignas(PLATFORM_CACHE_LINE_SIZE) std::atomic<int32> NextIndex = 0;

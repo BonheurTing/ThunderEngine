@@ -20,7 +20,7 @@ namespace Thunder
 	class OnSceneLoaded : public IOnCompleted
 	{
 	public:
-		OnSceneLoaded(T* InLoadItem) : LoadItem(InLoadItem) {}
+		OnSceneLoaded(T* inLoadItem) : LoadItem(inLoadItem) {}
 
 		void OnCompleted() override
 		{
@@ -44,27 +44,27 @@ namespace Thunder
 	class ENGINE_API Scene : public GameObject
 	{
 	public:
-		Scene(GameObject* InOuter = nullptr);
+		Scene(GameObject* inOuter = nullptr);
 		virtual ~Scene();
 
 		// Entity management
-		Entity* CreateEntity(const NameHandle& EntityName = NameHandle::Empty);
-		void AddRootEntity(Entity* RootEntity);
-		void RemoveRootEntity(Entity* RootEntity);
+		Entity* CreateEntity(const NameHandle& entityName = NameHandle::Empty);
+		void AddRootEntity(Entity* rootEntity);
+		void RemoveRootEntity(Entity* rootEntity);
 		const TArray<Entity*>& GetRootEntities() const { return RootEntities; }
 
 		// JSON serialization for scene files (.tmap)
-		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const;
-		void DeserializeJson(const rapidjson::Value& JsonValue);
+		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const;
+		void DeserializeJson(const rapidjson::Value& jsonValue);
 
 		// Scene persistence
-		bool Save(const String& FileFullPath);
+		bool Save(const String& fileFullPath);
 
 		// Synchronous scene loading
-		bool LoadSync(const String& FileFullPath);
+		bool LoadSync(const String& fileFullPath);
 
 		// Asynchronous scene loading
-		void LoadAsync(const String& FileFullPath);
+		void LoadAsync(const String& fileFullPath);
 
 		// Asynchronous resource streaming
 		void StreamScene();
@@ -73,16 +73,16 @@ namespace Thunder
 		virtual void OnLoaded();
 
 		// Renderer association
-		void SetRenderer(IRenderer* InRenderer) { Renderer = InRenderer; }
+		void SetRenderer(IRenderer* inRenderer) { Renderer = inRenderer; }
 		IRenderer* GetRenderer() const { return Renderer; }
 
 		// Scene identification
-		void SetSceneName(const NameHandle& InName) { SceneName = InName; }
+		void SetSceneName(const NameHandle& inName) { SceneName = inName; }
 		const NameHandle& GetSceneName() const { return SceneName; }
 
 	private:
 		// Collect all resource dependencies in the scene
-		void CollectDependencies(TArray<TGuid>& OutDependencies) const;
+		void CollectDependencies(TArray<TGuid>& outDependencies) const;
 
 		NameHandle SceneName;
 		TArray<Entity*> RootEntities;
@@ -98,17 +98,17 @@ namespace Thunder
 		BaseViewport() = default;
 		virtual ~BaseViewport() = default;
 
-		void AddRenderer(IRenderer* InRenderer, Scene* InScene)
+		void AddRenderer(IRenderer* inRenderer, Scene* inScene)
 		{
-			Renderers.push_back(InRenderer);
-			Scenes.push_back(InScene);
+			Renderers.push_back(inRenderer);
+			Scenes.push_back(inScene);
 		}
 
-		void RemoveRenderer(IRenderer* InRenderer)
+		void RemoveRenderer(IRenderer* inRenderer)
 		{
 			for (size_t i = 0; i < Renderers.size(); ++i)
 			{
-				if (Renderers[i] == InRenderer)
+				if (Renderers[i] == inRenderer)
 				{
 					Renderers.erase(Renderers.begin() + i);
 					Scenes.erase(Scenes.begin() + i);

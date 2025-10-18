@@ -4,19 +4,19 @@ namespace Thunder
 {
     uint32 FGRenderTarget::NextID = 1;
 
-    FGRenderTarget::FGRenderTarget(uint32 Width, uint32 Height, EPixelFormat Format)
-        : Desc(Width, Height, Format), ID(NextID++)
+    FGRenderTarget::FGRenderTarget(uint32 width, uint32 height, EPixelFormat format)
+        : Desc(width, height, format), ID(NextID++)
     {
     }
 
-    RenderTextureRef RenderTargetPool::AcquireRenderTarget(const FGRenderTargetDesc& Desc)
+    RenderTextureRef RenderTargetPool::AcquireRenderTarget(const FGRenderTargetDesc& desc)
     {
         // Find compatible render target in available pool
         for (auto it = AvailableTargets.begin(); it != AvailableTargets.end(); ++it)
         {
             auto& pooledTarget = *it;
-            if (pooledTarget.RenderTarget->GetSizeX() == Desc.Width &&
-                pooledTarget.RenderTarget->GetSizeY() == Desc.Height)
+            if (pooledTarget.RenderTarget->GetSizeX() == desc.Width &&
+                pooledTarget.RenderTarget->GetSizeY() == desc.Height)
             {
                 RenderTextureRef result = pooledTarget.RenderTarget;
                 AvailableTargets.erase(it);
@@ -27,7 +27,7 @@ namespace Thunder
 
         // Create new render target if no compatible one found
         RHIFormat rhiFormat = RHIFormat::UNKNOWN;
-        switch (Desc.Format)
+        switch (desc.Format)
         {
         case EPixelFormat::RGBA8888:
             rhiFormat = RHIFormat::R8G8B8A8_UNORM;
@@ -43,14 +43,14 @@ namespace Thunder
         }
 
         RenderTextureRef newTarget = new RenderTexture2D(
-            Desc.Width, Desc.Height, rhiFormat, nullptr);
+            desc.Width, desc.Height, rhiFormat, nullptr);
         UsedTargets.push_back(newTarget);
         return newTarget;
     }
 
-    void RenderTargetPool::ReleaseRenderTarget(RenderTextureRef RenderTarget)
+    void RenderTargetPool::ReleaseRenderTarget(RenderTextureRef renderTarget)
     {
-        auto it = std::find(UsedTargets.begin(), UsedTargets.end(), RenderTarget);
+        auto it = std::find(UsedTargets.begin(), UsedTargets.end(), renderTarget);
         if (it != UsedTargets.end())
         {
             AvailableTargets.emplace_back(PooledRenderTarget(*it));

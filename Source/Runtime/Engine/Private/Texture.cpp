@@ -25,11 +25,11 @@ namespace Thunder
 		return TextureResource.Get();
 	}
 
-	void ITexture::SetResource(RenderTexture* Resource)
+	void ITexture::SetResource(RenderTexture* resource)
 	{
-		GRenderScheduler->PushTask([this, Resource]()
+		GRenderScheduler->PushTask([this, resource]()
 		{
-			this->TextureResource = Resource;
+			this->TextureResource = resource;
 		});
 	}
 
@@ -37,8 +37,8 @@ namespace Thunder
 	{
 		ReleaseResource();
 
-		RenderTexture* NewResource = CreateResource_GameThread(); //纯虚函数
-		SetResource(NewResource);
+		RenderTexture* newResource = CreateResource_GameThread(); //纯虚函数
+		SetResource(newResource);
 		
 		InitResource();
 	}
@@ -47,9 +47,9 @@ namespace Thunder
 	{
 		if (TextureResource)
 		{
-			GRenderScheduler->PushTask([Resource = this->TextureResource]()
+			GRenderScheduler->PushTask([resource = this->TextureResource]()
 			{
-				Resource->ReleaseResource();
+				resource->ReleaseResource();
 			});
 		}
 	}

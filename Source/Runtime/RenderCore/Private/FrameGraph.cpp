@@ -11,14 +11,14 @@
 
 namespace Thunder
 {
-    void PassOperations::read(const FGRenderTarget& RenderTarget)
+    void PassOperations::read(const FGRenderTarget& renderTarget)
     {
-        ReadTargets.push_back(RenderTarget.GetID());
+        ReadTargets.push_back(renderTarget.GetID());
     }
 
-    void PassOperations::write(const FGRenderTarget& RenderTarget)
+    void PassOperations::write(const FGRenderTarget& renderTarget)
     {
-        WriteTargets.push_back(RenderTarget.GetID());
+        WriteTargets.push_back(renderTarget.GetID());
     }
 
     void FrameGraph::Reset()
@@ -112,9 +112,9 @@ namespace Thunder
         }
     }
 
-    void FrameGraph::AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction, bool bIsMeshDrawPass)
+    void FrameGraph::AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction, bool bIsMeshDrawPass)
     {
-        auto pass = MakeRefCount<PassData>(Name, std::move(Operations), std::move(ExecuteFunction), bIsMeshDrawPass);
+        auto pass = MakeRefCount<PassData>(name, std::move(operations), std::move(executeFunction), bIsMeshDrawPass);
         Passes.push_back(pass);
     }
 
@@ -140,16 +140,16 @@ namespace Thunder
         }
     }
 
-    void FrameGraph::SetPresentTarget(const FGRenderTarget& RenderTarget)
+    void FrameGraph::SetPresentTarget(const FGRenderTarget& renderTarget)
     {
-        PresentTargetID = RenderTarget.GetID();
+        PresentTargetID = renderTarget.GetID();
         bHasPresentTarget = true;
-        RenderTargetDescs[PresentTargetID] = RenderTarget.GetDesc();
+        RenderTargetDescs[PresentTargetID] = renderTarget.GetDesc();
     }
 
-    void FrameGraph::RegisterRenderTarget(const FGRenderTarget& RenderTarget)
+    void FrameGraph::RegisterRenderTarget(const FGRenderTarget& renderTarget)
     {
-        RenderTargetDescs[RenderTarget.GetID()] = RenderTarget.GetDesc();
+        RenderTargetDescs[renderTarget.GetID()] = renderTarget.GetDesc();
     }
 
     void FrameGraph::ClearRenderTargetPool()

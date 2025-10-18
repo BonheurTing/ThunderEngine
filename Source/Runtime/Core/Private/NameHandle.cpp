@@ -132,9 +132,9 @@ namespace Thunder
 
 	const char* NamePool::FindStringAddress(const char* name)
 	{
-		const uint32 Hash = CalculateStringHash(name);
+		const uint32 hash = CalculateStringHash(name);
 		ScopeLock lock(PoolMutex);
-		return FindStringAddress(name, Hash);
+		return FindStringAddress(name, hash);
 	}
 
 	const char* NamePool::GetStringAddress(const char* name)

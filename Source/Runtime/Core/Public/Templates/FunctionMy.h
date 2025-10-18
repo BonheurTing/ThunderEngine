@@ -45,9 +45,9 @@ namespace Thunder
 	{
 		virtual void Destroy() override
 		{
-			void* This = this;
+			void* thisPtr = this;
 			this->~IFunction_OwnedObject_OnHeap();
-			TMemory::Free(This);
+			TMemory::Free(thisPtr);
 		}
 
 		~IFunction_OwnedObject_OnHeap() override {}
@@ -127,8 +127,8 @@ namespace Thunder
 
 		void* BindCopy(const FunctionStorage& Other)
 		{
-			void* NewObj = Other.GetBoundObject()->CloneToEmptyStorage(this);
-			return NewObj;
+			void* newObj = Other.GetBoundObject()->CloneToEmptyStorage(this);
+			return newObj;
 		}
 
 		_NODISCARD_ IFunction_OwnedObject* GetBoundObject() const
@@ -140,13 +140,13 @@ namespace Thunder
 		//Returns a pointer to the callable object
 		void* GetPtr() const
 		{
-			auto Owned = static_cast<IFunction_OwnedObject*>(HeapAllocation);
-			if (!Owned)
+			auto owned = static_cast<IFunction_OwnedObject*>(HeapAllocation);
+			if (!owned)
 			{
-				Owned = (IFunction_OwnedObject*)(&InlineAllocation);
+				owned = (IFunction_OwnedObject*)(&InlineAllocation);
 			}
 
-			return Owned->GetAddress();
+			return owned->GetAddress();
 
 		}
 
@@ -162,19 +162,19 @@ namespace Thunder
 			constexpr bool bUseInline = sizeof(TStorageOwnerTypeT<FunctorType, false>) <= TFUNCTION_INLINE_SIZE;
 			using OwnedType = TStorageOwnerTypeT<FunctorType, !bUseInline>;
 
-			void* NewAlloc;
+			void* newAlloc;
 			if constexpr (bUseInline)
 			{
-				NewAlloc = &InlineAllocation;
+				newAlloc = &InlineAllocation;
 			}
 			else
 			{
-				NewAlloc = TMemory::Malloc(sizeof(OwnedType), alignof(OwnedType));
-				HeapAllocation = NewAlloc;
+				newAlloc = TMemory::Malloc(sizeof(OwnedType), alignof(OwnedType));
+				HeapAllocation = newAlloc;
 			}
 
-			auto* NewOwned = new (NewAlloc) OwnedType(std::forward<FunctorType>(InFunc));
-			return &NewOwned->Obj;
+			auto* newOwned = new (newAlloc) OwnedType(std::forward<FunctorType>(InFunc));
+			return &newOwned->Obj;
 		}
 
 		void* HeapAllocation;
@@ -242,7 +242,7 @@ namespace Thunder
 			{
 				return;
 			}
-			void* NewPtr = Storage.BindCopy(Other.Storage);
+			void* newPtr = Storage.BindCopy(Other.Storage);
 		}
 		
 		template <typename FunctorType>

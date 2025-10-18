@@ -11,8 +11,8 @@ namespace Thunder
 	class IMaterial : public GameResource
 	{
 	public:
-		IMaterial(GameObject* InOuter = nullptr)
-			: GameResource(InOuter, ETempGameResourceReflective::Material) {}
+		IMaterial(GameObject* inOuter = nullptr)
+			: GameResource(inOuter, ETempGameResourceReflective::Material) {}
 		virtual ~IMaterial() = default;
 	};
 
@@ -22,37 +22,37 @@ namespace Thunder
 	class ENGINE_API Material : public IMaterial
 	{
 	public:
-		Material(GameObject* InOuter = nullptr);
+		Material(GameObject* inOuter = nullptr);
 		~Material() override = default;
 
 		// Resource lifecycle
 		void OnResourceLoaded() override;
 
 		// Serialization
-		void Serialize(MemoryWriter& Archive) override;
-		void DeSerialize(MemoryReader& Archive) override;
+		void Serialize(MemoryWriter& archive) override;
+		void DeSerialize(MemoryReader& archive) override;
 
 		// Shader archive
-		void SetShaderArchive(class ShaderArchive* InArchive) { Archive = InArchive; }
+		void SetShaderArchive(class ShaderArchive* inArchive) { Archive = inArchive; }
 		ShaderArchive* GetShaderArchive() const { return Archive; }
 
 		// Parameter setters
-		void SetIntParameter(const NameHandle& ParamName, int32 Value);
-		void SetFloatParameter(const NameHandle& ParamName, float Value);
-		void SetColorParameter(const NameHandle& ParamName, const TVector4f& Value);
-		void SetTextureParameter(const NameHandle& ParamName, const TGuid& TextureGuid);
+		void SetIntParameter(const NameHandle& paramName, int32 value);
+		void SetFloatParameter(const NameHandle& paramName, float value);
+		void SetColorParameter(const NameHandle& paramName, const TVector4f& value);
+		void SetTextureParameter(const NameHandle& paramName, const TGuid& textureGuid);
 
 		// Parameter getters
-		bool GetIntParameter(const NameHandle& ParamName, int32& OutValue) const;
-		bool GetFloatParameter(const NameHandle& ParamName, float& OutValue) const;
-		bool GetColorParameter(const NameHandle& ParamName, TVector4f& OutValue) const;
-		bool GetTextureParameter(const NameHandle& ParamName, TGuid& OutTextureGuid) const;
+		bool GetIntParameter(const NameHandle& paramName, int32& outValue) const;
+		bool GetFloatParameter(const NameHandle& paramName, float& outValue) const;
+		bool GetColorParameter(const NameHandle& paramName, TVector4f& outValue) const;
+		bool GetTextureParameter(const NameHandle& paramName, TGuid& outTextureGuid) const;
 
 		// Parameter removal
-		void RemoveIntParameter(const NameHandle& ParamName);
-		void RemoveFloatParameter(const NameHandle& ParamName);
-		void RemoveColorParameter(const NameHandle& ParamName);
-		void RemoveTextureParameter(const NameHandle& ParamName);
+		void RemoveIntParameter(const NameHandle& paramName);
+		void RemoveFloatParameter(const NameHandle& paramName);
+		void RemoveColorParameter(const NameHandle& paramName);
+		void RemoveTextureParameter(const NameHandle& paramName);
 
 		// Get all parameters
 		const TMap<NameHandle, int32>& GetIntParameters() const { return IntParam; }

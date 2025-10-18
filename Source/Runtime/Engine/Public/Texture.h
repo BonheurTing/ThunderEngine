@@ -18,7 +18,7 @@ namespace Thunder
 		// render resource
 		virtual class RenderTexture* CreateResource_GameThread() = 0;
 		ENGINE_API RenderTexture* GetResource();
-		void SetResource(RenderTexture* Resource);
+		void SetResource(RenderTexture* resource);
 		virtual void UpdateResource();
 		void ReleaseResource();
 		void InitResource();

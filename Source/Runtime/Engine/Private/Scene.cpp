@@ -13,125 +13,125 @@ namespace Thunder
 
 	
 	// Scene implementation
-	Scene::Scene(GameObject* InOuter)
-		: GameObject(InOuter)
+	Scene::Scene(GameObject* inOuter)
+		: GameObject(inOuter)
 	{
 	}
 
 	Scene::~Scene()
 	{
-		for (Entity* RootEntity : RootEntities)
+		for (Entity* rootEntity : RootEntities)
 		{
-			delete RootEntity;
+			delete rootEntity;
 		}
 		RootEntities.clear();
 	}
 
-	Entity* Scene::CreateEntity(const NameHandle& EntityName)
+	Entity* Scene::CreateEntity(const NameHandle& entityName)
 	{
-		Entity* NewEntity = new Entity(this);
-		NewEntity->SetEntityName(EntityName);
-		return NewEntity;
+		Entity* newEntity = new Entity(this);
+		newEntity->SetEntityName(entityName);
+		return newEntity;
 	}
 
-	void Scene::AddRootEntity(Entity* RootEntity)
+	void Scene::AddRootEntity(Entity* rootEntity)
 	{
-		if (RootEntity)
+		if (rootEntity)
 		{
-			RootEntities.push_back(RootEntity);
+			RootEntities.push_back(rootEntity);
 		}
 	}
 
-	void Scene::RemoveRootEntity(Entity* RootEntity)
+	void Scene::RemoveRootEntity(Entity* rootEntity)
 	{
-		auto It = std::find(RootEntities.begin(), RootEntities.end(), RootEntity);
-		if (It != RootEntities.end())
+		auto it = std::find(RootEntities.begin(), RootEntities.end(), rootEntity);
+		if (it != RootEntities.end())
 		{
-			RootEntities.erase(It);
+			RootEntities.erase(it);
 		}
 	}
 
-	void Scene::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const
+	void Scene::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const
 	{
-		Writer.StartObject();
+		writer.StartObject();
 
 		// Serialize scene name
-		Writer.Key("SceneName");
-		Writer.String(SceneName.c_str());
+		writer.Key("SceneName");
+		writer.String(SceneName.c_str());
 
 		// Serialize root entities
-		Writer.Key("RootEntities");
-		Writer.StartArray();
-		for (Entity* RootEntity : RootEntities)
+		writer.Key("RootEntities");
+		writer.StartArray();
+		for (Entity* rootEntity : RootEntities)
 		{
-			RootEntity->SerializeJson(Writer);
+			rootEntity->SerializeJson(writer);
 		}
-		Writer.EndArray();
+		writer.EndArray();
 
-		Writer.EndObject();
+		writer.EndObject();
 	}
 
-	void Scene::DeserializeJson(const rapidjson::Value& JsonValue)
+	void Scene::DeserializeJson(const rapidjson::Value& jsonValue)
 	{
-		if (!JsonValue.IsObject())
+		if (!jsonValue.IsObject())
 		{
 			return;
 		}
 
 		// Deserialize scene name
-		if (JsonValue.HasMember("SceneName") && JsonValue["SceneName"].IsString())
+		if (jsonValue.HasMember("SceneName") && jsonValue["SceneName"].IsString())
 		{
-			SceneName = NameHandle(JsonValue["SceneName"].GetString());
+			SceneName = NameHandle(jsonValue["SceneName"].GetString());
 		}
 
 		// Deserialize root entities
-		if (JsonValue.HasMember("RootEntities") && JsonValue["RootEntities"].IsArray())
+		if (jsonValue.HasMember("RootEntities") && jsonValue["RootEntities"].IsArray())
 		{
-			const rapidjson::Value& EntitiesArray = JsonValue["RootEntities"];
-			for (rapidjson::SizeType i = 0; i < EntitiesArray.Size(); ++i)
+			const rapidjson::Value& entitiesArray = jsonValue["RootEntities"];
+			for (rapidjson::SizeType i = 0; i < entitiesArray.Size(); ++i)
 			{
-				Entity* NewEntity = new Entity(this);
-				NewEntity->DeserializeJson(EntitiesArray[i]);
-				RootEntities.push_back(NewEntity);
+				Entity* newEntity = new Entity(this);
+				newEntity->DeserializeJson(entitiesArray[i]);
+				RootEntities.push_back(newEntity);
 			}
 		}
 	}
 
-	bool Scene::Save(const String& FileFullPath)
+	bool Scene::Save(const String& fileFullPath)
 	{
 		// Create JSON writer
-		rapidjson::StringBuffer StringBuffer;
-		rapidjson::PrettyWriter<rapidjson::StringBuffer> Writer(StringBuffer);
+		rapidjson::StringBuffer stringBuffer;
+		rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(stringBuffer);
 
 		// Serialize scene to JSON
-		SerializeJson(Writer);
+		SerializeJson(writer);
 
 		// Convert JSON to binary data
-		const char* jsonString = StringBuffer.GetString();
-		size_t jsonSize = StringBuffer.GetSize();
+		const char* jsonString = stringBuffer.GetString();
+		size_t jsonSize = stringBuffer.GetSize();
 
 		// Write to file
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
 		TAssert(fileSystem != nullptr);
-		const String tempPath = FileFullPath + ".tmp";
+		const String tempPath = fileFullPath + ".tmp";
 		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(tempPath, false));
 		const size_t ret = file->Write(jsonString, jsonSize);
 
-		return ret == jsonSize && file->Rename(tempPath, FileFullPath);
+		return ret == jsonSize && file->Rename(tempPath, fileFullPath);
 	}
 
-	bool Scene::LoadSync(const String& FileFullPath)
+	bool Scene::LoadSync(const String& fileFullPath)
 	{
 		// Read file
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
 		TAssert(fileSystem != nullptr);
-		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(FileFullPath, false));
+		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(fileFullPath, false));
 		TAssert(file != nullptr);
 		// Get file size and read all content
 		const size_t fileSize = file->Size();
 		if (fileSize == 0)
 		{
-			LOG("Scene file is empty: %s", FileFullPath.c_str());
+			LOG("Scene file is empty: %s", fileFullPath.c_str());
 			file->Close();
 			return false;
 		}
@@ -143,56 +143,56 @@ namespace Thunder
 
 		if (bytesRead != fileSize)
 		{
-			LOG("Failed to read scene file: %s", FileFullPath.c_str());
+			LOG("Failed to read scene file: %s", fileFullPath.c_str());
 			TMemory::Free(fileData);
 			return false;
 		}
 
 		// Convert to string (assuming JSON is text)
-		String JsonString(static_cast<const char*>(fileData), fileSize);
+		String jsonString(static_cast<const char*>(fileData), fileSize);
 		TMemory::Free(fileData);
 
 		// Parse JSON
-		rapidjson::Document Document;
-		Document.Parse(JsonString.c_str());
-		TAssertf(!Document.HasParseError(), "Failed to parse scene JSON: %s", FileFullPath.c_str());
+		rapidjson::Document document;
+		document.Parse(jsonString.c_str());
+		TAssertf(!document.HasParseError(), "Failed to parse scene JSON: %s", fileFullPath.c_str());
 
 		// Deserialize scene from JSON
-		DeserializeJson(Document);
+		DeserializeJson(document);
 
 		// Schedule OnLoaded callback on game thread
 		// For now, call directly (in production, use GameScheduler->Invoke)
 		OnLoaded();
 
-		LOG("Scene loaded from: %s", FileFullPath.c_str());
+		LOG("Scene loaded from: %s", fileFullPath.c_str());
 		return true;
 	}
 
-	void Scene::LoadAsync(const String& FileFullPath)
+	void Scene::LoadAsync(const String& fileFullPath)
 	{
 		// Push loading task to async worker pool
-		GAsyncWorkers->PushTask([this, FileFullPath]()
+		GAsyncWorkers->PushTask([this, fileFullPath]()
 		{
-			LoadSync(FileFullPath);
+			LoadSync(fileFullPath);
 		});
 	}
 
-	void Scene::CollectDependencies(TArray<TGuid>& OutDependencies) const
+	void Scene::CollectDependencies(TArray<TGuid>& outDependencies) const
 	{
-		for (Entity* RootEntity : RootEntities)
+		for (Entity* rootEntity : RootEntities)
 		{
-			RootEntity->GetDependencies(OutDependencies);
+			rootEntity->GetDependencies(outDependencies);
 		}
 	}
 
 	void Scene::StreamScene()
 	{
 		// Collect all resource dependencies
-		TArray<TGuid> GuidList;
-		CollectDependencies(GuidList);
-		uint32 guidNum = static_cast<uint32>(GuidList.size());
+		TArray<TGuid> guidList;
+		CollectDependencies(guidList);
+		uint32 guidNum = static_cast<uint32>(guidList.size());
 
-		if (GuidList.empty())
+		if (guidList.empty())
 		{
 			// No resources to load, call OnLoaded directly
 			OnLoaded();
@@ -202,11 +202,11 @@ namespace Thunder
 		auto* callback = new (TMemory::Malloc<OnSceneLoaded<Scene>>()) OnSceneLoaded(this);
 		callback->Promise(guidNum);
 		uint32 taskBundleSize = guidNum / GAsyncWorkers->GetNumThreads();
-		GAsyncWorkers->ParallelFor([GuidList, callback](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
+		GAsyncWorkers->ParallelFor([guidList, callback](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
 		{
 			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
 			{
-				auto guid = GuidList[index];
+				auto guid = guidList[index];
 				ResourceModule::LoadSync(guid);
 				callback->Notify();
 			}

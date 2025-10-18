@@ -20,12 +20,12 @@ namespace Thunder
 	private:
 		static D3D12_DESCRIPTOR_HEAP_DESC CreateDescriptor(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 numDescriptorsPerHeap)
 		{
-			D3D12_DESCRIPTOR_HEAP_DESC Desc = {};
-			Desc.Type = type;
-			Desc.NumDescriptors = numDescriptorsPerHeap;
-			Desc.Flags = (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV) ?
+			D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+			desc.Type = type;
+			desc.NumDescriptors = numDescriptorsPerHeap;
+			desc.Flags = (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV) ?
 				D3D12_DESCRIPTOR_HEAP_FLAG_NONE : D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-			return Desc;
+			return desc;
 		}
 
 		inline const uint32 GetDescriptorSize() const { return DescriptorSize; }

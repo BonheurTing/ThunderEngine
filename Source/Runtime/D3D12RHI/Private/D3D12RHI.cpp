@@ -409,7 +409,7 @@ namespace Thunder
         }
     }
 
-    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  EBufferCreateFlags usage, void *resourceData)
+    RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes,  EBufferCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* vertexBuffer;
         const D3D12_HEAP_PROPERTIES heapType = {
@@ -427,7 +427,7 @@ namespace Thunder
 
         if (SUCCEEDED(hr))
         {
-            RHIVertexBufferRef vertexBufferRef = MakeRefCount<D3D12RHIVertexBuffer>(sizeInBytes, StrideInBytes, RHIResourceDescriptor::Buffer(sizeInBytes), usage, vertexBuffer);
+            RHIVertexBufferRef vertexBufferRef = MakeRefCount<D3D12RHIVertexBuffer>(sizeInBytes, strideInBytes, RHIResourceDescriptor::Buffer(sizeInBytes), usage, vertexBuffer);
             if (RHIUpdateSharedMemoryResource(vertexBufferRef.Get(), resourceData, sizeInBytes, 0))
             {
                 return vertexBufferRef;

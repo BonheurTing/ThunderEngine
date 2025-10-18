@@ -19,7 +19,7 @@ namespace Thunder
 
 		// render resource
 		virtual RenderMesh* CreateResource_GameThread() = 0;
-		void SetResource(RenderMesh* Resource);
+		void SetResource(RenderMesh* resource);
 		void ReleaseResource();
 		void InitResource();
 

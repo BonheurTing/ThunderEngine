@@ -295,14 +295,14 @@ namespace Thunder
 
 	bool ResourceModule::LoadSync(const NameHandle& softPath, TArray<GameResource*>& outResources, bool bForce)
 	{
-		auto& LoadedResByPath = GetModule()->LoadedResourcesByPath;
-		auto& LoadedRes = GetModule()->LoadedResources;
+		auto& loadedResByPath = GetModule()->LoadedResourcesByPath;
+		auto& loadedRes = GetModule()->LoadedResources;
 		if (!bForce && IsLoaded(softPath))
 		{
-			const TGuid guid = LoadedResByPath[softPath];
-			if (LoadedRes.contains(guid))
+			const TGuid guid = loadedResByPath[softPath];
+			if (loadedRes.contains(guid))
 			{
-				if (const auto pak = static_cast<Package*>(LoadedRes[guid]))
+				if (const auto pak = static_cast<Package*>(loadedRes[guid]))
 				{
 					outResources = pak->GetPackageObjects();
 					return true;
@@ -337,14 +337,14 @@ namespace Thunder
 
 	GameResource* ResourceModule::LoadSync(const NameHandle& resourceSoftPath, bool bForce)
 	{
-		auto& LoadedResByPath = GetModule()->LoadedResourcesByPath;
-		auto& LoadedRes = GetModule()->LoadedResources;
+		auto& loadedResByPath = GetModule()->LoadedResourcesByPath;
+		auto& loadedRes = GetModule()->LoadedResources;
 		if (!bForce && IsLoaded(resourceSoftPath))
 		{
-			const TGuid guid = LoadedResByPath[resourceSoftPath];
-			if (LoadedRes.contains(guid))
+			const TGuid guid = loadedResByPath[resourceSoftPath];
+			if (loadedRes.contains(guid))
 			{
-				const auto res = static_cast<GameResource*>(LoadedRes[guid]);
+				const auto res = static_cast<GameResource*>(loadedRes[guid]);
 				TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource, softPath: %s", resourceSoftPath.c_str());
 				return res;
 			}
@@ -355,8 +355,8 @@ namespace Thunder
 		const auto newPackage = new Package(pakSoftPath);
 		if (newPackage->Load())
 		{
-			const TGuid guid = LoadedResByPath[resourceSoftPath];
-			const auto res = static_cast<GameResource*>(LoadedRes[guid]);
+			const TGuid guid = loadedResByPath[resourceSoftPath];
+			const auto res = static_cast<GameResource*>(loadedRes[guid]);
 			TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource, softPath: %s", resourceSoftPath.c_str());
 			return res;
 		}

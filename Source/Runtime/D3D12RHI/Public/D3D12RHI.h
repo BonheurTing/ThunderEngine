@@ -38,7 +38,7 @@ namespace Thunder
 
         RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) override;
     
-        RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, EBufferCreateFlags usage, void *resourceData = nullptr) override;
+        RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes, EBufferCreateFlags usage, void *resourceData = nullptr) override;
         
         RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void *resourceData = nullptr) override;
     

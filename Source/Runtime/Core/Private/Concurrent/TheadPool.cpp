@@ -77,27 +77,27 @@ namespace Thunder
 		{
 			DoWorkEvent->Wait();
 
-			int32 NumOfFailed = SUSPEND_THRESHOLD;
-			while (NumOfFailed > 0)
+			int32 numOfFailed = SUSPEND_THRESHOLD;
+			while (numOfFailed > 0)
 			{
 				bool bHasWork = false;
 				{
 					SchedulersSharedLock.Read();
-					for (const auto Scheduler: AttachedSchedulers)
+					for (const auto scheduler: AttachedSchedulers)
 					{
-						if (ITask* CurrentWork = Scheduler->GetNextQueuedWork())
+						if (ITask* currentWork = scheduler->GetNextQueuedWork())
 						{
-							//LOG(CurrentWork->GetName().c_str());
+							//LOG(currentWork->GetName().c_str());
 							bHasWork = true;
-							NumOfFailed = SUSPEND_THRESHOLD;
-							CurrentWork->DoWork();
-							//TMemory::Destroy(CurrentWork);
+							numOfFailed = SUSPEND_THRESHOLD;
+							currentWork->DoWork();
+							//TMemory::Destroy(currentWork);
 						}
 					}
 				}
 				if (!bHasWork)
 				{
-					NumOfFailed--;
+					numOfFailed--;
 				}
 			}
 		}
@@ -148,10 +148,10 @@ namespace Thunder
 	{
 		for (uint32 Count = 0; Count < ThreadsNum; Count++)
 		{
-			if (auto pThread = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(StackSize, ThreadNamePrefix + "_" + std::to_string(Count)))
+			if (auto thread = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(StackSize, ThreadNamePrefix + "_" + std::to_string(Count)))
 			{
-				pThread->SetThreadPoolOwner(this);
-				Threads.push_back(pThread);
+				thread->SetThreadPoolOwner(this);
+				Threads.push_back(thread);
 			}
 			else
 			{

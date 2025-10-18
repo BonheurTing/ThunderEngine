@@ -90,8 +90,8 @@ namespace Thunder
 
     int32 EngineMain::Run()
     {
-        auto* GameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
-        GGameScheduler->PushTask(GameThreadTask);
+        auto* gameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
+        GGameScheduler->PushTask(gameThreadTask);
         /**
          * plan a: the main thread push a game task.
          *      then, at the end of the game task's function (DoWork), the game task submits the next game task

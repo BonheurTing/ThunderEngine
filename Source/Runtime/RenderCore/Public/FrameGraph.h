@@ -14,8 +14,8 @@ namespace Thunder
     class RENDERCORE_API PassOperations
     {
     public:
-        void read(const FGRenderTarget& RenderTarget);
-        void write(const FGRenderTarget& RenderTarget);
+        void read(const FGRenderTarget& renderTarget);
+        void write(const FGRenderTarget& renderTarget);
 
         const TArray<uint32>& GetReadTargets() const { return ReadTargets; }
         const TArray<uint32>& GetWriteTargets() const { return WriteTargets; }
@@ -35,8 +35,8 @@ namespace Thunder
         bool bCulled = false;
         bool bIsMeshDrawPass = false;  // Flag to indicate if this is a mesh draw pass
 
-        PassData(const String& InName, PassOperations&& InOperations, PassExecutionFunction&& InExecuteFunction, bool InIsMeshDrawPass = false)
-            : Name(InName), Operations(std::move(InOperations)), ExecuteFunction(std::move(InExecuteFunction)), bIsMeshDrawPass(InIsMeshDrawPass) {}
+        PassData(const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction, bool inIsMeshDrawPass = false)
+            : Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)), bIsMeshDrawPass(inIsMeshDrawPass) {}
     };
 
     class RENDERCORE_API FrameGraph : public RefCountedObject
@@ -52,9 +52,9 @@ namespace Thunder
         void Execute();
 
         // Internal methods used by FrameGraphBuilder
-        void AddPass(const String& Name, PassOperations&& Operations, PassExecutionFunction&& ExecuteFunction, bool bIsMeshDrawPass = false);
-        void SetPresentTarget(const FGRenderTarget& RenderTarget);
-        void RegisterRenderTarget(const FGRenderTarget& RenderTarget);
+        void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction, bool bIsMeshDrawPass = false);
+        void SetPresentTarget(const FGRenderTarget& renderTarget);
+        void RegisterRenderTarget(const FGRenderTarget& renderTarget);
         void ClearRenderTargetPool();
 
         // Command execution support

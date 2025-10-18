@@ -51,18 +51,18 @@ namespace Thunder
         // Parallel recording of rendering commands
         ExecuteCommands();
         
-        const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-        auto* Dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(DoWorkEvent);
-        Dispatcher->Promise(1000);
+        const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+        auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
+        dispatcher->Promise(1000);
         int i = 1000;
         while (i-- > 0)
         {
-            auto* Task = new (TMemory::Malloc<SimulatedPopulateCommandList>()) SimulatedPopulateCommandList(Dispatcher);
-            GSyncWorkers->PushTask(Task);
+            auto* task = new (TMemory::Malloc<SimulatedPopulateCommandList>()) SimulatedPopulateCommandList(dispatcher);
+            GSyncWorkers->PushTask(task);
         }
-        DoWorkEvent->Wait();
-        FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
-        TMemory::Destroy(Dispatcher);
+        doWorkEvent->Wait();
+        FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
+        TMemory::Destroy(dispatcher);
 
         LOG("Present");
 
@@ -96,13 +96,13 @@ namespace Thunder
         uint32 taskBundleSize = (commandNum + contextNum - 1) / contextNum;
         //uint32 numTaskBundles = (commandNum + taskBundleSize - 1) / taskBundleSize;
 
-        const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-        auto* Dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(DoWorkEvent);
-        Dispatcher->Promise(commandNum);
-        GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, Dispatcher](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
+        const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+        auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
+        dispatcher->Promise(commandNum);
+        GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, dispatcher](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
         {
             uint32 totalNum = static_cast<uint32>(consolidatedCommands.size());
-            RHICommandContext* CommandList = rhiCommandContexts[bundleId];
+            RHICommandContext* commandList = rhiCommandContexts[bundleId];
             for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
             {
                 if (index < totalNum)
@@ -111,14 +111,14 @@ namespace Thunder
                     consolidatedCommands.resize(currentSize * 2);
                     consolidatedCommands.resize(currentSize);
                     // consolidatedCommands[index]->TestMember;
-                    consolidatedCommands[index]->ExecuteAndDestruct(CommandList);
-                    Dispatcher->Notify();
+                    consolidatedCommands[index]->ExecuteAndDestruct(commandList);
+                    dispatcher->Notify();
                 }
             }
         }, commandNum, taskBundleSize);
-        DoWorkEvent->Wait();
-        FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
-        TMemory::Destroy(Dispatcher);
+        doWorkEvent->Wait();
+        FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
+        TMemory::Destroy(dispatcher);
 
         // Commit.
         for (int i = 0; i < contextNum; ++i)

@@ -30,10 +30,10 @@ namespace Thunder
 			// No explicit instruction for 64-bit atomic increment on 32-bit processors; has to be implemented in terms of CMPXCHG8B
 			for (;;)
 			{
-				int64 OldValue = *Value;
-				if (_InterlockedCompareExchange64(Value, OldValue + 1, OldValue) == OldValue)
+				int64 oldValue = *Value;
+				if (_InterlockedCompareExchange64(Value, oldValue + 1, oldValue) == oldValue)
 				{
-					return OldValue + 1;
+					return oldValue + 1;
 				}
 			}
 #endif

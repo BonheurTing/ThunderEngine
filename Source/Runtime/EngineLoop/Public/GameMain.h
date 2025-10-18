@@ -45,8 +45,8 @@ namespace Thunder
 
         void InitGameThread();
 
-        static void RegisterTickable(ITickable* Tickable);
-        static void UnregisterTickable(ITickable* Tickable);
+        static void RegisterTickable(ITickable* tickable);
+        static void UnregisterTickable(ITickable* tickable);
         static TArray<ITickable*> const& GetTickables() { return GetModule()->Tickables; }
 
     private:

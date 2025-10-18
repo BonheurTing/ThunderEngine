@@ -32,7 +32,7 @@ namespace Thunder
 		virtual void OnLoaded() {}
 
 		// Factory method for creating components by name
-		static IComponent* CreateComponentByName(const NameHandle& ComponentName);
+		static IComponent* CreateComponentByName(const NameHandle& componentName);
 	};
 
 	class PrimitiveComponent : public IComponent
@@ -53,11 +53,11 @@ namespace Thunder
 		NameHandle GetComponentName() const override { return "StaticMeshComponent"; }
 
 		// Dependency collection
-		void GetDependencies(TArray<TGuid>& OutDependencies) const override;
+		void GetDependencies(TArray<TGuid>& outDependencies) const override;
 
 		// JSON serialization
-		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const override;
-		void DeserializeJson(const rapidjson::Value& JsonValue) override;
+		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const override;
+		void DeserializeJson(const rapidjson::Value& jsonValue) override;
 
 		// Asynchronous resource loading
 		void AsyncLoad() override;
@@ -68,10 +68,10 @@ namespace Thunder
 		void SyncLoad();
 
 		// Mesh and material management
-		void SetMesh(StaticMesh* InMesh) { Mesh = InMesh; }
+		void SetMesh(StaticMesh* inMesh) { Mesh = inMesh; }
 		StaticMesh* GetMesh() const { return Mesh; }
 
-		void SetOverrideMaterials(const TArray<IMaterial*>& InMaterials) { OverrideMaterials = InMaterials; }
+		void SetOverrideMaterials(const TArray<IMaterial*>& inMaterials) { OverrideMaterials = inMaterials; }
 		const TArray<IMaterial*>& GetOverrideMaterials() const { return OverrideMaterials; }
 
 	private:
@@ -96,17 +96,17 @@ namespace Thunder
 		NameHandle GetComponentName() const override { return "TransformComponent"; }
 
 		// JSON serialization
-		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const override;
-		void DeserializeJson(const rapidjson::Value& JsonValue) override;
+		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const override;
+		void DeserializeJson(const rapidjson::Value& jsonValue) override;
 
 		// Transform accessors
-		void SetPosition(const TVector3f& InPosition) { Position = InPosition; }
+		void SetPosition(const TVector3f& inPosition) { Position = inPosition; }
 		const TVector3f& GetPosition() const { return Position; }
 
-		void SetRotation(const TVector3f& InRotation) { Rotation = InRotation; }
+		void SetRotation(const TVector3f& inRotation) { Rotation = inRotation; }
 		const TVector3f& GetRotation() const { return Rotation; }
 
-		void SetScale(const TVector3f& InScale) { Scale = InScale; }
+		void SetScale(const TVector3f& inScale) { Scale = inScale; }
 		const TVector3f& GetScale() const { return Scale; }
 
 	private:

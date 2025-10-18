@@ -7,23 +7,23 @@ namespace Thunder
 {
 	static D3D12_STATIC_SAMPLER_DESC MakeStaticSampler(D3D12_FILTER Filter, D3D12_TEXTURE_ADDRESS_MODE WrapMode, uint32 Register, uint32 Space)
 	{
-		D3D12_STATIC_SAMPLER_DESC Result = {};
+		D3D12_STATIC_SAMPLER_DESC result = {};
 	
-		Result.Filter           = Filter;
-		Result.AddressU         = WrapMode;
-		Result.AddressV         = WrapMode;
-		Result.AddressW         = WrapMode;
-		Result.MipLODBias       = 0.0f;
-		Result.MaxAnisotropy    = 1;
-		Result.ComparisonFunc   = D3D12_COMPARISON_FUNC_NEVER;
-		Result.BorderColor      = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
-		Result.MinLOD           = 0.0f;
-		Result.MaxLOD           = D3D12_FLOAT32_MAX;
-		Result.ShaderRegister   = Register;
-		Result.RegisterSpace    = Space;
-		Result.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+		result.Filter           = Filter;
+		result.AddressU         = WrapMode;
+		result.AddressV         = WrapMode;
+		result.AddressW         = WrapMode;
+		result.MipLODBias       = 0.0f;
+		result.MaxAnisotropy    = 1;
+		result.ComparisonFunc   = D3D12_COMPARISON_FUNC_NEVER;
+		result.BorderColor      = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+		result.MinLOD           = 0.0f;
+		result.MaxLOD           = D3D12_FLOAT32_MAX;
+		result.ShaderRegister   = Register;
+		result.RegisterSpace    = Space;
+		result.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-		return Result;
+		return result;
 	}
 
 	// Static sampler table must match D3DCommon.ush
@@ -43,27 +43,27 @@ namespace Thunder
 		// Determine if our descriptors or their data is static based on the resource binding tier.
 
 		//todo: move to FD3D12Adapter to check device surpport 
-		D3D12_RESOURCE_HEAP_TIER ResourceHeapTier;
-		D3D12_RESOURCE_BINDING_TIER ResourceBindingTier;
-		D3D12_FEATURE_DATA_D3D12_OPTIONS D3D12Caps;
-		memset(&D3D12Caps, 0, sizeof(D3D12Caps));
-		TAssertf(SUCCEEDED(ParentDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &D3D12Caps, sizeof(D3D12Caps))), "Failed to check D3D12 feature support.");
-		ResourceHeapTier = D3D12Caps.ResourceHeapTier;
-		ResourceBindingTier = D3D12Caps.ResourceBindingTier;
+		D3D12_RESOURCE_HEAP_TIER resourceHeapTier;
+		D3D12_RESOURCE_BINDING_TIER resourceBindingTier;
+		D3D12_FEATURE_DATA_D3D12_OPTIONS d3d12Caps;
+		memset(&d3d12Caps, 0, sizeof(d3d12Caps));
+		TAssertf(SUCCEEDED(ParentDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &d3d12Caps, sizeof(d3d12Caps))), "Failed to check D3D12 feature support.");
+		resourceHeapTier = d3d12Caps.ResourceHeapTier;
+		resourceBindingTier = d3d12Caps.ResourceBindingTier;
 
-		const D3D12_DESCRIPTOR_RANGE_FLAGS SRVDescriptorRangeFlags = (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1) ?
+		const D3D12_DESCRIPTOR_RANGE_FLAGS SRVDescriptorRangeFlags = (resourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1) ?
 			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE :
 			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE | D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-		const D3D12_DESCRIPTOR_RANGE_FLAGS CBVDescriptorRangeFlags = (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2) ?
+		const D3D12_DESCRIPTOR_RANGE_FLAGS CBVDescriptorRangeFlags = (resourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2) ?
 			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE :
 			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE | D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-		const D3D12_DESCRIPTOR_RANGE_FLAGS UAVDescriptorRangeFlags = (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2) ?
+		const D3D12_DESCRIPTOR_RANGE_FLAGS UAVDescriptorRangeFlags = (resourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2) ?
 			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE :
 			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 
-		const D3D12_DESCRIPTOR_RANGE_FLAGS SamplerDescriptorRangeFlags = (ResourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1) ?
+		const D3D12_DESCRIPTOR_RANGE_FLAGS SamplerDescriptorRangeFlags = (resourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1) ?
 			D3D12_DESCRIPTOR_RANGE_FLAG_NONE :
 			D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
 

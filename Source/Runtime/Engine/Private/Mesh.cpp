@@ -14,16 +14,16 @@ namespace Thunder
 		GameResource::OnResourceLoaded();
 
 		ReleaseResource();
-		RenderMesh* NewResource = CreateResource_GameThread(); //纯虚函数
-		SetResource(NewResource);
+		RenderMesh* newResource = CreateResource_GameThread(); //纯虚函数
+		SetResource(newResource);
 		InitResource();
 	}
 
-	void IMesh::SetResource(RenderMesh* Resource)
+	void IMesh::SetResource(RenderMesh* resource)
 	{
-		GRenderScheduler->PushTask([this, Resource]()
+		GRenderScheduler->PushTask([this, resource]()
 		{
-			this->MeshResource = Resource;
+			this->MeshResource = resource;
 		});
 	}
 
@@ -31,20 +31,20 @@ namespace Thunder
 	{
 		if (MeshResource)
 		{
-			GRenderScheduler->PushTask([Resource = this->MeshResource]()
+			GRenderScheduler->PushTask([resource = this->MeshResource]()
 			{
-				Resource->ReleaseResource();
+				resource->ReleaseResource();
 			});
 		}
 	}
 
 	void IMesh::InitResource()
 	{
-		GRenderScheduler->PushTask([Resource = MeshResource.Get()]()
+		GRenderScheduler->PushTask([resource = MeshResource.Get()]()
 		{
-			if (Resource)
+			if (resource)
 			{
-				Resource->InitResource();
+				resource->InitResource();
 			}
 		});
 	}

@@ -34,7 +34,7 @@ namespace Thunder
 		 */
 		static CORE_API void CoreYield();
 
-		static CORE_API void Sleep( float Seconds );
+		static CORE_API void Sleep( float seconds );
 
 		static CORE_API void BusyWaiting(int32 us);
 

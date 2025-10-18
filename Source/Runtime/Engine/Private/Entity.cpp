@@ -3,164 +3,164 @@
 
 namespace Thunder
 {
-	Entity::Entity(GameObject* InOuter)
-		: GameObject(InOuter)
+	Entity::Entity(GameObject* inOuter)
+		: GameObject(inOuter)
 	{
 	}
 
 	Entity::~Entity()
 	{
-		for (IComponent* Component : Components)
+		for (IComponent* component : Components)
 		{
-			delete Component;
+			delete component;
 		}
 		Components.clear();
 		ComponentTable.clear();
 
-		for (Entity* Child : Children)
+		for (Entity* child : Children)
 		{
-			delete Child;
+			delete child;
 		}
 		Children.clear();
 	}
 
-	IComponent* Entity::GetComponentByName(const NameHandle& ComponentName) const
+	IComponent* Entity::GetComponentByName(const NameHandle& componentName) const
 	{
-		auto It = ComponentTable.find(ComponentName);
-		if (It != ComponentTable.end())
+		auto it = ComponentTable.find(componentName);
+		if (it != ComponentTable.end())
 		{
-			return It->second;
+			return it->second;
 		}
 		return nullptr;
 	}
 
-	void Entity::AddChild(Entity* Child)
+	void Entity::AddChild(Entity* child)
 	{
-		if (Child && Child->Parent != this)
+		if (child && child->Parent != this)
 		{
-			if (Child->Parent)
+			if (child->Parent)
 			{
-				Child->Parent->RemoveChild(Child);
+				child->Parent->RemoveChild(child);
 			}
-			Child->Parent = this;
-			Children.push_back(Child);
+			child->Parent = this;
+			Children.push_back(child);
 		}
 	}
 
-	void Entity::RemoveChild(Entity* Child)
+	void Entity::RemoveChild(Entity* child)
 	{
-		auto It = std::find(Children.begin(), Children.end(), Child);
-		if (It != Children.end())
+		auto it = std::find(Children.begin(), Children.end(), child);
+		if (it != Children.end())
 		{
-			(*It)->Parent = nullptr;
-			Children.erase(It);
+			(*it)->Parent = nullptr;
+			Children.erase(it);
 		}
 	}
 
 	void Entity::AsyncLoad()
 	{
 		// Load all components
-		for (IComponent* Component : Components)
+		for (IComponent* component : Components)
 		{
-			Component->AsyncLoad();
+			component->AsyncLoad();
 		}
 
 		// Load all children recursively
-		for (Entity* Child : Children)
+		for (Entity* child : Children)
 		{
-			Child->AsyncLoad();
+			child->AsyncLoad();
 		}
 	}
 
-	void Entity::GetDependencies(TArray<TGuid>& OutDependencies) const
+	void Entity::GetDependencies(TArray<TGuid>& outDependencies) const
 	{
-		for (IComponent* Component : Components)
+		for (IComponent* component : Components)
 		{
-			Component->GetDependencies(OutDependencies);
+			component->GetDependencies(outDependencies);
 		}
 
 		// Recursively collect dependencies from children
-		for (Entity* Child : Children)
+		for (Entity* child : Children)
 		{
-			Child->GetDependencies(OutDependencies);
+			child->GetDependencies(outDependencies);
 		}
 	}
 
-	void Entity::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const
+	void Entity::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const
 	{
-		Writer.StartObject();
+		writer.StartObject();
 
 		// Serialize entity name
-		Writer.Key("EntityName");
-		Writer.String(EntityName.c_str());
+		writer.Key("EntityName");
+		writer.String(EntityName.c_str());
 
 		// Serialize components
-		Writer.Key("Components");
-		Writer.StartObject();
-		for (IComponent* Component : Components)
+		writer.Key("Components");
+		writer.StartObject();
+		for (IComponent* component : Components)
 		{
-			Writer.Key(Component->GetComponentName().c_str());
-			Component->SerializeJson(Writer);
+			writer.Key(component->GetComponentName().c_str());
+			component->SerializeJson(writer);
 		}
-		Writer.EndObject();
+		writer.EndObject();
 
 		// Serialize children
 		if (!Children.empty())
 		{
-			Writer.Key("Children");
-			Writer.StartArray();
-			for (Entity* Child : Children)
+			writer.Key("Children");
+			writer.StartArray();
+			for (Entity* child : Children)
 			{
-				Child->SerializeJson(Writer);
+				child->SerializeJson(writer);
 			}
-			Writer.EndArray();
+			writer.EndArray();
 		}
 
-		Writer.EndObject();
+		writer.EndObject();
 	}
 
-	void Entity::DeserializeJson(const rapidjson::Value& JsonValue)
+	void Entity::DeserializeJson(const rapidjson::Value& jsonValue)
 	{
-		if (!JsonValue.IsObject())
+		if (!jsonValue.IsObject())
 		{
 			return;
 		}
 
 		// Deserialize entity name
-		if (JsonValue.HasMember("EntityName") && JsonValue["EntityName"].IsString())
+		if (jsonValue.HasMember("EntityName") && jsonValue["EntityName"].IsString())
 		{
-			EntityName = NameHandle(JsonValue["EntityName"].GetString());
+			EntityName = NameHandle(jsonValue["EntityName"].GetString());
 		}
 
 		// Deserialize components
-		if (JsonValue.HasMember("Components") && JsonValue["Components"].IsObject())
+		if (jsonValue.HasMember("Components") && jsonValue["Components"].IsObject())
 		{
-			const rapidjson::Value& ComponentsObj = JsonValue["Components"];
-			for (auto It = ComponentsObj.MemberBegin(); It != ComponentsObj.MemberEnd(); ++It)
+			const rapidjson::Value& componentsObj = jsonValue["Components"];
+			for (auto it = componentsObj.MemberBegin(); it != componentsObj.MemberEnd(); ++it)
 			{
-				const char* ComponentTypeName = It->name.GetString();
-				const rapidjson::Value& ComponentData = It->value;
+				const char* componentTypeName = it->name.GetString();
+				const rapidjson::Value& ComponentData = it->value;
 
 				// Create component based on type name
-				IComponent* NewComponent = IComponent::CreateComponentByName(NameHandle(ComponentTypeName));
-				if (NewComponent)
+				IComponent* newComponent = IComponent::CreateComponentByName(NameHandle(componentTypeName));
+				if (newComponent)
 				{
-					NewComponent->DeserializeJson(ComponentData);
-					Components.push_back(NewComponent);
-					ComponentTable[NewComponent->GetComponentName()] = NewComponent;
+					newComponent->DeserializeJson(ComponentData);
+					Components.push_back(newComponent);
+					ComponentTable[newComponent->GetComponentName()] = newComponent;
 				}
 			}
 		}
 
 		// Deserialize children
-		if (JsonValue.HasMember("Children") && JsonValue["Children"].IsArray())
+		if (jsonValue.HasMember("Children") && jsonValue["Children"].IsArray())
 		{
-			const rapidjson::Value& ChildrenArray = JsonValue["Children"];
-			for (rapidjson::SizeType i = 0; i < ChildrenArray.Size(); ++i)
+			const rapidjson::Value& childrenArray = jsonValue["Children"];
+			for (rapidjson::SizeType i = 0; i < childrenArray.Size(); ++i)
 			{
-				Entity* Child = new Entity(this);
-				Child->DeserializeJson(ChildrenArray[i]);
-				AddChild(Child);
+				Entity* child = new Entity(this);
+				child->DeserializeJson(childrenArray[i]);
+				AddChild(child);
 			}
 		}
 	}

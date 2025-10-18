@@ -20,10 +20,10 @@ namespace Thunder
     {
     public:
         D3D12RHIVertexBuffer() = delete;
-        D3D12RHIVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags, ID3D12Resource* vb) : RHIVertexBuffer(desc, flags), VertexBuffer(vb)
+        D3D12RHIVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes, RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags, ID3D12Resource* vb) : RHIVertexBuffer(desc, flags), VertexBuffer(vb)
         {
             VertexBufferView.BufferLocation = VertexBuffer->GetGPUVirtualAddress();
-            VertexBufferView.StrideInBytes = StrideInBytes;
+            VertexBufferView.StrideInBytes = strideInBytes;
             VertexBufferView.SizeInBytes = sizeInBytes;
         }
 

@@ -16,7 +16,7 @@ namespace Thunder
 	class ENGINE_API Entity : public GameObject
 	{
 	public:
-		Entity(GameObject* InOuter = nullptr);
+		Entity(GameObject* inOuter = nullptr);
 		virtual ~Entity();
 
 		// Component management
@@ -26,7 +26,7 @@ namespace Thunder
 		template<typename T>
 		T* GetComponent() const;
 
-		IComponent* GetComponentByName(const NameHandle& ComponentName) const;
+		IComponent* GetComponentByName(const NameHandle& componentName) const;
 
 		template<typename T>
 		void RemoveComponent();
@@ -34,23 +34,23 @@ namespace Thunder
 		const TArray<IComponent*>& GetAllComponents() const { return Components; }
 
 		// Hierarchy management
-		void AddChild(Entity* Child);
-		void RemoveChild(Entity* Child);
+		void AddChild(Entity* child);
+		void RemoveChild(Entity* child);
 		Entity* GetParent() const { return Parent; }
 		const TArray<Entity*>& GetChildren() const { return Children; }
 
 		// Dependency collection for resource streaming
-		void GetDependencies(TArray<TGuid>& OutDependencies) const;
+		void GetDependencies(TArray<TGuid>& outDependencies) const;
 
 		// JSON serialization for scene persistence
-		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const;
-		void DeserializeJson(const rapidjson::Value& JsonValue);
+		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const;
+		void DeserializeJson(const rapidjson::Value& jsonValue);
 
 		// Asynchronous resource loading
 		void AsyncLoad();
 
 		// Entity identification
-		void SetEntityName(const NameHandle& InName) { EntityName = InName; }
+		void SetEntityName(const NameHandle& inName) { EntityName = inName; }
 		const NameHandle& GetEntityName() const { return EntityName; }
 
 	private:
@@ -68,13 +68,13 @@ namespace Thunder
 	{
 		static_assert(std::is_base_of<IComponent, T>::value, "T must be derived from IComponent");
 
-		T* NewComponent = new T();
-		Components.push_back(NewComponent);
+		T* newComponent = new T();
+		Components.push_back(newComponent);
 
-		NameHandle ComponentName = NewComponent->GetComponentName();
-		ComponentTable[ComponentName] = NewComponent;
+		NameHandle componentName = newComponent->GetComponentName();
+		ComponentTable[componentName] = newComponent;
 
-		return NewComponent;
+		return newComponent;
 	}
 
 	template<typename T>
@@ -82,12 +82,12 @@ namespace Thunder
 	{
 		static_assert(std::is_base_of<IComponent, T>::value, "T must be derived from IComponent");
 
-		for (IComponent* Component : Components)
+		for (IComponent* component : Components)
 		{
-			T* CastedComponent = dynamic_cast<T*>(Component);
-			if (CastedComponent)
+			T* castedComponent = dynamic_cast<T*>(component);
+			if (castedComponent)
 			{
-				return CastedComponent;
+				return castedComponent;
 			}
 		}
 		return nullptr;
@@ -98,15 +98,15 @@ namespace Thunder
 	{
 		static_assert(std::is_base_of<IComponent, T>::value, "T must be derived from IComponent");
 
-		for (auto It = Components.begin(); It != Components.end(); ++It)
+		for (auto it = Components.begin(); it != Components.end(); ++it)
 		{
-			T* CastedComponent = dynamic_cast<T*>(*It);
-			if (CastedComponent)
+			T* castedComponent = dynamic_cast<T*>(*it);
+			if (castedComponent)
 			{
-				NameHandle ComponentName = CastedComponent->GetComponentName();
-				ComponentTable.erase(ComponentName);
-				delete CastedComponent;
-				Components.erase(It);
+				NameHandle componentName = castedComponent->GetComponentName();
+				ComponentTable.erase(componentName);
+				delete castedComponent;
+				Components.erase(it);
 				return;
 			}
 		}

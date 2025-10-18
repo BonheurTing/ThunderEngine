@@ -18,16 +18,16 @@ namespace Thunder
 	{
 		for(const RHIVertexElement& element : desc.Elements)
 		{
-			D3D12_INPUT_ELEMENT_DESC D3DElement;
+			D3D12_INPUT_ELEMENT_DESC d3dElement;
 			TAssertf(GVertexInputSemanticToString.contains(element.Name), "Unknown vertex element semantic");
-			D3DElement.SemanticName = GVertexInputSemanticToString.find(element.Name)->second.c_str();
-			D3DElement.SemanticIndex = element.Index;
-			D3DElement.Format = static_cast<DXGI_FORMAT>(element.Format);
-			D3DElement.InputSlot = element.InputSlot;
-			D3DElement.AlignedByteOffset = element.AlignedByteOffset;
-			D3DElement.InputSlotClass = element.IsPerInstanceData ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-			D3DElement.InstanceDataStepRate = 0;
-			OutVertexElements.push_back(D3DElement);
+			d3dElement.SemanticName = GVertexInputSemanticToString.find(element.Name)->second.c_str();
+			d3dElement.SemanticIndex = element.Index;
+			d3dElement.Format = static_cast<DXGI_FORMAT>(element.Format);
+			d3dElement.InputSlot = element.InputSlot;
+			d3dElement.AlignedByteOffset = element.AlignedByteOffset;
+			d3dElement.InputSlotClass = element.IsPerInstanceData ? D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA : D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+			d3dElement.InstanceDataStepRate = 0;
+			OutVertexElements.push_back(d3dElement);
 		}
 		TAssertf(desc.Elements.size() < MaxVertexElementCount, "Too many vertex elements in declaration");
 	}

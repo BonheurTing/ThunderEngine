@@ -21,37 +21,37 @@ namespace Thunder
     Scene* TestGenerateExampleScene()
     {
         // Create a new scene
-        Scene* NewScene = new Scene();
-        NewScene->SetSceneName("ExampleLevel");
+        Scene* newScene = new Scene();
+        newScene->SetSceneName("ExampleLevel");
 
         // Create a root entity (like a game object)
-        Entity* RootEntity = NewScene->CreateEntity("PlayerCharacter");
+        Entity* rootEntity = newScene->CreateEntity("PlayerCharacter");
 
         // Add a transform component
-        TransformComponent* Transform = RootEntity->AddComponent<TransformComponent>();
-        Transform->SetPosition(TVector3f(10.0f, 10.0f, 10.0f));
-        Transform->SetRotation(TVector3f(0.0f, 0.0f, 0.0f));
-        Transform->SetScale(TVector3f(1.0f, 1.0f, 1.0f));
+        TransformComponent* transform = rootEntity->AddComponent<TransformComponent>();
+        transform->SetPosition(TVector3f(10.0f, 10.0f, 10.0f));
+        transform->SetRotation(TVector3f(0.0f, 0.0f, 0.0f));
+        transform->SetScale(TVector3f(1.0f, 1.0f, 1.0f));
 
         // Add a static mesh component
-        StaticMeshComponent* MeshComp = RootEntity->AddComponent<StaticMeshComponent>();
+        StaticMeshComponent* meshComp = rootEntity->AddComponent<StaticMeshComponent>();
         // Set mesh and materials would be done here after loading resources
 
         // Add entity to scene
-        NewScene->AddRootEntity(RootEntity);
+        newScene->AddRootEntity(rootEntity);
 
         // Create a child entity
-        Entity* ChildEntity = NewScene->CreateEntity("Weapon");
-        TransformComponent* ChildTransform = ChildEntity->AddComponent<TransformComponent>();
-        ChildTransform->SetPosition(TVector3f(1.0f, 0.0f, 0.5f));
-        RootEntity->AddChild(ChildEntity);
+        Entity* childEntity = newScene->CreateEntity("Weapon");
+        TransformComponent* childTransform = childEntity->AddComponent<TransformComponent>();
+        childTransform->SetPosition(TVector3f(1.0f, 0.0f, 0.5f));
+        rootEntity->AddChild(childEntity);
 
         
 
         // Save scene to file
         //NewScene->Save("D:/Game/Levels/ExampleLevel.tmap");
 
-        return NewScene;
+        return newScene;
     }
 
     GameTask::GameTask()
@@ -78,8 +78,8 @@ namespace Thunder
         }
 
         // push render command
-        const auto RenderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>(0);
-        GRenderScheduler->PushTask(RenderThreadTask);
+        const auto renderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>(0);
+        GRenderScheduler->PushTask(renderThreadTask);
 
         if (EngineMain::IsRequestingExit.load(std::memory_order_acquire) == true)
         {
@@ -89,8 +89,8 @@ namespace Thunder
         }
 
         // push game task for next frame
-        auto* GameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
-        GGameScheduler->PushTask(GameThreadTask);
+        auto* gameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
+        GGameScheduler->PushTask(gameThreadTask);
     }
 
     void GameTask::AsyncLoading()
@@ -100,12 +100,12 @@ namespace Thunder
         if (LoadingSignal == 0)
         {
             uint32 LoadingIndex = frameNum / 400;
-            GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 ModelIndex, uint32 dummy, uint32 bundleId)
+            GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 modelIndex, uint32 dummy, uint32 bundleId)
             {
                 ThunderZoneScopedN("AsyncLoading");
                 FPlatformProcess::BusyWaiting(100000);
-                ModelLoaded[LoadingIndex * 8 + ModelIndex] = true;
-                ModelData[LoadingIndex * 8 + ModelIndex] = static_cast<int>(ModelIndex) * 100;
+                ModelLoaded[LoadingIndex * 8 + modelIndex] = true;
+                ModelData[LoadingIndex * 8 + modelIndex] = static_cast<int>(modelIndex) * 100;
             }, 8, 1);
         }
 
@@ -133,9 +133,9 @@ namespace Thunder
             }
         }
 
-        const int32 FrameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
+        const int32 frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
         // game thread
-        LOG("Execute game thread in frame: %d with thread: %lu", FrameNum, __threadid());
+        LOG("Execute game thread in frame: %d with thread: %lu", frameNum, __threadid());
 
         // Tick.
         auto const& tickables = GameModule::GetTickables();
@@ -145,16 +145,16 @@ namespace Thunder
         }
         
         // physics
-        auto* TaskPhysics = new (TMemory::Malloc<SimulatedPhysicsTask>()) SimulatedPhysicsTask(FrameNum, "PhysicsTask");
+        auto* taskPhysics = new (TMemory::Malloc<SimulatedPhysicsTask>()) SimulatedPhysicsTask(frameNum, "PhysicsTask");
         // cull
-        auto* TaskCull = new (TMemory::Malloc<SimulatedCullTask>()) SimulatedCullTask(FrameNum, "CullTask");
+        auto* taskCull = new (TMemory::Malloc<SimulatedCullTask>()) SimulatedCullTask(frameNum, "CullTask");
         // tick
-        auto* TaskTick = new (TMemory::Malloc<SimulatedTickTask>()) SimulatedTickTask(FrameNum, "TickTask");
+        auto* taskTick = new (TMemory::Malloc<SimulatedTickTask>()) SimulatedTickTask(frameNum, "TickTask");
 
         // Task Graph
-        TaskGraph->PushTask(TaskPhysics);
-        TaskGraph->PushTask(TaskCull, { TaskPhysics });
-        TaskGraph->PushTask(TaskTick, { TaskCull });
+        TaskGraph->PushTask(taskPhysics);
+        TaskGraph->PushTask(taskCull, { taskPhysics });
+        TaskGraph->PushTask(taskTick, { taskCull });
 
         TaskGraph->Submit();
         
@@ -194,14 +194,14 @@ namespace Thunder
         TestScene->LoadAsync(fullPath);
     }
 
-    void GameModule::RegisterTickable(ITickable* Tickable)
+    void GameModule::RegisterTickable(ITickable* tickable)
     {
-        GetModule()->Tickables.push_back(Tickable);
+        GetModule()->Tickables.push_back(tickable);
     }
 
-    void GameModule::UnregisterTickable(ITickable* Tickable)
+    void GameModule::UnregisterTickable(ITickable* tickable)
     {
-        auto tickableIt = std::ranges::find(GetModule()->Tickables, Tickable);
+        auto tickableIt = std::ranges::find(GetModule()->Tickables, tickable);
         GetModule()->Tickables.erase(tickableIt);
     }
 }

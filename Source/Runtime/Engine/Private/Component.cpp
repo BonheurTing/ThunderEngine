@@ -8,17 +8,17 @@
 namespace Thunder
 {
 	// Component factory
-	IComponent* IComponent::CreateComponentByName(const NameHandle& ComponentName)
+	IComponent* IComponent::CreateComponentByName(const NameHandle& componentName)
 	{
-		if (ComponentName == "StaticMeshComponent")
+		if (componentName == "StaticMeshComponent")
 		{
 			return new StaticMeshComponent();
 		}
-		else if (ComponentName == "TransformComponent")
+		else if (componentName == "TransformComponent")
 		{
 			return new TransformComponent();
 		}
-		else if (ComponentName == "PrimitiveComponent")
+		else if (componentName == "PrimitiveComponent")
 		{
 			return new PrimitiveComponent();
 		}
@@ -27,53 +27,53 @@ namespace Thunder
 	}
 
 	// StaticMeshComponent implementation
-	void StaticMeshComponent::GetDependencies(TArray<TGuid>& OutDependencies) const
+	void StaticMeshComponent::GetDependencies(TArray<TGuid>& outDependencies) const
 	{
 		// Add mesh GUID
 		if (Mesh)
 		{
-			OutDependencies.push_back(Mesh->GetGUID());
+			outDependencies.push_back(Mesh->GetGUID());
 		}
 		else if (MeshGuid.IsValid())
 		{
-			OutDependencies.push_back(MeshGuid);
+			outDependencies.push_back(MeshGuid);
 		}
 
 		// Add material GUIDs
-		for (IMaterial* Material : OverrideMaterials)
+		for (IMaterial* material : OverrideMaterials)
 		{
-			if (Material)
+			if (material)
 			{
-				OutDependencies.push_back(Material->GetGUID());
+				outDependencies.push_back(material->GetGUID());
 			}
 		}
 
 		// Also add from MaterialGuids
-		for (const TGuid& MatGuid : MaterialGuids)
+		for (const TGuid& matGuid : MaterialGuids)
 		{
-			if (MatGuid.IsValid())
+			if (matGuid.IsValid())
 			{
-				OutDependencies.push_back(MatGuid);
+				outDependencies.push_back(matGuid);
 			}
 		}
 	}
 
-	void StaticMeshComponent::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const
+	void StaticMeshComponent::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const
 	{
-		Writer.StartObject();
+		writer.StartObject();
 
 		// Serialize mesh GUID
-		Writer.Key("Mesh");
+		writer.Key("Mesh");
 		if (Mesh)
 		{
-			char GuidStr[64];
-			snprintf(GuidStr, sizeof(GuidStr), "%08X-%08X-%08X-%08X",
+			char guidStr[64];
+			snprintf(guidStr, sizeof(guidStr), "%08X-%08X-%08X-%08X",
 				Mesh->GetGUID().A, Mesh->GetGUID().B, Mesh->GetGUID().C, Mesh->GetGUID().D);
-			Writer.String(GuidStr);
+			writer.String(guidStr);
 		}
 		else
 		{
-			Writer.Null();
+			writer.Null();
 		}
 
 		// Serialize override materials
@@ -81,9 +81,9 @@ namespace Thunder
 		{
 			for (size_t i = 0; i < OverrideMaterials.size(); ++i)
 			{
-				char KeyName[64];
-				snprintf(KeyName, sizeof(KeyName), "Material%zu", i);
-				Writer.Key(KeyName);
+				char keyName[64];
+				snprintf(keyName, sizeof(keyName), "Material%zu", i);
+				writer.Key(keyName);
 
 				if (OverrideMaterials[i])
 				{
@@ -91,32 +91,32 @@ namespace Thunder
 					snprintf(GuidStr, sizeof(GuidStr), "%08X-%08X-%08X-%08X",
 						OverrideMaterials[i]->GetGUID().A, OverrideMaterials[i]->GetGUID().B,
 						OverrideMaterials[i]->GetGUID().C, OverrideMaterials[i]->GetGUID().D);
-					Writer.String(GuidStr);
+					writer.String(GuidStr);
 				}
 				else
 				{
-					Writer.Null();
+					writer.Null();
 				}
 			}
 		}
 
-		Writer.EndObject();
+		writer.EndObject();
 	}
 
-	void StaticMeshComponent::DeserializeJson(const rapidjson::Value& JsonValue)
+	void StaticMeshComponent::DeserializeJson(const rapidjson::Value& jsonValue)
 	{
-		if (!JsonValue.IsObject())
+		if (!jsonValue.IsObject())
 		{
 			return;
 		}
 
 		// Deserialize mesh GUID
-		if (JsonValue.HasMember("Mesh") && JsonValue["Mesh"].IsString())
+		if (jsonValue.HasMember("Mesh") && jsonValue["Mesh"].IsString())
 		{
-			const char* GuidStr = JsonValue["Mesh"].GetString();
+			const char* guidStr = jsonValue["Mesh"].GetString();
 			// Parse GUID string (format: "XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX")
 			uint32 A, B, C, D;
-			if (sscanf(GuidStr, "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
+			if (sscanf(guidStr, "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
 			{
 				MeshGuid = TGuid(A, B, C, D);
 			}
@@ -126,14 +126,14 @@ namespace Thunder
 		MaterialGuids.clear();
 		for (size_t i = 0; i < 100; ++i) // Assume max 100 materials
 		{
-			char KeyName[64];
-			snprintf(KeyName, sizeof(KeyName), "Material%zu", i);
+			char keyName[64];
+			snprintf(keyName, sizeof(keyName), "Material%zu", i);
 
-			if (JsonValue.HasMember(KeyName) && JsonValue[KeyName].IsString())
+			if (jsonValue.HasMember(keyName) && jsonValue[keyName].IsString())
 			{
-				const char* GuidStr = JsonValue[KeyName].GetString();
+				const char* guidStr = jsonValue[keyName].GetString();
 				uint32 A, B, C, D;
-				if (sscanf(GuidStr, "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
+				if (sscanf(guidStr, "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
 				{
 					MaterialGuids.push_back(TGuid(A, B, C, D));
 				}
@@ -148,10 +148,10 @@ namespace Thunder
 	// StaticMeshComponent loading implementation
 	void StaticMeshComponent::SyncLoad()
 	{
-		TArray<TGuid> GuidList;
-		GetDependencies(GuidList);
+		TArray<TGuid> guidList;
+		GetDependencies(guidList);
 
-		if (GuidList.empty())
+		if (guidList.empty())
 		{
 			// No dependencies, mark as loaded
 			OnLoaded();
@@ -159,7 +159,7 @@ namespace Thunder
 		}
 
 		// Load all dependencies synchronously using ParallelFor
-		uint32 guidNum = static_cast<uint32>(GuidList.size());
+		uint32 guidNum = static_cast<uint32>(guidList.size());
 
 		// Create a simple counter-based completion tracker
 		/*class LoadEvent : public IOnCompleted
@@ -183,11 +183,11 @@ namespace Thunder
 		uint32 taskBundleSize = guidNum / GAsyncWorkers->GetNumThreads();
 		if (taskBundleSize == 0) taskBundleSize = 1;
 
-		GAsyncWorkers->ParallelFor([GuidList, callback](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
+		GAsyncWorkers->ParallelFor([guidList, callback](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
 		{
 			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
 			{
-				auto guid = GuidList[index];
+				auto guid = guidList[index];
 				ResourceModule::LoadSync(guid);
 				callback->Notify();
 			}
@@ -235,74 +235,74 @@ namespace Thunder
 	}
 
 	// TransformComponent implementation
-	void TransformComponent::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const
+	void TransformComponent::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const
 	{
-		Writer.StartObject();
+		writer.StartObject();
 
-		Writer.Key("Position");
-		Writer.StartArray();
-		Writer.Double(Position.X);
-		Writer.Double(Position.Y);
-		Writer.Double(Position.Z);
-		Writer.EndArray();
+		writer.Key("Position");
+		writer.StartArray();
+		writer.Double(Position.X);
+		writer.Double(Position.Y);
+		writer.Double(Position.Z);
+		writer.EndArray();
 
-		Writer.Key("Rotation");
-		Writer.StartArray();
-		Writer.Double(Rotation.X);
-		Writer.Double(Rotation.Y);
-		Writer.Double(Rotation.Z);
-		Writer.EndArray();
+		writer.Key("Rotation");
+		writer.StartArray();
+		writer.Double(Rotation.X);
+		writer.Double(Rotation.Y);
+		writer.Double(Rotation.Z);
+		writer.EndArray();
 
-		Writer.Key("Scale");
-		Writer.StartArray();
-		Writer.Double(Scale.X);
-		Writer.Double(Scale.Y);
-		Writer.Double(Scale.Z);
-		Writer.EndArray();
+		writer.Key("Scale");
+		writer.StartArray();
+		writer.Double(Scale.X);
+		writer.Double(Scale.Y);
+		writer.Double(Scale.Z);
+		writer.EndArray();
 
-		Writer.EndObject();
+		writer.EndObject();
 	}
 
-	void TransformComponent::DeserializeJson(const rapidjson::Value& JsonValue)
+	void TransformComponent::DeserializeJson(const rapidjson::Value& jsonValue)
 	{
-		if (!JsonValue.IsObject())
+		if (!jsonValue.IsObject())
 		{
 			return;
 		}
 
 		// Deserialize position
-		if (JsonValue.HasMember("Position") && JsonValue["Position"].IsArray())
+		if (jsonValue.HasMember("Position") && jsonValue["Position"].IsArray())
 		{
-			const rapidjson::Value& PosArray = JsonValue["Position"];
-			if (PosArray.Size() >= 3)
+			const rapidjson::Value& posArray = jsonValue["Position"];
+			if (posArray.Size() >= 3)
 			{
-				Position.X = static_cast<float>(PosArray[0].GetDouble());
-				Position.Y = static_cast<float>(PosArray[1].GetDouble());
-				Position.Z = static_cast<float>(PosArray[2].GetDouble());
+				Position.X = static_cast<float>(posArray[0].GetDouble());
+				Position.Y = static_cast<float>(posArray[1].GetDouble());
+				Position.Z = static_cast<float>(posArray[2].GetDouble());
 			}
 		}
 
 		// Deserialize rotation
-		if (JsonValue.HasMember("Rotation") && JsonValue["Rotation"].IsArray())
+		if (jsonValue.HasMember("Rotation") && jsonValue["Rotation"].IsArray())
 		{
-			const rapidjson::Value& RotArray = JsonValue["Rotation"];
-			if (RotArray.Size() >= 3)
+			const rapidjson::Value& rotArray = jsonValue["Rotation"];
+			if (rotArray.Size() >= 3)
 			{
-				Rotation.X = static_cast<float>(RotArray[0].GetDouble());
-				Rotation.Y = static_cast<float>(RotArray[1].GetDouble());
-				Rotation.Z = static_cast<float>(RotArray[2].GetDouble());
+				Rotation.X = static_cast<float>(rotArray[0].GetDouble());
+				Rotation.Y = static_cast<float>(rotArray[1].GetDouble());
+				Rotation.Z = static_cast<float>(rotArray[2].GetDouble());
 			}
 		}
 
 		// Deserialize scale
-		if (JsonValue.HasMember("Scale") && JsonValue["Scale"].IsArray())
+		if (jsonValue.HasMember("Scale") && jsonValue["Scale"].IsArray())
 		{
-			const rapidjson::Value& ScaleArray = JsonValue["Scale"];
-			if (ScaleArray.Size() >= 3)
+			const rapidjson::Value& scaleArray = jsonValue["Scale"];
+			if (scaleArray.Size() >= 3)
 			{
-				Scale.X = static_cast<float>(ScaleArray[0].GetDouble());
-				Scale.Y = static_cast<float>(ScaleArray[1].GetDouble());
-				Scale.Z = static_cast<float>(ScaleArray[2].GetDouble());
+				Scale.X = static_cast<float>(scaleArray[0].GetDouble());
+				Scale.Y = static_cast<float>(scaleArray[1].GetDouble());
+				Scale.Z = static_cast<float>(scaleArray[2].GetDouble());
 			}
 		}
 	}

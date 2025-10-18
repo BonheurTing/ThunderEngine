@@ -63,10 +63,10 @@ namespace Thunder
             operations.read(GBufferRT0);
             operations.read(GBufferRT1);
             operations.write(LightingRT);
-            mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this](FRenderContext* Context)
+            mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this](FRenderContext* context)
             {
-                RHIDummyCommand* newCommand = new (Context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
-                Context->AddCommand(newCommand);
+                RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
+                context->AddCommand(newCommand);
                 Print("Execute lighting");
             });
         }
@@ -79,31 +79,31 @@ namespace Thunder
             PassOperations operations;
             operations.read(LightingRT);
             operations.write(PostProcessRT1);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this](FRenderContext* Context)
+            mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this](FRenderContext* context)
             {
-                RHIDummyCommand* newCommand = new (Context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
-                Context->AddCommand(newCommand);
+                RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
+                context->AddCommand(newCommand);
                 Print("Execute postprocess1");
             });
         }
 
         // PostProcess2 pass.
-        FGRenderTarget PostProcessRT2{ 1920, 1080, EPixelFormat::RGBA8888 };
-        mFrameGraph->RegisterRenderTarget(PostProcessRT2);
+        FGRenderTarget postProcessRT2{ 1920, 1080, EPixelFormat::RGBA8888 };
+        mFrameGraph->RegisterRenderTarget(postProcessRT2);
 
         {
             PassOperations operations;
             operations.read(LightingRT);
-            operations.write(PostProcessRT2);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this](FRenderContext* Context)
+            operations.write(postProcessRT2);
+            mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this](FRenderContext* context)
             {
-                RHIDummyCommand* newCommand = new (Context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
-                Context->AddCommand(newCommand);
+                RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
+                context->AddCommand(newCommand);
                 Print("Execute postprocess2");
             });
         }
 
-        mFrameGraph->SetPresentTarget(PostProcessRT2);
+        mFrameGraph->SetPresentTarget(postProcessRT2);
     }
 
     void TestRenderer::Print(const std::string& message)

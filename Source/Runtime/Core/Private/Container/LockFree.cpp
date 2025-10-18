@@ -36,41 +36,41 @@ public:
 	*/
 	TLinkPtr Pop()
 	{
-		FThreadLocalCache& TLS = GetTLS();
+		FThreadLocalCache& tls = GetTLS();
 
-		if (!TLS.PartialBundle)
+		if (!tls.PartialBundle)
 		{
-			if (TLS.FullBundle)
+			if (tls.FullBundle)
 			{
-				TLS.PartialBundle = TLS.FullBundle;
-				TLS.FullBundle = 0;
+				tls.PartialBundle = tls.FullBundle;
+				tls.FullBundle = 0;
 			}
 			else
 			{
-				TLS.PartialBundle = GlobalFreeListBundles.Pop();
-				if (!TLS.PartialBundle)
+				tls.PartialBundle = GlobalFreeListBundles.Pop();
+				if (!tls.PartialBundle)
 				{
-					int32 FirstIndex = LockFreeLinkPolicy::LinkAllocator.Alloc(NUM_PER_BUNDLE);
+					int32 firstIndex = LockFreeLinkPolicy::LinkAllocator.Alloc(NUM_PER_BUNDLE);
 					for (int32 Index = 0; Index < NUM_PER_BUNDLE; Index++)
 					{
-						TLink* Event = LockFreeLinkPolicy::IndexToLink(FirstIndex + Index);
-						Event->DoubleNext.Init();
-						Event->SingleNext = 0;
-						Event->Payload = (void*)UPTRINT(TLS.PartialBundle);
-						TLS.PartialBundle = LockFreeLinkPolicy::IndexToPtr(FirstIndex + Index);
+						TLink* event = LockFreeLinkPolicy::IndexToLink(firstIndex + Index);
+						event->DoubleNext.Init();
+						event->SingleNext = 0;
+						event->Payload = (void*)UPTRINT(tls.PartialBundle);
+						tls.PartialBundle = LockFreeLinkPolicy::IndexToPtr(firstIndex + Index);
 					}
 				}
 			}
-			TLS.NumPartial = NUM_PER_BUNDLE;
+			tls.NumPartial = NUM_PER_BUNDLE;
 		}
-		TLinkPtr Result = TLS.PartialBundle;
-		TLink* ResultP = LockFreeLinkPolicy::DerefLink(TLS.PartialBundle);
-		TLS.PartialBundle = TLinkPtr(UPTRINT(ResultP->Payload));
-		TLS.NumPartial--;
-		//checkLockFreePointerList(TLS.NumPartial >= 0 && ((!!TLS.NumPartial) == (!!TLS.PartialBundle)));
-		ResultP->Payload = nullptr;
-		checkLockFreePointerList(!ResultP->DoubleNext.GetPtr() && !ResultP->SingleNext);
-		return Result;
+		TLinkPtr result = tls.PartialBundle;
+		TLink* resultP = LockFreeLinkPolicy::DerefLink(tls.PartialBundle);
+		tls.PartialBundle = TLinkPtr(UPTRINT(resultP->Payload));
+		tls.NumPartial--;
+		//checkLockFreePointerList(tls.NumPartial >= 0 && ((!!tls.NumPartial) == (!!tls.PartialBundle)));
+		resultP->Payload = nullptr;
+		checkLockFreePointerList(!resultP->DoubleNext.GetPtr() && !resultP->SingleNext);
+		return result;
 	}
 
 	/**
@@ -81,24 +81,24 @@ public:
 	*/
 	void Push(TLinkPtr Item)
 	{
-		FThreadLocalCache& TLS = GetTLS();
-		if (TLS.NumPartial >= NUM_PER_BUNDLE)
+		FThreadLocalCache& tls = GetTLS();
+		if (tls.NumPartial >= NUM_PER_BUNDLE)
 		{
-			if (TLS.FullBundle)
+			if (tls.FullBundle)
 			{
-				GlobalFreeListBundles.Push(TLS.FullBundle);
-				//TLS.FullBundle = nullptr;
+				GlobalFreeListBundles.Push(tls.FullBundle);
+				//tls.FullBundle = nullptr;
 			}
-			TLS.FullBundle = TLS.PartialBundle;
-			TLS.PartialBundle = 0;
-			TLS.NumPartial = 0;
+			tls.FullBundle = tls.PartialBundle;
+			tls.PartialBundle = 0;
+			tls.NumPartial = 0;
 		}
-		TLink* ItemP = LockFreeLinkPolicy::DerefLink(Item);
-		ItemP->DoubleNext.SetPtr(0);
-		ItemP->SingleNext = 0;
-		ItemP->Payload = (void*)UPTRINT(TLS.PartialBundle);
-		TLS.PartialBundle = Item;
-		TLS.NumPartial++;
+		TLink* itemP = LockFreeLinkPolicy::DerefLink(Item);
+		itemP->DoubleNext.SetPtr(0);
+		itemP->SingleNext = 0;
+		itemP->Payload = (void*)UPTRINT(tls.PartialBundle);
+		tls.PartialBundle = Item;
+		tls.NumPartial++;
 	}
 
 private:
@@ -121,13 +121,13 @@ private:
 	FThreadLocalCache& GetTLS()
 	{
 		TAssert(FPlatformTLS::IsValidTlsSlot(TlsSlot));
-		FThreadLocalCache* TLS = (FThreadLocalCache*)FPlatformTLS::GetTlsValue(TlsSlot);
-		if (!TLS)
+		FThreadLocalCache* tls = (FThreadLocalCache*)FPlatformTLS::GetTlsValue(TlsSlot);
+		if (!tls)
 		{
-			TLS = new FThreadLocalCache();
-			FPlatformTLS::SetTlsValue(TlsSlot, TLS);
+			tls = new FThreadLocalCache();
+			FPlatformTLS::SetTlsValue(TlsSlot, tls);
 		}
-		return *TLS;
+		return *tls;
 	}
 
 	/** Slot for TLS struct. */

@@ -122,16 +122,16 @@ namespace Thunder
 #endif
     }
 
-    void FPlatformProcess::Sleep( float Seconds )
+    void FPlatformProcess::Sleep( float seconds )
     {
-        uint32 Milliseconds = (uint32)(Seconds * 1000.0);
-        if (Milliseconds == 0)
+        uint32 milliseconds = (uint32)(seconds * 1000.0);
+        if (milliseconds == 0)
         {
             ::SwitchToThread();
         }
         else
         {
-            ::Sleep(Milliseconds);
+            ::Sleep(milliseconds);
         }
     }
 

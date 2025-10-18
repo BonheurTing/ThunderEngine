@@ -27,19 +27,19 @@ namespace Thunder
 			TFunction<void()> Function;
 		};
 
-		auto* Task = new (TMemory::Malloc<FunctionTask>()) FunctionTask(InFunction);
-		PushTask(Task);
+		auto* task = new (TMemory::Malloc<FunctionTask>()) FunctionTask(InFunction);
+		PushTask(task);
 	}
 	
 
 	ITask* IScheduler::GetNextQueuedWork()
 	{
-		ITask* Work = nullptr;
+		ITask* work = nullptr;
 		if (!QueuedWork.IsEmpty())
 		{
-			Work = QueuedWork.Pop();
+			work = QueuedWork.Pop();
 		}
-		return Work;
+		return work;
 	}
 
 	void SingleScheduler::AttachToThread(ThreadProxy* InThreadProxy)
@@ -172,8 +172,8 @@ namespace Thunder
 		for (uint32 i = 0; i < NumTask; i += BundleSize)
 		{
 			//TaskBundle构造需要TFunction指针，因此传入地址；对于为什么ParallelFor用&接完这里还要&，想象接的是String& Body，TaskBundle如果不加&，就是把String类型给String*类型，无法匹配构造函数
-			const auto BundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(&Body, i, BundleSize, i/BundleSize);
-			PushTask(BundleTask);
+			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(&Body, i, BundleSize, i/BundleSize);
+			PushTask(bundleTask);
 		}
 	}
 
@@ -206,8 +206,8 @@ namespace Thunder
 		for (uint32 i = 0; i < NumTask; i += BundleSize)
 		{
 			//右值，此处是消亡值，直接传给构造函数
-			const auto BundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(Body, i, BundleSize, i/BundleSize);
-			PushTask(BundleTask);
+			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(Body, i, BundleSize, i/BundleSize);
+			PushTask(bundleTask);
 		}
 	}
 
@@ -216,18 +216,18 @@ namespace Thunder
 		TAssert(GGameScheduler == nullptr && GRenderScheduler == nullptr && GRHIScheduler == nullptr);
 
 		//todo 线程释放
-		const auto GameThreadProxy = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(4096, "GameThread");
-		const auto RenderThreadProxy = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(4096, "RenderThread");
-		const auto RHIThreadProxy = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(4096, "RHIThread");
+		const auto gameThreadProxy = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(4096, "GameThread");
+		const auto renderThreadProxy = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(4096, "RenderThread");
+		const auto rhiThreadProxy = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(4096, "RHIThread");
 
 		GGameScheduler = new (TMemory::Malloc<SingleScheduler>()) SingleScheduler();
-		GGameScheduler->AttachToThread(GameThreadProxy);
+		GGameScheduler->AttachToThread(gameThreadProxy);
 
 		GRenderScheduler = new (TMemory::Malloc<SingleScheduler>()) SingleScheduler();
-		GRenderScheduler->AttachToThread(RenderThreadProxy);
+		GRenderScheduler->AttachToThread(renderThreadProxy);
 
 		GRHIScheduler = new (TMemory::Malloc<SingleScheduler>()) SingleScheduler();
-		GRHIScheduler->AttachToThread(RHIThreadProxy);
+		GRHIScheduler->AttachToThread(rhiThreadProxy);
 	}
 
 	void TaskSchedulerManager::InitWorkerThread()
@@ -235,14 +235,14 @@ namespace Thunder
 		TAssert(GSyncWorkers == nullptr && GAsyncWorkers == nullptr);
 		const auto ThreadNum = FPlatformProcess::NumberOfLogicalProcessors();
 
-		const auto SyncThreads = new (TMemory::Malloc<ThreadPoolBase>()) ThreadPoolBase(ThreadNum > 3 ? (ThreadNum - 3) : ThreadNum, 96 * 1024, "SyncWorkerThread");
-		const auto AsyncThreads = new (TMemory::Malloc<ThreadPoolBase>()) ThreadPoolBase(4, 96 * 1024, "AsyncWorkerThread");
+		const auto syncThreads = new (TMemory::Malloc<ThreadPoolBase>()) ThreadPoolBase(ThreadNum > 3 ? (ThreadNum - 3) : ThreadNum, 96 * 1024, "SyncWorkerThread");
+		const auto asyncThreads = new (TMemory::Malloc<ThreadPoolBase>()) ThreadPoolBase(4, 96 * 1024, "AsyncWorkerThread");
 
 		GSyncWorkers = new (TMemory::Malloc<PooledTaskScheduler>()) PooledTaskScheduler();
-		SyncThreads->AttachToScheduler(GSyncWorkers);
+		syncThreads->AttachToScheduler(GSyncWorkers);
 
 		GAsyncWorkers = new (TMemory::Malloc<PooledTaskScheduler>()) PooledTaskScheduler();
-		AsyncThreads->AttachToScheduler(GAsyncWorkers);
+		asyncThreads->AttachToScheduler(GAsyncWorkers);
 	}
 
 	void TaskSchedulerManager::ShutDown()

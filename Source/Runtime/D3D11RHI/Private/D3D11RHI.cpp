@@ -15,20 +15,20 @@ namespace Thunder
 		ComPtr<IDXGIFactory4>  factory;
 		ThrowIfFailed(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)));
 
-		D3D_FEATURE_LEVEL  FeatureLevelsRequested = D3D_FEATURE_LEVEL_11_0;
+		D3D_FEATURE_LEVEL  featureLevelsRequested = D3D_FEATURE_LEVEL_11_0;
 		UINT               numLevelsRequested = 1;
-		D3D_FEATURE_LEVEL  FeatureLevelsSupported;
+		D3D_FEATURE_LEVEL  featureLevelsSupported;
 		ComPtr<ID3D11DeviceContext> immediateContext;
 		if (SUCCEEDED( D3D11CreateDevice(
 			nullptr,
 			D3D_DRIVER_TYPE_HARDWARE,
 			nullptr,
 			0,
-			&FeatureLevelsRequested,
+			&featureLevelsRequested,
 			numLevelsRequested, 
 			D3D11_SDK_VERSION, 
 			&Device,
-			&FeatureLevelsSupported,
+			&featureLevelsSupported,
 			&immediateContext )))
 		{
 			std::cout << "Succeed to Create D3DDevice (11)" << std::endl;
@@ -122,13 +122,13 @@ namespace Thunder
 		case ERHIResourceType::Unknown: break;
 		}
 		
-		ID3D11ShaderResourceView* SRVView;
+		ID3D11ShaderResourceView* srvView;
 		const auto inst = static_cast<ID3D11Resource*>( resource.GetResource() );
-		const HRESULT hr = Device->CreateShaderResourceView(inst, &SRVDesc, &SRVView);
+		const HRESULT hr = Device->CreateShaderResourceView(inst, &SRVDesc, &srvView);
 
 		if(SUCCEEDED(hr))
 		{
-			D3D11RHIShaderResourceView* view = new D3D11RHIShaderResourceView(desc, SRVView);
+			D3D11RHIShaderResourceView* view = new D3D11RHIShaderResourceView(desc, srvView);
 			resource.SetSRV(view); 
 		}
 		else
@@ -174,13 +174,13 @@ namespace Thunder
 		case ERHIResourceType::Unknown: break;
 		}
 		
-		ID3D11UnorderedAccessView* UAVView;
+		ID3D11UnorderedAccessView* uavView;
 		const auto inst = static_cast<ID3D11Resource*>( resource.GetResource() );
-		const HRESULT hr = Device->CreateUnorderedAccessView(inst, &UAVDesc, &UAVView);
+		const HRESULT hr = Device->CreateUnorderedAccessView(inst, &UAVDesc, &uavView);
 
 		if(SUCCEEDED(hr))
 		{
-			D3D11RHIUnorderedAccessView* view = new D3D11RHIUnorderedAccessView(desc, UAVView);
+			D3D11RHIUnorderedAccessView* view = new D3D11RHIUnorderedAccessView(desc, uavView);
 			resource.SetUAV(view);
 		}
 		else
@@ -222,13 +222,13 @@ namespace Thunder
 		case ERHIResourceType::Unknown: break;
 		}
 		
-		ID3D11RenderTargetView* RTVView;
+		ID3D11RenderTargetView* rtvView;
 		const auto inst = static_cast<ID3D11Resource*>( resource.GetResource() );
-		const HRESULT hr = Device->CreateRenderTargetView(inst, &RTVDesc, &RTVView);
+		const HRESULT hr = Device->CreateRenderTargetView(inst, &RTVDesc, &rtvView);
 
 		if(SUCCEEDED(hr))
 		{
-			D3D11RHIRenderTargetView* view = new D3D11RHIRenderTargetView(desc, RTVView);
+			D3D11RHIRenderTargetView* view = new D3D11RHIRenderTargetView(desc, rtvView);
 			resource.SetRTV(view);
 		}
 		else
@@ -266,13 +266,13 @@ namespace Thunder
 			break;
 		}
 		
-		ID3D11DepthStencilView* DSVView;
+		ID3D11DepthStencilView* dsvView;
 		const auto inst = static_cast<ID3D11Resource*>( resource.GetResource() );
-		const HRESULT hr = Device->CreateDepthStencilView(inst, &DSVDesc, &DSVView);
+		const HRESULT hr = Device->CreateDepthStencilView(inst, &DSVDesc, &dsvView);
 
 		if(SUCCEEDED(hr))
 		{
-			D3D11RHIDepthStencilView* view = new D3D11RHIDepthStencilView(desc, DSVView);
+			D3D11RHIDepthStencilView* view = new D3D11RHIDepthStencilView(desc, dsvView);
 			resource.SetDSV(view);
 		}
 		else
@@ -347,7 +347,7 @@ namespace Thunder
 		}
 	}
 
-	RHIVertexBufferRef D3D11DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes,  EBufferCreateFlags usage, void *resourceData)
+	RHIVertexBufferRef D3D11DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes,  EBufferCreateFlags usage, void *resourceData)
 	{
 		D3D11_BUFFER_DESC vbDesc;
 		vbDesc.ByteWidth = sizeInBytes;

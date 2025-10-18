@@ -33,7 +33,7 @@ namespace Thunder
 
         virtual RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) = 0;
     
-        virtual RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
+        virtual RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
     
         virtual RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
     
@@ -109,9 +109,9 @@ namespace Thunder
         return GDynamicRHI->RHICreateFence(initValue, fenceFlags);
     }
     
-    FORCEINLINE RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 StrideInBytes, EBufferCreateFlags usage, void* resourceData = nullptr)
+    FORCEINLINE RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes, EBufferCreateFlags usage, void* resourceData = nullptr)
     {
-        return GDynamicRHI->RHICreateVertexBuffer(sizeInBytes, StrideInBytes, usage, resourceData);
+        return GDynamicRHI->RHICreateVertexBuffer(sizeInBytes, strideInBytes, usage, resourceData);
     }
     
     FORCEINLINE RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void* resourceData = nullptr)

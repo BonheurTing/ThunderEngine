@@ -25,13 +25,13 @@ namespace Thunder
         bool bIsDepthStencil = false;
 
         FGRenderTargetDesc() = default;
-        FGRenderTargetDesc(uint32 InWidth, uint32 InHeight, EPixelFormat InFormat, bool bInIsDepthStencil = false)
-            : Width(InWidth), Height(InHeight), Format(InFormat), bIsDepthStencil(bInIsDepthStencil) {}
+        FGRenderTargetDesc(uint32 inWidth, uint32 inHeight, EPixelFormat inFormat, bool bInIsDepthStencil = false)
+            : Width(inWidth), Height(inHeight), Format(inFormat), bIsDepthStencil(bInIsDepthStencil) {}
 
-        bool operator==(const FGRenderTargetDesc& Other) const
+        bool operator==(const FGRenderTargetDesc& other) const
         {
-            return Width == Other.Width && Height == Other.Height &&
-                   Format == Other.Format && bIsDepthStencil == Other.bIsDepthStencil;
+            return Width == other.Width && Height == other.Height &&
+                   Format == other.Format && bIsDepthStencil == other.bIsDepthStencil;
         }
     };
 
@@ -39,7 +39,7 @@ namespace Thunder
     {
     public:
         FGRenderTarget() = default;
-        FGRenderTarget(uint32 Width, uint32 Height, EPixelFormat Format);
+        FGRenderTarget(uint32 width, uint32 height, EPixelFormat format);
 
         const FGRenderTargetDesc& GetDesc() const { return Desc; }
         uint32 GetWidth() const { return Desc.Width; }
@@ -62,15 +62,15 @@ namespace Thunder
         RenderTextureRef RenderTarget;
         uint32 UnusedFrameCount = 0;
 
-        PooledRenderTarget(RenderTextureRef InRenderTarget)
-            : RenderTarget(InRenderTarget) {}
+        PooledRenderTarget(RenderTextureRef inRenderTarget)
+            : RenderTarget(inRenderTarget) {}
     };
 
     class RENDERCORE_API RenderTargetPool
     {
     public:
-        RenderTextureRef AcquireRenderTarget(const FGRenderTargetDesc& Desc);
-        void ReleaseRenderTarget(RenderTextureRef RenderTarget);
+        RenderTextureRef AcquireRenderTarget(const FGRenderTargetDesc& desc);
+        void ReleaseRenderTarget(RenderTextureRef renderTarget);
         void TickUnusedFrameCounters();
         void ReleaseLongUnusedTargets();
         void Reset();

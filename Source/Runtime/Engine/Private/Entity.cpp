@@ -86,7 +86,7 @@ namespace Thunder
 		}
 	}
 
-	void Entity::SerializeJson(rapidjson::Writer<rapidjson::StringBuffer>& Writer) const
+	void Entity::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const
 	{
 		Writer.StartObject();
 

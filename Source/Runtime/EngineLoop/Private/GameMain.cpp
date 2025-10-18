@@ -161,47 +161,6 @@ namespace Thunder
         TaskGraph->WaitAndReset();
     }
 
-    Scene* GameTask::LoadExampleScene(const String& FilePath)
-    {
-        // Create a new scene
-        Scene* LoadedScene = new Scene();
-
-        // Load scene from file
-        if (!LoadedScene->Load(FilePath))
-        {
-            delete LoadedScene;
-            return nullptr;
-        }
-
-        // Stream scene resources asynchronously
-        LoadedScene->StreamScene();
-
-        return LoadedScene;
-    }
-
-    void GameTask::GameStart()
-    {
-        // Load scene file
-        String SceneFilePath = "D:/Game/Levels/MainLevel.tmap";
-
-        // Create scene
-        Scene* GameScene = new Scene();
-
-        // Load scene from file
-        if (GameScene->Load(SceneFilePath))
-        {
-            // Stream all resources asynchronously
-            GameScene->StreamScene();
-
-            // Scene will call OnLoaded() when all resources are ready
-        }
-        else
-        {
-            LOG("Failed to load scene: %s", SceneFilePath.c_str());
-            delete GameScene;
-        }
-    }
-
     IMPLEMENT_MODULE(Game, GameModule)
 
     void GameModule::StartUp()
@@ -211,7 +170,9 @@ namespace Thunder
 
     void GameModule::ShutDown()
     {
-        TestScene->Save("Map/TestScene.tmap");
+        String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
+        bool ret = TestScene->Save(fullPath);
+        TAssertf(ret, "Fail to save scene");
         TMemory::Free(GameThreadTaskGraph);
     }
 
@@ -228,7 +189,9 @@ namespace Thunder
         StreamableManager::LoadAllAsync();
 
         // Informal
-        TestScene = TestGenerateExampleScene();
+        TestScene = new Scene(); //TestGenerateExampleScene();
+        String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
+        TestScene->LoadAsync(fullPath);
     }
 
     void GameModule::RegisterTickable(ITickable* Tickable)

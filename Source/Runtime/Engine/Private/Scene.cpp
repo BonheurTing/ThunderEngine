@@ -51,7 +51,7 @@ namespace Thunder
 		}
 	}
 
-	void Scene::SerializeJson(rapidjson::Writer<rapidjson::StringBuffer>& Writer) const
+	void Scene::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const
 	{
 		Writer.StartObject();
 
@@ -97,7 +97,7 @@ namespace Thunder
 		}
 	}
 
-	bool Scene::Save(const String& FilePath)
+	bool Scene::Save(const String& FileFullPath)
 	{
 		// Create JSON writer
 		rapidjson::StringBuffer StringBuffer;
@@ -107,48 +107,31 @@ namespace Thunder
 		SerializeJson(Writer);
 
 		// Convert JSON to binary data
-		const char* JsonString = StringBuffer.GetString();
-		size_t JsonLength = StringBuffer.GetSize();
+		const char* jsonString = StringBuffer.GetString();
+		size_t jsonSize = StringBuffer.GetSize();
 
 		// Write to file
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
-		const String tempPath = FilePath + ".tmp";
-		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(tempPath, true));
-		const size_t ret = file->Write(JsonString, JsonLength);
+		TAssert(fileSystem != nullptr);
+		const String tempPath = FileFullPath + ".tmp";
+		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(tempPath, false));
+		const size_t ret = file->Write(jsonString, jsonSize);
 
-		file->Close();
-
-		if (ret != JsonLength)
-		{
-			LOG("Failed to write scene data to file: %s", FilePath.c_str());
-			return false;
-		}
-
-		return file->Rename(tempPath, FilePath);
+		return ret == jsonSize && file->Rename(tempPath, FileFullPath);
 	}
 
-	bool Scene::LoadSync(const String& FilePath)
+	bool Scene::LoadSync(const String& FileFullPath)
 	{
 		// Read file
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
-		if (!fileSystem)
-		{
-			LOG("Failed to get file system");
-			return false;
-		}
-
-		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(FilePath, false));
-		if (!file)
-		{
-			LOG("Failed to open scene file: %s", FilePath.c_str());
-			return false;
-		}
-
+		TAssert(fileSystem != nullptr);
+		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(FileFullPath, false));
+		TAssert(file != nullptr);
 		// Get file size and read all content
 		const size_t fileSize = file->Size();
 		if (fileSize == 0)
 		{
-			LOG("Scene file is empty: %s", FilePath.c_str());
+			LOG("Scene file is empty: %s", FileFullPath.c_str());
 			file->Close();
 			return false;
 		}
@@ -160,7 +143,7 @@ namespace Thunder
 
 		if (bytesRead != fileSize)
 		{
-			LOG("Failed to read scene file: %s", FilePath.c_str());
+			LOG("Failed to read scene file: %s", FileFullPath.c_str());
 			TMemory::Free(fileData);
 			return false;
 		}
@@ -172,12 +155,7 @@ namespace Thunder
 		// Parse JSON
 		rapidjson::Document Document;
 		Document.Parse(JsonString.c_str());
-
-		if (Document.HasParseError())
-		{
-			LOG("Failed to parse scene JSON: %s", FilePath.c_str());
-			return false;
-		}
+		TAssertf(!Document.HasParseError(), "Failed to parse scene JSON: %s", FileFullPath.c_str());
 
 		// Deserialize scene from JSON
 		DeserializeJson(Document);
@@ -186,76 +164,17 @@ namespace Thunder
 		// For now, call directly (in production, use GameScheduler->Invoke)
 		OnLoaded();
 
-		LOG("Scene loaded synchronously from: %s", FilePath.c_str());
+		LOG("Scene loaded from: %s", FileFullPath.c_str());
 		return true;
 	}
 
-	void Scene::LoadAsync(const String& FilePath)
+	void Scene::LoadAsync(const String& FileFullPath)
 	{
 		// Push loading task to async worker pool
-		GAsyncWorkers->PushTask([this, FilePath]()
+		GAsyncWorkers->PushTask([this, FileFullPath]()
 		{
-			LoadSync(FilePath);
+			LoadSync(FileFullPath);
 		});
-	}
-
-	bool Scene::Load(const String& FilePath)
-	{
-		// Read file
-		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
-		if (!fileSystem)
-		{
-			LOG("Failed to get file system");
-			return false;
-		}
-
-		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(FilePath, false));
-		if (!file)
-		{
-			LOG("Failed to open scene file: %s", FilePath.c_str());
-			return false;
-		}
-
-		// Get file size and read all content
-		const size_t fileSize = file->Size();
-		if (fileSize == 0)
-		{
-			LOG("Scene file is empty: %s", FilePath.c_str());
-			file->Close();
-			return false;
-		}
-
-		// Allocate buffer and read file
-		void* fileData = TMemory::Malloc<uint8>(fileSize);
-		const size_t bytesRead = file->Read(fileData, fileSize);
-		file->Close();
-
-		if (bytesRead != fileSize)
-		{
-			LOG("Failed to read scene file: %s", FilePath.c_str());
-			TMemory::Free(fileData);
-			return false;
-		}
-
-		// Convert to string (assuming JSON is text)
-		String JsonString(static_cast<const char*>(fileData), fileSize);
-		TMemory::Free(fileData);
-
-		// Parse JSON
-		rapidjson::Document Document;
-		Document.Parse(JsonString.c_str());
-
-		if (Document.HasParseError())
-		{
-			LOG("Failed to parse scene JSON: %s", FilePath.c_str());
-			return false;
-		}
-
-		// Deserialize scene from JSON
-		DeserializeJson(Document);
-
-		LOG("Scene loaded successfully from: %s", FilePath.c_str());
-		return true;
 	}
 
 	void Scene::CollectDependencies(TArray<TGuid>& OutDependencies) const

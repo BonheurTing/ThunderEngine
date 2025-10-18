@@ -4,7 +4,7 @@
 #include "NameHandle.h"
 #include "Container.h"
 #include "rapidjson/document.h"
-#include "rapidjson/writer.h"
+#include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 
 namespace Thunder
@@ -43,7 +43,7 @@ namespace Thunder
 		void GetDependencies(TArray<TGuid>& OutDependencies) const;
 
 		// JSON serialization for scene persistence
-		void SerializeJson(rapidjson::Writer<rapidjson::StringBuffer>& Writer) const;
+		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const;
 		void DeserializeJson(const rapidjson::Value& JsonValue);
 
 		// Asynchronous resource loading

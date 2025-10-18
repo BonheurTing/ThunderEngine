@@ -17,10 +17,6 @@ namespace Thunder
         virtual void CustomBeginFrame() {}
         virtual void CustomEndFrame() {}
 
-    public:
-        class Scene* LoadExampleScene(const String& FilePath);
-        void GameStart();
-
     private:
         void AsyncLoading();
         void GameMain();
@@ -61,7 +57,7 @@ namespace Thunder
         TArray<ITickable*> Tickables;
         TaskGraphProxy* GameThreadTaskGraph { nullptr };
 
-        Scene* TestScene { nullptr };
+        class Scene* TestScene { nullptr };
     };
 }
 

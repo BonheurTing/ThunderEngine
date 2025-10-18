@@ -58,7 +58,7 @@ namespace Thunder
 		}
 	}
 
-	void StaticMeshComponent::SerializeJson(rapidjson::Writer<rapidjson::StringBuffer>& Writer) const
+	void StaticMeshComponent::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const
 	{
 		Writer.StartObject();
 
@@ -235,7 +235,7 @@ namespace Thunder
 	}
 
 	// TransformComponent implementation
-	void TransformComponent::SerializeJson(rapidjson::Writer<rapidjson::StringBuffer>& Writer) const
+	void TransformComponent::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const
 	{
 		Writer.StartObject();
 

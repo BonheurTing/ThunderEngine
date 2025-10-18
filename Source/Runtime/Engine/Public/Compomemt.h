@@ -3,7 +3,7 @@
 #include "NameHandle.h"
 #include "Guid.h"
 #include "Vector.h"
-#include "rapidjson/writer.h"
+#include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/document.h"
 #include <atomic>
@@ -23,7 +23,7 @@ namespace Thunder
 		virtual void GetDependencies(TArray<TGuid>& OutDependencies) const {}
 
 		// JSON serialization
-		virtual void SerializeJson(rapidjson::Writer<rapidjson::StringBuffer>& Writer) const {}
+		virtual void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const {}
 		virtual void DeserializeJson(const rapidjson::Value& JsonValue) {}
 
 		// Asynchronous resource loading
@@ -56,7 +56,7 @@ namespace Thunder
 		void GetDependencies(TArray<TGuid>& OutDependencies) const override;
 
 		// JSON serialization
-		void SerializeJson(rapidjson::Writer<rapidjson::StringBuffer>& Writer) const override;
+		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const override;
 		void DeserializeJson(const rapidjson::Value& JsonValue) override;
 
 		// Asynchronous resource loading
@@ -96,7 +96,7 @@ namespace Thunder
 		NameHandle GetComponentName() const override { return "TransformComponent"; }
 
 		// JSON serialization
-		void SerializeJson(rapidjson::Writer<rapidjson::StringBuffer>& Writer) const override;
+		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const override;
 		void DeserializeJson(const rapidjson::Value& JsonValue) override;
 
 		// Transform accessors

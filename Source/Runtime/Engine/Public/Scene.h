@@ -3,7 +3,7 @@
 #include "Entity.h"
 #include "Container.h"
 #include "rapidjson/document.h"
-#include "rapidjson/writer.h"
+#include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Concurrent/ConcurrentBase.h"
@@ -54,18 +54,17 @@ namespace Thunder
 		const TArray<Entity*>& GetRootEntities() const { return RootEntities; }
 
 		// JSON serialization for scene files (.tmap)
-		void SerializeJson(rapidjson::Writer<rapidjson::StringBuffer>& Writer) const;
+		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const;
 		void DeserializeJson(const rapidjson::Value& JsonValue);
 
 		// Scene persistence
-		bool Save(const String& FilePath);
-		bool Load(const String& FilePath);
+		bool Save(const String& FileFullPath);
 
 		// Synchronous scene loading
-		bool LoadSync(const String& FilePath);
+		bool LoadSync(const String& FileFullPath);
 
 		// Asynchronous scene loading
-		void LoadAsync(const String& FilePath);
+		void LoadAsync(const String& FileFullPath);
 
 		// Asynchronous resource streaming
 		void StreamScene();

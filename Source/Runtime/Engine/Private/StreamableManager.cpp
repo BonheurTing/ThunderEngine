@@ -7,7 +7,7 @@ namespace Thunder
 	{
 		ResourceModule::ForAllResources([](const TGuid& guid, NameHandle name)
 		{
-			ResourceModule::LoadAsync(name);
+			ResourceModule::LoadAsync(guid);
 		});
 	}
 }

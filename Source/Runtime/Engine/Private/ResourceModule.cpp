@@ -268,6 +268,7 @@ namespace Thunder
 		String checkPath = softPath;
 		int suffix = 1;
 		bool bUnique = true;
+#ifdef WITH_EDITOR
 		while (GetModule()->LoadedResourcesByPath.contains(checkPath))
 		{
 			bUnique = false;
@@ -278,6 +279,7 @@ namespace Thunder
 		{
 			softPath = checkPath;
 		}
+#endif
 		return bUnique;
 	}
 

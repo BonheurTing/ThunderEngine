@@ -22,7 +22,7 @@ namespace Thunder
 
 		struct AssetHeader
 		{
-			//uint32 HeaderSize; // 0 - ResourceSuffixList
+			//uint32 HeaderSize; // To only read head but no objects
 			uint32 MagicNumber; // 魔数
 			uint32 CheckSum; // 全局CRC校验和
 			uint32 Version; // 版本号

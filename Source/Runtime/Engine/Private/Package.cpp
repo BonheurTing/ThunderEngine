@@ -318,106 +318,90 @@ namespace Thunder
 		return true;
 	}
 
-	bool ResourceModule::LoadSync(const NameHandle& softPath, TArray<GameResource*>& outResources, bool bForce)
+	bool ResourceModule::LoadSync(const TGuid& guid, TArray<GameResource*>& outResources, bool bForce)
 	{
-		auto& loadedResByPath = GetModule()->LoadedResourcesByPath;
-		auto& loadedRes = GetModule()->LoadedResources;
-		if (!bForce && IsLoaded(softPath))
+		if (!bForce)
 		{
-			const TGuid guid = loadedResByPath[softPath];
-			if (loadedRes.contains(guid))
+			auto loadedRes = TryGetLoadedResource(guid);
+			if (loadedRes != nullptr)
 			{
-				if (const auto pak = static_cast<Package*>(loadedRes[guid]))
-				{
-					outResources = pak->GetPackageObjects();
-					return true;
-				}
-				TAssertf(false, "ResourceModule::LoadSync: Loaded resource is not a Package, softPath: %s", softPath.c_str());
-				return false;
+				const auto pak = static_cast<Package*>(loadedRes);
+				TAssertf(pak != nullptr, "ResourceModule::LoadSync: Loaded resource is not a Package");
+				outResources = pak->GetPackageObjects();
+				return true;
 			}
 		}
 
-		const auto newPackage = new Package(softPath);
-		if (newPackage->Load())
-		{
-			outResources = newPackage->GetPackageObjects();
-			LOG("get package resources count: %llu", outResources.size());
-			return true;
-		}
-		
-		TAssertf(false, "ResourceModule::LoadSync: fail to load a Package, softPath: %s", softPath.c_str());
-		delete newPackage;
-		return false;
+		return ForceLoadBySoftPath(GetModule()->ResourcePathMap[guid]);
 	}
 
 	GameResource* ResourceModule::LoadSync(const TGuid& guid, bool bForce)
 	{
-		if (!GetModule()->ResourcePathMap.contains(guid))
+		TAssertf(GetModule()->ResourcePathMap.contains(guid),
+			"ResourceModule::LoadSync: fail to load a resource by guid: %u-%u-%u-%u", guid.A, guid.B, guid.C, guid.D);
+		if (!bForce)
 		{
-			TAssertf(false, "ResourceModule::LoadSync: fail to load a resource by guid: %u-%u-%u-%u", guid.A, guid.B, guid.C, guid.D);
-			return nullptr;
-		}
-		return LoadSync(GetModule()->ResourcePathMap[guid], bForce);
-	}
-
-	GameResource* ResourceModule::LoadSync(const NameHandle& resourceSoftPath, bool bForce)
-	{
-		auto& loadedResByPath = GetModule()->LoadedResourcesByPath;
-		auto& loadedRes = GetModule()->LoadedResources;
-		if (!bForce && IsLoaded(resourceSoftPath))
-		{
-			const TGuid guid = loadedResByPath[resourceSoftPath];
-			if (loadedRes.contains(guid))
+			auto loadedRes = TryGetLoadedResource(guid);
+			if (loadedRes != nullptr)
 			{
-				const auto res = static_cast<GameResource*>(loadedRes[guid]);
-				TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource, softPath: %s", resourceSoftPath.c_str());
+				const auto res = static_cast<GameResource*>(loadedRes);
+				TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource");
 				return res;
 			}
 		}
-		const String pakFullPath = ConvertSoftPathToFullPath(resourceSoftPath.ToString());
-		const String pakSoftPath = CovertFullPathToSoftPath(pakFullPath);
-		
-		const auto newPackage = new Package(pakSoftPath);
-		if (newPackage->Load())
+		if (ForceLoadBySoftPath(GetModule()->ResourcePathMap[guid]))
 		{
-			const TGuid guid = loadedResByPath[resourceSoftPath];
-			const auto res = static_cast<GameResource*>(loadedRes[guid]);
-			TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource, softPath: %s", resourceSoftPath.c_str());
-			TArray<TGuid> dependencies;
-			res->GetDependencies(dependencies);
-			for (const auto& dependency : dependencies)
+			auto loadedRes = TryGetLoadedResource(guid);
+			if (loadedRes != nullptr)
 			{
-				LoadSync(dependency, false);
+				const auto res = static_cast<GameResource*>(loadedRes);
+				TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource");
+				TArray<TGuid> dependencies;
+				res->GetDependencies(dependencies);
+				for (const auto& dependency : dependencies)
+				{
+					LoadSync(dependency, false);
+				}
+				return res;
 			}
-			return res;
 		}
-
-		TAssertf(false, "ResourceModule::LoadSync: fail to load a Package, softPath: %s", pakSoftPath.c_str());
-		delete newPackage;
 		return nullptr;
+	}
+
+	bool ResourceModule::ForceLoadBySoftPath(const NameHandle& softPath)
+	{
+		const String pakFullPath = ConvertSoftPathToFullPath(softPath.ToString());
+		const String pakSoftPath = CovertFullPathToSoftPath(pakFullPath);
+
+		const auto newPackage = new Package(pakSoftPath);
+		bool ret = newPackage->Load();
+		delete newPackage;
+		return ret;
 	}
 
 	void ResourceModule::LoadAsync(const TGuid& guid)
 	{
-		if (!GetModule()->ResourcePathMap.contains(guid))
-		{
-			TAssertf(false, "ResourceModule::LoadAsync: fail to load a resource by guid: %u-%u-%u-%u", guid.A, guid.B, guid.C, guid.D);
-		}
-		return LoadAsync(GetModule()->ResourcePathMap[guid]);
-	}
+		TAssertf(GetModule()->ResourcePathMap.contains(guid),
+			"ResourceModule::LoadAsync: fail to load a resource by guid: %u-%u-%u-%u", guid.A, guid.B, guid.C, guid.D);
 
-	void ResourceModule::LoadAsync(const NameHandle& path)
-	{
-		GAsyncWorkers->PushTask([path]()
+		GAsyncWorkers->PushTask([guid]()
 		{
 			TArray<GameResource*> outResources;
-			LoadSync(path, outResources, false);
-			LOG("load game resource : %s async complete, resource count: %llu", path.ToString().c_str(), outResources.size());
+			LoadSync(guid, outResources, false);
 			for (const auto res : outResources)
 			{
 				res->OnResourceLoaded();
 			}
 		});
+	}
+	
+	GameObject* ResourceModule::TryGetLoadedResource(const TGuid& guid)
+	{
+		if (!IsLoaded(guid))
+		{
+			return nullptr;
+		}
+		return GetModule()->LoadedResources[guid];
 	}
 
 	bool ResourceModule::SavePackage(Package* package, const String& fullPath)

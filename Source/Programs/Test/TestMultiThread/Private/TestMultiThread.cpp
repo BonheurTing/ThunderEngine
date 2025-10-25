@@ -325,7 +325,7 @@ void TestPoolScheduler()
 				LOG("Execute [%d] : random float %f, is greater than zero : %s.", index, randomFloat[index], isGreaterThanZeroResult[index] ? "true" : "false");
 				Dispatcher->Notify();
 			}
-		}, 1024, 256);
+		}, 1024);
 		DoWorkEvent->Wait();
 		LOG("================================================");
 	}

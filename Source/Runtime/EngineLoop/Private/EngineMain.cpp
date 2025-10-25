@@ -4,6 +4,7 @@
 #include "D3D12RHIModule.h"
 #include "D3D11RHIModule.h"
 #include "GameMain.h"
+#include "GameModule.h"
 #include "ResourceModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"

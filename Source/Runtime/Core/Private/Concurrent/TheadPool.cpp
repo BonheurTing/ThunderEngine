@@ -87,11 +87,11 @@ namespace Thunder
 					{
 						if (ITask* currentWork = scheduler->GetNextQueuedWork())
 						{
-							LOG(currentWork->GetName().c_str());
+							//LOG(currentWork->GetName().c_str());
 							bHasWork = true;
 							numOfFailed = SUSPEND_THRESHOLD;
 							currentWork->DoWork();
-							//TMemory::Destroy(currentWork);
+							TMemory::Destroy(currentWork);
 						}
 					}
 				}

@@ -16,10 +16,10 @@ namespace Thunder
 	 * Used for notifying when asynchronous resource loading is complete
 	 */
 	template <typename T>
-	class OnSceneLoaded : public IOnCompleted
+	class TLoadEvent : public IOnCompleted
 	{
 	public:
-		OnSceneLoaded(T* inLoadItem) : LoadItem(inLoadItem) {}
+		TLoadEvent(T* inLoadItem) : LoadItem(inLoadItem) {}
 
 		void OnCompleted() override
 		{
@@ -36,7 +36,7 @@ namespace Thunder
 		T* LoadItem { nullptr };
 	};
 
-	class IComponent : public GameObject
+	class IComponent : public GameObject, public ITickable
 	{
 	public:
 		IComponent() = default;
@@ -52,19 +52,17 @@ namespace Thunder
 		virtual void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& Writer) const = 0;
 		virtual void DeserializeJson(const rapidjson::Value& JsonValue) = 0;
 
-		// Asynchronous resource loading
-		void SyncLoad();
-		void AsyncLoad();
+		virtual void LoadAsync() {}
 		bool IsLoaded() const;
 		virtual void OnLoaded();
+		void Tick() override;
 
 		// Factory method for creating components by name
 		static IComponent* CreateComponentByName(const NameHandle& componentName);
 
-	private:
-		// Loading state
-		std::atomic<bool> Loaded { false };
-		OnSceneLoaded<IComponent>* StreamingEvent { nullptr };
+	protected:
+		// Load & Lifecycle
+		std::atomic<LoadingStatus> Status { LoadingStatus::Idle };
 	};
 
 	class PrimitiveComponent : public IComponent
@@ -92,6 +90,7 @@ namespace Thunder
 		void DeserializeJson(const rapidjson::Value& jsonValue) override;
 
 		// resource loading
+		void LoadAsync() override;
 		void OnLoaded() override;
 
 		// Mesh and material management

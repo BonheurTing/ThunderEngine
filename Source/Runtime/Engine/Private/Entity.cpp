@@ -1,5 +1,6 @@
 #pragma optimize("", off)
 #include "Entity.h"
+#include "GameModule.h"
 #include "rapidjson/document.h"
 
 namespace Thunder
@@ -14,6 +15,8 @@ namespace Thunder
 
 	Entity::~Entity()
 	{
+		GameModule::UnregisterTickable(this);
+
 		if (Transform)
 		{
 			TMemory::Destroy(Transform);
@@ -31,6 +34,7 @@ namespace Thunder
 			delete child;
 		}
 		Children.clear();
+		Status.store(LoadingStatus::Idle, std::memory_order_release);
 	}
 
 	IComponent* Entity::GetComponentByName(const NameHandle& componentName) const
@@ -196,5 +200,34 @@ namespace Thunder
 				AddChild(child);
 			}
 		}
+	}
+
+	void Entity::Load()
+	{
+		auto curStatus = Status.load(std::memory_order_acquire);
+		if (curStatus == LoadingStatus::Loading || curStatus == LoadingStatus::Loaded)
+		{
+			return;
+		}
+		Status.store(LoadingStatus::Loading, std::memory_order_release);
+		for (auto& comp : Components)
+		{
+			comp->LoadAsync();
+		}
+		for (auto child : Children)
+		{
+			child->Load();
+		}
+	}
+
+	void Entity::OnLoaded()
+	{
+		Status.store(LoadingStatus::Loaded, std::memory_order_release);
+		GameModule::RegisterTickable(this);
+	}
+
+	void Entity::Tick()
+	{
+		//
 	}
 }

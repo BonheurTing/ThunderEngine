@@ -93,8 +93,6 @@ namespace Thunder
         {
             return;
         }
-        uint32 taskBundleSize = (commandNum + contextNum - 1) / contextNum;
-        //uint32 numTaskBundles = (commandNum + taskBundleSize - 1) / taskBundleSize;
 
         const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
         auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
@@ -104,7 +102,7 @@ namespace Thunder
             RHICommandContext* commandList = rhiCommandContexts[bundleId];
             for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
             {
-                if (index < commandNum)
+                if (index < static_cast<uint32>(commandNum))
                 {
                     size_t currentSize = consolidatedCommands.size();
                     consolidatedCommands.resize(currentSize * 2);
@@ -114,7 +112,7 @@ namespace Thunder
                     dispatcher->Notify();
                 }
             }
-        }, commandNum, taskBundleSize);
+        }, commandNum);
         doWorkEvent->Wait();
         FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
         TMemory::Destroy(dispatcher);

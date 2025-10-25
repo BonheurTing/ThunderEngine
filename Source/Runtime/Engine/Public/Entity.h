@@ -14,7 +14,7 @@ namespace Thunder
 	 * Entity represents a game object in the scene hierarchy
 	 * Similar to Actor in Unreal Engine
 	 */
-	class ENGINE_API Entity : public GameObject
+	class ENGINE_API Entity : public GameObject, public ITickable
 	{
 	public:
 		Entity(GameObject* inOuter = nullptr);
@@ -55,6 +55,9 @@ namespace Thunder
 		const NameHandle& GetEntityName() const { return EntityName; }
 		TransformComponent* GetTransform() const { return Transform; }
 
+		void Load();
+		void OnLoaded();
+		void Tick() override;
 	private:
 		NameHandle EntityName;
 		TransformComponent* Transform { nullptr };
@@ -63,7 +66,10 @@ namespace Thunder
 
 		// Hierarchy
 		Entity* Parent { nullptr }; //uporperty
-		TArray<Entity*> Children; //uporperty 
+		TArray<Entity*> Children; //uporperty
+
+		// Load & Lifecycle
+		std::atomic<LoadingStatus> Status { LoadingStatus::Idle };
 	};
 
 	template<typename T>

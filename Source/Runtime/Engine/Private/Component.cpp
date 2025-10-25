@@ -1,5 +1,6 @@
 #pragma optimize("", off)
 #include "Compomemt.h"
+#include "GameModule.h"
 #include "Guid.h"
 #include "ResourceModule.h"
 #include "Concurrent/TaskScheduler.h"
@@ -10,65 +11,24 @@ namespace Thunder
 {
 	IComponent::~IComponent()
 	{
-		if (StreamingEvent)
-		{
-			TMemory::Destroy(StreamingEvent);
-		}
-	}
-
-	void IComponent::SyncLoad()
-	{
-		TList<TGuid> guidList;
-		GetDependencies(guidList);
-
-		if (guidList.empty())
-		{
-			// No dependencies, mark as loaded
-			OnLoaded();
-			return;
-		}
-
-		if (StreamingEvent == nullptr)
-		{
-			StreamingEvent = new (TMemory::Malloc<OnSceneLoaded<StaticMeshComponent>>()) OnSceneLoaded(this);
-		}
-
-		// Load all dependencies synchronously using ParallelFor
-		uint32 guidNum = static_cast<uint32>(guidList.size());
-		TArray<TGuid> guidTable(guidList.begin(), guidList.end());
-
-		StreamingEvent->Promise(static_cast<int>(guidNum));
-
-		uint32 taskBundleSize = (guidNum + GAsyncWorkers->GetNumThreads()+1) / GAsyncWorkers->GetNumThreads();
-		GAsyncWorkers->ParallelFor([guidTable, guidNum, event = StreamingEvent](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
-		{
-			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
-			{
-				if (index < guidNum)
-				{
-					ResourceModule::LoadSync(guidTable[index]);
-					event->Notify(); // may not be in this frame
-				}
-			}
-		}, guidNum, taskBundleSize);
-	}
-
-	void IComponent::AsyncLoad()
-	{
-		GAsyncWorkers->PushTask([this]()
-		{
-			SyncLoad();
-		});
+		GameModule::UnregisterTickable(this);
 	}
 
 	bool IComponent::IsLoaded() const
 	{
-		return Loaded.load(std::memory_order_acquire);
+		return Status.load(std::memory_order_acquire) == LoadingStatus::Loaded;
 	}
 
 	void IComponent::OnLoaded()
 	{
-		Loaded.store(true, std::memory_order_release);
+		Status.store(LoadingStatus::Loaded, std::memory_order_release);
+		GameModule::RegisterTickable(this);
+	}
+
+	void IComponent::Tick()
+	{
+		// Base implementation does nothing
+		// Derived classes can override this method
 	}
 
 	// todo Component factory
@@ -190,27 +150,53 @@ namespace Thunder
 		}
 	}
 
+	void StaticMeshComponent::LoadAsync()
+	{
+		auto curStatus = Status.load(std::memory_order_acquire);
+		if (curStatus == LoadingStatus::Loading || curStatus == LoadingStatus::Loaded)
+		{
+			return;
+		}
+		Status.store(LoadingStatus::Loading, std::memory_order_release);
+
+		if (!MeshGuid.IsValid() && MaterialGuids.empty())
+		{
+			// No dependencies, mark as loaded
+			OnLoaded();
+			return;
+		}
+
+		TWeakObjectPtr<StaticMeshComponent> componentPtr = this;
+		GAsyncWorkers->PushTask([meshGuid = MeshGuid, guidList = MaterialGuids, componentPtr]()
+		{
+			TStrongObjectPtr<GameResource> meshRef= ResourceModule::LoadSync(meshGuid);
+
+			TArray<TStrongObjectPtr<GameResource>> materialRefList;
+			materialRefList.reserve(guidList.size());
+			for (uint32 i = 0; i < static_cast<uint32>(guidList.size()); ++i)
+			{
+				materialRefList[i] = ResourceModule::LoadSync(guidList[i]);
+			}
+			
+			GGameScheduler->PushTask([componentPtr, meshRef, materialRefList]()
+			{
+				if (componentPtr)
+				{
+					componentPtr->Mesh = static_cast<StaticMesh*>(meshRef.Get());
+					componentPtr->OverrideMaterials.reserve(materialRefList.size());
+					for (uint32 i = 0; i < static_cast<uint32>(materialRefList.size()); ++i)
+					{
+						componentPtr->OverrideMaterials[i] = static_cast<IMaterial*>(materialRefList[i].Get());
+					}
+					componentPtr->OnLoaded();
+				}
+			});
+		});
+	}
+
 	void StaticMeshComponent::OnLoaded()
 	{
-		// Verify all resources are loaded
-		if (MeshGuid.IsValid())
-		{
-			TAssert(ResourceModule::IsLoaded(MeshGuid));
-			Mesh = static_cast<StaticMesh*>(ResourceModule::LoadSync(MeshGuid));
-		}
-
-		OverrideMaterials.clear();
-		for (const TGuid& materialGuid : MaterialGuids)
-		{
-			TAssert(materialGuid.IsValid());
-			TAssert(ResourceModule::IsLoaded(materialGuid));
-			if (IMaterial* material = static_cast<IMaterial*>(ResourceModule::LoadSync(materialGuid)))
-			{
-				OverrideMaterials.push_back(material);
-			}
-		}
-
-		// Mark as loaded
+		// Call parent OnLoaded to mark as loaded and register tickable.
 		IComponent::OnLoaded();
 		LOG("StaticMeshComponent loaded successfully");
 	}

@@ -14,7 +14,7 @@ namespace Thunder
 	 * Scene represents a game level/map
 	 * Contains a hierarchy of entities and manages scene serialization
 	 */
-	class ENGINE_API Scene : public GameObject
+	class ENGINE_API Scene : public GameObject, public ITickable
 	{
 	public:
 		Scene(GameObject* inOuter = nullptr);
@@ -33,11 +33,8 @@ namespace Thunder
 		bool Save(const String& fileFullPath);
 		bool LoadSync(const String& fileFullPath);
 		void LoadAsync(const String& fileFullPath);
-
-		// Asynchronous resource streaming
-		void StreamScene();
-
-		virtual void OnLoaded();
+		void OnLoaded();
+		void Tick() override;
 
 		// Renderer association
 		void SetRenderer(IRenderer* inRenderer) { Renderer = inRenderer; }
@@ -48,14 +45,14 @@ namespace Thunder
 		const NameHandle& GetSceneName() const { return SceneName; }
 
 	private:
+		/*// Asynchronous resource streaming
+		void StreamScene();
 		// Collect all resource dependencies in the scene
-		void SimulateStreamingWithDistance(TList<IComponent*>& outDependencies) const;
+		void SimulateStreamingWithDistance(TList<IComponent*>& outDependencies) const;*/
 
 		NameHandle SceneName;
 		TArray<Entity*> RootEntities;
 		IRenderer* Renderer { nullptr };
-
-		OnSceneLoaded<Scene>* StreamingEvent { nullptr };
 	};
 
 	/**

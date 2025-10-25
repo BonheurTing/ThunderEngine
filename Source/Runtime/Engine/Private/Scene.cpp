@@ -1,5 +1,6 @@
 #pragma optimize("", off)
 #include "Scene.h"
+#include "GameModule.h"
 #include "ResourceModule.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
@@ -21,10 +22,8 @@ namespace Thunder
 
 	Scene::~Scene()
 	{
-		if (StreamingEvent)
-		{
-			TMemory::Destroy(StreamingEvent);
-		}
+		GameModule::UnregisterTickable(this);
+
 		for (Entity* rootEntity : RootEntities)
 		{
 			delete rootEntity;
@@ -182,7 +181,25 @@ namespace Thunder
 		});
 	}
 
-	void Scene::SimulateStreamingWithDistance(TList<IComponent*>& outDependencies) const
+	void Scene::OnLoaded()
+	{
+		LOG("Scene ended streaming: %s", SceneName.c_str());
+		GameModule::RegisterTickable(this);
+	}
+
+	void Scene::Tick()
+	{
+		TVector3f cameraLocation { TVector3f(0.f, 0.f, 0.f) };
+		for (Entity* rootEntity : RootEntities)
+		{
+			if (Math::Distance(cameraLocation, rootEntity->GetTransform()->GetPosition()) > 0.5f)
+			{
+				rootEntity->Load();
+			}
+		}
+	}
+
+	/*void Scene::SimulateStreamingWithDistance(TList<IComponent*>& outDependencies) const
 	{
 		TVector3f cameraLocation { TVector3f(0.f, 0.f, 0.f) };
 		for (Entity* rootEntity : RootEntities)
@@ -207,14 +224,13 @@ namespace Thunder
 
 		if (StreamingEvent == nullptr)
 		{
-			StreamingEvent = new (TMemory::Malloc<OnSceneLoaded<Scene>>()) OnSceneLoaded(this);
+			StreamingEvent = new (TMemory::Malloc<TLoadEvent<Scene>>()) TLoadEvent(this);
 		}
 		
 		uint32 compNum = static_cast<uint32>(compList.size());
 		TArray<IComponent*> compTable(compList.begin(), compList.end());
 
 		StreamingEvent->Promise(static_cast<int>(compNum));
-		uint32 taskBundleSize = (compNum + GAsyncWorkers->GetNumThreads()+1) / GAsyncWorkers->GetNumThreads();
 		GAsyncWorkers->ParallelFor([compTable, compNum, event = StreamingEvent](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
 		{
 			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
@@ -225,11 +241,6 @@ namespace Thunder
 					event->Notify();
 				}
 			}
-		}, compNum, taskBundleSize);
-	}
-
-	void Scene::OnLoaded()
-	{
-		LOG("Scene ended streaming: %s", SceneName.c_str());
-	}
+		}, compNum);
+	}*/
 }

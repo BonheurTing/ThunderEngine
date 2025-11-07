@@ -230,7 +230,7 @@ namespace Thunder
 			}
 			else if (typeList[i] == ETempGameResourceReflective::Material)
 			{
-				gameResource = new Material(); //todo
+				gameResource = new GameMaterial(); //todo
 			}
 			else
 			{

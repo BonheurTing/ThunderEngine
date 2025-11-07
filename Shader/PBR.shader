@@ -25,11 +25,20 @@
         }
     ],
     "Parameters":
-    [
+    [/*  */
         {
             "Name": "TintColor",
             "Type": "Float4",
             "Default": "(1,1,1,1)"
+        }
+    ],
+    "Variants":
+    [
+        #include "GlobalVariants.fxh"
+        {
+            "Name": "EnableLumen",
+            "Default": "false",
+            "IsVisible" : "false"
         }
     ],
     "RenderState":
@@ -87,6 +96,20 @@
         },
         "Lighting":
         {
+
+            struct VSInput
+            {
+                float3 Position;
+                float2 uv : TEXCOORD0;
+                @if (EnableUv2)
+                {
+                    float2 uv2 : TEXCOORD0;
+                }
+                @if (EnableVertexColor)
+                {
+                    float2 color : TEXCOORD0;
+                }
+            };
         }
     }
 }

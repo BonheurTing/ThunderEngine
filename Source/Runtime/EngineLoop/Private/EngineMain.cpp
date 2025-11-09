@@ -64,8 +64,11 @@ namespace Thunder
         RHICreateDevice();
         IRHIModule::GetModule()->InitCommandContext();
 
-        // setup task scheduler
+        // setup task scheduler: parallel render thread, worker thread
         TaskSchedulerManager::StartUp();
+
+        // setup shader archive
+        ShaderModule::InitShaderMap();
 
         GameModule::GetModule()->InitGameThread();
     }

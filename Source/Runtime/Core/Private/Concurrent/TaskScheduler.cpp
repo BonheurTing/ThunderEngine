@@ -228,6 +228,8 @@ namespace Thunder
 
 		GRHIScheduler = new (TMemory::Malloc<SingleScheduler>()) SingleScheduler();
 		GRHIScheduler->AttachToThread(rhiThreadProxy);
+
+		InitWorkerThread();
 	}
 
 	void TaskSchedulerManager::InitWorkerThread()

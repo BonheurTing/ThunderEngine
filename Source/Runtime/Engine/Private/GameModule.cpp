@@ -24,9 +24,6 @@ namespace Thunder
 
     void GameModule::InitGameThread()
     {
-        // init task scheduler
-        TaskSchedulerManager::InitWorkerThread(); // GSyncWorkers Ready
-
         GameThreadTaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
 
         GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();

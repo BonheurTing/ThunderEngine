@@ -1,12 +1,17 @@
 #include "ShaderModule.h"
+#include <fstream>
+#include <sstream>
 #include "Assertion.h"
 #include "CoreModule.h"
+#include "PreProcessor.h"
+#include "ShaderLang.h"
 #include "ShaderCompiler.h"
 #include "rapidjson/document.h"
 #include "ShaderArchive.h"
 #include "FileSystem/FileModule.h"
 #include "Memory/MemoryBase.h"
 
+extern Thunder::shader_lang_state* ThunderParse(const char* text);
 namespace Thunder
 {
 	IMPLEMENT_MODULE(Shader, ShaderModule)
@@ -136,6 +141,45 @@ namespace Thunder
 			}
 		}
 	}
+
+	void ShaderModule::InitShaderCompiler(EGfxApiType type)
+	{
+		switch (type)
+		{
+		case EGfxApiType::D3D12:
+			{
+				ShaderCompiler = MakeRefCount<FXCCompiler>();
+				break;
+			}
+		case EGfxApiType::D3D11:
+			{
+				ShaderCompiler = MakeRefCount<FXCCompiler>();
+				break;
+			}
+		case EGfxApiType::Invalid: break;
+		}
+	}
+
+	// load all shader archive
+	
+	void ShaderModule::InitShaderMap()
+	{
+		TArray<String> shaderNameList;
+		FileModule::TraverseFileFromFolderWithFormat(FileModule::GetEngineShaderRoot(), shaderNameList, "tsf");
+		
+		for (const String& metaFileName: shaderNameList)
+		{
+			LOG("ParseShaderFile: %s", metaFileName.c_str());
+			std::ifstream file(metaFileName);
+			std::stringstream buffer;
+			buffer << file.rdbuf();
+			std::string raw_text = buffer.str();
+			String processed_text = PreProcessor::Process(raw_text).c_str();
+			shader_lang_state* st = ThunderParse(processed_text.c_str());
+			fflush(stdout); 
+		}
+	}
+
 
 	bool ShaderModule::ParseShaderFile()
     {
@@ -344,24 +388,6 @@ namespace Thunder
 		}
 		TAssertf(false, "ShaderPass not exist");
 		return nullptr;
-	}
-
-	void ShaderModule::InitShaderCompiler(EGfxApiType type)
-	{
-		switch (type)
-		{
-		case EGfxApiType::D3D12:
-		{
-			ShaderCompiler = MakeRefCount<FXCCompiler>();
-			break;
-		}
-		case EGfxApiType::D3D11:
-		{
-			ShaderCompiler = MakeRefCount<FXCCompiler>();
-			break;
-		}
-		case EGfxApiType::Invalid: break;
-		}
 	}
 	
 	void ShaderModule::Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco,

@@ -1,13 +1,9 @@
 #pragma optimize("", off)
 #include "ShaderLang.h"
-
 #include "Assertion.h"
 #include "AstNode.h"
 #include "PreProcessor.h"
 #include "../Generated/parser.tab.h"
-
-#include "ShaderCompiler.h"
-#include "Templates/RefCounting.h"
 
 namespace Thunder
 {
@@ -761,7 +757,7 @@ namespace Thunder
 		ast_root->generate_hlsl(outHlsl);
 		printf("-------generate hlsl-------\n%s", outHlsl.c_str());
 
-		printf("\n-------DXCompiler-------\n");
+		/*printf("\n-------DXCompiler-------\n");
 		BinaryData ByteCode;
 		const TRefCountPtr<ICompiler> ShaderCompiler = new DXCCompiler();
 		ShaderCompiler->Compile(nullptr, outHlsl, outHlsl.size(), {}, "", "main", "ps_6_0", ByteCode);
@@ -773,7 +769,7 @@ namespace Thunder
 		else
 		{
 			printf("ByteCode is null\n");
-		}
+		}*/
 	}
 
 

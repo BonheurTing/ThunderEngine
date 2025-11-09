@@ -12,7 +12,7 @@ extern void lexer_constructor(struct shader_lang_state *state, const char* text)
 extern void lexer_lexer_dtor(struct shader_lang_state *state);
 extern int yyparse(struct shader_lang_state *state);
 
-void ThunderParse(const char* text);
+shader_lang_state* ThunderParse(const char* text);
 
 #define YYLEX_PARAM sl_state->scanner
 #define YYLTYPE parse_location
@@ -931,7 +931,7 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg){
     printf("ERROR: %s\n",msg);
 }
 
-void ThunderParse(const char* text)
+shader_lang_state* ThunderParse(const char* text)
 {
     yydebug = 1;
     sl_state = new shader_lang_state();
@@ -939,4 +939,5 @@ void ThunderParse(const char* text)
     yyparse(sl_state);
     sl_state->post_process_ast();
 	lexer_lexer_dtor(sl_state);
+    return sl_state;
 }

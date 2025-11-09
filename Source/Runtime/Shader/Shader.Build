@@ -3,6 +3,7 @@ set(LinkMode SHARED)
 
 set(PublicDependencyModuleList
     Core
+    ShaderLang
 )
 
 set(PublicThirdPartyIncludeList

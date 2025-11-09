@@ -5,10 +5,10 @@ import time
 import re
 
 if __name__ == "__main__":
-    os.system(".\GenerateShaderCompiler.bat")
-    os.system(".\InitializeInternal.bat")
+    os.system(".\\Tools\\ShaderLang\\GenerateShaderCompiler.bat")
+    os.system(".\\InitializeInternal.bat")
     time.sleep(5)
-    solution_file_name = ".\\Intermediate\\Build\\ThunderEditor.sln"
+    solution_file_name = "./Intermediate/Build/ThunderEditor.sln"
     if os.path.exists(solution_file_name):
         solution_content = ""
         with open("./Intermediate/Build/ThunderEditor.sln", 'rb') as solution_file:

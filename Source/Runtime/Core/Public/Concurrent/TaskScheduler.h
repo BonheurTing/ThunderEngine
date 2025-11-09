@@ -64,8 +64,10 @@ namespace Thunder
 	{
 	public:
 		static void StartUp();
-		static void InitWorkerThread();
 		static void ShutDown();
+
+	private:
+		static void InitWorkerThread();
 	};
 
 	CORE_API extern SingleScheduler* GGameScheduler;

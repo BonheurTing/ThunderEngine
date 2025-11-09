@@ -4,10 +4,11 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
-#include "ShaderLang.h"
 #include "PreProcessor.h"
 #include "Module/ModuleManager.h"
 #include "CoreModule.h"
+#include "FileSystem/FileModule.h"
+#include "ShaderLang.h"
 
 namespace Thunder
 {
@@ -16,12 +17,12 @@ namespace Thunder
 
 namespace fs = std::filesystem;
 
-extern void ThunderParse(const char* text);
+extern Thunder::shader_lang_state* ThunderParse(const char* text);
 
 int main(int argc, char* argv[])
 {
 	Thunder::ModuleManager::GetInstance()->LoadModule<Thunder::CoreModule>();
-	std::string str = "D:/ThunderEngine/Shader/example.tsf";
+	std::string str = Thunder::FileModule::GetEngineShaderRoot() +  "/example.tsf";
 	std::cout << "解析shader文件: " << str << std::endl;
 
 	std::ifstream file(str);
@@ -29,7 +30,7 @@ int main(int argc, char* argv[])
 	buffer << file.rdbuf();
 	std::string raw_text = buffer.str();
 	Thunder::String processed_text = Thunder::PreProcessor::Process(raw_text).c_str();;
-	ThunderParse(processed_text.c_str());
+	Thunder::shader_lang_state* st = ThunderParse(processed_text.c_str());
 	fflush(stdout);
 
 	Thunder::ModuleManager::GetInstance()->UnloadModule<Thunder::CoreModule>();

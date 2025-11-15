@@ -19,6 +19,8 @@ namespace Thunder
     private:
         void AsyncLoading();
         void GameMain();
+        void EndGameFrame();
+        void WaitForLastRenderFrameEnd();
 		
     private:
         TaskGraphProxy* TaskGraph {};

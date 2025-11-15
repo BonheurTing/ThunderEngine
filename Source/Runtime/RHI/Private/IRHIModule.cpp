@@ -9,6 +9,7 @@ namespace Thunder
 
 	void IRHIModule::InitCommandContext()
 	{
+		RHICreateCommandQueue();
 		const int32 num = FPlatformProcess::NumberOfLogicalProcessors();
 		int32 contextNum = num > 3 ? (num - 3) : num;
 		CommandContexts.resize(contextNum);
@@ -16,6 +17,7 @@ namespace Thunder
 		{
 			CommandContexts[i] = RHICreateCommandContext();
 		}
+		CopyCommandContext = RHICreateCommandContext();
 	}
 
 	void IRHIModule::ResetCommandContext(uint32 index) const
@@ -24,5 +26,10 @@ namespace Thunder
 		{
 			context->Reset(index);
 		}
+	}
+
+	void IRHIModule::ResetCopyCommandContext(uint32 index) const
+	{
+		CopyCommandContext->Reset(index);
 	}
 }

@@ -18,6 +18,8 @@ namespace Thunder
     /////// RHI Methods
         RHIDeviceRef RHICreateDevice() override;
 
+        void RHICreateCommandQueue() override; 
+
         RHICommandContextRef RHICreateCommandContext() override;
         
         TRHIGraphicsPipelineState* RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer) override;

@@ -13,6 +13,8 @@ namespace Thunder
         /////// RHI Methods
         virtual RHIDeviceRef RHICreateDevice() = 0;
 
+        virtual void RHICreateCommandQueue() {}
+
         virtual RHICommandContextRef RHICreateCommandContext() = 0;
         
         virtual TRHIGraphicsPipelineState* RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer) = 0;
@@ -57,6 +59,11 @@ namespace Thunder
     FORCEINLINE RHIDeviceRef RHICreateDevice()
     {
         return GDynamicRHI->RHICreateDevice();
+    }
+
+    FORCEINLINE void RHICreateCommandQueue()
+    {
+        GDynamicRHI->RHICreateCommandQueue();
     }
 
     FORCEINLINE RHICommandContextRef RHICreateCommandContext()

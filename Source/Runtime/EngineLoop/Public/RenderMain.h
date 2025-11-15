@@ -44,6 +44,8 @@ namespace Thunder
         void RenderMain();
         void EndRenderer();
 
+        void WaitForLastRHIFrameEnd();
+
         void SimulatingAddingMeshBatch();
 
         BaseViewport* RenderViewport { nullptr };

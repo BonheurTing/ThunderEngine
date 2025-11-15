@@ -25,16 +25,6 @@ namespace Thunder
 
     void RenderingTask::RenderMain()
     {
-        {
-            std::unique_lock<std::mutex> lock(GFrameState->RenderRHIMutex);
-            if (GFrameState->FrameNumberRenderThread - GFrameState->FrameNumberRHIThread > 1)
-            {
-                GFrameState->RenderRHICV.wait(lock, [] {
-                    return GFrameState->FrameNumberRenderThread - GFrameState->FrameNumberRHIThread <= 1;
-                });
-            }
-        }
-
         ThunderZoneScopedN("RenderMain");
 
         LOG("Execute render thread in frame: %d with thread: %lu", GFrameState->FrameNumberRenderThread.load(), __threadid());
@@ -61,9 +51,12 @@ namespace Thunder
         uint32 currentFrameIndex = frameNum % MAX_FRAME_LAG;
         GDynamicRHI->RHIWaitForFrame(currentFrameIndex);
 
+        // Wait for rhi thread.
+        WaitForLastRHIFrameEnd();
+
         // begin frame: reset allocator
-        int resetIndex = frameNum % MAX_FRAME_LAG;
-        IRHIModule::GetModule()->ResetCommandContext(resetIndex);
+		std::cout << " D3D12CommandContext::Reset copy with frame index : " << frameNum << std::endl << std::flush;
+        IRHIModule::GetModule()->ResetCopyCommandContext(currentFrameIndex);
         // sync with render thread
         for (auto res : GRHIUpdateSyncQueue)
         {
@@ -79,6 +72,11 @@ namespace Thunder
         }
 
         // rhi thread
+        GRHIScheduler->PushTask([frameNum]()
+        {
+            GFrameState->FrameNumberRHIThread.store(static_cast<int>(frameNum), std::memory_order_release);
+            GFrameState->RenderRHICV.notify_all();
+        });
         TArray<IRenderer*> renderers;
         RenderViewport->GetRenderers(renderers);
         auto* RHIThreadTask = new (TMemory::Malloc<TTask<RHITask>>()) TTask<RHITask>();
@@ -96,6 +94,17 @@ namespace Thunder
         {
             auto endRenderFrameTask = new (TMemory::Malloc<TTask<EndRenderFrameTask>>()) TTask<EndRenderFrameTask>();
             GRenderScheduler->PushTask(endRenderFrameTask);
+        }
+    }
+
+    void RenderingTask::WaitForLastRHIFrameEnd()
+    {
+        std::unique_lock<std::mutex> lock(GFrameState->RenderRHIMutex);
+        if (GFrameState->FrameNumberRenderThread - GFrameState->FrameNumberRHIThread > 1)
+        {
+            GFrameState->RenderRHICV.wait(lock, [] {
+                return GFrameState->FrameNumberRenderThread - GFrameState->FrameNumberRHIThread <= 1;
+            });
         }
     }
 
@@ -117,8 +126,7 @@ namespace Thunder
 
     void EndRenderFrameTask::EndRenderFrame()
     {
-        GFrameState->FrameNumberRenderThread.fetch_add(1, std::memory_order_acq_rel);
-        GFrameState->GameRenderCV.notify_all();
+        
     }
 
 }

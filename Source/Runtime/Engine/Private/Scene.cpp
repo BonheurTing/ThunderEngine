@@ -24,12 +24,6 @@ namespace Thunder
 	Scene::~Scene()
 	{
 		GameModule::UnregisterTickable(this);
-
-		for (Entity* rootEntity : RootEntities)
-		{
-			delete rootEntity;
-		}
-		RootEntities.clear();
 	}
 
 	Entity* Scene::CreateEntity(const NameHandle& entityName)

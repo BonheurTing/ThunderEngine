@@ -30,12 +30,21 @@ namespace Thunder
 
         GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
 
-        BaseViewport* view = new BaseViewport();
+        BaseViewport* viewport = new BaseViewport();
         auto scene = new Scene(renderFactory);
         String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap"; //todo
         scene->LoadAsync(fullPath);
-        view->AddScene(scene);
-        Viewports.push_back(view);
+        viewport->AddScene(scene);
+        Viewports.push_back(viewport);
+
+        // BaseViewport* viewport2 = new BaseViewport();
+        // auto scene2 = new Scene(renderFactory);
+        // scene2->LoadAsync(fullPath);
+        // viewport2->AddScene(scene2);
+        // auto scene3 = new Scene(renderFactory);
+        // scene3->LoadAsync(fullPath);
+        // viewport2->AddScene(scene3);
+        // Viewports.push_back(viewport2);
     }
 
     void GameModule::GetProceduralScene(const Scene* inScene)

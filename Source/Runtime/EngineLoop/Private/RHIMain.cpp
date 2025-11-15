@@ -36,25 +36,26 @@ namespace Thunder
          * 4. draw command
          **/
         ThunderZoneScopedN("RHIMain");
-
-        LOG("Execute rhi thread in frame: %d with thread: %lu", GFrameState->FrameNumberRHIThread.load(), __threadid());
+        int frameNum = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire);
+        uint32 currentFrameIndex = frameNum % MAX_FRAME_LAG;
+        LOG("Execute rhi thread in frame: %d with thread: %lu", frameNum, __threadid());
 
         for (auto res : GRHIUpdateAsyncQueue)
         {
             res->Update();
         }
         GRHIUpdateAsyncQueue.clear();
-        if (IRHIModule::GetModule()->TryGetCopyCommandContext())
-        {
-            IRHIModule::GetModule()->GetCopyCommandContext()->Execute();
-        }
-        
+        IRHIModule::GetModule()->GetCopyCommandContext()->Execute();
+
         // Parallel recording of rendering commands
+        std::cout << " D3D12CommandContext::Reset with frame index : " << frameNum << std::endl << std::flush;
+        IRHIModule::GetModule()->ResetCommandContext(currentFrameIndex);
+        std::cout << " D3D12CommandContext executes with frame index : " << frameNum << std::endl << std::flush;
         for (auto renderer : Renderers)
         {
             ExecuteRendererCommands(renderer);
         }
-        
+
         const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
         auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
         dispatcher->Promise(1000);
@@ -71,9 +72,6 @@ namespace Thunder
         LOG("Present");
 
         RHIReleaseResource();
-
-        GFrameState->FrameNumberRHIThread.fetch_add(1, std::memory_order_acq_rel);
-        GFrameState->RenderRHICV.notify_all();
     }
 
     void RHITask::ExecuteRendererCommands(const IRenderer* renderer)
@@ -83,45 +81,39 @@ namespace Thunder
             return;
         }
         // Execute D3D12 commands.
-        const TArray<RHICommandContextRef> rhiCommandContexts = IRHIModule::GetModule()->GetRHICommandContexts();
-        int contextNum = static_cast<int>(rhiCommandContexts.size());
-        if (contextNum > 1)
-        {
-            --contextNum;
-        }
+        const TArray<RHICommandContextRef>& rhiCommandContexts = IRHIModule::GetModule()->GetRHICommandContexts();
 
         int frameIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
         auto consolidatedCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(frameIndex);
         int commandNum = static_cast<int>(consolidatedCommands.size());
-        if (commandNum == 0)
+        if (commandNum > 0)
         {
-            return;
+            const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+            auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
+            dispatcher->Promise(commandNum);
+            GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
+            {
+                RHICommandContext* commandList = rhiCommandContexts[bundleId];
+                for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
+                {
+                    if (index < static_cast<uint32>(commandNum))
+                    {
+                        size_t currentSize = consolidatedCommands.size();
+                        consolidatedCommands.resize(currentSize * 2);
+                        consolidatedCommands.resize(currentSize);
+                        // consolidatedCommands[index]->TestMember;
+                        consolidatedCommands[index]->ExecuteAndDestruct(commandList);
+                        dispatcher->Notify();
+                    }
+                }
+            }, commandNum);
+            doWorkEvent->Wait();
+            FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
+            TMemory::Destroy(dispatcher);
         }
 
-        const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-        auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
-        dispatcher->Promise(commandNum);
-        GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
-        {
-            RHICommandContext* commandList = rhiCommandContexts[bundleId];
-            for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
-            {
-                if (index < static_cast<uint32>(commandNum))
-                {
-                    size_t currentSize = consolidatedCommands.size();
-                    consolidatedCommands.resize(currentSize * 2);
-                    consolidatedCommands.resize(currentSize);
-                    // consolidatedCommands[index]->TestMember;
-                    consolidatedCommands[index]->ExecuteAndDestruct(commandList);
-                    dispatcher->Notify();
-                }
-            }
-        }, commandNum);
-        doWorkEvent->Wait();
-        FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
-        TMemory::Destroy(dispatcher);
-
         // Commit.
+        int contextNum = static_cast<int>(rhiCommandContexts.size());
         for (int i = 0; i < contextNum; ++i)
         {
             rhiCommandContexts[i]->Execute(); // Order-preserving

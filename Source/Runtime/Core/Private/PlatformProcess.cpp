@@ -91,7 +91,7 @@ namespace Thunder
             }
         } else {
             std::cerr << "获取处理器信息失败！" << std::endl;
-            return 1;
+            return 8;
         }
         return static_cast<int32>(logicalProcessorCount);
 #elif THUNDER_POSIX

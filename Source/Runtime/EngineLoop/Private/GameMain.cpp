@@ -77,45 +77,7 @@ namespace Thunder
 
         GameMain();
 
-        if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 5)
-        {
-            // Informal: load all game resource ( in content directory )
-            //StreamableManager::LoadAllAsync();
-        }
-
-        if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 50)
-        {
-            //GameModule::SimulateSceneStreaming();
-            //GameModule::SimulateAddMeshToScene();
-        }
-
-        if (GFrameState->FrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) >= EXIT_FRAME_THRESHOLD)
-        {
-            EngineMain::IsRequestingExit.store(true, std::memory_order_acq_rel);
-        }
-
-        // link viewports
-        auto& viewports = GameModule::GetViewports();
-        TAssert(static_cast<int>(viewports.size()) > 0);
-        for (int i = 0; i < static_cast<int>(viewports.size()) - 1; i++)
-        {
-            viewports[i]->SetNext(viewports[i + 1]);
-        }
-        // push render command
-        auto renderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>();
-        (*renderThreadTask)->SetViewport(viewports[0]);
-        GRenderScheduler->PushTask(renderThreadTask);
-
-        if (EngineMain::IsRequestingExit.load(std::memory_order_acquire) == true)
-        {
-            LOG("==================== exit engine ====================");
-            EngineMain::EngineExitSignal->Trigger();
-            return;
-        }
-
-        // push game task for next frame
-        auto* gameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
-        GGameScheduler->PushTask(gameThreadTask);
+        EndGameFrame();
     }
 
     void GameTask::AsyncLoading()
@@ -148,17 +110,11 @@ namespace Thunder
     {
         ThunderZoneScopedN("GameMain");
 
+        const int32 frameNum = GFrameState->FrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) + 1;
+        if (frameNum >= EXIT_FRAME_THRESHOLD)
         {
-            std::unique_lock<std::mutex> lock(GFrameState->GameRenderMutex);
-            if (GFrameState->FrameNumberGameThread - GFrameState->FrameNumberRenderThread > 1)
-            {
-                GFrameState->GameRenderCV.wait(lock, [] {
-                    return GFrameState->FrameNumberGameThread - GFrameState->FrameNumberRenderThread <= 1;
-                });
-            }
+            EngineMain::IsRequestingExit.store(true, std::memory_order_acq_rel);
         }
-
-        const int32 frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
         // game thread
         LOG("Execute game thread in frame: %d with thread: %lu", frameNum, __threadid());
 
@@ -186,6 +142,61 @@ namespace Thunder
         TaskGraph->WaitAndReset();
     }
 
-   
+    void GameTask::EndGameFrame()
+    {
+        if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 5)
+        {
+            // Informal: load all game resource ( in content directory )
+            //StreamableManager::LoadAllAsync();
+        }
 
+        if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 50)
+        {
+            //GameModule::SimulateSceneStreaming();
+            //GameModule::SimulateAddMeshToScene();
+        }
+
+        // link viewports
+        auto& viewports = GameModule::GetViewports();
+        TAssert(static_cast<int>(viewports.size()) > 0);
+        for (int i = 0; i < static_cast<int>(viewports.size()) - 1; i++)
+        {
+            viewports[i]->SetNext(viewports[i + 1]);
+        }
+        // push render command
+        WaitForLastRenderFrameEnd();
+
+        const int frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
+        GRenderScheduler->PushTask([frameNum]()
+        {
+            GFrameState->FrameNumberRenderThread.store(frameNum, std::memory_order_release);
+            GFrameState->GameRenderCV.notify_all();
+        });
+
+        auto renderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>();
+        (*renderThreadTask)->SetViewport(viewports[0]);
+        GRenderScheduler->PushTask(renderThreadTask);
+
+        if (EngineMain::IsRequestingExit.load(std::memory_order_acquire) == true)
+        {
+            LOG("==================== exit engine ====================");
+            EngineMain::EngineExitSignal->Trigger();
+            return;
+        }
+
+        // push game task for next frame
+        auto* gameThreadTask = new (TMemory::Malloc<TTask<GameTask>>()) TTask<GameTask>();
+        GGameScheduler->PushTask(gameThreadTask);
+    }
+
+    void GameTask::WaitForLastRenderFrameEnd()
+    {
+        std::unique_lock<std::mutex> lock(GFrameState->GameRenderMutex);
+        if (GFrameState->FrameNumberGameThread - GFrameState->FrameNumberRenderThread > 1)
+        {
+            GFrameState->GameRenderCV.wait(lock, [] {
+                return GFrameState->FrameNumberGameThread - GFrameState->FrameNumberRenderThread <= 1;
+            });
+        }
+    }
 }

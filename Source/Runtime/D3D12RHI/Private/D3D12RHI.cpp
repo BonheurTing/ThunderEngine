@@ -97,11 +97,8 @@ namespace Thunder
         }
     }
 
-    RHICommandContextRef D3D12DynamicRHI::RHICreateCommandContext()
+    void D3D12DynamicRHI::RHICreateCommandQueue()
     {
-        ComPtr<ID3D12CommandAllocator> CommandAllocator[MAX_FRAME_LAG];
-        ComPtr<ID3D12GraphicsCommandList> CommandList;
-        
         D3D12_COMMAND_QUEUE_DESC queueDesc = {};
         queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
         queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -110,6 +107,14 @@ namespace Thunder
         {
             TAssertf(false, "Fail to create command queue");
         }
+    }
+
+    RHICommandContextRef D3D12DynamicRHI::RHICreateCommandContext()
+    {
+        ComPtr<ID3D12CommandAllocator> CommandAllocator[MAX_FRAME_LAG];
+        ComPtr<ID3D12GraphicsCommandList> CommandList;
+
+        HRESULT hr;
         for (auto& i : CommandAllocator)
         {
             hr = Device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&i));

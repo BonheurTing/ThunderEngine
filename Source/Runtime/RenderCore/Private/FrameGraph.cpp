@@ -5,6 +5,7 @@
 #include "RenderContext.h"
 #include "RHICommand.h"
 #include "IRHIModule.h"
+#include "SceneView.h"
 #include "Concurrent/TaskGraph.h"
 #include "Misc/CoreGlabal.h"
 
@@ -19,6 +20,25 @@ namespace Thunder
     void PassOperations::write(const FGRenderTarget& renderTarget)
     {
         WriteTargets.push_back(renderTarget.GetID());
+    }
+
+    FrameGraph::FrameGraph(int contextNum)
+    {
+        InitializeRenderContexts(contextNum);
+        Views.resize(static_cast<size_t>(EViewType::Num));
+        for (auto& view : Views)
+        {
+            view = new (TMemory::Malloc<SceneView>()) SceneView();
+        }
+    }
+
+    FrameGraph::~FrameGraph()
+    {
+        Reset();
+        for (auto& view : Views)
+        {
+            TMemory::Destroy(view);
+        }
     }
 
     void FrameGraph::Reset()

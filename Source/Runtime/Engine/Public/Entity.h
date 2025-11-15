@@ -3,6 +3,7 @@
 #include "Compomemt.h"
 #include "NameHandle.h"
 #include "Container.h"
+//#include "Scene.h"
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
@@ -17,7 +18,7 @@ namespace Thunder
 	class ENGINE_API Entity : public GameObject, public ITickable
 	{
 	public:
-		Entity(GameObject* inOuter = nullptr);
+		Entity(class Scene* inScene, GameObject* inOuter = nullptr);
 		virtual ~Entity();
 
 		// Component management
@@ -40,7 +41,8 @@ namespace Thunder
 		// Hierarchy management
 		void AddChild(Entity* child);
 		void RemoveChild(Entity* child);
-		Entity* GetParent() const { return Parent; }
+		Entity* GetOwner() const { return Owner; }
+		Scene* GetScene() const { return OwnerScene; }
 		const TArray<Entity*>& GetChildren() const { return Children; }
 
 		// Dependency collection for resource streaming
@@ -65,7 +67,8 @@ namespace Thunder
 		TMap<NameHandle, IComponent*> ComponentTable;
 
 		// Hierarchy
-		Entity* Parent { nullptr }; //uporperty
+		Scene* OwnerScene { nullptr };
+		Entity* Owner { nullptr }; //uporperty
 		TArray<Entity*> Children; //uporperty
 
 		// Load & Lifecycle
@@ -78,7 +81,7 @@ namespace Thunder
 		static_assert(std::is_base_of<IComponent, T>::value, "T must be derived from IComponent");
 		static_assert(!std::is_same<T, TransformComponent>::value, "Cannot add TransformComponent via AddComponent - use GetTransform() instead");
 
-		T* newComponent = new (TMemory::Malloc<T>()) T();
+		T* newComponent = new (TMemory::Malloc<T>()) T(this);
 		Components.push_back(newComponent);
 
 		NameHandle componentName = newComponent->GetComponentName();

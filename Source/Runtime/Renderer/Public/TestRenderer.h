@@ -18,5 +18,18 @@ namespace Thunder
         void Print(const std::string& message);
     };
 
-    extern RENDERER_API TestRenderer* GTestRenderer;
+
+    class RENDERER_API DeferredShadingRenderer :public IRenderer
+    {
+    public:
+        DeferredShadingRenderer();
+        virtual ~DeferredShadingRenderer() = default;
+        void Setup() override;
+        void Cull() override;
+    private:
+        void InitViews();
+
+        
+    };
+    extern RENDERER_API DeferredShadingRenderer* GDeferredRenderer;
 }

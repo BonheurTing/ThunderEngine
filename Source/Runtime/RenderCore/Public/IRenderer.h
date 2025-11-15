@@ -21,6 +21,8 @@ namespace Thunder
             }
         }
 
+        virtual void Cull() {}
+
         void Execute()
         {
             if (mFrameGraph)
@@ -28,6 +30,9 @@ namespace Thunder
                 mFrameGraph->Execute();
             }
         }
+
+        void RegisterSceneProxy(PrimitiveSceneProxy* sceneProxy) const { mFrameGraph->RegisterSceneProxy(sceneProxy); }
+        void UnregisterSceneProxy(PrimitiveSceneProxy* sceneProxy) const { mFrameGraph->UnregisterSceneProxy(sceneProxy); }
 
         FrameGraph* GetFrameGraph() const { return mFrameGraph; }
 

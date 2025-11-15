@@ -4,6 +4,7 @@
 #include "IDynamicRHI.h"
 #include "IRHIModule.h"
 #include "RHIMain.h"
+#include "Scene.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
@@ -38,16 +39,18 @@ namespace Thunder
 
         LOG("Execute render thread in frame: %d with thread: %lu", GFrameState->FrameNumberRenderThread.load(), __threadid());
 
-        // Initialize TestRenderer if not already done
-        if (!GTestRenderer)
-        {
-            GTestRenderer = new TestRenderer;
-        }
+        // for veiwport
+        // for scene
+        // get renderer
+        TAssert(RenderScene != nullptr);
+        auto renderer = RenderScene->GetRenderer();
+        TAssert(renderer != nullptr);
 
         // Execute FrameGraph rendering pipeline
-        GTestRenderer->Setup();
-        GTestRenderer->Compile();
-        GTestRenderer->Execute();
+        renderer->Setup();
+        renderer->Compile();
+        renderer->Cull();
+        renderer->Execute();
 
         SimulatingAddingMeshBatch();
     }
@@ -77,9 +80,9 @@ namespace Thunder
         GRHIScheduler->PushTask(RHIThreadTask);
 
         // Tick unused frame counters and release long unused render targets
-        if (GTestRenderer && GTestRenderer->GetFrameGraph())
+        if (GDeferredRenderer && GDeferredRenderer->GetFrameGraph())
         {
-            GTestRenderer->GetFrameGraph()->ClearRenderTargetPool();
+            GDeferredRenderer->GetFrameGraph()->ClearRenderTargetPool();
         }
     }
 

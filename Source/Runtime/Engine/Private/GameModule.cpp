@@ -22,14 +22,14 @@ namespace Thunder
         TMemory::Free(GameThreadTaskGraph);
     }
 
-    void GameModule::InitGameThread()
+    void GameModule::InitGameThread(TFunction<class IRenderer*()>& renderFactory)
     {
         GameThreadTaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
 
         GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
 
         // Informal
-        TestScene = new Scene(); //TestGenerateExampleScene();
+        TestScene = new Scene(renderFactory); //TestGenerateExampleScene();
         String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
         TestScene->LoadAsync(fullPath);
     }

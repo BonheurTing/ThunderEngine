@@ -8,6 +8,7 @@
 #include "ResourceModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
+#include "TestRenderer.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
 #include "Memory/MallocMinmalloc.h"
@@ -70,7 +71,11 @@ namespace Thunder
         // setup shader archive
         ShaderModule::InitShaderMap();
 
-        GameModule::GetModule()->InitGameThread();
+        TFunction<class IRenderer*()> defaultRendererFactory = [this]() -> IRenderer*
+        {
+            return new (TMemory::Malloc<DeferredShadingRenderer>()) DeferredShadingRenderer; 
+        };
+        GameModule::GetModule()->InitGameThread(defaultRendererFactory);
     }
 
     bool EngineMain::RHIInit(EGfxApiType type)

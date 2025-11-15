@@ -15,9 +15,10 @@ namespace Thunder
 
 	
 	// Scene implementation
-	Scene::Scene(GameObject* inOuter)
+	Scene::Scene(const TFunction<IRenderer*()>& renderFactory, GameObject* inOuter)
 		: GameObject(inOuter)
 	{
+		Renderer = renderFactory();
 	}
 
 	Scene::~Scene()
@@ -33,7 +34,7 @@ namespace Thunder
 
 	Entity* Scene::CreateEntity(const NameHandle& entityName)
 	{
-		Entity* newEntity = new Entity(this);
+		Entity* newEntity = new Entity(this, this);
 		newEntity->SetEntityName(entityName);
 		return newEntity;
 	}
@@ -94,7 +95,7 @@ namespace Thunder
 			const rapidjson::Value& entitiesArray = jsonValue["RootEntities"];
 			for (rapidjson::SizeType i = 0; i < entitiesArray.Size(); ++i)
 			{
-				Entity* newEntity = new Entity(this);
+				Entity* newEntity = new Entity(this, this);
 				newEntity->DeserializeJson(entitiesArray[i]);
 				RootEntities.push_back(newEntity);
 			}

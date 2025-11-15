@@ -12,6 +12,7 @@
 #include "Misc/CoreGlabal.h"
 #include "Module/ModuleManager.h"
 #include "Scene.h"
+#include "TestRenderer.h"
 #include "FileSystem/FileModule.h"
 
 #define EXIT_FRAME_THRESHOLD 100
@@ -21,7 +22,11 @@ namespace Thunder
     Scene* TestGenerateExampleScene()
     {
         // Create a new scene
-        Scene* newScene = new Scene();
+        TFunction<class IRenderer*()> defaultRendererFactory = []() -> IRenderer*
+        {
+            return new (TMemory::Malloc<DeferredShadingRenderer>()) DeferredShadingRenderer; 
+        };
+        Scene* newScene = new Scene(defaultRendererFactory);
         newScene->SetSceneName("ExampleLevel");
 
         // Create a root entity (like a game object)
@@ -90,7 +95,8 @@ namespace Thunder
         }
 
         // push render command
-        const auto renderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>(0);
+        auto renderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>(0);
+        (*renderThreadTask)->SetScene(GameModule::GetTestScene());
         GRenderScheduler->PushTask(renderThreadTask);
 
         if (EngineMain::IsRequestingExit.load(std::memory_order_acquire) == true)

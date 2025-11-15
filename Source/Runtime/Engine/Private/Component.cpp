@@ -5,6 +5,8 @@
 #include "ResourceModule.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Assertion.h"
+#include "IRenderer.h"
+#include "PrimitiveSceneProxy.h"
 #include "Scene.h"
 
 namespace Thunder
@@ -32,15 +34,15 @@ namespace Thunder
 	}
 
 	// todo Component factory
-	IComponent* IComponent::CreateComponentByName(const NameHandle& componentName)
+	IComponent* IComponent::CreateComponentByName(Entity* inOwner, const NameHandle& componentName)
 	{
 		if (componentName == "StaticMeshComponent")
 		{
-			return new StaticMeshComponent();
+			return new StaticMeshComponent(inOwner);
 		}
 		else if (componentName == "TransformComponent")
 		{
-			return new TransformComponent();
+			return new TransformComponent(inOwner);
 		}
 		// Add more component types as needed
 		return nullptr;
@@ -172,7 +174,7 @@ namespace Thunder
 			TStrongObjectPtr<GameResource> meshRef= ResourceModule::LoadSync(meshGuid);
 
 			TArray<TStrongObjectPtr<GameResource>> materialRefList;
-			materialRefList.reserve(guidList.size());
+			materialRefList.resize(guidList.size());
 			for (uint32 i = 0; i < static_cast<uint32>(guidList.size()); ++i)
 			{
 				materialRefList[i] = ResourceModule::LoadSync(guidList[i]);
@@ -183,7 +185,7 @@ namespace Thunder
 				if (componentPtr)
 				{
 					componentPtr->Mesh = static_cast<StaticMesh*>(meshRef.Get());
-					componentPtr->OverrideMaterials.reserve(materialRefList.size());
+					componentPtr->OverrideMaterials.resize(materialRefList.size());
 					for (uint32 i = 0; i < static_cast<uint32>(materialRefList.size()); ++i)
 					{
 						componentPtr->OverrideMaterials[i] = static_cast<IMaterial*>(materialRefList[i].Get());
@@ -199,6 +201,9 @@ namespace Thunder
 		// Call parent OnLoaded to mark as loaded and register tickable.
 		IComponent::OnLoaded();
 		LOG("StaticMeshComponent loaded successfully");
+		// Register StaticMeshSceneProxy.
+		SceneProxy = new (TMemory::Malloc<StaticMeshSceneProxy>()) StaticMeshSceneProxy(this);
+		Owner->GetScene()->GetRenderer()->RegisterSceneProxy(SceneProxy);
 	}
 
 	// TransformComponent implementation

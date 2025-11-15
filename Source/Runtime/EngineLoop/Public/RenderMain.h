@@ -37,10 +37,16 @@ namespace Thunder
             RenderMain();
             EndRendering();
         }
+
+        // scene
+        void SetScene(class Scene* inScene) { RenderScene = inScene; }
+        
     private:
         void RenderMain();
 
         void EndRendering();
         void SimulatingAddingMeshBatch();
+
+        Scene* RenderScene { nullptr };
     };
 }

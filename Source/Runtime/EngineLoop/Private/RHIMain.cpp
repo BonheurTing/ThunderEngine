@@ -74,7 +74,7 @@ namespace Thunder
 
     void RHITask::ExecuteCommands()
     {
-        if (!(GTestRenderer && GTestRenderer->GetFrameGraph()))
+        if (!(GDeferredRenderer && GDeferredRenderer->GetFrameGraph()))
         {
             return;
         }
@@ -87,7 +87,7 @@ namespace Thunder
         }
 
         int frameIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
-        auto consolidatedCommands = GTestRenderer->GetFrameGraph()->GetCurrentAllCommands(frameIndex);
+        auto consolidatedCommands = GDeferredRenderer->GetFrameGraph()->GetCurrentAllCommands(frameIndex);
         int commandNum = static_cast<int>(consolidatedCommands.size());
         if (commandNum == 0)
         {

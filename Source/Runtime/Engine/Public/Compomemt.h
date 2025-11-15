@@ -1,4 +1,5 @@
 #pragma once
+// #include "Entity.h"
 #include "Mesh.h"
 #include "NameHandle.h"
 #include "Guid.h"
@@ -39,7 +40,7 @@ namespace Thunder
 	class IComponent : public GameObject, public ITickable
 	{
 	public:
-		IComponent() = default;
+		IComponent(class Entity* inOwner) : Owner(inOwner) {}
 		~IComponent() override;
 
 		// Component identification
@@ -58,17 +59,18 @@ namespace Thunder
 		void Tick() override;
 
 		// Factory method for creating components by name
-		static IComponent* CreateComponentByName(const NameHandle& componentName);
+		static IComponent* CreateComponentByName(Entity* inOwner, const NameHandle& componentName);
 
 	protected:
 		// Load & Lifecycle
 		std::atomic<LoadingStatus> Status { LoadingStatus::Idle };
+		Entity* Owner { nullptr };
 	};
 
 	class PrimitiveComponent : public IComponent
 	{
 	public:
-		PrimitiveComponent() = default;
+		PrimitiveComponent(Entity* inOwner) : IComponent(inOwner) {}
 		virtual ~PrimitiveComponent() = default;
 
 		NameHandle GetComponentName() const override { return "PrimitiveComponent"; }
@@ -77,7 +79,7 @@ namespace Thunder
 	class StaticMeshComponent : public PrimitiveComponent
 	{
 	public:
-		StaticMeshComponent() = default;
+		StaticMeshComponent(Entity* inOwner) : PrimitiveComponent(inOwner) {}
 		~StaticMeshComponent() override = default;
 
 		NameHandle GetComponentName() const override { return "StaticMeshComponent"; }
@@ -107,13 +109,16 @@ namespace Thunder
 		// GUIDs for serialization
 		TGuid MeshGuid {};
 		TArray<TGuid> MaterialGuids {};
+
+		// render
+		class StaticMeshSceneProxy* SceneProxy { nullptr };
 	};
 
 	// Transform component for entity positioning
 	class TransformComponent : public IComponent
 	{
 	public:
-		TransformComponent() = default;
+		TransformComponent(Entity* inOwner) : IComponent(inOwner) {}
 		~TransformComponent() override = default;
 
 		NameHandle GetComponentName() const override { return "TransformComponent"; }

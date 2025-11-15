@@ -11,7 +11,7 @@ namespace Thunder
         void StartUp() override;
         void ShutDown() override;
 
-        void InitGameThread();
+        void InitGameThread(TFunction<class IRenderer*()>& renderFactory);
         static void SimulateAddMeshToScene();
         static class Scene* GetTestScene() { return GetModule()->TestScene; }
 

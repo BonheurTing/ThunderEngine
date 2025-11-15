@@ -42,14 +42,15 @@ namespace Thunder
     class RENDERCORE_API FrameGraph : public RefCountedObject
     {
     public:
-        FrameGraph(int contextNum)
-        {
-            InitializeRenderContexts(contextNum);
-        }
+        FrameGraph(int contextNum);
+        ~FrameGraph();
 
         void Reset();
         void Compile();
         void Execute();
+
+        void RegisterSceneProxy(class PrimitiveSceneProxy* sceneProxy) { SceneProxies.insert(sceneProxy); }
+        void UnregisterSceneProxy(class PrimitiveSceneProxy* sceneProxy) { SceneProxies.erase(sceneProxy); }
 
         // Internal methods used by FrameGraphBuilder
         void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction, bool bIsMeshDrawPass = false);
@@ -81,6 +82,9 @@ namespace Thunder
         bool bHasPresentTarget = false;
 
         RenderTargetPool Pool;
+
+        TArray<class SceneView*> Views;
+        TSet<PrimitiveSceneProxy*> SceneProxies;
 
         // Command execution contexts
         FRenderContext* MainContext = nullptr;  // Main render thread context

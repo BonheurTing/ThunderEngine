@@ -5,10 +5,10 @@
 
 namespace Thunder
 {
-	Entity::Entity(GameObject* inOuter)
-		: GameObject(inOuter)
+	Entity::Entity(Scene* inScene, GameObject* inOuter)
+		: OwnerScene(inScene), GameObject(inOuter)
 	{
-		Transform = new (TMemory::Malloc<TransformComponent>()) TransformComponent();
+		Transform = new (TMemory::Malloc<TransformComponent>()) TransformComponent(this);
 		NameHandle componentName = Transform->GetComponentName();
 		ComponentTable[componentName] = Transform;
 	}
@@ -67,13 +67,13 @@ namespace Thunder
 
 	void Entity::AddChild(Entity* child)
 	{
-		if (child && child->Parent != this)
+		if (child && child->Owner != this)
 		{
-			if (child->Parent)
+			if (child->Owner)
 			{
-				child->Parent->RemoveChild(child);
+				child->Owner->RemoveChild(child);
 			}
-			child->Parent = this;
+			child->Owner = this;
 			Children.push_back(child);
 		}
 	}
@@ -83,7 +83,7 @@ namespace Thunder
 		auto it = std::find(Children.begin(), Children.end(), child);
 		if (it != Children.end())
 		{
-			(*it)->Parent = nullptr;
+			(*it)->Owner = nullptr;
 			Children.erase(it);
 		}
 	}
@@ -162,7 +162,7 @@ namespace Thunder
 				const rapidjson::Value& ComponentData = it->value;
 
 				// Create component based on type name
-				IComponent* newComponent = IComponent::CreateComponentByName(NameHandle(componentTypeName));
+				IComponent* newComponent = IComponent::CreateComponentByName(this, NameHandle(componentTypeName));
 				if (newComponent)
 				{
 					newComponent->DeserializeJson(ComponentData);
@@ -195,7 +195,7 @@ namespace Thunder
 			const rapidjson::Value& childrenArray = jsonValue["Children"];
 			for (rapidjson::SizeType i = 0; i < childrenArray.Size(); ++i)
 			{
-				Entity* child = new Entity(this);
+				Entity* child = new Entity(OwnerScene, this);
 				child->DeserializeJson(childrenArray[i]);
 				AddChild(child);
 			}

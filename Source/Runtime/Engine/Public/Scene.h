@@ -17,7 +17,7 @@ namespace Thunder
 	class ENGINE_API Scene : public GameObject, public ITickable
 	{
 	public:
-		Scene(GameObject* inOuter = nullptr);
+		Scene(const TFunction<class IRenderer*()>& renderFactory, GameObject* inOuter = nullptr);
 		virtual ~Scene();
 
 		// Entity management

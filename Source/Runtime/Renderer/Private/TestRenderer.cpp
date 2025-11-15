@@ -6,7 +6,7 @@
 
 namespace Thunder
 {
-    TestRenderer* GTestRenderer = nullptr;
+    DeferredShadingRenderer* GDeferredRenderer = nullptr;
 
     TestRenderer::TestRenderer()
     {
@@ -109,5 +109,51 @@ namespace Thunder
     void TestRenderer::Print(const std::string& message)
     {
         std::cout << message << std::endl;
+    }
+
+    DeferredShadingRenderer::DeferredShadingRenderer()
+    {
+    }
+
+    void DeferredShadingRenderer::InitViews()
+    {
+        // scene 需要 build 一个 PrimitiveSceneInfo List，有primitiveid做索引，可以拿proxy
+
+        
+    }
+
+    void DeferredShadingRenderer::Setup()
+    {
+        /*// comp 创建的时候需要创建对应的sceneproxy
+        
+        
+        TArray<SceneView*> views = InitViews();
+        Scene* currentScene;
+        
+        for (auto view : views)
+        {
+            TArray<MeshBatch*> batchCollector;
+            for (each primitiveid)
+            {
+                PrimitiveSceneInfo* curPrimitiveSceneInfo = InScene->Primitives[primitiveid];
+                MeshBatch meshBatch;
+                curPrimitiveSceneInfo->Proxy->GetDynamicMeshElements(meshBatch); // 默认mesh都是每帧重画，即 Collect MeshBatch
+                batchCollector.add(meshBatch);
+            }
+            
+            for (auto MeshBatch : batchCollector)
+            {
+                ShaderArchive archive = MeshBatch->getrendermaterial->getshaderarchive // AST (包括很多subshader/pass)
+                // get pso
+            }
+
+            // Lighting pass.
+            // PostProcess pass.
+        }*/
+    }
+
+    void DeferredShadingRenderer::Cull()
+    {
+        
     }
 }

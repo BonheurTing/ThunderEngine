@@ -31,6 +31,14 @@ namespace Thunder
             }
         }
 
+        void EndRenderFrame()
+        {
+            if (mFrameGraph)
+            {
+                mFrameGraph->ClearRenderTargetPool();
+            }
+        }
+
         void RegisterSceneProxy(PrimitiveSceneProxy* sceneProxy) const { mFrameGraph->RegisterSceneProxy(sceneProxy); }
         void UnregisterSceneProxy(PrimitiveSceneProxy* sceneProxy) const { mFrameGraph->UnregisterSceneProxy(sceneProxy); }
 

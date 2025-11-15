@@ -6,8 +6,6 @@
 
 namespace Thunder
 {
-    DeferredShadingRenderer* GDeferredRenderer = nullptr;
-
     TestRenderer::TestRenderer()
     {
     }

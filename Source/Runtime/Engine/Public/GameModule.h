@@ -12,8 +12,8 @@ namespace Thunder
         void ShutDown() override;
 
         void InitGameThread(TFunction<class IRenderer*()>& renderFactory);
-        static void SimulateAddMeshToScene();
-        static class Scene* GetTestScene() { return GetModule()->TestScene; }
+        static void GetProceduralScene(const class Scene* inScene);
+        static TArray<class BaseViewport*>& GetViewports() { return GetModule()->Viewports; }
 
         static void RegisterTickable(class ITickable* tickable);
         static void UnregisterTickable(ITickable* tickable);
@@ -26,6 +26,6 @@ namespace Thunder
         TArray<ITickable*> Tickables;
         TaskGraphProxy* GameThreadTaskGraph { nullptr };
 
-        Scene* TestScene { nullptr };
+        TArray<class BaseViewport*> Viewports;
     };
 }

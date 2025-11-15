@@ -34,10 +34,13 @@ namespace Thunder
         {
             RHIMain();
         }
+
+        void SetRenderers(const TArray<class IRenderer*>& inRenderers) { Renderers = inRenderers; }
     private:
         void RHIMain();
-        void ExecuteCommands();
-        
+        void ExecuteRendererCommands(const IRenderer* renderer);
+
+        TArray<IRenderer*> Renderers;
     };
 
     

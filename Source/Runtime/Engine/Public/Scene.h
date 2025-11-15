@@ -55,40 +55,20 @@ namespace Thunder
 		IRenderer* Renderer { nullptr };
 	};
 
-	/**
-	 * Base viewport class that manages renderer and scene association
-	 */
 	class BaseViewport
 	{
 	public:
 		BaseViewport() = default;
-		virtual ~BaseViewport() = default;
+		virtual ~BaseViewport();
 
-		void AddRenderer(IRenderer* inRenderer, Scene* inScene)
-		{
-			Renderers.push_back(inRenderer);
-			Scenes.push_back(inScene);
-		}
-
-		void RemoveRenderer(IRenderer* inRenderer)
-		{
-			for (size_t i = 0; i < Renderers.size(); ++i)
-			{
-				if (Renderers[i] == inRenderer)
-				{
-					Renderers.erase(Renderers.begin() + i);
-					Scenes.erase(Scenes.begin() + i);
-					break;
-				}
-			}
-		}
-
-		const TArray<IRenderer*>& GetRenderers() const { return Renderers; }
+		void AddScene(Scene* scene) { Scenes.push_back(scene); }
 		const TArray<Scene*>& GetScenes() const { return Scenes; }
+		void GetRenderers(TArray<IRenderer*>& renderers) const;
+		void SetNext(BaseViewport* viewport) { NextViewport = viewport; }
+		BaseViewport* GetNext() const { return NextViewport; }
 
 	private:
-		// Renderers and Scenes must have the same size and correspond to each other
-		TArray<IRenderer*> Renderers;
 		TArray<Scene*> Scenes;
+		BaseViewport* NextViewport { nullptr };
 	};
 }

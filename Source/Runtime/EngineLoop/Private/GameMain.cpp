@@ -94,9 +94,16 @@ namespace Thunder
             EngineMain::IsRequestingExit.store(true, std::memory_order_acq_rel);
         }
 
+        // link viewports
+        auto& viewports = GameModule::GetViewports();
+        TAssert(static_cast<int>(viewports.size()) > 0);
+        for (int i = 0; i < static_cast<int>(viewports.size()) - 1; i++)
+        {
+            viewports[i]->SetNext(viewports[i + 1]);
+        }
         // push render command
-        auto renderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>(0);
-        (*renderThreadTask)->SetScene(GameModule::GetTestScene());
+        auto renderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>();
+        (*renderThreadTask)->SetViewport(viewports[0]);
         GRenderScheduler->PushTask(renderThreadTask);
 
         if (EngineMain::IsRequestingExit.load(std::memory_order_acquire) == true)

@@ -6,6 +6,7 @@
 #include "RenderResource.h"
 #include "RenderContext.h"
 #include "RHICommand.h"
+#include "Scene.h"
 #include "Memory/MallocMinmalloc.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
@@ -49,7 +50,10 @@ namespace Thunder
         }
         
         // Parallel recording of rendering commands
-        ExecuteCommands();
+        for (auto renderer : Renderers)
+        {
+            ExecuteRendererCommands(renderer);
+        }
         
         const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
         auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
@@ -72,9 +76,9 @@ namespace Thunder
         GFrameState->RenderRHICV.notify_all();
     }
 
-    void RHITask::ExecuteCommands()
+    void RHITask::ExecuteRendererCommands(const IRenderer* renderer)
     {
-        if (!(GDeferredRenderer && GDeferredRenderer->GetFrameGraph()))
+        if (!(renderer && renderer->GetFrameGraph()))
         {
             return;
         }
@@ -87,7 +91,7 @@ namespace Thunder
         }
 
         int frameIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
-        auto consolidatedCommands = GDeferredRenderer->GetFrameGraph()->GetCurrentAllCommands(frameIndex);
+        auto consolidatedCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(frameIndex);
         int commandNum = static_cast<int>(consolidatedCommands.size());
         if (commandNum == 0)
         {

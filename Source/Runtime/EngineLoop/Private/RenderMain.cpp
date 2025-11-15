@@ -39,23 +39,22 @@ namespace Thunder
 
         LOG("Execute render thread in frame: %d with thread: %lu", GFrameState->FrameNumberRenderThread.load(), __threadid());
 
-        // for veiwport
-        // for scene
-        // get renderer
-        TAssert(RenderScene != nullptr);
-        auto renderer = RenderScene->GetRenderer();
-        TAssert(renderer != nullptr);
+        for (auto scene : RenderViewport->GetScenes())
+        {
+            auto renderer = scene->GetRenderer();
+            TAssert(renderer != nullptr);
 
-        // Execute FrameGraph rendering pipeline
-        renderer->Setup();
-        renderer->Compile();
-        renderer->Cull();
-        renderer->Execute();
+            // Execute FrameGraph rendering pipeline
+            renderer->Setup();
+            renderer->Compile();
+            renderer->Cull();
+            renderer->Execute();
 
-        SimulatingAddingMeshBatch();
+            SimulatingAddingMeshBatch();
+        }
     }
 
-    void RenderingTask::EndRendering()
+    void RenderingTask::EndRenderer()
     {
         // BeginFrame: Wait for fence (3 frames ago) to ensure GPU has completed previous work
         int frameNum = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
@@ -72,17 +71,31 @@ namespace Thunder
         }
         GRHIUpdateSyncQueue.clear();
 
-        GFrameState->FrameNumberRenderThread.fetch_add(1, std::memory_order_acq_rel);
-        GFrameState->GameRenderCV.notify_all();
+        for (auto scene : RenderViewport->GetScenes())
+        {
+            auto renderer = scene->GetRenderer();
+            TAssert(renderer != nullptr);
+            renderer->EndRenderFrame();
+        }
 
         // rhi thread
-        auto* RHIThreadTask = new (TMemory::Malloc<TTask<RHITask>>()) TTask<RHITask>(0);
+        TArray<IRenderer*> renderers;
+        RenderViewport->GetRenderers(renderers);
+        auto* RHIThreadTask = new (TMemory::Malloc<TTask<RHITask>>()) TTask<RHITask>();
+        (*RHIThreadTask)->SetRenderers(renderers);
         GRHIScheduler->PushTask(RHIThreadTask);
 
-        // Tick unused frame counters and release long unused render targets
-        if (GDeferredRenderer && GDeferredRenderer->GetFrameGraph())
+        // render next viewport
+        if (RenderViewport->GetNext())
         {
-            GDeferredRenderer->GetFrameGraph()->ClearRenderTargetPool();
+            auto renderThreadTask = new (TMemory::Malloc<TTask<RenderingTask>>()) TTask<RenderingTask>();
+            (*renderThreadTask)->SetViewport(RenderViewport->GetNext());
+            GRenderScheduler->PushTask(renderThreadTask);
+        }
+        else
+        {
+            auto endRenderFrameTask = new (TMemory::Malloc<TTask<EndRenderFrameTask>>()) TTask<EndRenderFrameTask>();
+            GRenderScheduler->PushTask(endRenderFrameTask);
         }
     }
 
@@ -100,6 +113,12 @@ namespace Thunder
         doWorkEvent->Wait();
         FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
         TMemory::Destroy(dispatcher);
+    }
+
+    void EndRenderFrameTask::EndRenderFrame()
+    {
+        GFrameState->FrameNumberRenderThread.fetch_add(1, std::memory_order_acq_rel);
+        GFrameState->GameRenderCV.notify_all();
     }
 
 }

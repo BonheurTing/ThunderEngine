@@ -16,9 +16,11 @@ namespace Thunder
 
     void GameModule::ShutDown()
     {
-        String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
-        bool ret = TestScene->Save(fullPath);
-        TAssertf(ret, "Fail to save scene");
+        for (auto view : Viewports)
+        {
+            delete view;
+        }
+        Viewports.clear();
         TMemory::Free(GameThreadTaskGraph);
     }
 
@@ -28,20 +30,21 @@ namespace Thunder
 
         GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
 
-        // Informal
-        TestScene = new Scene(renderFactory); //TestGenerateExampleScene();
-        String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
-        TestScene->LoadAsync(fullPath);
+        BaseViewport* view = new BaseViewport();
+        auto scene = new Scene(renderFactory);
+        String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap"; //todo
+        scene->LoadAsync(fullPath);
+        view->AddScene(scene);
+        Viewports.push_back(view);
     }
 
-    void GameModule::SimulateAddMeshToScene()
+    void GameModule::GetProceduralScene(const Scene* inScene)
     {
         auto meshs = ResourceModule::GetResourceByClass<StaticMesh>();
 
         if (!meshs.empty())
         {
-            auto scene = GetTestScene();
-            auto entities = scene->GetRootEntities();
+            auto entities = inScene->GetRootEntities();
             for (auto entity : entities)
             {
                 TArray<IComponent*> comps = entity->GetComponentByClass<StaticMeshComponent>();

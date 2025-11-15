@@ -200,6 +200,26 @@ namespace Thunder
 		}
 	}
 
+	BaseViewport::~BaseViewport()
+	{
+		for (auto scene : Scenes)
+		{
+			delete scene;
+		}
+		Scenes.clear();
+		/*String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
+		bool ret = TestScene->Save(fullPath);
+		TAssertf(ret, "Fail to save scene");*/
+	}
+
+	void BaseViewport::GetRenderers(TArray<IRenderer*>& renderers) const
+	{
+		for (auto scene : Scenes)
+		{
+			renderers.push_back(scene->GetRenderer());
+		}
+	}
+
 	/*void Scene::SimulateStreamingWithDistance(TList<IComponent*>& outDependencies) const
 	{
 		TVector3f cameraLocation { TVector3f(0.f, 0.f, 0.f) };

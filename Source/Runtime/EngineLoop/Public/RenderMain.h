@@ -35,18 +35,30 @@ namespace Thunder
         void DoWork()
         {
             RenderMain();
-            EndRendering();
+            EndRenderer();
         }
 
-        // scene
-        void SetScene(class Scene* inScene) { RenderScene = inScene; }
+        void SetViewport(class BaseViewport* inViewport) { RenderViewport = inViewport; }
         
     private:
         void RenderMain();
+        void EndRenderer();
 
-        void EndRendering();
         void SimulatingAddingMeshBatch();
 
-        Scene* RenderScene { nullptr };
+        BaseViewport* RenderViewport { nullptr };
+    };
+
+    class EndRenderFrameTask
+    {
+    public:
+        friend class TTask<EndRenderFrameTask>;
+
+        void DoWork()
+        {
+            EndRenderFrame();
+        }
+    private:
+        void EndRenderFrame();
     };
 }

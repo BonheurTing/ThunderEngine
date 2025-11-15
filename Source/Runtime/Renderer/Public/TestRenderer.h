@@ -28,8 +28,5 @@ namespace Thunder
         void Cull() override;
     private:
         void InitViews();
-
-        
     };
-    extern RENDERER_API DeferredShadingRenderer* GDeferredRenderer;
 }

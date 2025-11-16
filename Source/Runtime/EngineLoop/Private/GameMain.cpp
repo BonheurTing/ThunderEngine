@@ -82,8 +82,8 @@ namespace Thunder
 
     void GameTask::AsyncLoading()
     {
-        int frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
-        const int LoadingSignal = frameNum % 400;
+        uint32 frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
+        const uint32 LoadingSignal = frameNum % 400;
         if (LoadingSignal == 0)
         {
             uint32 LoadingIndex = frameNum / 400;
@@ -110,7 +110,7 @@ namespace Thunder
     {
         ThunderZoneScopedN("GameMain");
 
-        const int32 frameNum = GFrameState->FrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) + 1;
+        const int32 frameNum = static_cast<int32>(GFrameState->FrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) + 1);
         if (frameNum >= EXIT_FRAME_THRESHOLD)
         {
             EngineMain::IsRequestingExit.store(true, std::memory_order_acq_rel);
@@ -166,7 +166,7 @@ namespace Thunder
         // push render command
         WaitForLastRenderFrameEnd();
 
-        const int frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
+        const uint32 frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
         GRenderScheduler->PushTask([frameNum]()
         {
             GFrameState->FrameNumberRenderThread.store(frameNum, std::memory_order_release);

@@ -1,4 +1,5 @@
 #pragma once
+#include "SceneView.h"
 
 namespace Thunder
 {
@@ -11,6 +12,9 @@ namespace Thunder
         virtual ~PrimitiveSceneProxy() = default;
 
         virtual void GetDynamicMeshElements() = 0;
+
+        void AddDrawCall() {}
+        bool NeedRenderView(EViewType type) { return true; }
     };
 
     class StaticMeshSceneProxy : public PrimitiveSceneProxy

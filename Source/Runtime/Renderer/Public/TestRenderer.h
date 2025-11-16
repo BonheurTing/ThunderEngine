@@ -25,8 +25,8 @@ namespace Thunder
         DeferredShadingRenderer();
         virtual ~DeferredShadingRenderer() = default;
         void Setup() override;
-        void Cull() override;
     private:
         void InitViews();
+        void Print(const std::string& message);
     };
 }

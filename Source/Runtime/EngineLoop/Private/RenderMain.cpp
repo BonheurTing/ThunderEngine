@@ -27,7 +27,7 @@ namespace Thunder
     {
         ThunderZoneScopedN("RenderMain");
 
-        LOG("Execute render thread in frame: %d with thread: %lu", GFrameState->FrameNumberRenderThread.load(), __threadid());
+        LOG("Execute render thread in frame: %u with thread: %lu", GFrameState->FrameNumberRenderThread.load(), __threadid());
 
         for (auto scene : RenderViewport->GetScenes())
         {
@@ -37,7 +37,6 @@ namespace Thunder
             // Execute FrameGraph rendering pipeline
             renderer->Setup();
             renderer->Compile();
-            renderer->Cull();
             renderer->Execute();
 
             SimulatingAddingMeshBatch();
@@ -47,7 +46,7 @@ namespace Thunder
     void RenderingTask::EndRenderer()
     {
         // BeginFrame: Wait for fence (3 frames ago) to ensure GPU has completed previous work
-        int frameNum = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
+        uint32 frameNum = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
         uint32 currentFrameIndex = frameNum % MAX_FRAME_LAG;
         GDynamicRHI->RHIWaitForFrame(currentFrameIndex);
 

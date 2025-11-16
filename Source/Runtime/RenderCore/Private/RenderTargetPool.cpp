@@ -38,6 +38,9 @@ namespace Thunder
         case EPixelFormat::RGBA32F:
             rhiFormat = RHIFormat::R32G32B32A32_FLOAT;
             break;
+        case EPixelFormat::D32S8X24:
+            rhiFormat = RHIFormat::D32_FLOAT_S8X24_UINT;
+            break;
         default:
             break;
         }

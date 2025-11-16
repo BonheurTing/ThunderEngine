@@ -5,7 +5,6 @@
 #include "RenderContext.h"
 #include "RHICommand.h"
 #include "IRHIModule.h"
-#include "SceneView.h"
 #include "Concurrent/TaskGraph.h"
 #include "Misc/CoreGlabal.h"
 
@@ -22,13 +21,14 @@ namespace Thunder
         WriteTargets.push_back(renderTarget.GetID());
     }
 
-    FrameGraph::FrameGraph(int contextNum)
+    FrameGraph::FrameGraph(IRenderer* owner, int contextNum) : OwnerRenderer(owner)
     {
         InitializeRenderContexts(contextNum);
-        Views.resize(static_cast<size_t>(EViewType::Num));
-        for (auto& view : Views)
+        int viewNum = static_cast<int>(EViewType::Num);
+        Views.resize(static_cast<size_t>(viewNum));
+        for (int i = 0; i < viewNum; ++i)
         {
-            view = new (TMemory::Malloc<SceneView>()) SceneView();
+            Views[i] = new (TMemory::Malloc<SceneView>()) SceneView(this, static_cast<EViewType>(i));
         }
     }
 
@@ -76,7 +76,7 @@ namespace Thunder
     void FrameGraph::Execute()
     {
         // Clear commands from previous frame
-        int frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
+        uint32 frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
         AllCommands[frameIndex].clear();
         for (auto& context : RenderContexts)
         {

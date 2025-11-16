@@ -1,10 +1,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+//#include "IRenderer.h"
 #include "RenderResource.h"
 #include "RenderTargetPool.h"
 #include "RenderContext.h"
 #include "RHI.h"
+#include "SceneView.h"
 
 namespace Thunder
 {
@@ -42,13 +44,17 @@ namespace Thunder
     class RENDERCORE_API FrameGraph : public RefCountedObject
     {
     public:
-        FrameGraph(int contextNum);
+        FrameGraph(class IRenderer* owner, int contextNum);
         ~FrameGraph();
 
         void Reset();
         void Compile();
         void Execute();
 
+        // render
+        const IRenderer* GetRenderer() const { return OwnerRenderer; }
+        SceneView* GetSceneView(EViewType type) const { return Views[static_cast<int>(type)]; }
+        TSet<PrimitiveSceneProxy*>& GetSceneProxies() { return SceneProxies; }
         void RegisterSceneProxy(class PrimitiveSceneProxy* sceneProxy) { SceneProxies.insert(sceneProxy); }
         void UnregisterSceneProxy(class PrimitiveSceneProxy* sceneProxy) { SceneProxies.erase(sceneProxy); }
 
@@ -83,7 +89,9 @@ namespace Thunder
 
         RenderTargetPool Pool;
 
-        TArray<class SceneView*> Views;
+        // render
+        IRenderer* OwnerRenderer { nullptr };
+        TArray<SceneView*> Views;
         TSet<PrimitiveSceneProxy*> SceneProxies;
 
         // Command execution contexts

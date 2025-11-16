@@ -14,6 +14,7 @@ namespace Thunder
         R16F,
         R32F,
         D24S8,
+        D32S8X24,
         D32F
     };
 

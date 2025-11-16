@@ -36,9 +36,9 @@ namespace Thunder
          * 4. draw command
          **/
         ThunderZoneScopedN("RHIMain");
-        int frameNum = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire);
+        uint32 frameNum = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire);
         uint32 currentFrameIndex = frameNum % MAX_FRAME_LAG;
-        LOG("Execute rhi thread in frame: %d with thread: %lu", frameNum, __threadid());
+        LOG("Execute rhi thread in frame: %u with thread: %lu", frameNum, __threadid());
 
         for (auto res : GRHIUpdateAsyncQueue)
         {
@@ -83,8 +83,8 @@ namespace Thunder
         // Execute D3D12 commands.
         const TArray<RHICommandContextRef>& rhiCommandContexts = IRHIModule::GetModule()->GetRHICommandContexts();
 
-        int frameIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
-        auto consolidatedCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(frameIndex);
+        uint32 frameIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
+        auto consolidatedCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(static_cast<int>(frameIndex));
         int commandNum = static_cast<int>(consolidatedCommands.size());
         if (commandNum > 0)
         {

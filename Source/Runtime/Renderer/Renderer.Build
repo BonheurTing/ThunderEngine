@@ -3,4 +3,5 @@ set(LinkMode SHARED)
 set(PublicDependencyModuleList
     Core
     RenderCore
+    Engine
 )

@@ -45,16 +45,18 @@ namespace Thunder
             res->Update();
         }
         GRHIUpdateAsyncQueue.clear();
+        std::cout << " D3D12CommandContext::Execute Copy with frame index : " << frameNum << std::endl << std::flush;
         IRHIModule::GetModule()->GetCopyCommandContext()->Execute();
 
         // Parallel recording of rendering commands
         std::cout << " D3D12CommandContext::Reset with frame index : " << frameNum << std::endl << std::flush;
         IRHIModule::GetModule()->ResetCommandContext(currentFrameIndex);
-        std::cout << " D3D12CommandContext executes with frame index : " << frameNum << std::endl << std::flush;
+        std::cout << " D3D12CommandContext::Execute with frame index : " << frameNum << std::endl << std::flush;
         for (auto renderer : Renderers)
         {
-            ExecuteRendererCommands(renderer);
+            CommitRendererCommands(renderer);
         }
+        ExecuteRendererCommands();
 
         const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
         auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
@@ -74,7 +76,7 @@ namespace Thunder
         RHIReleaseResource();
     }
 
-    void RHITask::ExecuteRendererCommands(const IRenderer* renderer)
+    void RHITask::CommitRendererCommands(const IRenderer* renderer)
     {
         if (!(renderer && renderer->GetFrameGraph()))
         {
@@ -83,8 +85,8 @@ namespace Thunder
         // Execute D3D12 commands.
         const TArray<RHICommandContextRef>& rhiCommandContexts = IRHIModule::GetModule()->GetRHICommandContexts();
 
-        uint32 frameIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
-        auto consolidatedCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(static_cast<int>(frameIndex));
+        uint32 frontFrameGraphIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
+        auto consolidatedCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(static_cast<int>(frontFrameGraphIndex));
         int commandNum = static_cast<int>(consolidatedCommands.size());
         if (commandNum > 0)
         {
@@ -111,13 +113,17 @@ namespace Thunder
             FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
             TMemory::Destroy(dispatcher);
         }
+    }
 
-        // Commit.
+    void RHITask::ExecuteRendererCommands()
+    {
+        const TArray<RHICommandContextRef>& rhiCommandContexts = IRHIModule::GetModule()->GetRHICommandContexts();
         int contextNum = static_cast<int>(rhiCommandContexts.size());
         for (int i = 0; i < contextNum; ++i)
         {
             rhiCommandContexts[i]->Execute(); // Order-preserving
         }
-        GDynamicRHI->RHISignalFence(frameIndex);
+        uint32 fenceIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % MAX_FRAME_LAG;
+        GDynamicRHI->RHISignalFence(fenceIndex);
     }
 }

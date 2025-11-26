@@ -67,7 +67,7 @@ namespace Thunder
         // Command execution support
         FRenderContext* GetMainContext() const { return MainContext; }
         const TArray<FRenderContext*>& GetRenderContexts() const { return RenderContexts; }
-        TArray<IRHICommand*>& GetCurrentAllCommands(int frameIndex) { return AllCommands[frameIndex]; }
+        TArray<IRHICommand*>& GetCurrentAllCommands(int frontIndex) { return AllCommands[frontIndex]; }
 
     private:
         // Initialize render contexts for multi-threading

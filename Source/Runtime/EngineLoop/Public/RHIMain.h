@@ -38,7 +38,8 @@ namespace Thunder
         void SetRenderers(const TArray<class IRenderer*>& inRenderers) { Renderers = inRenderers; }
     private:
         void RHIMain();
-        void ExecuteRendererCommands(const IRenderer* renderer);
+        void CommitRendererCommands(const IRenderer* renderer);
+        void ExecuteRendererCommands();
 
         TArray<IRenderer*> Renderers;
     };

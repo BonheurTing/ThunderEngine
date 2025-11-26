@@ -54,7 +54,7 @@ namespace Thunder
         WaitForLastRHIFrameEnd();
 
         // begin frame: reset allocator
-		std::cout << " D3D12CommandContext::Reset copy with frame index : " << frameNum << std::endl << std::flush;
+		std::cout << " D3D12CommandContext::Reset Copy with frame index : " << frameNum << std::endl << std::flush;
         IRHIModule::GetModule()->ResetCopyCommandContext(currentFrameIndex);
         // sync with render thread
         for (auto res : GRHIUpdateSyncQueue)

@@ -31,10 +31,18 @@ namespace Thunder
         GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
 
         BaseViewport* viewport = new BaseViewport();
+        // test scene 1
         auto scene = new Scene(renderFactory);
         String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap"; //todo
         scene->LoadAsync(fullPath);
         viewport->AddScene(scene);
+
+        // test scene 1
+        auto scene2 = new Scene(renderFactory);
+        String fullPath2 = FileModule::GetResourceContentRoot() + "Map/TestScene2.tmap"; //todo
+        scene2->LoadAsync(fullPath2);
+        viewport->AddScene(scene2);
+
         Viewports.push_back(viewport);
 
         // BaseViewport* viewport2 = new BaseViewport();

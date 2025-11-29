@@ -64,7 +64,7 @@ namespace Thunder
 			return nullptr;
 		}
 
-		return ShaderModule::GetModule()->GetShaderArchive(ArchiveName);
+		return ShaderModule::GetShaderArchive(ArchiveName);
 	}
 
 	// ========== GameMaterial Implementation ==========
@@ -133,6 +133,15 @@ namespace Thunder
 			archive << pair.first.ToString();
 			archive << pair.second;
 		}
+
+		// Serialize float parameters
+		uint32 boolParamCount = static_cast<uint32>(OverrideParameters->StaticParameters.size());
+		archive << boolParamCount;
+		for (const auto& pair : OverrideParameters->StaticParameters)
+		{
+			archive << pair.first.ToString();
+			archive << pair.second;
+		}
 	}
 
 	void GameMaterial::DeSerialize(MemoryReader& archive)
@@ -194,6 +203,19 @@ namespace Thunder
 			archive >> paramName;
 			archive >> value;
 			OverrideParameters->TextureParameters[NameHandle(paramName)] = value;
+		}
+
+		// Deserialize float parameters
+		uint32 boolParamCount = 0;
+		archive >> boolParamCount;
+		OverrideParameters->StaticParameters.clear();
+		for (uint32 i = 0; i < boolParamCount; ++i)
+		{
+			String paramName;
+			bool value;
+			archive >> paramName;
+			archive >> value;
+			OverrideParameters->StaticParameters[NameHandle(paramName)] = value;
 		}
 	}
 
@@ -310,5 +332,18 @@ namespace Thunder
 			DefaultRenderResource->CacheParameters(OverrideParameters);
 			bRenderStateDirty = false;
 		}
+	}
+
+	void GameMaterial::SetParameterCache(const MaterialParameterCache* parameterCache) const
+	{
+		if (parameterCache == nullptr || OverrideParameters == nullptr)
+		{
+			return;
+		}
+		OverrideParameters->IntParameters = parameterCache->IntParameters;
+		OverrideParameters->FloatParameters = parameterCache->FloatParameters;
+		OverrideParameters->VectorParameters = parameterCache->VectorParameters;
+		OverrideParameters->TextureParameters = parameterCache->TextureParameters;
+		OverrideParameters->StaticParameters = parameterCache->StaticParameters;
 	}
 }

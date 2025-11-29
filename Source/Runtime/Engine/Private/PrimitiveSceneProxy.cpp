@@ -1,15 +1,48 @@
 #include "PrimitiveSceneProxy.h"
 #include "HAL/Event.h"
-//#include "Concurrent/ConcurrentBase.h"
 #include "Compomemt.h"
 #include "FrameGraph.h"
+#include "RenderMaterial.h"
+#include "RHICommand.h"
+#include "ShaderModule.h"
 #include "Misc/CoreGlabal.h"
+#include "Memory/TransientAllocator.h"
 
 namespace Thunder
 {
     PrimitiveSceneProxy::PrimitiveSceneProxy(const PrimitiveComponent* inComponent)
     {
-        
+        auto gameMaterials = inComponent->GetMaterials();
+        RenderMaterials.reserve(gameMaterials.size());
+        for (auto material : gameMaterials)
+        {
+            RenderMaterials.push_back(material->GetMaterialResource());
+        }
+    }
+
+    void PrimitiveSceneProxy::AddDrawCall(FRenderContext* context, EMeshPass meshPassType)
+    {
+        for (auto material : RenderMaterials)
+        {
+            auto shaderAst = material->GetShaderArchive();
+            uint64 shaderVariantMask = ShaderModule::GetVariantMask(shaderAst, material->GetStaticParameters());
+
+            // shader
+            ShaderCombination* shaderVariant = ShaderModule::GetShaderCombination(shaderAst, meshPassType, shaderVariantMask);
+            // Subshader->getRenderState(DepthStencilState, BlendState, RasterizationState)
+            //[DepthStencilState, BlendState, RasterizationState] = subshader->getRenderState();
+            // RenderTargets
+            //RenderTargets = meshdrawpass->GetRenderTargetLayout();
+            // inputLayout
+            //InputLayout = FPrimitiveSceneProxy->GetInputLayout();
+
+            uint64 psoKey = 0;//HashPSOKey(shaderVariant->GetKey(), RenderState->GetKey(), RenderTargets, InputLayout->GetKey());
+            TRHIPipelineState* pipelineStateObject = ShaderModule::GetPSO(psoKey);
+
+            RHIDrawCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDrawCommand>()) RHIDrawCommand;
+            newCommand->GraphicsPSO = pipelineStateObject;
+            context->AddCommand(newCommand);
+        }
     }
 
     StaticMeshSceneProxy::StaticMeshSceneProxy(StaticMeshComponent* inComponent)

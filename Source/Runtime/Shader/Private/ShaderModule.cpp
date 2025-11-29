@@ -8,6 +8,7 @@
 #include "ShaderCompiler.h"
 #include "rapidjson/document.h"
 #include "ShaderArchive.h"
+#include "Concurrent/TaskScheduler.h"
 #include "FileSystem/FileModule.h"
 #include "Memory/MemoryBase.h"
 
@@ -94,7 +95,7 @@ namespace Thunder
     		return result;
     	}
     
-    	bool ParseVariantNode(GenericValue<UTF8<>> const& object, VariantMeta& outVariant)
+    	bool ParseVariantNode(GenericValue<UTF8<>> const& object, ShaderVariantMeta& outVariant)
     	{
     		TAssertf(object.IsObject(), "Variant node is not an object.");
     		bool result = true;
@@ -106,7 +107,7 @@ namespace Thunder
     		return result;
     	}
     
-    	bool ParseStageNode(GenericValue<UTF8<>> const& object, StageMeta& outStageMata, TArray<VariantMeta>& outStageVariantMeta)
+    	bool ParseStageNode(GenericValue<UTF8<>> const& object, StageMeta& outStageMata, TArray<ShaderVariantMeta>& outStageVariantMeta)
     	{
     		TAssertf(object.IsObject(), "Shader meta parse error : Stage node is not an object\n");
     
@@ -122,7 +123,7 @@ namespace Thunder
     			auto const& stageVariantsNode = stageNode["StageVariants"].GetArray();
     			for (auto itr = stageVariantsNode.Begin(); itr != stageVariantsNode.End(); ++itr)
     			{
-    				VariantMeta meta{};
+    				ShaderVariantMeta meta{};
     				result = result && ParseVariantNode(*itr, meta);
     				outStageVariantMeta.push_back(meta);
     			}
@@ -176,10 +177,65 @@ namespace Thunder
 			std::string raw_text = buffer.str();
 			String processed_text = PreProcessor::Process(raw_text).c_str();
 			shader_lang_state* st = ThunderParse(processed_text.c_str());
-			fflush(stdout); 
+			fflush(stdout);
+
+			ShaderArchive* newArchive = new (TMemory::Malloc<ShaderArchive>()) ShaderArchive(metaFileName, st->shader_name, st->ast_root);
+			GetModule()->ShaderMap[st->shader_name] = newArchive;
+			LOG("Succeed to Parse %s", metaFileName.c_str());
 		}
 	}
 
+	uint64 ShaderModule::GetVariantMask(ShaderArchive* archive, const TMap<NameHandle, bool>& parameters)
+	{
+		//todo mask = input layout + global config + variant parameters
+
+		uint64 variantMask = 0;
+		/*if (inputLayout->HasAttribute("Color"))
+		{
+			variantMask |= EnableVertexColor;
+		} 
+
+		if (globalconfig->GetBool("EnableLumen"))
+		{
+			variantMask |= EnableLumen;
+		}
+	
+		for (variant : VariaparametersntParam)
+		{
+			if (BoolParameterLayout* layout = Ast->GetReflectionContainer()->GetBool(variant->GetName()));
+			{
+				variantMask |= (1 << layout->GetIndex()) << ShaderVariantsBegin;
+			}
+		}	*/
+		return variantMask;
+	}
+
+	ShaderCombination* ShaderModule::GetShaderCombination(ShaderArchive* archive, EMeshPass meshPassType, uint64 variantMask)
+	{
+		if (ShaderPass* subShader = archive->GetSubShader(meshPassType))
+		{
+			ShaderCombination* shaderVariant = subShader->GetShaderCombination(variantMask);
+			if (shaderVariant == nullptr)
+			{
+				//shaderVariant = ShaderModule::SyncCompileShader(ArchiveName, SubShaderName, VariantMask); //todo
+			}
+			return shaderVariant;
+		}
+		return nullptr;
+	}
+
+	TRHIPipelineState* ShaderModule::GetPSO(uint64 psoKey)
+	{
+		if (GetModule()->PSOMap.contains(psoKey))
+		{
+			/*
+			GAsyncWorkers->PushTask([psoKey]()
+			{ 
+			});
+			*/
+		}
+		return GetModule()->PSOMap[psoKey];
+	}
 
 	bool ShaderModule::ParseShaderFile()
     {
@@ -226,7 +282,7 @@ namespace Thunder
     			{
     				ShaderParameterMeta meta{};
     				ParseParameterNode(*itr, meta);
-    				currentShader->AddParameterMeta(meta);
+    				currentShader->AddGlobalParameterMeta(meta);
     			}
     		}
     
@@ -247,14 +303,14 @@ namespace Thunder
     				auto shaderPass = shaderPasses[passName.c_str()].GetObject();
     				ShaderPass* currentPass = new ShaderPass(passName);
     				// PassVariants
-    				TArray<VariantMeta> passVariantMeta;
+    				TArray<ShaderVariantMeta> passVariantMeta;
     				if (shaderPass.HasMember("PassVariants") && !shaderPass["PassVariants"].IsNull())
     				{
     					TAssertf(shaderPass["PassVariants"].IsArray(), "Shader meta parse error : %s PassVariants node is not an array\nFile name : %s.", passName, metaFileName.c_str());
     					auto const& passVariantsNode = shaderPass["PassVariants"].GetArray();
     					for (auto itr = passVariantsNode.Begin(); itr != passVariantsNode.End(); ++itr)
     					{
-    						VariantMeta meta{};
+    						ShaderVariantMeta meta{};
     						ParseVariantNode(*itr, meta);
     						passVariantMeta.push_back(meta);
     					}
@@ -273,12 +329,12 @@ namespace Thunder
     					}
     					currentShader->AddPassParameterMeta(passName, passParameterMeta);
     				}
-    				THashMap<EShaderStageType, TArray<VariantMeta>> stageVariantConfig;
+    				THashMap<EShaderStageType, TArray<ShaderVariantMeta>> stageVariantConfig;
     				// Vertex
     				if (shaderPass.HasMember("Vertex") && !shaderPass["Vertex"].IsNull())
     				{
     					StageMeta sMeta{};
-    					TArray<VariantMeta> StageVariantMeta;
+    					TArray<ShaderVariantMeta> StageVariantMeta;
     					ParseStageNode(shaderPass["Vertex"], sMeta, StageVariantMeta);
     					currentPass->AddStageMeta(EShaderStageType::Vertex, sMeta);
     					if (!StageVariantMeta.empty())
@@ -290,7 +346,7 @@ namespace Thunder
     				if (shaderPass.HasMember("Pixel") && !shaderPass["Pixel"].IsNull())
     				{
     					StageMeta sMeta{};
-    					TArray<VariantMeta> StageVariantMeta;
+    					TArray<ShaderVariantMeta> StageVariantMeta;
     					ParseStageNode(shaderPass["Pixel"], sMeta, StageVariantMeta);
     					currentPass->AddStageMeta(EShaderStageType::Pixel, sMeta);
     					if (!StageVariantMeta.empty())
@@ -302,7 +358,7 @@ namespace Thunder
     				if (shaderPass.HasMember("Compute") && !shaderPass["Compute"].IsNull())
     				{
     					StageMeta sMeta{};
-    					TArray<VariantMeta> StageVariantMeta;
+    					TArray<ShaderVariantMeta> StageVariantMeta;
     					ParseStageNode(shaderPass["Compute"], sMeta, StageVariantMeta);
     					currentPass->AddStageMeta(EShaderStageType::Compute, sMeta);
     					if (!StageVariantMeta.empty())
@@ -331,9 +387,9 @@ namespace Thunder
 
 	ShaderArchive* ShaderModule::GetShaderArchive(NameHandle name)
 	{
-		if (ShaderMap.contains(name))
+		if (GetModule()->ShaderMap.contains(name))
 		{
-		    return ShaderMap[name];
+		    return GetModule()->ShaderMap[name];
 		}
 		TAssertf(false, "ShaderArchive not exist");
 		return nullptr;

@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <sstream>
 #include "Assertion.h"
+#include "AstNode.h"
 #include "CoreModule.h"
 #include "ShaderModule.h"
 #include "FileSystem/FileModule.h"
@@ -116,8 +117,8 @@ namespace Thunder
     		}
     	}
     }
-    
-    uint64 ShaderPass::VariantNameToMask(const TArray<VariantMeta>& variantName) const
+
+    uint64 ShaderPass::VariantNameToMask(const TArray<ShaderVariantMeta>& variantName) const
     {
     	if (!variantName.empty())
     	{
@@ -154,7 +155,7 @@ namespace Thunder
     	}
     }
     
-    void ShaderPass::GenerateVariantDefinitionTable(const TArray<VariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<VariantMeta>>& stageVariantMeta)
+    void ShaderPass::GenerateVariantDefinitionTable(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta)
     {
     	// gen VariantDefinitionTable
     	THashSet<NameHandle> variantDefinition;
@@ -208,7 +209,7 @@ namespace Thunder
     	{
     		uniqueNames.insert(meta.Name);
     	}
-    	for (auto& meta : ParameterMeta)
+    	for (auto& meta : GlobalParameterMeta)
     	{
     		uniqueNames.insert(meta.Name);
     	}
@@ -219,7 +220,7 @@ namespace Thunder
     			uniqueNames.insert(meta.Name);
     		}
     	}
-    	const bool hasDuplicateNames = uniqueNames.size() != PropertyMeta.size() + ParameterMeta.size()
+    	const bool hasDuplicateNames = uniqueNames.size() != PropertyMeta.size() + GlobalParameterMeta.size()
     		+ (hasPassParameters ? PasseParameterMeta[passName].size() : 0);
     	TAssertf(!hasDuplicateNames, "The parameters of the shader defines repeat");
     	if (hasDuplicateNames)
@@ -231,7 +232,7 @@ namespace Thunder
     	TArray<String> sbGeneratedCode;
     	uint8 dummy = 0;
     	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode, dummy);
-    	GenerateParameterCodeArray<ShaderParameterMeta>(ParameterMeta, cbGeneratedCode, sbGeneratedCode, dummy);
+    	GenerateParameterCodeArray<ShaderParameterMeta>(GlobalParameterMeta, cbGeneratedCode, sbGeneratedCode, dummy);
     	if (hasPassParameters)
     	{
     		GenerateParameterCodeArray<ShaderParameterMeta>(PasseParameterMeta[passName], cbGeneratedCode, sbGeneratedCode, dummy);
@@ -311,7 +312,7 @@ namespace Thunder
     	TArray<String> sbGeneratedCode;
     	outCount.UnorderedAccessCount = 0;
     	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
-    	GenerateParameterCodeArray<ShaderParameterMeta>(ParameterMeta, cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
+    	GenerateParameterCodeArray<ShaderParameterMeta>(GlobalParameterMeta, cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
     	if (PasseParameterMeta.contains(passName))
     	{
     		GenerateParameterCodeArray<ShaderParameterMeta>(PasseParameterMeta[passName], cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
@@ -349,7 +350,78 @@ namespace Thunder
     	}
     	return true;
     }
-    
+
+	ShaderAST::~ShaderAST()
+    {
+    	if (ASTRoot)
+    	{
+    		delete ASTRoot;
+    		ASTRoot = nullptr;
+    	}
+    }
+
+	void ShaderAST::ParseAllTypeParameters(ShaderArchive* archive) const
+	{
+    	TAssert(ASTRoot->node_type == enum_ast_node_type::archive);
+    	if (ast_node_archive* node = static_cast<ast_node_archive*>(ASTRoot))
+    	{
+    		for (ast_node_variable* var : node->properties)
+    		{
+    			ShaderPropertyMeta meta{};
+    			meta.Name = var->name;
+    			meta.Type = var->type->get_type_text();
+    			archive->AddPropertyMeta(meta);
+    		}
+    		for (ast_node_variable* var : node->variants)
+    		{
+    			ShaderVariantMeta meta{};
+    			meta.Name = var->name;
+    			archive->AddVariantMeta(meta);
+    		}
+    		for (ast_node_variable* var : node->global_parameters)
+    		{
+    			ShaderParameterMeta meta{};
+    			meta.Name = var->name;
+    			meta.Type = var->type->get_type_text();
+    			archive->AddGlobalParameterMeta(meta);
+    		}
+    		for (ast_node_variable* var : node->object_parameters)
+    		{
+    			ShaderParameterMeta meta{};
+    			meta.Name = var->name;
+    			meta.Type = var->type->get_type_text();
+    			archive->AddObjectParameterMeta(meta);
+    		}
+    		TArray<ShaderParameterMeta> dummyPassMeta{};
+    		for (ast_node_variable* var : node->pass_parameters)
+    		{
+    			ShaderParameterMeta meta{};
+    			meta.Name = var->name;
+    			meta.Type = var->type->get_type_text();
+    			dummyPassMeta.push_back(meta);
+    		}
+    		for (ast_node_pass* var : node->passes)
+    		{
+    			//archive->AddPassParameterMeta(name, dummyPassMeta);
+    		}
+    	}
+	}
+
+	ShaderArchive::ShaderArchive(String sourceFilePath, NameHandle shaderName, ast_node* astRoot)
+	    : SourcePath(std::move(sourceFilePath)), Name(shaderName)
+    {
+    	AST = new (TMemory::Malloc<ShaderAST>()) ShaderAST(astRoot);
+    	AST->ParseAllTypeParameters(this);
+    }
+
+    ShaderArchive::~ShaderArchive()
+    {
+    	if (AST)
+    	{
+    		TMemory::Free(AST);
+    	}
+    }
+
     ShaderPass* ShaderArchive::GetPass(NameHandle name)
     {
     	if (Passes.contains(name))
@@ -359,7 +431,16 @@ namespace Thunder
     	TAssertf(false, "Pass not exist");
     	return nullptr;
     }
-    
+
+    ShaderPass* ShaderArchive::GetSubShader(EMeshPass meshPassType)
+    {
+    	if (SubShaders.contains(meshPassType))
+    	{
+    		return SubShaders[meshPassType].Get();
+    	}
+    	return nullptr;
+    }
+
     String ShaderArchive::GetShaderSourceDir() const
     {
     	String fullPath = FileModule::GetEngineShaderRoot();

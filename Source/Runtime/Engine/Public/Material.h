@@ -14,9 +14,7 @@ namespace Thunder
 	{
 	public:
 		IMaterial(GameObject* inOuter = nullptr)
-			: GameResource(inOuter, ETempGameResourceReflective::Material)
-			, DefaultRenderResource(nullptr)
-			, bRenderStateDirty(true) {}
+			: GameResource(inOuter, ETempGameResourceReflective::Material) {}
 		virtual ~IMaterial() = default;
 
 		void CacheResourceShadersForRendering();
@@ -35,8 +33,8 @@ namespace Thunder
 
 	protected:
 		NameHandle ArchiveName;
-		RenderMaterial* DefaultRenderResource;
-		bool bRenderStateDirty;
+		RenderMaterial* DefaultRenderResource { nullptr };
+		bool bRenderStateDirty { true };
 	};
 
 	/**
@@ -72,6 +70,7 @@ namespace Thunder
 		void UpdateRenderResource() override;
 
 		const MaterialParameterCache* GetParameterCache() const { return OverrideParameters; }
+		void SetParameterCache(const MaterialParameterCache* parameterCache) const;
 
 	private:
 		MaterialParameterCache* OverrideParameters;

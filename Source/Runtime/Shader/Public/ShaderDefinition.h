@@ -70,7 +70,7 @@ namespace Thunder
     };
 	using ShaderCombinationRef = TRefCountPtr<ShaderCombination>;
     
-    struct VariantMeta
+    struct ShaderVariantMeta
     {
     	NameHandle Name;
     	bool Default;
@@ -78,8 +78,8 @@ namespace Thunder
     	bool Visible;
     	NameHandle Texture;
     
-    	VariantMeta() {Default = false; Fallback = false; Visible = false;}
-    	VariantMeta(const String& name, const String& defaultValue = "", const String& fallback = "",
+    	ShaderVariantMeta() {Default = false; Fallback = false; Visible = false;}
+    	ShaderVariantMeta(const String& name, const String& defaultValue = "", const String& fallback = "",
     	            const String& visible = "",const String& texture = "") : Name(name), Texture(texture)
     	{
     		Default = CommonUtilities::StringToBool(defaultValue, false);
@@ -87,7 +87,7 @@ namespace Thunder
     		Visible = CommonUtilities::StringToBool(visible, true);
     	}
     
-    	bool operator==(const VariantMeta& value) const
+    	bool operator==(const ShaderVariantMeta& value) const
     	{
     		return Name == value.Name
     		&& Default == value.Default
@@ -96,7 +96,7 @@ namespace Thunder
     		&& Texture == value.Texture;
     	}
     };
-    
+
     /*namespace std
     {
     	template<>

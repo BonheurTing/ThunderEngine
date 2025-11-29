@@ -372,7 +372,7 @@ namespace Thunder
             uint64 combination;
         };
     private:
-        _NODISCARD_ String get_type_text() const;
+        _NODISCARD_ String get_type_text_internal() const;
     public:
         ast_node_type_format() noexcept
             : ast_node(enum_ast_node_type::type_format)
@@ -382,6 +382,7 @@ namespace Thunder
         {
             return object_type != enum_object_type::none;
         }
+        _NODISCARD_ String get_type_text() const;
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     };
@@ -435,6 +436,7 @@ namespace Thunder
         void print_ast(int indent) override;
 
     private:
+        friend class ShaderAST;
         String name;
         scope_ref global_scope;
         TArray<ast_node_variable*> properties;

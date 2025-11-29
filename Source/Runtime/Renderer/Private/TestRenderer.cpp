@@ -1,6 +1,7 @@
 #pragma optimize("", off)
 #include "TestRenderer.h"
 #include "FrameGraph.h"
+#include "MeshPassProcessor.h"
 #include "RHICommand.h"
 #include "Memory/TransientAllocator.h"
 #include "PrimitiveSceneProxy.h"
@@ -152,12 +153,12 @@ namespace Thunder
             PassOperations operations;
             operations.write(DummyRT);
             operations.write(GBufferSceneDepth);
-            mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this](FRenderContext* Context)
+            mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this](FRenderContext* context)
             {
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
                 for (auto& sceneProxy : mainView->GetVisibleSceneProxies())
                 {
-                    sceneProxy->AddDrawCall();
+                    sceneProxy->AddDrawCall(context, EMeshPass::DepthPass);
                 }
                 Print("Execute PrePass");
             });
@@ -172,12 +173,12 @@ namespace Thunder
             PassOperations operations;
             operations.write(DummyRT);
             operations.write(ShadowDepth);
-            mFrameGraph->AddPass(EVENT_NAME("ShaderDepth"), std::move(operations), [this](FRenderContext* Context)
+            mFrameGraph->AddPass(EVENT_NAME("ShaderDepth"), std::move(operations), [this](FRenderContext* context)
             {
                 auto mainView = mFrameGraph->GetSceneView(EViewType::ShadowView);
                 for (auto& sceneProxy : mainView->GetVisibleSceneProxies())
                 {
-                    sceneProxy->AddDrawCall();
+                    sceneProxy->AddDrawCall(context, EMeshPass::DepthPass);
                 }
                 Print("Execute ShaderDepth");
             });
@@ -188,12 +189,12 @@ namespace Thunder
             operations.write(GBufferRT0);
             operations.write(GBufferRT1);
             operations.write(GBufferSceneDepth);
-            mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this](FRenderContext* Context)
+            mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this](FRenderContext* context)
             {
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
                 for (auto& sceneProxy : mainView->GetVisibleSceneProxies())
                 {
-                    sceneProxy->AddDrawCall();
+                    sceneProxy->AddDrawCall(context, EMeshPass::BasePass);
                 }
                 Print("Execute GBufferPass");
             });

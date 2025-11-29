@@ -50,6 +50,7 @@ namespace Thunder
 		//void *parser = nullptr;		// Bison语法分析器状态
 
 		/* 抽象语法树 */
+		String shader_name;
 		ast_node* ast_root = nullptr;	// AST根节点
 		scope_ref global_scope = nullptr;	// 全局作用域
 
@@ -140,12 +141,12 @@ namespace Thunder
 		ast_node* get_local_symbol(const String& name) const;
 		ast_node* get_global_symbol(const String& name);
 		enum_symbol_type get_symbol_type(const String& name) const;
-		
 
-		/* 错误处理 */
+		/* error handle */
 		void debug_log(const String& msg, const parse_location* loc = nullptr) const;
 		void post_process_ast() const;
 
+		/* access the shader module */
 	};
 	extern shader_lang_state* sl_state;
 }

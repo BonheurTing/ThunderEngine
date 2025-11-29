@@ -112,7 +112,7 @@ namespace Thunder
         "ConstantBuffer",
     };
 
-    String ast_node_type_format::get_type_text() const
+    String ast_node_type_format::get_type_text_internal() const
     {
         String text = "";
         switch (basic_type)
@@ -155,6 +155,23 @@ namespace Thunder
         return text;
     }
 
+    String ast_node_type_format::get_type_text() const
+    {
+        String text = "";
+        if (object_type != enum_object_type::none)
+        {
+            text = TemplateTypeNames[static_cast<size_t>(object_type)];
+            text += '<';
+            text += get_type_text_internal();
+            text += '>';
+        }
+        else
+        {
+            text = get_type_text_internal();
+        }
+        return text;
+    }
+
     void ast_node_type_format::generate_hlsl(String& outResult)
     {
         // 生成类型限定符
@@ -179,17 +196,7 @@ namespace Thunder
             outResult += "const ";
         }
 
-        if (object_type != enum_object_type::none)
-        {
-            outResult += TemplateTypeNames[static_cast<size_t>(object_type)];
-            outResult += '<';
-            outResult += get_type_text();
-            outResult += '>';
-        }
-        else
-        {
-            outResult += get_type_text();
-        }
+        outResult += get_type_text();
     }
 
     void ast_node_variable::generate_hlsl(String& outResult)

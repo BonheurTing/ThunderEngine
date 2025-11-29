@@ -17,6 +17,7 @@ namespace Thunder
     RenderMaterial::~RenderMaterial()
     {
         // RHI资源会通过RefCount自动释放
+        
     }
 
     void RenderMaterial::SetShaderArchive(ShaderArchive* archive)
@@ -54,6 +55,7 @@ namespace Thunder
         ParameterCache.FloatParameters = gameMaterialCache->FloatParameters;
         ParameterCache.VectorParameters = gameMaterialCache->VectorParameters;
         ParameterCache.TextureParameters = gameMaterialCache->TextureParameters;
+        ParameterCache.StaticParameters = gameMaterialCache->StaticParameters;
     }
 
     void RenderMaterial::UpdateConstantBuffer()

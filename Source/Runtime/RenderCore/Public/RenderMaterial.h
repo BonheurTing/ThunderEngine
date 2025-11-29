@@ -22,6 +22,7 @@ namespace Thunder
         TMap<NameHandle, float> FloatParameters;
         TMap<NameHandle, TVector4f> VectorParameters;
         TMap<NameHandle, TGuid> TextureParameters;
+        TMap<NameHandle, bool> StaticParameters;
     };
 
     // FMaterialResource + FMaterialRenderProxy
@@ -56,14 +57,14 @@ namespace Thunder
 
         void BindParametersToRHI(class RHICommandList* cmdList) const;
         const MaterialParameterCache& GetParameterCache() const { return ParameterCache; }
+        const TMap<NameHandle, bool>& GetStaticParameters() { return ParameterCache.StaticParameters; }
 
     private:
-        ShaderArchive* CompiledShaderMap { nullptr };
+        ShaderArchive* CompiledShaderMap { nullptr }; // shader module manages lifetime
         TShaderRegisterCounts RegisterCounts {};
         MaterialParameterCache ParameterCache;
 
         TRefCountPtr<RHIConstantBuffer> ConstantBuffer;
     };
 
-    using RenderMaterialRef = TRefCountPtr<RenderMaterial>;
 }

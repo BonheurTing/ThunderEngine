@@ -99,6 +99,7 @@ namespace Thunder
 
 	void shader_lang_state::parsing_archive_begin(const token_data& name)
 	{
+		shader_name = name.text;
 		current_archive = new ast_node_archive(name.text);
 		push_scope(current_archive->begin_archive());
 	}

@@ -74,6 +74,8 @@ namespace Thunder
 		virtual ~PrimitiveComponent() = default;
 
 		NameHandle GetComponentName() const override { return "PrimitiveComponent"; }
+
+		virtual const TArray<IMaterial*>& GetMaterials() const = 0;
 	};
 
 	class StaticMeshComponent : public PrimitiveComponent
@@ -101,6 +103,8 @@ namespace Thunder
 
 		void SetOverrideMaterials(const TArray<IMaterial*>& inMaterials) { OverrideMaterials = inMaterials; }
 		const TArray<IMaterial*>& GetOverrideMaterials() const { return OverrideMaterials; }
+
+		const TArray<IMaterial*>& GetMaterials() const override { return OverrideMaterials; }
 
 	private:
 		StaticMesh* Mesh { nullptr };

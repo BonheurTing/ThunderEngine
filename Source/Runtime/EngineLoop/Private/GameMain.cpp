@@ -12,6 +12,7 @@
 #include "Misc/CoreGlabal.h"
 #include "Module/ModuleManager.h"
 #include "Scene.h"
+#include "StreamableManager.h"
 #include "TestRenderer.h"
 #include "FileSystem/FileModule.h"
 
@@ -145,7 +146,7 @@ namespace Thunder
         if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 5)
         {
             // Informal: load all game resource ( in content directory )
-            //StreamableManager::LoadAllAsync();
+            StreamableManager::LoadAllAsync();
         }
 
         if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 50)

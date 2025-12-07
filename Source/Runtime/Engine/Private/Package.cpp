@@ -133,7 +133,7 @@ namespace Thunder
 		TAssertf(!PackageName.IsEmpty(), "Package::Load: PackageName is empty, cannot load package.");
 		const String fullPath = ResourceModule::ConvertSoftPathToFullPath(PackageName.ToString(), "tasset");
 
-		// 打开文件
+		// read file
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
 		if (!fileSystem)
 		{
@@ -141,7 +141,6 @@ namespace Thunder
 		}
 
 		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(fullPath, false));
-		// 获取文件大小并读取全部内容
 		const size_t fileSize = file->Size();
 		if (fileSize == 0)
 		{
@@ -158,12 +157,11 @@ namespace Thunder
 			return false;
 		}
 
-		// 创建BinaryData来包装文件数据
 		BinaryData binaryData;
 		binaryData.Data = fileData;
 		binaryData.Size = fileSize;
 		
-		// 创建MemoryReader来反序列化头部
+		// DeSerialize
 		MemoryReader headerArchive(&binaryData);
 		uint32 headerSize = 0;
 		headerArchive >> headerSize;
@@ -190,7 +188,7 @@ namespace Thunder
 			typeList[i] = static_cast<ETempGameResourceReflective>(type);
 		}
 
-		// 验证魔数
+		// check data
 		if (Header.MagicNumber != 0x50414745) // "PAGE"
 		{
 			TMemory::Destroy(fileData);
@@ -206,7 +204,6 @@ namespace Thunder
 			return false;
 		}
 
-		// 清空之前的对象
 		Objects.resize(numGuids);
 
 		// 反序列化每个对象
@@ -230,12 +227,12 @@ namespace Thunder
 			}
 			else if (typeList[i] == ETempGameResourceReflective::Material)
 			{
-				gameResource = new GameMaterial(); //todo
+				gameResource = new GameMaterial();
 			}
 			else
 			{
 				TMemory::Destroy(fileData);
-				return false; // 不支持的资源类型
+				return false;
 			}
 			gameResource->DeSerialize(objectArchive);
 			gameResource->SetOuter(this);
@@ -386,10 +383,12 @@ namespace Thunder
 		GAsyncWorkers->PushTask([guid]()
 		{
 			TArray<GameResource*> outResources;
-			LoadSync(guid, outResources, false);
-			for (const auto res : outResources)
+			if (LoadSync(guid, outResources, false))
 			{
-				res->OnResourceLoaded();
+				for (const auto res : outResources)
+				{
+					res->OnResourceLoaded();
+				}
 			}
 		});
 	}

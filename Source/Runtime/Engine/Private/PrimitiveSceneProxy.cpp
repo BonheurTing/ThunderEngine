@@ -12,11 +12,11 @@ namespace Thunder
 {
     PrimitiveSceneProxy::PrimitiveSceneProxy(const PrimitiveComponent* inComponent)
     {
-        auto gameMaterials = inComponent->GetMaterials();
+        const TMap<NameHandle, IMaterial*> gameMaterials = inComponent->GetMaterials();
         RenderMaterials.reserve(gameMaterials.size());
-        for (auto material : gameMaterials)
+        for (const auto& val : gameMaterials | std::views::values)
         {
-            RenderMaterials.push_back(material->GetMaterialResource());
+            RenderMaterials.push_back(val->GetMaterialResource());
         }
     }
 

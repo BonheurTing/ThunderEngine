@@ -19,7 +19,7 @@ namespace Thunder
 		archive >> dependencyCount;
 		
 		Dependencies.clear();
-		Dependencies.resize(dependencyCount);
+		Dependencies.reserve(dependencyCount);
 		
 		for (uint32 i = 0; i < dependencyCount; ++i)
 		{

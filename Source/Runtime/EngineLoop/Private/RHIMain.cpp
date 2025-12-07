@@ -45,13 +45,13 @@ namespace Thunder
             res->Update();
         }
         GRHIUpdateAsyncQueue.clear();
-        std::cout << " D3D12CommandContext::Execute Copy with frame index : " << frameNum << std::endl << std::flush;
+        std::cout << "!!!D3D12CommandContext::Execute Copy with frame index : " << frameNum << std::endl << std::flush;
         IRHIModule::GetModule()->GetCopyCommandContext()->Execute();
 
         // Parallel recording of rendering commands
-        std::cout << " D3D12CommandContext::Reset with frame index : " << frameNum << std::endl << std::flush;
+        std::cout << "!!!D3D12CommandContext::Reset with frame index : " << frameNum << std::endl << std::flush;
         IRHIModule::GetModule()->ResetCommandContext(currentFrameIndex);
-        std::cout << " D3D12CommandContext::Execute with frame index : " << frameNum << std::endl << std::flush;
+        std::cout << "!!!D3D12CommandContext::Execute with frame index : " << frameNum << std::endl << std::flush;
         for (auto renderer : Renderers)
         {
             CommitRendererCommands(renderer);

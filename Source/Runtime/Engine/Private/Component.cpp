@@ -58,10 +58,11 @@ namespace Thunder
 		}
 
 		// Add material GUIDs
-		for (const TGuid& matGuid : MaterialGuids)
+		TAssert(MaterialGuids.size() == OverrideMaterials.size());
+		for (auto it = MaterialGuids.begin(); it != MaterialGuids.end(); ++it)
 		{
-			TAssert(matGuid.IsValid());
-			outDependencies.push_back(matGuid);
+			TAssert(it->second.IsValid());
+			outDependencies.push_back(it->second);
 		}
 	}
 
@@ -86,25 +87,18 @@ namespace Thunder
 		// Serialize override materials
 		if (!OverrideMaterials.empty())
 		{
-			for (size_t i = 0; i < OverrideMaterials.size(); ++i)
+			writer.Key("OverrideMaterials");
+			writer.StartObject();
+			for (auto it = OverrideMaterials.begin(); it != OverrideMaterials.end(); ++it)
 			{
-				char keyName[64];
-				snprintf(keyName, sizeof(keyName), "Material%zu", i);
-				writer.Key(keyName);
-
-				if (OverrideMaterials[i])
-				{
-					char GuidStr[64];
-					snprintf(GuidStr, sizeof(GuidStr), "%08X-%08X-%08X-%08X",
-						OverrideMaterials[i]->GetGUID().A, OverrideMaterials[i]->GetGUID().B,
-						OverrideMaterials[i]->GetGUID().C, OverrideMaterials[i]->GetGUID().D);
-					writer.String(GuidStr);
-				}
-				else
-				{
-					writer.Null();
-				}
+				writer.Key(it->first.c_str());
+				char GuidStr[64];
+				TGuid guid = it->second->GetGUID();
+				snprintf(GuidStr, sizeof(GuidStr), "%08X-%08X-%08X-%08X", guid.A, guid.B, guid.C, guid.D);
+				writer.String(GuidStr);
+				
 			}
+			writer.EndObject();
 		}
 
 		writer.EndObject();
@@ -131,23 +125,17 @@ namespace Thunder
 
 		// Deserialize override materials
 		MaterialGuids.clear();
-		for (size_t i = 0; i < 100; ++i) // Assume max 100 materials
+		if (jsonValue.HasMember("OverrideMaterials") && jsonValue["OverrideMaterials"].IsObject())
 		{
-			char keyName[64];
-			snprintf(keyName, sizeof(keyName), "Material%zu", i);
-
-			if (jsonValue.HasMember(keyName) && jsonValue[keyName].IsString())
+			const rapidjson::Value& materialObj = jsonValue["OverrideMaterials"];
+			for (auto it = materialObj.MemberBegin(); it != materialObj.MemberEnd(); ++it)
 			{
-				const char* guidStr = jsonValue[keyName].GetString();
+				const char* guidStr = it->value.GetString();
 				uint32 A, B, C, D;
 				if (sscanf(guidStr, "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
 				{
-					MaterialGuids.push_back(TGuid(A, B, C, D));
+					MaterialGuids.emplace(it->name.GetString(), TGuid(A, B, C, D));
 				}
-			}
-			else
-			{
-				break; // No more materials
 			}
 		}
 	}
@@ -173,22 +161,22 @@ namespace Thunder
 		{
 			TStrongObjectPtr<GameResource> meshRef= ResourceModule::LoadSync(meshGuid);
 
-			TArray<TStrongObjectPtr<GameResource>> materialRefList;
-			materialRefList.resize(guidList.size());
-			for (uint32 i = 0; i < static_cast<uint32>(guidList.size()); ++i)
+			TMap<NameHandle, TStrongObjectPtr<GameResource>> materialRefList;
+			for (const auto& [fst, snd] : guidList)
 			{
-				materialRefList[i] = ResourceModule::LoadSync(guidList[i]);
+				GameResource* res = ResourceModule::LoadSync(snd);
+				materialRefList.emplace(fst, res);
 			}
-			
+
 			GGameScheduler->PushTask([componentPtr, meshRef, materialRefList]()
 			{
 				if (componentPtr)
 				{
 					componentPtr->Mesh = static_cast<StaticMesh*>(meshRef.Get());
-					componentPtr->OverrideMaterials.resize(materialRefList.size());
-					for (uint32 i = 0; i < static_cast<uint32>(materialRefList.size()); ++i)
+					componentPtr->OverrideMaterials.clear();
+					for (const auto& [fst, snd] : materialRefList)
 					{
-						componentPtr->OverrideMaterials[i] = static_cast<IMaterial*>(materialRefList[i].Get());
+						componentPtr->OverrideMaterials.emplace(fst, static_cast<IMaterial*>(snd.Get()));
 					}
 					componentPtr->OnLoaded();
 				}

@@ -96,21 +96,6 @@ namespace Thunder
         }
     }
 
-    static void SimulateMaterialAsset()
-    {
-        // generate material asset
-        GameMaterial* material = new GameMaterial();
-        material->SetShaderArchive("TestShader");
-        String matFullPath = FileModule::GetProjectRoot() + "\\Content\\Material\\TestShader.tasset";
-        String matSoftPath = ResourceModule::CovertFullPathToSoftPath(matFullPath, "TestShader");
-        material->SetResourceName(matSoftPath);
-        material->ResetDefaultParameters();
-        String pakSoftPath = ResourceModule::CovertFullPathToSoftPath(matFullPath);
-        auto* newPackage = new Package(pakSoftPath);
-        newPackage->AddResource(material);
-        newPackage->Save();
-    }
-
     static void SimulateImportAsset()
     {
         String fileName = FileModule::GetProjectRoot() + "\\Resource\\Mesh\\Cube.fbx";
@@ -120,6 +105,11 @@ namespace Thunder
         fileName = FileModule::GetProjectRoot() + "\\Resource\\123.fbx";
         destPath = FileModule::GetProjectRoot() + "\\Content\\123.tasset";
         ResourceModule::ForceImport(fileName, destPath);
+
+        String texFullPath = FileModule::GetProjectRoot() + "\\Content\\TestPNG.tasset";
+        String texSoftPath = ResourceModule::CovertFullPathToSoftPath(texFullPath, "TestPNG");
+        bool ret = ResourceModule::ForceLoadBySoftPath(texSoftPath);
+        TAssert(ret);
 
         fileName = FileModule::GetProjectRoot() + "\\Resource\\Material\\TestMaterial.mat";
         destPath = FileModule::GetProjectRoot() + "\\Content\\Material\\TestMaterial.tasset";
@@ -157,19 +147,16 @@ namespace Thunder
         }
     }
 
+
     void GameModule::TestEditor()
     {
-        String texFullPath = FileModule::GetProjectRoot() + "\\Content\\TestPNG.tasset";
-        String texSoftPath = ResourceModule::CovertFullPathToSoftPath(texFullPath, "TestPNG");
-        bool ret = ResourceModule::ForceLoadBySoftPath(texSoftPath);
-        TAssert(ret);
+        // test png->material->mesh
+        {
+            //SimulateImportAsset();
+            //SimulateAddMaterialToMesh();
+        }
 
-        // import resource
-        SimulateImportAsset();
-
-        // add mat to mesh
-        SimulateAddMaterialToMesh();
-
-        //StreamableManager::ForceLoadAllResources();
+        // print all resources
+        StreamableManager::ForceLoadAllResources();
     }
 }

@@ -75,7 +75,7 @@ namespace Thunder
 
 		NameHandle GetComponentName() const override { return "PrimitiveComponent"; }
 
-		virtual const TArray<IMaterial*>& GetMaterials() const = 0;
+		virtual const TMap<NameHandle, IMaterial*>& GetMaterials() const = 0;
 	};
 
 	class StaticMeshComponent : public PrimitiveComponent
@@ -101,18 +101,15 @@ namespace Thunder
 		void SetMesh(StaticMesh* inMesh) { Mesh = inMesh; }
 		StaticMesh* GetMesh() const { return Mesh; }
 
-		void SetOverrideMaterials(const TArray<IMaterial*>& inMaterials) { OverrideMaterials = inMaterials; }
-		const TArray<IMaterial*>& GetOverrideMaterials() const { return OverrideMaterials; }
-
-		const TArray<IMaterial*>& GetMaterials() const override { return OverrideMaterials; }
+		const TMap<NameHandle, IMaterial*>& GetMaterials() const override { return OverrideMaterials; }
 
 	private:
 		StaticMesh* Mesh { nullptr };
-		TArray<IMaterial*> OverrideMaterials {};
+		TMap<NameHandle, IMaterial*> OverrideMaterials {};
 
-		// GUIDs for serialization
+		// GUIDs for lite deserialize and async load
 		TGuid MeshGuid {};
-		TArray<TGuid> MaterialGuids {};
+		TMap<NameHandle, TGuid> MaterialGuids {};
 
 		// render
 		class StaticMeshSceneProxy* SceneProxy { nullptr };

@@ -19,7 +19,7 @@
 
 namespace Thunder
 {
-    Scene* TestGenerateExampleScene()
+    Scene* SimulateGenerateExampleSceneWithEditor()
     {
         // Create a new scene
         TFunction<class IRenderer*()> defaultRendererFactory = []() -> IRenderer*
@@ -50,8 +50,6 @@ namespace Thunder
         TransformComponent* childTransform = childEntity->GetTransform();
         childTransform->SetPosition(TVector3f(1.0f, 0.0f, 0.5f));
         rootEntity->AddChild(childEntity);
-
-        
 
         // Save scene to file
         //NewScene->Save("D:/Game/Levels/ExampleLevel.tmap");

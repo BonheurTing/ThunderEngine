@@ -200,7 +200,7 @@ namespace Thunder
 	{
 		// Call parent OnLoaded to mark as loaded and register tickable.
 		IComponent::OnLoaded();
-		LOG("StaticMeshComponent loaded successfully");
+		LOG("------------ StaticMeshComponent loaded successfully");
 		// Register StaticMeshSceneProxy.
 		SceneProxy = new (TMemory::Malloc<StaticMeshSceneProxy>()) StaticMeshSceneProxy(this);
 		Owner->GetScene()->GetRenderer()->RegisterSceneProxy(SceneProxy);

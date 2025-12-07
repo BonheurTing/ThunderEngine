@@ -1,6 +1,7 @@
 ﻿#include "GameModule.h"
 #include "ResourceModule.h"
 #include "Scene.h"
+#include "StreamableManager.h"
 #include "FileSystem/FileModule.h"
 #include "Misc/CoreGlabal.h"
 #include "Concurrent/TaskGraph.h"
@@ -24,7 +25,7 @@ namespace Thunder
         TMemory::Free(GameThreadTaskGraph);
     }
 
-    void GameModule::InitGameThread(TFunction<class IRenderer*()>& renderFactory)
+    void GameModule::InitGameThread(TFunction<IRenderer*()>& renderFactory)
     {
         GameThreadTaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
 
@@ -33,18 +34,19 @@ namespace Thunder
         BaseViewport* viewport = new BaseViewport();
         // test scene 1
         auto scene = new Scene(renderFactory);
-        String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap"; //todo
+        String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
         scene->LoadAsync(fullPath);
         viewport->AddScene(scene);
 
-        // test scene 1
-        auto scene2 = new Scene(renderFactory);
-        String fullPath2 = FileModule::GetResourceContentRoot() + "Map/TestScene2.tmap"; //todo
-        scene2->LoadAsync(fullPath2);
-        viewport->AddScene(scene2);
+        // test two scene
+        // auto scene2 = new Scene(renderFactory);
+        // String fullPath2 = FileModule::GetResourceContentRoot() + "Map/TestScene2.tmap";
+        // scene2->LoadAsync(fullPath2);
+        // viewport->AddScene(scene2);
 
         Viewports.push_back(viewport);
 
+        // test two viewport
         // BaseViewport* viewport2 = new BaseViewport();
         // auto scene2 = new Scene(renderFactory);
         // scene2->LoadAsync(fullPath);
@@ -94,4 +96,80 @@ namespace Thunder
         }
     }
 
+    static void SimulateMaterialAsset()
+    {
+        // generate material asset
+        GameMaterial* material = new GameMaterial();
+        material->SetShaderArchive("TestShader");
+        String matFullPath = FileModule::GetProjectRoot() + "\\Content\\Material\\TestShader.tasset";
+        String matSoftPath = ResourceModule::CovertFullPathToSoftPath(matFullPath, "TestShader");
+        material->SetResourceName(matSoftPath);
+        material->ResetDefaultParameters();
+        String pakSoftPath = ResourceModule::CovertFullPathToSoftPath(matFullPath);
+        auto* newPackage = new Package(pakSoftPath);
+        newPackage->AddResource(material);
+        newPackage->Save();
+    }
+
+    static void SimulateImportAsset()
+    {
+        String fileName = FileModule::GetProjectRoot() + "\\Resource\\Mesh\\Cube.fbx";
+        String destPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";
+        ResourceModule::ForceImport(fileName, destPath);
+
+        fileName = FileModule::GetProjectRoot() + "\\Resource\\123.fbx";
+        destPath = FileModule::GetProjectRoot() + "\\Content\\123.tasset";
+        ResourceModule::ForceImport(fileName, destPath);
+
+        fileName = FileModule::GetProjectRoot() + "\\Resource\\Material\\TestMaterial.mat";
+        destPath = FileModule::GetProjectRoot() + "\\Content\\Material\\TestMaterial.tasset";
+        ResourceModule::ForceImport(fileName, destPath);
+    }
+
+    static void SimulateAddMaterialToMesh()
+    {
+
+        String matFullPath = FileModule::GetProjectRoot() + "\\Content\\Material\\TestMaterial.tasset";
+        String matSoftPath = ResourceModule::CovertFullPathToSoftPath(matFullPath, "TestMaterial");
+        //bool ret = ResourceModule::ForceLoadBySoftPath(matSoftPath);
+        //TAssert(ret);
+        GameObject* material = ResourceModule::GetResource(matSoftPath);
+        TAssert(material != nullptr);
+
+        String meshFullPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";
+        String meshSoftPath = ResourceModule::CovertFullPathToSoftPath(meshFullPath, "Cube");
+        //bool ret = ResourceModule::ForceLoadBySoftPath(meshSoftPath);
+        //TAssert(ret);
+        GameObject* mesh = ResourceModule::GetResource(meshSoftPath);
+        TAssert(mesh != nullptr);
+
+        if (auto stMesh = static_cast<StaticMesh*>(mesh))
+        {
+            stMesh->AddMaterial(static_cast<IMaterial*>(material));
+
+            if (auto pak = static_cast<Package*>(mesh->GetOuter()))
+            {
+                if (pak->Save())
+                {
+                    LOG("Successfully add mat to mesh");
+                }
+            }
+        }
+    }
+
+    void GameModule::TestEditor()
+    {
+        String texFullPath = FileModule::GetProjectRoot() + "\\Content\\TestPNG.tasset";
+        String texSoftPath = ResourceModule::CovertFullPathToSoftPath(texFullPath, "TestPNG");
+        bool ret = ResourceModule::ForceLoadBySoftPath(texSoftPath);
+        TAssert(ret);
+
+        // import resource
+        SimulateImportAsset();
+
+        // add mat to mesh
+        SimulateAddMaterialToMesh();
+
+        //StreamableManager::ForceLoadAllResources();
+    }
 }

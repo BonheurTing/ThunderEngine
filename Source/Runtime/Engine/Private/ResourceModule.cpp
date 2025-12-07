@@ -1,14 +1,16 @@
-﻿#pragma optimize("", off) 
+﻿#pragma optimize("", off)
 #include "ResourceModule.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "External/stb_image.h"		// 定义 stb_image 实现
 #include <assimp/Importer.hpp>      // 导入接口
 #include <assimp/scene.h>           // 场景数据（模型、材质、动画）
 #include <assimp/postprocess.h>     // 后处理选项（如三角化、优化）
+#include "rapidjson/document.h"
 
 #include "Mesh.h"
 #include "Package.h"
 #include "Texture.h"
+#include "Material.h"
 #include "Container/ReflectiveContainer.h"
 #include "FileSystem/FileModule.h"
 #include "Vector.h"
@@ -144,6 +146,43 @@ namespace Thunder
 		return (indicesBuffer);
 	}
 
+	void ResourceModule::ShutDown()
+	{
+		// print all resource dependency guid
+		LOG("--------- Loaded All Resources %d Begin ---------", static_cast<int32>(LoadedResources.size()));
+		for (const auto& [fst, snd] : LoadedResources)
+		{
+			if (auto pak = dynamic_cast<Package*>(snd))
+			{
+				LOG("Name: %s, Type: %s, GUID: %s", pak->GetPackageName().c_str(), "Package", fst.ToString().c_str());
+			}
+			else
+			{
+				auto res = dynamic_cast<GameResource*>(snd);
+				switch (res->GetResourceType())
+				{
+				case ETempGameResourceReflective::StaticMesh:
+					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "StaticMesh", fst.ToString().c_str());
+					break;
+				case ETempGameResourceReflective::Texture2D:
+					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "Texture2D", fst.ToString().c_str());
+					break;
+				case ETempGameResourceReflective::Material:
+					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "Material", fst.ToString().c_str());
+					break;
+				default:
+					TAssert(false, "Unknown resource type");
+				}
+				LOG("--- Dependencies GUID:");
+				for (const auto& guid : res->GetDependencies())
+				{
+					LOG("--- %s", guid.ToString().c_str());
+				}
+			}
+		}
+		LOG("--------- Loaded All Resources End ---------\n");
+	}
+
 	void ResourceModule::InitResourcePathMap()
 	{
 		const auto contentDict = FileModule::GetResourceContentRoot();
@@ -161,6 +200,13 @@ namespace Thunder
 				}
 			}
 		}
+		// print all resource guid
+		LOG("--------- Scan All Resources %d Begin ---------", static_cast<int32>(GetModule()->ResourcePathMap.size()));
+		for (const auto& [fst, snd] : GetModule()->ResourcePathMap)
+		{
+			LOG("Name: %s, GUID: %s", snd.ToString().c_str(), fst.ToString().c_str());
+		}
+		LOG("--------- Scan All Resources End ---------\n");
 	}
 
 	String ResourceModule::CovertFullPathToSoftPath(const String& fullPath, const String& resourceName)
@@ -268,7 +314,7 @@ namespace Thunder
 		String checkPath = softPath;
 		int suffix = 1;
 		bool bUnique = true;
-#ifdef WITH_EDITOR
+#if WITH_EDITOR
 		while (GetModule()->LoadedResourcesByPath.contains(checkPath))
 		{
 			bUnique = false;
@@ -284,7 +330,8 @@ namespace Thunder
 	}
 
 	// todo: 导入还没处理重名的问题
-	bool ResourceModule::Import(const String& srcPath, const String& destPath)
+#if WITH_EDITOR
+	bool ResourceModule::ForceImport(const String& srcPath, const String& destPath)
 	{
 		// 先简单认为package重名就是覆盖，或者在import外面就解决destPath重名的问题
 		const String pacName = CovertFullPathToSoftPath(destPath); //已经是unique
@@ -337,19 +384,14 @@ namespace Thunder
 			String resourceName = CovertFullPathToSoftPath(destPath, resourceSuffix);
 			CheckUniqueSoftPath(resourceName);
 			newStaticMesh->SetResourceName(resourceName);
+			newStaticMesh->SetOuter(newPackage);
 			TGuid meshGuid = newStaticMesh->GetGUID();
 			GetModule()->ResourcePathMap.emplace(meshGuid, resourceName);
 
 			// 5. 保存 package 文件
 			newPackage->AddResource(newStaticMesh);
-			
-			if (GetModule()->SavePackage(newPackage, destPath))
-			{
-				TGuid pakGuid = newPackage->GetGUID();
-				GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
-				GetModule()->RegisterPackage(newPackage);
-				return true;
-			}
+
+			LOG("Successfully import fbx file: %s", resourceName.c_str());
 		}
 		else if (fileExtension == "png" || fileExtension == "tga")
 		{
@@ -363,19 +405,14 @@ namespace Thunder
 				// 注册到资源管理器
 				const String resourceName = CovertFullPathToSoftPath(destPath, FileModule::GetFileName(destPath));
 				newTexture->SetResourceName(resourceName);
+				newTexture->SetOuter(newPackage);
 				TGuid meshGuid = newTexture->GetGUID();
 				GetModule()->ResourcePathMap.emplace(meshGuid, resourceName);
 
 				// 保存 package 文件
 				newPackage->AddResource(newTexture);
-			
-				if (GetModule()->SavePackage(newPackage, destPath))
-				{
-					TGuid pakGuid = newPackage->GetGUID();
-					GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
-					GetModule()->RegisterPackage(newPackage);
-					return true;
-				}
+				
+				LOG("Successfully import %s file: %s", fileExtension.c_str(), resourceName.c_str());
 			}
 			else
 			{
@@ -384,13 +421,85 @@ namespace Thunder
 				return false;
 			}
 		}
-		else if (fileExtension == "shader")
+		else if (fileExtension == "mat")
 		{
-			//todo: import .shader file
-			// open file, read josn
-			// new Material and fill in data
-			// generate guid
-			// save to tasset
+			using namespace rapidjson;
+
+			String jsonString;
+			if (!FileModule::LoadFileToString(srcPath, jsonString))
+			{
+				LOG("Failed to load material file: %s", srcPath.c_str());
+				return false;
+			}
+
+			Document document;
+			document.Parse(jsonString.c_str());
+			if (document.HasParseError())
+			{
+				LOG("Failed to parse material JSON: %s", srcPath.c_str());
+				return false;
+			}
+
+			GameMaterial* material = new GameMaterial();
+			String shaderName;
+			if (document.HasMember("ShaderName") && document["ShaderName"].IsString())
+			{
+				shaderName = document["ShaderName"].GetString();
+				material->SetShaderArchive(NameHandle(shaderName));
+				material->ResetDefaultParameters();
+			}
+			else
+			{
+				LOG("Material file missing ShaderName: %s", srcPath.c_str());
+				delete material;
+				return false;
+			}
+
+			if (document.HasMember("Parameters") && document["Parameters"].IsObject())
+			{
+				const auto& parameters = document["Parameters"].GetObject();
+				for (auto itr = parameters.MemberBegin(); itr != parameters.MemberEnd(); ++itr)
+				{
+					if (itr->value.IsString())
+					{
+						String paramName = itr->name.GetString();
+						String paramSoftPath = itr->value.GetString();
+
+						GameObject* obj = GetResource(NameHandle(paramSoftPath));
+						if (GameResource* res = dynamic_cast<GameResource*>(obj))
+						{
+							material->SetTextureParameter(NameHandle(paramName), res->GetGUID());
+						}
+						else
+						{
+							LOG("Warning: Failed to load texture resource for parameter %s: %s",
+								paramName.c_str(), paramSoftPath.c_str());
+							delete material;
+							return false;
+						}
+					}
+				}
+			}
+
+			String matSoftPath = CovertFullPathToSoftPath(destPath, FileModule::GetFileName(destPath));
+			CheckUniqueSoftPath(matSoftPath);
+			material->SetResourceName(matSoftPath);
+			material->SetOuter(newPackage);
+
+			TGuid materialGuid = material->GetGUID();
+			GetModule()->ResourcePathMap.emplace(materialGuid, matSoftPath);
+
+			newPackage->AddResource(material);
+			
+			LOG("Successfully import material file: %s", matSoftPath.c_str());
+		}
+		if (GetModule()->SavePackage(newPackage))
+		{
+			LOG("Successfully import and save package: %s", pacName.c_str());
+			TGuid pakGuid = newPackage->GetGUID();
+			GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
+			GetModule()->RegisterPackage(newPackage);
+			return true;
 		}
 		return false;
 	}
@@ -408,7 +517,7 @@ namespace Thunder
 				String relativePath = fileName.substr(srcDict.length());
 				String destPath = destDict + relativePath;
 				destPath = FileModule::SwitchFileExtension(destPath, "tasset");
-				Import(fileName, destPath);
+				ForceImport(fileName, destPath);
 			}
 		}
 		else
@@ -416,4 +525,5 @@ namespace Thunder
 			//todo 增量导入
 		}
 	}
+#endif
 }

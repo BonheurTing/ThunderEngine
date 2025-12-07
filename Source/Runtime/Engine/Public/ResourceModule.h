@@ -11,7 +11,7 @@ namespace Thunder
 
 	public:
 		void StartUp() override {}
-		void ShutDown() override {}
+		void ShutDown() override;
 		static void InitResourcePathMap(); // must after StartUp
 
 		/**
@@ -25,24 +25,30 @@ namespace Thunder
 		static String ConvertSoftPathToFullPath(const String& softPath, const String& extension = ".tasset");
 		static bool CheckUniqueSoftPath(String& softPath);
 		// 离线 fbx/png/tga -> uasset
-		static bool Import(const String& srcPath, const String& destPath);
+#if WITH_EDITOR
+		static bool ForceImport(const String& srcPath, const String& destPath);
 		void ImportAll(bool bForce = true);
+#endif
 
 		// runtime
 		// load package
 		static bool LoadSync(const TGuid& guid, TArray<GameResource*> &outResources, bool bForce = false);
+		static bool ForceLoadBySoftPath(const NameHandle& softPath);
 		// load game resource
 		static GameResource* LoadSync(const TGuid& guid, bool bForce = false);
 		static void LoadAsync(const TGuid& guid);
 
 		static bool IsLoaded(const TGuid& guid) { return GetModule()->LoadedResources.contains(guid); }
-		bool SavePackage(Package* package, const String& fullPath);
+		bool SavePackage(Package* package);
 		void RegisterPackage(Package* package);
 
 		static void AddResourcePathPair(const TGuid& guid, const NameHandle& path) { GetModule()->ResourcePathMap.emplace(guid, path); }
 		static void ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function);
 
 		// get resource
+#if WITH_EDITOR
+		static GameObject* GetResource(NameHandle softPath);
+#endif
 		template<typename T>
 		static TArray<GameObject*> GetResourceByClass()
 		{
@@ -56,13 +62,14 @@ namespace Thunder
 			}
 			return result;
 		}
+
+		
 	private:
 		static GameObject* TryGetLoadedResource(const TGuid& guid);
-		static bool ForceLoadBySoftPath(const NameHandle& softPath);
 
 	private:
 		TMap<TGuid, GameObject*> LoadedResources {}; // 已加载的资源(Package/GameResource)，使用 TGuid 作为键
-#ifdef WITH_EDITOR
+#if WITH_EDITOR
 		TMap<NameHandle, TGuid> LoadedResourcesByPath {}; // 使用虚拟路径作为键, 便于开发者使用，editor only
 #endif												// 导入资源和新建/生成时需要检查重名问题，package load原则上不用检查
 

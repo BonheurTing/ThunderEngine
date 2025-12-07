@@ -47,15 +47,7 @@ namespace Thunder
 
     void RenderMaterial::CacheParameters(MaterialParameterCache* gameMaterialCache)
     {
-        if (!gameMaterialCache)
-        {
-            return;
-        }
-        ParameterCache.IntParameters = gameMaterialCache->IntParameters;
-        ParameterCache.FloatParameters = gameMaterialCache->FloatParameters;
-        ParameterCache.VectorParameters = gameMaterialCache->VectorParameters;
-        ParameterCache.TextureParameters = gameMaterialCache->TextureParameters;
-        ParameterCache.StaticParameters = gameMaterialCache->StaticParameters;
+        ParameterCache = gameMaterialCache;
     }
 
     void RenderMaterial::UpdateConstantBuffer()
@@ -133,5 +125,10 @@ namespace Thunder
         //     //     cmdList->SetShaderResourceView(slot, texture->GetSRV());
         //     // }
         // }
+    }
+
+    const TMap<NameHandle, bool>& RenderMaterial::GetStaticParameters() const
+    {
+        return ParameterCache->StaticParameters;
     }
 }

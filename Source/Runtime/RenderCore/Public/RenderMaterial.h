@@ -15,15 +15,7 @@ namespace Thunder
     struct TShaderRegisterCounts;
     struct TGraphicsPipelineStateDescriptor;
     class GameMaterial;
-
-    struct MaterialParameterCache
-    {
-        TMap<NameHandle, int32> IntParameters;
-        TMap<NameHandle, float> FloatParameters;
-        TMap<NameHandle, TVector4f> VectorParameters;
-        TMap<NameHandle, TGuid> TextureParameters;
-        TMap<NameHandle, bool> StaticParameters;
-    };
+    class MaterialParameterCache;
 
     // FMaterialResource + FMaterialRenderProxy
     class RenderMaterial
@@ -56,13 +48,13 @@ namespace Thunder
             uint64 variantId = 0) const;
 
         void BindParametersToRHI(class RHICommandList* cmdList) const;
-        const MaterialParameterCache& GetParameterCache() const { return ParameterCache; }
-        const TMap<NameHandle, bool>& GetStaticParameters() { return ParameterCache.StaticParameters; }
+        //const MaterialParameterCache& GetParameterCache() const { return ParameterCache; }
+        const TMap<NameHandle, bool>& GetStaticParameters() const;
 
     private:
         ShaderArchive* CompiledShaderMap { nullptr }; // shader module manages lifetime
         TShaderRegisterCounts RegisterCounts {};
-        MaterialParameterCache ParameterCache;
+        MaterialParameterCache* ParameterCache; //
 
         TRefCountPtr<RHIConstantBuffer> ConstantBuffer;
     };

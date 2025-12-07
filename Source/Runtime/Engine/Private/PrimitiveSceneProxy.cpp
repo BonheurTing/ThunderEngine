@@ -51,12 +51,6 @@ namespace Thunder
         
     }
 
-    void StaticMeshSceneProxy::GetDynamicMeshElements()
-    {
-
-        
-    }
-
     void SceneView::CullSceneProxies()
     {
         VisibleSceneProxies.clear();

@@ -15,6 +15,7 @@ namespace Thunder
     	bool RHIInit(EGfxApiType type);
 		int32 Run();
         void Exit();
+		void SimulateEditor();
 
 		static std::atomic<bool> IsRequestingExit;
 		static class IEvent* EngineExitSignal;

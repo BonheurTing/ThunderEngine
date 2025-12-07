@@ -33,6 +33,7 @@
 #  define D3D12RHI_DEPRECATED_NO_EXPORT D3D12RHI_NO_EXPORT D3D12RHI_DEPRECATED
 #endif
 
+/* NOLINTNEXTLINE(readability-avoid-unconditional-preprocessor-if) */
 #if 0 /* DEFINE_NO_DEPRECATED */
 #  ifndef D3D12RHI_NO_DEPRECATED
 #    define D3D12RHI_NO_DEPRECATED

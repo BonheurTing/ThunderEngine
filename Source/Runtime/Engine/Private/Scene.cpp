@@ -178,7 +178,7 @@ namespace Thunder
 
 	void Scene::OnLoaded()
 	{
-		LOG("Scene ended streaming: %s", SceneName.c_str());
+		LOG("------------ Scene ended streaming: %s", SceneName.c_str());
 		GameModule::RegisterTickable(this);
 	}
 

@@ -2,6 +2,8 @@
 #include "BinaryData.h"
 #include "CoreMinimal.h"
 #include "CommonUtilities.h"
+#include "Guid.h"
+#include "Vector.h"
 #include "Templates/RefCountObject.h"
 
 namespace Thunder
@@ -76,11 +78,10 @@ namespace Thunder
     	bool Default;
     	bool Fallback;
     	bool Visible;
-    	NameHandle Texture;
     
     	ShaderVariantMeta() {Default = false; Fallback = false; Visible = false;}
     	ShaderVariantMeta(const String& name, const String& defaultValue = "", const String& fallback = "",
-    	            const String& visible = "",const String& texture = "") : Name(name), Texture(texture)
+    	            const String& visible = "",const String& texture = "") : Name(name)
     	{
     		Default = CommonUtilities::StringToBool(defaultValue, false);
     		Fallback = CommonUtilities::StringToBool(fallback, false);
@@ -92,8 +93,7 @@ namespace Thunder
     		return Name == value.Name
     		&& Default == value.Default
     		&& Fallback == value.Fallback
-    		&& Visible == value.Visible
-    		&& Texture == value.Texture;
+    		&& Visible == value.Visible;
     	}
     };
 
@@ -140,5 +140,69 @@ namespace Thunder
     	ForceLocal,
     	Max
     };
+
+	struct MaterialParameterCache
+	{
+		TMap<NameHandle, int32> IntParameters;
+		TMap<NameHandle, float> FloatParameters;
+		TMap<NameHandle, TVector4f> VectorParameters;
+		TMap<NameHandle, TGuid> TextureParameters;
+		TMap<NameHandle, bool> StaticParameters;
+
+		MaterialParameterCache() = default;
+
+		MaterialParameterCache(const MaterialParameterCache& other)
+		{
+			if (this == &other)
+			{
+				return;
+			}
+			IntParameters = other.IntParameters;
+			FloatParameters = other.FloatParameters;
+			VectorParameters = other.VectorParameters;
+			TextureParameters = other.TextureParameters;
+			StaticParameters = other.StaticParameters;
+		}
+
+		MaterialParameterCache(MaterialParameterCache&& other) noexcept
+		{
+			if (this == &other)
+			{
+				return;
+			}
+			IntParameters = std::move(other.IntParameters);
+			FloatParameters = std::move(other.FloatParameters);
+			VectorParameters = std::move(other.VectorParameters);
+			TextureParameters = std::move(other.TextureParameters);
+			StaticParameters = std::move(other.StaticParameters);
+		}
+
+		MaterialParameterCache& operator=(const MaterialParameterCache& other)
+		{
+			if (this != &other)
+			{
+				IntParameters = other.IntParameters;
+				FloatParameters = other.FloatParameters;
+				VectorParameters = other.VectorParameters;
+				TextureParameters = other.TextureParameters;
+				StaticParameters = other.StaticParameters;
+			}
+			return *this;
+		}
+
+		MaterialParameterCache& operator=(MaterialParameterCache&& other) noexcept
+		{
+			if (this == &other)
+			{
+				return *this;
+			}
+			IntParameters = std::move(other.IntParameters);
+			FloatParameters = std::move(other.FloatParameters);
+			VectorParameters = std::move(other.VectorParameters);
+			TextureParameters = std::move(other.TextureParameters);
+			StaticParameters = std::move(other.StaticParameters);
+			return *this;
+		}
+	};
 }
 

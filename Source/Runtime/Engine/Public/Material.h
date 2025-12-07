@@ -69,8 +69,8 @@ namespace Thunder
 		// ========== Sync RenderThread ==========
 		void UpdateRenderResource() override;
 
-		const MaterialParameterCache* GetParameterCache() const { return OverrideParameters; }
-		void SetParameterCache(const MaterialParameterCache* parameterCache) const;
+		//const MaterialParameterCache* GetParameterCache() const { return OverrideParameters; }
+		void ResetDefaultParameters() const;
 
 	private:
 		MaterialParameterCache* OverrideParameters;

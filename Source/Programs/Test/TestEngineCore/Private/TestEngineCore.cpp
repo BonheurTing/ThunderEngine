@@ -60,7 +60,7 @@ namespace Thunder
 		// "/Game/123"
 		// "/Game/Mesh/Cube"
 		// "/Game/TestPNG"
-		if(ResourceModule::LoadSync("/Game/TestPNG", res, true))
+		if(ResourceModule::ForceLoadBySoftPath("/Game/Mesh/Cube"))
 		{
 			LOG("success load package, resource count: %llu", res.size());
 		}

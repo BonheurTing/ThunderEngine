@@ -11,6 +11,7 @@ namespace Thunder
 }
 
 using namespace Thunder;
+#define WITH_EDITOR 0
 
 int main()
 {
@@ -18,10 +19,13 @@ int main()
     EngineMain* GEngine = new EngineMain();
 
     GEngine->FastInit();
+
+#if WITH_EDITOR
+    GEngine->SimulateEditor();
+#else
     GEngine->Run();
-
     EngineMain::EngineExitSignal->Wait();
-
+#endif
     GEngine->Exit();
 
     LOG("exit");

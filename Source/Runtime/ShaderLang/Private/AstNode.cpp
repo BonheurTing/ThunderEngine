@@ -1632,6 +1632,30 @@ namespace Thunder
     //////////////////////////////////////////////////////////////////////////
     // Tokenize
 
+    String strip_quotes(const char* text) {
+        if (text == nullptr) {
+            return "";
+        }
+
+        size_t len = std::strlen(text);
+    
+        if (len == 0) {
+            return "";
+        }
+
+        if (len >= 2) {
+            char first = text[0];
+            char last = text[len - 1];
+
+            if (first == '"' && last == '"')
+            {
+                return String(text + 1, len - 2);
+            }
+        }
+
+        return String(text);
+    }
+
     int tokenize(token_data& t, const parse_location* loc, const char* text, int text_len, int token)
     {
         sl_state->current_text = text;
@@ -1666,7 +1690,7 @@ namespace Thunder
         }
         
         t.token_id = token;
-        t.text = text;
+        t.text = strip_quotes(text);
         t.length = text_len;
 
         return t.token_id;

@@ -1,3 +1,4 @@
+#pragma optimize("", off)
 #include "ShaderModule.h"
 #include <fstream>
 #include <sstream>
@@ -183,6 +184,14 @@ namespace Thunder
 			GetModule()->ShaderMap[st->shader_name] = newArchive;
 			LOG("Succeed to Parse %s", metaFileName.c_str());
 		}
+
+		// print all shader
+		LOG("--------- All Shader %d Begin ---------", static_cast<int32>(GetModule()->ShaderMap.size()));
+		for (const auto& [fst, snd] : GetModule()->ShaderMap)
+		{
+			LOG("Name: %s, SourcePath: %s", fst.c_str(), snd->GetSourcePath().c_str());
+		}
+		LOG("--------- All Shader End ---------\n");
 	}
 
 	uint64 ShaderModule::GetVariantMask(ShaderArchive* archive, const TMap<NameHandle, bool>& parameters)
@@ -217,7 +226,7 @@ namespace Thunder
 			ShaderCombination* shaderVariant = subShader->GetShaderCombination(variantMask);
 			if (shaderVariant == nullptr)
 			{
-				//shaderVariant = ShaderModule::SyncCompileShader(ArchiveName, SubShaderName, VariantMask); //todo
+				shaderVariant = SyncCompilePSO(archive, subShader->GetName(), variantMask);
 			}
 			return shaderVariant;
 		}
@@ -237,7 +246,7 @@ namespace Thunder
 		return GetModule()->PSOMap[psoKey];
 	}
 
-	bool ShaderModule::ParseShaderFile()
+	bool ShaderModule::ParseShaderFile_Deprecated()
     {
     	TArray<String> shaderNameList;
     	FileModule::TraverseFileFromFolderWithFormat(FileModule::GetEngineRoot() + "\\Shader", shaderNameList, "shader");
@@ -385,6 +394,15 @@ namespace Thunder
     	return false;
     }
 
+	MaterialParameterCache ShaderModule::ParseShaderParameters(NameHandle archiveName)
+	{
+		if (ShaderArchive* archive = GetShaderArchive(archiveName))
+		{
+			return archive->GenerateParameterCache();
+		}
+		return {};
+	}
+
 	ShaderArchive* ShaderModule::GetShaderArchive(NameHandle name)
 	{
 		if (GetModule()->ShaderMap.contains(name))
@@ -466,5 +484,14 @@ namespace Thunder
     	}
     	return ShaderMap[shaderType]->CompileShaderPass(passName, VariantId);
     }
+
+    ShaderCombination* ShaderModule::SyncCompilePSO(ShaderArchive* archive, NameHandle passName, uint64 variantMask)
+    {
+		String sourceCode = archive->GenerateShaderSource(passName, variantMask);
+		BinaryData outByteCode;
+		GetModule()->ShaderCompiler->Compile(sourceCode, sourceCode.size(), outByteCode);
+		return nullptr;
+    }
 }
 
+#pragma optimize("", on)

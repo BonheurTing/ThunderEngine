@@ -40,11 +40,15 @@ namespace Thunder
     	ShaderCombination* GetShaderCombination(const String& combinationHandle);
     	ShaderCombination* GetShaderCombination(NameHandle shaderName, NameHandle passName, uint64 variantId);
 
-    	bool ParseShaderFile();
+    	bool ParseShaderFile_Deprecated();
+    	static MaterialParameterCache ParseShaderParameters(NameHandle archiveName);
 		void Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode);
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, const THashMap<NameHandle, bool>& variantParameters, bool force = false);
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 variantId, bool force = false);
 
+    private:
+    	static ShaderCombination* SyncCompilePSO(ShaderArchive* archive, NameHandle passName, uint64 variantMask);
+    	
     private:
     	THashMap<NameHandle, ShaderArchive*> ShaderMap;
     	TRefCountPtr<ICompiler> ShaderCompiler;

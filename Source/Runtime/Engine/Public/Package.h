@@ -39,7 +39,7 @@ namespace Thunder
 
 		void Serialize(MemoryWriter& archive);
 		void DeSerialize(MemoryReader& archive);
-		bool Save(const String& fullPath);
+		bool Save();
 		bool Load();
 		static bool TraverseGuidInPackage(const String& fullPath, TGuid& outGuid);
 

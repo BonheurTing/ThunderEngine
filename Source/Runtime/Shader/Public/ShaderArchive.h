@@ -38,6 +38,9 @@ namespace Thunder
 			//TD3D12RHIModule::GetRootSignatureManager().RegisterRootSignature(Name, RegisterCounts);
 			return false;
 		}
+
+		_NODISCARD_ NameHandle GetName() const { return Name; }
+		
     private:
     	NameHandle Name;
     	uint64 PassVariantMask;
@@ -52,10 +55,13 @@ namespace Thunder
 	{
 		ShaderAST(ast_node* inRoot): ASTRoot(inRoot) {}
 		~ShaderAST();
-		ast_node* ASTRoot = nullptr;
 
 		// parse ast to obtain Property/Variant/Parameters
 		void ParseAllTypeParameters(class ShaderArchive* archive) const;
+		String GenerateShaderVariantSource(NameHandle passName, const TArray<ShaderVariantMeta>& variants);
+
+	private:
+		ast_node* ASTRoot = nullptr;
 	};
 
     class ShaderArchive
@@ -91,13 +97,19 @@ namespace Thunder
     		PasseParameterMeta.emplace(name, metas);
     	}
     	void SetRenderState(const RenderStateMeta& meta) {renderState = meta;}
-    
+
+	    _NODISCARD_ NameHandle GetName() const { return Name; }
+    	_NODISCARD_ String GetSourcePath() const { return SourcePath; }
     	ShaderPass* GetPass(NameHandle name);
     	ShaderPass* GetSubShader(EMeshPass meshPassType);
     	String GetShaderSourceDir() const;
     	void GenerateIncludeString(NameHandle passName, String& outFile);
 		void CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount);
     	bool CompileShaderPass(NameHandle passName, uint64 variantId, bool force = false);
+
+    	// new
+    	String GenerateShaderSource(NameHandle passName, uint64 variantId);
+    	MaterialParameterCache GenerateParameterCache();
     	
     private:
     	String SourcePath;

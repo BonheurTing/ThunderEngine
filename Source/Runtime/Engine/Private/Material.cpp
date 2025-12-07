@@ -134,7 +134,7 @@ namespace Thunder
 			archive << pair.second;
 		}
 
-		// Serialize float parameters
+		// Serialize virant parameters
 		uint32 boolParamCount = static_cast<uint32>(OverrideParameters->StaticParameters.size());
 		archive << boolParamCount;
 		for (const auto& pair : OverrideParameters->StaticParameters)
@@ -242,7 +242,6 @@ namespace Thunder
 	void GameMaterial::SetTextureParameter(const NameHandle& paramName, const TGuid& textureGuid)
 	{
 		OverrideParameters->TextureParameters[paramName] = textureGuid;
-		// Add texture GUID to dependencies
 		AddDependency(textureGuid);
 		MarkRenderStateDirty();
 	}
@@ -334,16 +333,8 @@ namespace Thunder
 		}
 	}
 
-	void GameMaterial::SetParameterCache(const MaterialParameterCache* parameterCache) const
+	void GameMaterial::ResetDefaultParameters() const
 	{
-		if (parameterCache == nullptr || OverrideParameters == nullptr)
-		{
-			return;
-		}
-		OverrideParameters->IntParameters = parameterCache->IntParameters;
-		OverrideParameters->FloatParameters = parameterCache->FloatParameters;
-		OverrideParameters->VectorParameters = parameterCache->VectorParameters;
-		OverrideParameters->TextureParameters = parameterCache->TextureParameters;
-		OverrideParameters->StaticParameters = parameterCache->StaticParameters;
+		*OverrideParameters = ShaderModule::ParseShaderParameters(ArchiveName);
 	}
 }

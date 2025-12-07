@@ -75,7 +75,7 @@ namespace Thunder
         {
             return new (TMemory::Malloc<DeferredShadingRenderer>()) DeferredShadingRenderer; 
         };
-        GameModule::GetModule()->InitGameThread(defaultRendererFactory);
+        GameModule::GetModule()->InitGameThread(defaultRendererFactory); //bonheur test
     }
 
     bool EngineMain::RHIInit(EGfxApiType type)
@@ -132,5 +132,10 @@ namespace Thunder
         ModuleManager::GetInstance()->UnloadModule<ShaderModule>();
         ModuleManager::GetInstance()->UnloadModule<FileModule>();
         ModuleManager::GetInstance()->UnloadModule<CoreModule>();
+    }
+
+    void EngineMain::SimulateEditor()
+    {
+        GameModule::TestEditor();
     }
 }

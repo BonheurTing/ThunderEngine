@@ -14,8 +14,6 @@ namespace Thunder
         ENGINE_API PrimitiveSceneProxy(const PrimitiveComponent* inComponent);
         virtual ~PrimitiveSceneProxy() = default;
 
-        virtual void GetDynamicMeshElements() = 0;
-
         void AddDrawCall(FRenderContext* context, EMeshPass meshPassType);
         bool NeedRenderView(EViewType type) { return true; }
 
@@ -28,7 +26,6 @@ namespace Thunder
     public:
         ENGINE_API StaticMeshSceneProxy(class StaticMeshComponent* inComponent);
 
-        void GetDynamicMeshElements() override;
     };
 }
 

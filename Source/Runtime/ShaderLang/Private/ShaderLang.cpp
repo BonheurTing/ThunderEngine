@@ -139,21 +139,21 @@ namespace Thunder
 		}
 		else if (name.token_id == TOKEN_PARAMETERS)
 		{
-			if (text.text == "\"Object\"")
+			if (text.text == "Object")
 			{
 				for (const auto& var : current_variables)
 				{
 					current_archive->add_object_parameter(var);
 				}
 			}
-			else if (text.text == "\"Pass\"")
+			else if (text.text == "Pass")
 			{
 				for (const auto& var : current_variables)
 				{
 					current_archive->add_pass_parameter(var);
 				}
 			}
-			else if (text.text == "\"Global\"")
+			else if (text.text == "Global")
 			{
 				for (const auto& var : current_variables)
 				{
@@ -756,7 +756,8 @@ namespace Thunder
 		printf("\n");
 		String outHlsl;
 		ast_root->generate_hlsl(outHlsl);
-		printf("-------generate hlsl-------\n%s", outHlsl.c_str());
+		printf("------------ Generate HLSL ------------\n%s", outHlsl.c_str());
+		printf("------------ Generate HLSL End ------------\n\n");
 
 		/*printf("\n-------DXCompiler-------\n");
 		BinaryData ByteCode;

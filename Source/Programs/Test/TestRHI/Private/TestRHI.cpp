@@ -120,7 +120,7 @@ int main()
 
     // Test Parse Shader File
     ShaderModule* shaderModule = ShaderModule::GetModule();
-    if (shaderModule->ParseShaderFile())
+    if (shaderModule->ParseShaderFile_Deprecated())
     {
         std::cout << "Succeed to Parse Shader File" << std::endl;
     }

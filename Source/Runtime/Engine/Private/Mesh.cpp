@@ -108,4 +108,9 @@ namespace Thunder
 		}
 	}
 
+	void StaticMesh::AddMaterial(IMaterial* material)
+	{
+		DefaultMaterials.push_back(material);
+		AddDependency(material->GetGUID());
+	}
 }

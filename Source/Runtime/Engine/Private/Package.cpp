@@ -56,10 +56,10 @@ namespace Thunder
 		}
 	}
 
-	bool Package::Save(const String& fullPath)
+	bool Package::Save()
 	{
-		TAssert(!(fullPath.empty() || fullPath == "/"));
-		TAssert(Header.GuidList.empty());
+		TAssert(!(PackageName.ToString().empty() || PackageName == "/"));
+		String fullPath = ResourceModule::ConvertSoftPathToFullPath(PackageName.ToString());
 
 		// Prepare the package header.
 		const auto numGuids = static_cast<uint32>(Objects.size());
@@ -238,6 +238,7 @@ namespace Thunder
 				return false; // 不支持的资源类型
 			}
 			gameResource->DeSerialize(objectArchive);
+			gameResource->SetOuter(this);
 			gameResource->SetGuid(Header.GuidList[i]);
 			String resourceName = PackageName.ToString() + "." + resourceSuffixList[i];
 			gameResource->SetResourceName(resourceName);
@@ -356,8 +357,7 @@ namespace Thunder
 			{
 				const auto res = static_cast<GameResource*>(loadedRes);
 				TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource");
-				TArray<TGuid> dependencies;
-				res->GetDependencies(dependencies);
+				TArray<TGuid> dependencies = res->GetDependencies();
 				for (const auto& dependency : dependencies)
 				{
 					LoadSync(dependency, false);
@@ -375,7 +375,6 @@ namespace Thunder
 
 		const auto newPackage = new Package(pakSoftPath);
 		bool ret = newPackage->Load();
-		delete newPackage;
 		return ret;
 	}
 
@@ -404,20 +403,20 @@ namespace Thunder
 		return GetModule()->LoadedResources[guid];
 	}
 
-	bool ResourceModule::SavePackage(Package* package, const String& fullPath)
+	bool ResourceModule::SavePackage(Package* package)
 	{
 		if (!package)
 		{
 			return false; // 如果包为空，则不保存
 		}
-		return package->Save(fullPath);
+		return package->Save();
 	}
 
 	void ResourceModule::RegisterPackage(Package* package)
 	{
 		TGuid pakGuid = package->GetGUID();
 		LoadedResources.emplace(pakGuid, package);
-#ifdef WITH_EDITOR
+#if WITH_EDITOR
 		LoadedResourcesByPath.emplace(package->GetPackageName(), pakGuid);
 #endif
 
@@ -426,7 +425,7 @@ namespace Thunder
 		{
 			TGuid objGuid = obj->GetGUID();
 			LoadedResources.emplace(objGuid, obj);
-#ifdef WITH_EDITOR
+#if WITH_EDITOR
 			LoadedResourcesByPath.emplace(obj->GetResourceName(), objGuid);
 #endif
 		}
@@ -440,4 +439,15 @@ namespace Thunder
 			function(pair.first, pair.second);
 		}
 	}
+
+#if WITH_EDITOR
+	GameObject* ResourceModule::GetResource(NameHandle softPath)
+	{
+		if (GetModule()->LoadedResourcesByPath.contains(softPath))
+		{
+			return GetModule()->LoadedResources[GetModule()->LoadedResourcesByPath[softPath]];
+		}
+		return nullptr;
+	}
+#endif
 }

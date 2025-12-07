@@ -39,13 +39,12 @@ namespace Thunder
 		void Serialize(MemoryWriter& archive) override;
 		void DeSerialize(MemoryReader& archive) override;
 
+		void AddMaterial(IMaterial* material);
+
 		RenderMesh* CreateResource_GameThread() override;
 
 	public:
-		TArray<SubMesh*> SubMeshes {};
-		TArray<IMaterial*> DefaultMaterials {};
-
-		// UProperty()
-		// TArray<TGuid> DefaultMaterialGuids{};
+		TArray<SubMesh*> SubMeshes {}; //Serialize
+		TArray<IMaterial*> DefaultMaterials {}; // Dependencies guid
 	};
 }

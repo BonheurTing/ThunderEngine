@@ -1,4 +1,5 @@
-﻿#include "ShaderArchive.h"
+﻿#pragma optimize("", off)
+#include "ShaderArchive.h"
 #include <algorithm>
 #include <sstream>
 #include "Assertion.h"
@@ -407,6 +408,13 @@ namespace Thunder
     	}
 	}
 
+	String ShaderAST::GenerateShaderVariantSource(NameHandle passName, const TArray<ShaderVariantMeta>& variants)
+	{
+    	String result = "";
+    	ASTRoot->generate_hlsl(result);
+    	return result;
+	}
+
 	ShaderArchive::ShaderArchive(String sourceFilePath, NameHandle shaderName, ast_node* astRoot)
 	    : SourcePath(std::move(sourceFilePath)), Name(shaderName)
     {
@@ -484,4 +492,42 @@ namespace Thunder
     	}
     	return targetPass->CompileShader(Name, shaderSource, shaderIncludeStr, variantId);
     }
+
+    String ShaderArchive::GenerateShaderSource(NameHandle passName, uint64 variantId)
+    {
+    	return AST->GenerateShaderVariantSource(passName, {});
+    }
+
+    MaterialParameterCache ShaderArchive::GenerateParameterCache()
+    {
+    	MaterialParameterCache newVisibleParameters;
+    	for (auto meta : PropertyMeta)
+    	{
+    		if (meta.Type == "int")
+    		{
+    			newVisibleParameters.FloatParameters.emplace(meta.Name, std::stof(meta.Default));
+    		}
+    		else if (meta.Type == "float")
+    		{
+    			newVisibleParameters.VectorParameters.emplace(meta.Name, std::stof(meta.Default));
+    		}
+    		else if (meta.Type == "float4")
+    		{
+    			newVisibleParameters.VectorParameters.emplace(meta.Name, TVector4f());
+    		}
+    		else if (meta.Type == "Texture2D")
+    		{
+    			newVisibleParameters.TextureParameters.emplace(meta.Name, TGuid());
+    		}
+    	}
+    	for (auto meta : VariantMeta)
+    	{
+    		if (meta.Visible)
+    		{
+    			newVisibleParameters.StaticParameters.emplace(meta.Name, meta.Default);
+    		}
+    	}
+    	return newVisibleParameters;
+    }
 }
+#pragma optimize("", on)

@@ -77,6 +77,7 @@ namespace Thunder
 				ControlBlock->MarkAsDestroyed();
 			}
 		}
+		void SetOuter(GameObject* inOuter) { Outer = inOuter; }
 		_NODISCARD_ GameObject* GetOuter() const { return Outer; }
 		_NODISCARD_ GameObjectControlBlock* GetControlBlock() const { return ControlBlock; }
 
@@ -111,7 +112,7 @@ namespace Thunder
 		_NODISCARD_ ETempGameResourceReflective GetResourceType() const { return ResourceType; }
 		_NODISCARD_ const NameHandle& GetResourceName() const { return ResourceName; }
 		void AddDependency(const TGuid& guid) { Dependencies.push_back(guid); }
-		_NODISCARD_ void GetDependencies(TArray<TGuid>& outDependencies) const { outDependencies = Dependencies; }
+		_NODISCARD_ const TArray<TGuid>& GetDependencies() { return Dependencies; }
 		void SetResourceName(const NameHandle& name) { ResourceName = name; }
 
 		virtual void Serialize(MemoryWriter& archive);

@@ -89,6 +89,9 @@ namespace Thunder
 	{
 		LOG("Material loaded: %s", GetResourceName().c_str());
 
+		//12.21 SimulateTest
+		ResetDefaultParameters();
+
 		UpdateRenderResource();
 	}
 

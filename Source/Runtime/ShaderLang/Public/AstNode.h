@@ -422,6 +422,7 @@ namespace Thunder
     public:
         ast_node_variable(ast_node_type_format* var_type, String name)
             : ast_node(enum_ast_node_type::variable), type(var_type), name(std::move(name)) {}
+        void set_default_value(const String& in_value) { default_value = in_value; }
 
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
@@ -430,6 +431,7 @@ namespace Thunder
         String name; // 用于存储变量名称
         dimensions dimension; // 用于存储变量的维度信息
         String semantic; // 用于存储shader语义
+        String default_value;
     };
 
     class ast_node_archive : public ast_node
@@ -498,7 +500,8 @@ namespace Thunder
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     private:
-        String name;  // SubShader name
+        friend class ShaderAST;
+        String name;
         shader_attributes attributes;
         TArray<ast_node_struct*> structures;
         TArray<ast_node_function*> functions;
@@ -738,7 +741,7 @@ namespace Thunder
         evaluate_expr_result(bool value) noexcept  // NOLINT(cppcoreguidelines-pro-type-member-init)
             : result_type(enum_eval_result_type::constant_bool), bool_value(value) {}
 
-        
+        String to_string() const;
     };
 
     class ast_node_expression : public ast_node

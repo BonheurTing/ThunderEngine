@@ -119,16 +119,16 @@ namespace Thunder
     	}
     }
 
-    uint64 ShaderPass::VariantNameToMask(const TArray<ShaderVariantMeta>& variantName) const
+    /*uint64 ShaderPass::VariantNameToMask(const TArray<ShaderVariantMeta>& variantName) const
     {
     	if (!variantName.empty())
     	{
     		uint64 mask = 0;
-    		const int totalVariantType = static_cast<int>(VariantDefinitionTable.size());
+    		const int totalVariantNum = static_cast<int>(VariantDefinitionTable.size());
     		for (auto& meta : variantName)
     		{
     			int i = 0;
-    			for (; i < totalVariantType; i++)
+    			for (; i < totalVariantNum; i++)
     			{
     				if (meta.Name == VariantDefinitionTable[i].Name)
     				{
@@ -136,30 +136,56 @@ namespace Thunder
     					break;
     				}
     			}
-    			TAssertf(i < totalVariantType, "Couldn't find variant %s", meta.Name);
+    			TAssertf(i < totalVariantNum, "Couldn't find variant %s", meta.Name);
     		}
     		return mask;
     	}
     	return 0;
+    }*/
+
+    uint64 ShaderPass::VariantNameToMask(const TMap<NameHandle, bool>& parameters) const
+    {
+    	uint64 mask = 0;
+    	const int totalVariantNum = static_cast<int>(VariantDefinitionTable.size());
+    	for (int i = 0; i < totalVariantNum; i++)
+    	{
+    		if (parameters.contains(VariantDefinitionTable[i].Name) && parameters.at(VariantDefinitionTable[i].Name))
+    		{
+    			mask = mask | (1ULL << i);
+    		}
+    	}
+    	return mask;
     }
-    
+
     void ShaderPass::VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, THashMap<NameHandle, bool>& shaderMarco) const
     {
-    	const int totalVariantType = static_cast<int>(VariantDefinitionTable.size());
-    	TAssertf(variantId >> totalVariantType == 0, "Error input VariantId");
-    	for (int i = 0; i < totalVariantType; i++)
+    	const int totalVariantNum = static_cast<int>(VariantDefinitionTable.size());
+    	TAssertf(variantId >> totalVariantNum == 0, "Error input VariantId");
+    	for (int i = 0; i < totalVariantNum; i++)
     	{
-    		if (variantMask & 1 << i)
+    		if (variantMask & (1ULL << i))
     		{
-    			shaderMarco[VariantDefinitionTable[i].Name] = (variantId & 1 << i) > 0;
+    			shaderMarco[VariantDefinitionTable[i].Name] = (variantId & (1ULL << i)) > 0;
     		}
     	}
     }
-    
-    void ShaderPass::GenerateVariantDefinitionTable(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta)
+
+    void ShaderPass::SetVariantDefinitionTable(const TArray<ShaderVariantMeta>& passVariantMeta)
+    {
+    	PassVariantMask = 0;
+    	int i = 0;
+    	for (auto& meta : passVariantMeta)
+    	{
+    		VariantDefinitionTable.push_back(meta);
+    		PassVariantMask = PassVariantMask | (1ULL << i);
+    		i++;
+    	}
+    }
+
+    void ShaderPass::GenerateVariantDefinitionTable_Deprecated(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta)
     {
     	// gen VariantDefinitionTable
-    	THashSet<NameHandle> variantDefinition;
+    	/*THashSet<NameHandle> variantDefinition;
     	for (auto& meta : passVariantMeta)
     	{
     		TAssertf(!variantDefinition.contains(meta.Name), "Duplicate variant definitions: %s", meta.Name);
@@ -192,7 +218,7 @@ namespace Thunder
     		{
     			meta.second.VariantMask = meta.second.VariantMask | VariantNameToMask( stageVariantMeta.at(meta.first) );
     		}
-    	}
+    	}*/
     }
 
     void ShaderPass::CacheDefaultShaderCache()
@@ -371,12 +397,14 @@ namespace Thunder
     			ShaderPropertyMeta meta{};
     			meta.Name = var->name;
     			meta.Type = var->type->get_type_text();
+    			meta.Default = var->default_value;
     			archive->AddPropertyMeta(meta);
     		}
     		for (ast_node_variable* var : node->variants)
     		{
     			ShaderVariantMeta meta{};
     			meta.Name = var->name;
+    			meta.Default = var->default_value.empty() ? false : (var->default_value == "true" ? true : false);
     			archive->AddVariantMeta(meta);
     		}
     		for (ast_node_variable* var : node->global_parameters)
@@ -384,6 +412,7 @@ namespace Thunder
     			ShaderParameterMeta meta{};
     			meta.Name = var->name;
     			meta.Type = var->type->get_type_text();
+    			meta.Default = var->default_value;
     			archive->AddGlobalParameterMeta(meta);
     		}
     		for (ast_node_variable* var : node->object_parameters)
@@ -391,6 +420,7 @@ namespace Thunder
     			ShaderParameterMeta meta{};
     			meta.Name = var->name;
     			meta.Type = var->type->get_type_text();
+    			meta.Default = var->default_value;
     			archive->AddObjectParameterMeta(meta);
     		}
     		TArray<ShaderParameterMeta> dummyPassMeta{};
@@ -399,11 +429,16 @@ namespace Thunder
     			ShaderParameterMeta meta{};
     			meta.Name = var->name;
     			meta.Type = var->type->get_type_text();
+    			meta.Default = var->default_value;
     			dummyPassMeta.push_back(meta);
     		}
     		for (ast_node_pass* var : node->passes)
     		{
-    			//archive->AddPassParameterMeta(name, dummyPassMeta);
+    			//parse subshader
+    			ShaderPass* currentPass = new ShaderPass(var->name);
+    			currentPass->SetVariantDefinitionTable(archive->VariantMeta);
+    			archive->AddSubShader(currentPass);
+    			archive->AddPassParameterMeta(var->name, dummyPassMeta);
     		}
     	}
 	}
@@ -498,6 +533,29 @@ namespace Thunder
     	return AST->GenerateShaderVariantSource(passName, {});
     }
 
+	void AddParameters(const TArray<ShaderParameterMeta>& parameterMeta, MaterialParameterCache& cache)
+    {
+    	for (auto meta : parameterMeta)
+    	{
+    		if (meta.Type == "int")
+    		{
+    			cache.FloatParameters.emplace(meta.Name, 0);
+    		}
+    		else if (meta.Type == "float")
+    		{
+    			cache.VectorParameters.emplace(meta.Name, 0.f);
+    		}
+    		else if (meta.Type == "float4")
+    		{
+    			cache.VectorParameters.emplace(meta.Name, TVector4f());
+    		}
+    		else if (meta.Type == "Texture2D")
+    		{
+    			cache.TextureParameters.emplace(meta.Name, TGuid());
+    		}
+    	}
+    }
+	
     MaterialParameterCache ShaderArchive::GenerateParameterCache()
     {
     	MaterialParameterCache newVisibleParameters;
@@ -505,11 +563,11 @@ namespace Thunder
     	{
     		if (meta.Type == "int")
     		{
-    			newVisibleParameters.FloatParameters.emplace(meta.Name, std::stof(meta.Default));
+    			newVisibleParameters.FloatParameters.emplace(meta.Name, 0);
     		}
     		else if (meta.Type == "float")
     		{
-    			newVisibleParameters.VectorParameters.emplace(meta.Name, std::stof(meta.Default));
+    			newVisibleParameters.VectorParameters.emplace(meta.Name, 0.f);
     		}
     		else if (meta.Type == "float4")
     		{
@@ -526,6 +584,12 @@ namespace Thunder
     		{
     			newVisibleParameters.StaticParameters.emplace(meta.Name, meta.Default);
     		}
+    	}
+    	AddParameters(GlobalParameterMeta, newVisibleParameters);
+    	AddParameters(ObjectParameterMeta, newVisibleParameters);
+    	for (auto val : PasseParameterMeta | std::views::values)
+    	{
+    		AddParameters(val, newVisibleParameters);
     	}
     	return newVisibleParameters;
     }

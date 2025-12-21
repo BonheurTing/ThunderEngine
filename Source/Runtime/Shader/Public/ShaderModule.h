@@ -47,7 +47,7 @@ namespace Thunder
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 variantId, bool force = false);
 
     private:
-    	static ShaderCombination* SyncCompilePSO(ShaderArchive* archive, NameHandle passName, uint64 variantMask);
+    	static ShaderCombination* SyncCompileShaderCombination(ShaderArchive* archive, NameHandle passName, uint64 variantMask);
     	
     private:
     	THashMap<NameHandle, ShaderArchive*> ShaderMap;

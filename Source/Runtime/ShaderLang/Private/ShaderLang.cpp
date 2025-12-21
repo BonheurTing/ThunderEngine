@@ -128,8 +128,7 @@ namespace Thunder
 		
 		if (default_value != nullptr)
 		{
-			// 这里可以将default_value转换为字符串存储到variable->value中
-			// 具体实现取决于如何处理默认值
+			variable->set_default_value(default_value->evaluate().to_string());
 		}
 
 		current_variables.push_back(variable);

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "ShaderDefinition.h"
+#include "../../Renderer/Public/MeshPassProcessor.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder
@@ -14,11 +15,13 @@ namespace Thunder
     	ShaderPass(NameHandle name) : Name(name), PassVariantMask(0) {}
 		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
         _NODISCARD_ TShaderRegisterCounts GetShaderRegisterCounts() const { return RegisterCounts; }
-    	uint64 VariantNameToMask(const TArray<ShaderVariantMeta>& variantName) const;
+    	//uint64 VariantNameToMask(const TArray<ShaderVariantMeta>& variantName) const;
+		uint64 VariantNameToMask(const TMap<NameHandle, bool>& parameters) const;
     	void VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, THashMap<NameHandle, bool>& shaderMarco) const;
-    	//void SetPassVariantMeta(const Array<VariantMeta>& meta) {VariantDefinitionTable = meta;}
     	void AddStageMeta(EShaderStageType type, const StageMeta& meta) {StageMetas[type] = meta;}
-    	void GenerateVariantDefinitionTable(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta);
+		//void SetPassVariantMeta(const Array<VariantMeta>& meta) {VariantDefinitionTable = meta;}
+		void SetVariantDefinitionTable(const TArray<ShaderVariantMeta>& passVariantMeta);
+    	void GenerateVariantDefinitionTable_Deprecated(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta);
     	void CacheDefaultShaderCache();
     	bool CheckCache(uint64 variantId) const
     	{
@@ -45,8 +48,8 @@ namespace Thunder
     	NameHandle Name;
     	uint64 PassVariantMask;
 		TShaderRegisterCounts RegisterCounts{};
-    	TArray<ShaderVariantMeta> VariantDefinitionTable; // 改了之后相关递归mask都要改
-    	THashMap<EShaderStageType, StageMeta> StageMetas;
+    	TArray<ShaderVariantMeta> VariantDefinitionTable; // 
+    	THashMap<EShaderStageType, StageMeta> StageMetas; //deprecated: Stage占哪几位mask
     	THashMap<uint64, ShaderCombinationRef> Variants;
     };
 	using ShaderPassRef = TRefCountPtr<ShaderPass>;
@@ -75,6 +78,10 @@ namespace Thunder
     	void AddPass(NameHandle name, ShaderPass* inPass)
     	{
     		Passes.emplace(name, ShaderPassRef(inPass));
+    	}
+    	void AddSubShader(ShaderPass* inPass)
+    	{
+    		SubShaders.emplace(EMeshPass::BasePass, ShaderPassRef(inPass));
     	}
     	void AddPropertyMeta(const ShaderPropertyMeta& meta)
     	{
@@ -112,6 +119,7 @@ namespace Thunder
     	MaterialParameterCache GenerateParameterCache();
     	
     private:
+    	friend class ShaderAST;
     	String SourcePath;
     	NameHandle Name;
     	ShaderAST* AST { nullptr }; // ShaderAST manages ast root lifetime

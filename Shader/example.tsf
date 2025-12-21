@@ -5,8 +5,8 @@ Shader "TestShader"
     }
     Variants
     {  
-        int _Variants = 0;
-        float4 _Variant1;
+        bool _Variant0 = false;
+        bool _Variant1;
     }
     Parameters "Pass"
     {

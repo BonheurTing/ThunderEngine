@@ -208,14 +208,8 @@ namespace Thunder
 		{
 			variantMask |= EnableLumen;
 		}
-	
-		for (variant : VariaparametersntParam)
-		{
-			if (BoolParameterLayout* layout = Ast->GetReflectionContainer()->GetBool(variant->GetName()));
-			{
-				variantMask |= (1 << layout->GetIndex()) << ShaderVariantsBegin;
-			}
-		}	*/
+		*/
+		variantMask = archive->GetSubShader(EMeshPass::BasePass)->VariantNameToMask(parameters);
 		return variantMask;
 	}
 
@@ -226,7 +220,7 @@ namespace Thunder
 			ShaderCombination* shaderVariant = subShader->GetShaderCombination(variantMask);
 			if (shaderVariant == nullptr)
 			{
-				shaderVariant = SyncCompilePSO(archive, subShader->GetName(), variantMask);
+				shaderVariant = SyncCompileShaderCombination(archive, subShader->GetName(), variantMask);
 			}
 			return shaderVariant;
 		}
@@ -247,7 +241,7 @@ namespace Thunder
 	}
 
 	bool ShaderModule::ParseShaderFile_Deprecated()
-    {
+    {/*
     	TArray<String> shaderNameList;
     	FileModule::TraverseFileFromFolderWithFormat(FileModule::GetEngineRoot() + "\\Shader", shaderNameList, "shader");
     	
@@ -375,7 +369,7 @@ namespace Thunder
     						stageVariantConfig[EShaderStageType::Compute] = StageVariantMeta;
     					}
     				}
-    				currentPass->GenerateVariantDefinitionTable(passVariantMeta, stageVariantConfig);
+    				currentPass->GenerateVariantDefinitionTable_Deprecated(passVariantMeta, stageVariantConfig);
     				TShaderRegisterCounts counts{};
     				currentShader->CalcRegisterCounts(passName, counts);
     				currentPass->SetShaderRegisterCounts(counts);
@@ -391,6 +385,7 @@ namespace Thunder
     	{
     		return true;
     	}
+    	*/
     	return false;
     }
 
@@ -485,7 +480,7 @@ namespace Thunder
     	return ShaderMap[shaderType]->CompileShaderPass(passName, VariantId);
     }
 
-    ShaderCombination* ShaderModule::SyncCompilePSO(ShaderArchive* archive, NameHandle passName, uint64 variantMask)
+    ShaderCombination* ShaderModule::SyncCompileShaderCombination(ShaderArchive* archive, NameHandle passName, uint64 variantMask)
     {
 		String sourceCode = archive->GenerateShaderSource(passName, variantMask);
 		BinaryData outByteCode;

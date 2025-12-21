@@ -1255,6 +1255,17 @@ namespace Thunder
 
 #pragma region Evaluate Functions
 
+    String evaluate_expr_result::to_string() const
+    {
+        switch (result_type)
+        {
+            case enum_eval_result_type::constant_bool: return bool_value ? "true" : "false";
+            case enum_eval_result_type::constant_int: return std::to_string(int_value);
+            case enum_eval_result_type::constant_float: return std::to_string(float_value);
+            default: return "";
+        }
+    }
+
     // 基类evaluate函数默认实现
     evaluate_expr_result ast_node_expression::evaluate()
     {

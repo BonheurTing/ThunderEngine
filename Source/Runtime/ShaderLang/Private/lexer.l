@@ -134,6 +134,10 @@ SV_Position		{ return TOKENIZE(TOKEN_SV); }
 "Variants"		{ return TOKENIZE(TOKEN_VARIANTS); }
 "Parameters"	{ return TOKENIZE(TOKEN_PARAMETERS); }
 "SubShader"		{ return TOKENIZE(TOKEN_SUBSHADER); }
+"Attributes"	{ return TOKENIZE(TOKEN_ATTRIBUTES); }
+"MeshDrawType"	{ return TOKENIZE(TOKEN_MESHDRAWTYPE); }
+"DepthTest"		{ return TOKENIZE(TOKEN_DEPTHTEST); }
+"BlendMode"		{ return TOKENIZE(TOKEN_BLENDMODE); }
 
 "using"			{ return TOKENIZE(TOKEN_USING); }
 "VertexEntry"	{ return TOKENIZE(TOKEN_VERTEX); }

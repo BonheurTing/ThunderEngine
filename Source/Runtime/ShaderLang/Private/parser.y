@@ -66,10 +66,11 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TYPE_BOOL TYPE_INT TYPE_UINT TYPE_HALF TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
 %token <token> TOKEN_IN TOKEN_INOUT TOKEN_OUT
 
-%token <token> TOKEN_IDENTIFIER TYPE_ID NEW_ID
+%token <token> TOKEN_IDENTIFIER KEY_ID TYPE_ID NEW_ID
 %token <token> TOKEN_INTEGER TOKEN_FLOAT STRING_CONSTANT
 
 %token <token> TOKEN_SHADER TOKEN_PROPERTIES TOKEN_VARIANTS TOKEN_PARAMETERS TOKEN_SUBSHADER
+%token <token> TOKEN_ATTRIBUTES TOKEN_MESHDRAWTYPE TOKEN_DEPTHTEST TOKEN_BLENDMODE
 %token <token> TOKEN_USING TOKEN_VERTEX TOKEN_PIXEL TOKEN_STRUCT
 %token <token> TOKEN_BREAK TOKEN_CONTINUE TOKEN_DISCARD TOKEN_RETURN
 %token <token> RPAREN RBRACKET RBRACE SEMICOLON
@@ -106,7 +107,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %nonassoc SEMICOLON
 
 /* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
-%type <token> identifier type_identifier new_identifier primary_identifier any_identifier
+%type <token> identifier key_identifier type_identifier new_identifier primary_identifier any_identifier
 %type <token> primitive_types scalar_types
 %type <node> definitions properties_definition variants_definition parameters_definition
 %type <token> inout_modifier type_qualification maybe_semantic
@@ -138,6 +139,10 @@ program:
 
 identifier:
     TOKEN_IDENTIFIER
+    ;
+
+key_identifier:
+    KEY_ID
     ;
 
 type_identifier:
@@ -252,8 +257,8 @@ passes:
     ;
 
 pass_definition:
-    TOKEN_SUBSHADER LBRACE {
-        sl_state->parsing_pass_begin();
+    TOKEN_SUBSHADER STRING_CONSTANT LBRACE {
+        sl_state->parsing_pass_begin($2);
     }
     pass_content RBRACE{
         $$ = sl_state->parsing_pass_end();
@@ -262,6 +267,7 @@ pass_definition:
 
 pass_content:
     stage_definition
+    | attributes_definition
     | struct_definition {
         sl_state->add_definition_member($1);
     }
@@ -269,11 +275,33 @@ pass_content:
         sl_state->add_definition_member($1);
     }
     | pass_content stage_definition
+    | pass_content attributes_definition
     | pass_content struct_definition {
         sl_state->add_definition_member($2);
     }
     | pass_content function_definition {
         sl_state->add_definition_member($2);
+    }
+    ;
+
+attributes_definition:
+    TOKEN_ATTRIBUTES LBRACE attribute_list RBRACE
+    ;
+
+attribute_list:
+    attribute_entry
+    | attribute_list COMMA attribute_entry
+    ;
+
+attribute_entry:
+    TOKEN_MESHDRAWTYPE COLON STRING_CONSTANT {
+        sl_state->add_attribute_entry($1, $3);
+    }
+    | TOKEN_DEPTHTEST COLON key_identifier {
+        sl_state->add_attribute_entry($1, $3);
+    }
+    | TOKEN_BLENDMODE COLON key_identifier {
+        sl_state->add_attribute_entry($1, $3);
     }
     ;
 

@@ -217,6 +217,26 @@ namespace Thunder
         undefined
     };
 
+    enum class enum_depth_test : uint8
+    {
+        undefined,
+        never,
+        less,
+        equal,
+        less_equal,
+        greater,
+        not_equal,
+        greater_equal,
+        always
+    };
+
+    enum class enum_blend_mode : uint8
+    {
+        undefined,
+        opaque,
+        masked
+    };
+
     enum class enum_symbol_type : uint8
     {
         variable,   // 变量 variable_declaration_statement
@@ -232,6 +252,15 @@ namespace Thunder
         String name;
         enum_symbol_type type = enum_symbol_type::undefined;
         class ast_node* owner = nullptr; //symbol所在的语法树节点
+    };
+
+    struct shader_attributes
+    {
+        String mesh_draw_type;  // "BasePass", "ShadowPass", etc.
+        enum_depth_test depth_test = enum_depth_test::undefined;
+        enum_blend_mode blend_mode = enum_blend_mode::undefined;
+
+        shader_attributes() = default;
     };
 
     struct parse_location
@@ -452,6 +481,11 @@ namespace Thunder
     {
     public:
         ast_node_pass() : ast_node(enum_ast_node_type::pass) {}
+        ast_node_pass(const String& pass_name) : ast_node(enum_ast_node_type::pass), name(pass_name) {}
+
+        void set_name(const String& pass_name) { name = pass_name; }
+        void set_attributes(const shader_attributes& attrs) { attributes = attrs; }
+
         void add_structure(class ast_node_struct* structure)
         {
             structures.push_back(structure);
@@ -460,10 +494,12 @@ namespace Thunder
         {
             functions.push_back(function);
         }
-        
+
         void generate_hlsl(String& outResult) override;
         void print_ast(int indent) override;
     private:
+        String name;  // SubShader name
+        shader_attributes attributes;
         TArray<ast_node_struct*> structures;
         TArray<ast_node_function*> functions;
     };

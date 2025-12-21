@@ -14,6 +14,8 @@ namespace Thunder
 		"inline", "sizeof"
 	};
 
+	TSet<String> key_id_list = {"Near", "Opaque", "Translucent"};
+
 	shader_lang_state::shader_lang_state()
 	{
 		current_location = new parse_location(0, 0, 0, 0, 0, 0);
@@ -97,6 +99,11 @@ namespace Thunder
 		return enum_symbol_type::undefined;
 	}
 
+	bool shader_lang_state::is_key_identifier(const String& name) const
+	{
+		return key_id_list.contains(name);
+	}
+
 	void shader_lang_state::parsing_archive_begin(const token_data& name)
 	{
 		shader_name = name.text;
@@ -172,17 +179,21 @@ namespace Thunder
 		current_variables.clear();
 	}
 
-	void shader_lang_state::parsing_pass_begin()
+	void shader_lang_state::parsing_pass_begin(const token_data& name)
 	{
 		TAssert(current_pass == nullptr);
-		current_pass = new ast_node_pass;
+		current_pass = new ast_node_pass(name.text);
+		current_attributes = shader_attributes(); // reset
 	}
 
 	ast_node* shader_lang_state::parsing_pass_end()
 	{
+		// 将收集到的 attributes 设置到 current_pass
+		current_pass->set_attributes(current_attributes);
 		current_archive->add_pass(current_pass);
 		ast_node_pass* dummy = current_pass;
 		current_pass = nullptr;
+		//current_attributes = shader_attributes();
 		return dummy;
 	}
 
@@ -202,6 +213,48 @@ namespace Thunder
 			{
 				debug_log("Invalid definition type in add_definition_member.");
 			}
+		}
+	}
+
+	void shader_lang_state::add_attribute_entry(const token_data& key, const token_data& value)
+	{
+		if (key.token_id == TOKEN_MESHDRAWTYPE)
+		{
+			current_attributes.mesh_draw_type = value.text;
+		}
+		else if (key.token_id == TOKEN_DEPTHTEST)
+		{
+			// 解析 DepthTest 枚举值
+			if (value.text == "Never") current_attributes.depth_test = enum_depth_test::never;
+			else if (value.text == "Less") current_attributes.depth_test = enum_depth_test::less;
+			else if (value.text == "Equal") current_attributes.depth_test = enum_depth_test::equal;
+			else if (value.text == "LessEqual") current_attributes.depth_test = enum_depth_test::less_equal;
+			else if (value.text == "Greater") current_attributes.depth_test = enum_depth_test::greater;
+			else if (value.text == "NotEqual") current_attributes.depth_test = enum_depth_test::not_equal;
+			else if (value.text == "GreaterEqual") current_attributes.depth_test = enum_depth_test::greater_equal;
+			else if (value.text == "Always") current_attributes.depth_test = enum_depth_test::always;
+			else if (value.text == "Near") current_attributes.depth_test = enum_depth_test::less;
+			else
+			{
+				debug_log("Unknown DepthTest value: " + value.text);
+				current_attributes.depth_test = enum_depth_test::undefined;
+			}
+		}
+		else if (key.token_id == TOKEN_BLENDMODE)
+		{
+			// 解析 BlendMode 枚举值
+			if (value.text == "Opaque") current_attributes.blend_mode = enum_blend_mode::opaque;
+			else if (value.text == "Masked") current_attributes.blend_mode = enum_blend_mode::masked;
+			else if (value.text == "Translusent") current_attributes.blend_mode = enum_blend_mode::masked;
+			else
+			{
+				debug_log("Unknown BlendMode value: " + value.text);
+				current_attributes.blend_mode = enum_blend_mode::undefined;
+			}
+		}
+		else
+		{
+			debug_log("Unknown attribute key in add_attribute_entry.");
 		}
 	}
 

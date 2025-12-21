@@ -778,7 +778,60 @@ namespace Thunder
     void ast_node_pass::print_ast(int indent)
     {
         print_blank(indent);
-        printf("Pass:\n");
+        if (!name.empty())
+        {
+            printf("Pass: \"%s\"\n", name.c_str());
+        }
+        else
+        {
+            printf("Pass:\n");
+        }
+
+        // 打印 Attributes
+        if (!attributes.mesh_draw_type.empty() ||
+            attributes.depth_test != enum_depth_test::undefined ||
+            attributes.blend_mode != enum_blend_mode::undefined)
+        {
+            print_blank(indent + 1);
+            printf("Attributes:\n");
+
+            if (!attributes.mesh_draw_type.empty())
+            {
+                print_blank(indent + 2);
+                printf("MeshDrawType: \"%s\"\n", attributes.mesh_draw_type.c_str());
+            }
+
+            if (attributes.depth_test != enum_depth_test::undefined)
+            {
+                print_blank(indent + 2);
+                printf("DepthTest: ");
+                switch (attributes.depth_test)
+                {
+                case enum_depth_test::never: printf("Never\n"); break;
+                case enum_depth_test::less: printf("Less\n"); break;
+                case enum_depth_test::equal: printf("Equal\n"); break;
+                case enum_depth_test::less_equal: printf("LessEqual\n"); break;
+                case enum_depth_test::greater: printf("Greater\n"); break;
+                case enum_depth_test::not_equal: printf("NotEqual\n"); break;
+                case enum_depth_test::greater_equal: printf("GreaterEqual\n"); break;
+                case enum_depth_test::always: printf("Always\n"); break;
+                default: printf("Undefined\n"); break;
+                }
+            }
+
+            if (attributes.blend_mode != enum_blend_mode::undefined)
+            {
+                print_blank(indent + 2);
+                printf("BlendMode: ");
+                switch (attributes.blend_mode)
+                {
+                case enum_blend_mode::opaque: printf("Opaque\n"); break;
+                case enum_blend_mode::masked: printf("Masked\n"); break;
+                default: printf("Undefined\n"); break;
+                }
+            }
+        }
+
         for (const auto def : structures)
         {
             def->print_ast(indent + 1);
@@ -1672,6 +1725,11 @@ namespace Thunder
         {
         case TOKEN_IDENTIFIER:
             {
+                if (sl_state->is_key_identifier(text))
+                {
+                    token = KEY_ID;
+                    break;
+                }
                 const ast_node* symbol_node = sl_state->get_global_symbol(text);
                 if(symbol_node == nullptr)
                 {

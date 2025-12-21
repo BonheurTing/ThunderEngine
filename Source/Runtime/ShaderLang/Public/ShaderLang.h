@@ -25,7 +25,7 @@ namespace Thunder
 		error,
 		all
 	};
-	
+
 	/* Shader parsing state.
 	 * 核心功能：
 	* 1，符号表管理（变量、函数、类型等）
@@ -71,6 +71,7 @@ namespace Thunder
 		ast_node_function* current_function = nullptr;
 		ast_node_archive* current_archive = nullptr;
 		TArray<ast_node_variable*> current_variables;
+		shader_attributes current_attributes;
 
 		/* 上下文管理 */
 		void parsing_archive_begin(const token_data& name);
@@ -78,9 +79,10 @@ namespace Thunder
 		void add_variable_to_list(ast_node_type_format* type, const token_data& name, ast_node_expression* default_value);
 		void parsing_variable_end(const token_data& name, const token_data& text);
 
-		void parsing_pass_begin();
+		void parsing_pass_begin(const token_data& name);
 		ast_node* parsing_pass_end();
 		void add_definition_member(ast_node* def);
+		void add_attribute_entry(const token_data& key, const token_data& value);
 		
 		void parsing_struct_begin(const token_data& name);
 		ast_node_struct* parsing_struct_end();
@@ -141,6 +143,7 @@ namespace Thunder
 		ast_node* get_local_symbol(const String& name) const;
 		ast_node* get_global_symbol(const String& name);
 		enum_symbol_type get_symbol_type(const String& name) const;
+		bool is_key_identifier(const String& name) const;
 
 		/* error handle */
 		void debug_log(const String& msg, const parse_location* loc = nullptr) const;

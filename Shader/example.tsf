@@ -19,8 +19,15 @@ Shader "TestShader"
     #include "TestInclude1/TestInclude2/test_include.tsh"
     #define ENABLE_UV0 1
     #define ENABLE_UV1 0
-    SubShader
+    SubShader "MySubShaderName"
     {
+        Attributes
+        {
+            MeshDrawType : "BasePass",
+            DepthTest : Near,
+            BlendMode : Opaque
+        }
+        
         using VertexEntry = vert;
         using PixelEntry = frag;
 

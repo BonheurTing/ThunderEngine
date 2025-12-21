@@ -80,12 +80,7 @@ namespace Thunder
 		void SetOuter(GameObject* inOuter) { Outer = inOuter; }
 		_NODISCARD_ GameObject* GetOuter() const { return Outer; }
 		_NODISCARD_ GameObjectControlBlock* GetControlBlock() const { return ControlBlock; }
-
-	private:
-		friend GameObjectControlBlock* AllocateGameObjectWithControlBlock(size_t objectSize, size_t objectAlignment);
-		template<typename T, typename... Args> friend TStrongObjectPtr<T> MakeGameObject(Args&&... args);
-
-		void SetControlBlock(GameObjectControlBlock* block) { ControlBlock = block; }
+		void SetControlBlock(GameObjectControlBlock* block) { ControlBlock = block; } // only called in this file
 
 	private:
 		GameObject* Outer { nullptr };
@@ -162,13 +157,17 @@ namespace Thunder
 
 		// Constructor from raw pointer (assumes object has a control block)
 		TStrongObjectPtr(T* inObject)
-			: ControlBlock(inObject ? inObject->GetControlBlock() : nullptr)
+			: ControlBlock(inObject->GetControlBlock())
 		{
-			if (ControlBlock)
+			if (ControlBlock == nullptr)
 			{
-				ControlBlock->AddStrongRef();
-				ControlBlock->AddWeakRef(); // Strong ptr also holds weak ref to keep control block alive
+				ControlBlock = new GameObjectControlBlock();
+				ControlBlock->ObjectPtr = inObject;
+				inObject->SetControlBlock(ControlBlock);
 			}
+
+			ControlBlock->AddStrongRef();
+			ControlBlock->AddWeakRef(); // Strong ptr also holds weak ref to keep control block alive
 		}
 
 		// Copy constructor
@@ -296,12 +295,16 @@ namespace Thunder
 		TWeakObjectPtr(std::nullptr_t) : ControlBlock(nullptr) {}
 
 		TWeakObjectPtr(T* inObject)
-			: ControlBlock(inObject ? inObject->GetControlBlock() : nullptr)
+			: ControlBlock(inObject->GetControlBlock())
 		{
-			if (ControlBlock)
+			if (ControlBlock == nullptr)
 			{
-				ControlBlock->AddWeakRef();
+				ControlBlock = new GameObjectControlBlock();
+				ControlBlock->ObjectPtr = inObject;
+				inObject->SetControlBlock(ControlBlock);
 			}
+
+			ControlBlock->AddWeakRef();
 		}
 
 		TWeakObjectPtr(const TStrongObjectPtr<T>& strongPtr)

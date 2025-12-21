@@ -49,7 +49,7 @@ namespace Thunder
 			vertexData.RowPitch = uploadBufferSize;
 			vertexData.SlicePitch = vertexData.RowPitch;
 
-			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext()))
+			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI()))
 			{
 				UpdateSubresources<1>(dx12Context->GetCommandList().Get(), VertexBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &vertexData);
 				CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(VertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
@@ -100,7 +100,7 @@ namespace Thunder
 			indexData.RowPitch = uploadBufferSize;
 			indexData.SlicePitch = indexData.RowPitch;
 
-			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext()))
+			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI()))
 			{
 				UpdateSubresources<1>(dx12Context->GetCommandList().Get(), IndexBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &indexData);
 				CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(IndexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
@@ -170,7 +170,7 @@ namespace Thunder
 	    }
 
 	    // 4. Use UpdateSubresources to copy data from CPU to GPU
-	    if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext()))
+	    if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI()))
 	    {
 	        UpdateSubresources(dx12Context->GetCommandList().Get(), Texture.Get(), uploadBuffer.Get(), 0, 0, subresourceCount, subresourceData.data());
 	    	CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(Texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

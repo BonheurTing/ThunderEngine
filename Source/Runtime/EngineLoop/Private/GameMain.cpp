@@ -146,7 +146,7 @@ namespace Thunder
         if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 5)
         {
             // Informal: load all game resource ( in content directory )
-            StreamableManager::LoadAllAsync();
+            //StreamableManager::LoadAllAsync();
         }
 
         if (GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) == 50)

@@ -16,9 +16,11 @@ namespace Thunder
 
 		void InitCommandContext();
 		void ResetCommandContext(uint32 index) const;
-		void ResetCopyCommandContext(uint32 index) const;
+		void ResetCopyCommandContext_Render(uint32 index) const;
+		void ResetCopyCommandContext_RHI(uint32 index) const;
 
-		RHICommandContext* GetCopyCommandContext() const { return CopyCommandContext; }
+		RHICommandContext* GetCopyCommandContext_Render() const { return CopyCommandContext_Render; }
+		RHICommandContext* GetCopyCommandContext_RHI() const { return CopyCommandContext_RHI; }
 		const TArray<RHICommandContextRef>& GetRHICommandContexts() const { return CommandContexts; }
 
 		static IRHIModule* GetModule()
@@ -29,7 +31,8 @@ namespace Thunder
 	protected:
 		IDynamicRHI* DynamicRHI;
 		TArray<RHICommandContextRef> CommandContexts;
-		RHICommandContextRef CopyCommandContext;
+		RHICommandContextRef CopyCommandContext_Render;
+		RHICommandContextRef CopyCommandContext_RHI;
 		static IRHIModule* ModuleInstance;
 	};
 }

@@ -190,6 +190,14 @@ namespace Thunder
 		IComponent::OnLoaded();
 		LOG("------------ StaticMeshComponent loaded successfully");
 		// Register StaticMeshSceneProxy.
+		if (OverrideMaterials.empty() && Mesh != nullptr) //SimulateTest
+		{
+			for (auto mat : Mesh->DefaultMaterials)
+			{
+				OverrideMaterials.emplace(mat->GetResourceName(), mat);
+			}
+		}
+
 		SceneProxy = new (TMemory::Malloc<StaticMeshSceneProxy>()) StaticMeshSceneProxy(this);
 		Owner->GetScene()->GetRenderer()->RegisterSceneProxy(SceneProxy);
 	}

@@ -1,3 +1,4 @@
+#pragma optimize("", off)
 #include "Material.h"
 #include "FileSystem/MemoryArchive.h"
 #include "RenderMaterial.h"
@@ -338,3 +339,4 @@ namespace Thunder
 		*OverrideParameters = ShaderModule::ParseShaderParameters(ArchiveName);
 	}
 }
+#pragma optimize("", on)

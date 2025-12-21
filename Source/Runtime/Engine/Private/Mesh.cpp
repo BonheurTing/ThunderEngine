@@ -11,7 +11,7 @@ namespace Thunder
 
 	void IMesh::OnResourceLoaded()
 	{
-		GameResource::OnResourceLoaded();
+		LOG("Mesh loaded: %s", GetResourceName().c_str());
 
 		ReleaseResource();
 		RenderMesh* newResource = CreateResource_GameThread(); //纯虚函数

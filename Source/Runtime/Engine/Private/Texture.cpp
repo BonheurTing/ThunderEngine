@@ -15,7 +15,7 @@ namespace Thunder
 
 	void ITexture::OnResourceLoaded()
 	{
-		GameResource::OnResourceLoaded();
+		LOG("Texture loaded: %s", GetResourceName().c_str());
 		UpdateResource();
 	}
 

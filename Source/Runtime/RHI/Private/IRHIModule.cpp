@@ -17,7 +17,8 @@ namespace Thunder
 		{
 			CommandContexts[i] = RHICreateCommandContext();
 		}
-		CopyCommandContext = RHICreateCommandContext();
+		CopyCommandContext_Render = RHICreateCommandContext();
+		CopyCommandContext_RHI = RHICreateCommandContext();
 	}
 
 	void IRHIModule::ResetCommandContext(uint32 index) const
@@ -28,8 +29,13 @@ namespace Thunder
 		}
 	}
 
-	void IRHIModule::ResetCopyCommandContext(uint32 index) const
+	void IRHIModule::ResetCopyCommandContext_Render(uint32 index) const
 	{
-		CopyCommandContext->Reset(index);
+		CopyCommandContext_Render->Reset(index);
+	}
+
+	void IRHIModule::ResetCopyCommandContext_RHI(uint32 index) const
+	{
+		CopyCommandContext_RHI->Reset(index);
 	}
 }

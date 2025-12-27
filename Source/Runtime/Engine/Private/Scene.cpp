@@ -1,7 +1,7 @@
 #pragma optimize("", off)
 #include "Scene.h"
 #include "GameModule.h"
-#include "ResourceModule.h"
+#include "PackageModule.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
 #include "FileSystem/File.h"

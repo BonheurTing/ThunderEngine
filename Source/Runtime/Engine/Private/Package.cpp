@@ -3,7 +3,7 @@
 #include "CRC.h"
 #include "Guid.h"
 #include "Mesh.h"
-#include "ResourceModule.h"
+#include "PackageModule.h"
 #include "Texture.h"
 #include "Concurrent/TaskScheduler.h"
 #include "FileSystem/File.h"
@@ -59,7 +59,7 @@ namespace Thunder
 	bool Package::Save()
 	{
 		TAssert(!(PackageName.ToString().empty() || PackageName == "/"));
-		String fullPath = ResourceModule::ConvertSoftPathToFullPath(PackageName.ToString());
+		String fullPath = PackageModule::ConvertSoftPathToFullPath(PackageName.ToString());
 
 		// Prepare the package header.
 		const auto numGuids = static_cast<uint32>(Objects.size());
@@ -131,7 +131,7 @@ namespace Thunder
 	bool Package::Load()
 	{
 		TAssertf(!PackageName.IsEmpty(), "Package::Load: PackageName is empty, cannot load package.");
-		const String fullPath = ResourceModule::ConvertSoftPathToFullPath(PackageName.ToString(), "tasset");
+		const String fullPath = PackageModule::ConvertSoftPathToFullPath(PackageName.ToString(), "tasset");
 
 		// read file
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
@@ -243,7 +243,7 @@ namespace Thunder
 		}
 		
 		// 注册包本身到资源管理器
-		ResourceModule::GetModule()->RegisterPackage(this);
+		PackageModule::GetModule()->RegisterPackage(this);
 		LOG("load package : %s complete, resource count: %llu", fullPath.c_str(), Objects.size());
 
 		TMemory::Destroy(fileData);
@@ -289,8 +289,8 @@ namespace Thunder
 		headerArchive >> version; // 读取版本号
 		headerArchive >> outGuid; // 读取GUID
 
-		String softPath = ResourceModule::CovertFullPathToSoftPath(fullPath);
-		ResourceModule::AddResourcePathPair(outGuid, softPath);
+		String softPath = PackageModule::CovertFullPathToSoftPath(fullPath);
+		PackageModule::AddResourcePathPair(outGuid, softPath);
 
 		uint32 numGuids;
 		headerArchive >> numGuids;
@@ -308,15 +308,15 @@ namespace Thunder
 		{
 			headerArchive >> resourceSuffixList[i];
 
-			String resSoftPath = ResourceModule::CovertFullPathToSoftPath(fullPath, resourceSuffixList[i]);
-			ResourceModule::AddResourcePathPair(guidList[i], resSoftPath);
+			String resSoftPath = PackageModule::CovertFullPathToSoftPath(fullPath, resourceSuffixList[i]);
+			PackageModule::AddResourcePathPair(guidList[i], resSoftPath);
 		}
 
 		TMemory::Destroy(fileData);
 		return true;
 	}
 
-	bool ResourceModule::LoadSync(const TGuid& guid, TArray<GameResource*>& outResources, bool bForce)
+	bool PackageModule::LoadSync(const TGuid& guid, TArray<GameResource*>& outResources, bool bForce)
 	{
 		if (!bForce)
 		{
@@ -333,7 +333,7 @@ namespace Thunder
 		return ForceLoadBySoftPath(GetModule()->ResourcePathMap[guid]);
 	}
 
-	GameResource* ResourceModule::LoadSync(const TGuid& guid, bool bForce)
+	GameResource* PackageModule::LoadSync(const TGuid& guid, bool bForce)
 	{
 		TAssertf(GetModule()->ResourcePathMap.contains(guid),
 			"ResourceModule::LoadSync: fail to load a resource by guid: %u-%u-%u-%u", guid.A, guid.B, guid.C, guid.D);
@@ -365,7 +365,7 @@ namespace Thunder
 		return nullptr;
 	}
 
-	bool ResourceModule::ForceLoadBySoftPath(const NameHandle& softPath)
+	bool PackageModule::ForceLoadBySoftPath(const NameHandle& softPath)
 	{
 		const String pakFullPath = ConvertSoftPathToFullPath(softPath.ToString());
 		const String pakSoftPath = CovertFullPathToSoftPath(pakFullPath);
@@ -375,7 +375,7 @@ namespace Thunder
 		return ret;
 	}
 
-	void ResourceModule::LoadAsync(const TGuid& guid)
+	void PackageModule::LoadAsync(const TGuid& guid)
 	{
 		TAssertf(GetModule()->ResourcePathMap.contains(guid),
 			"ResourceModule::LoadAsync: fail to load a resource by guid: %u-%u-%u-%u", guid.A, guid.B, guid.C, guid.D);
@@ -392,17 +392,32 @@ namespace Thunder
 			}
 		});
 	}
-	
-	GameObject* ResourceModule::TryGetLoadedResource(const TGuid& guid)
+
+	GameObject* PackageModule::TryGetLoadedResource(const TGuid& inGuid)
 	{
-		if (!IsLoaded(guid))
+		TGuid pakGuid = GetModule()->ResourceToPackage[inGuid];
+		PackageEntry* pakEntry = GetModule()->PackageMap[pakGuid];
+		if (!pakEntry->IsLoaded())
 		{
 			return nullptr;
 		}
-		return GetModule()->LoadedResources[guid];
+		if (pakGuid == inGuid) // try get package
+		{
+			TAssert(pakEntry->Package.IsValid());
+			return pakEntry->Package.Get();
+		}
+		for (auto res : pakEntry->Package->GetPackageObjects())
+		{
+			if (res->GetGUID() == inGuid)
+			{
+				return res;
+			}
+		}
+		TAssert(false);
+		return nullptr;
 	}
 
-	bool ResourceModule::SavePackage(Package* package)
+	bool PackageModule::SavePackage(Package* package)
 	{
 		if (!package)
 		{
@@ -411,10 +426,10 @@ namespace Thunder
 		return package->Save();
 	}
 
-	void ResourceModule::RegisterPackage(Package* package)
+	void PackageModule::RegisterPackage(Package* package)
 	{
 		TGuid pakGuid = package->GetGUID();
-		LoadedResources.emplace(pakGuid, package);
+		//LoadedResources.emplace(pakGuid, package);
 #if WITH_EDITOR
 		LoadedResourcesByPath.emplace(package->GetPackageName(), pakGuid);
 #endif
@@ -423,14 +438,14 @@ namespace Thunder
 		for (auto obj : objects)
 		{
 			TGuid objGuid = obj->GetGUID();
-			LoadedResources.emplace(objGuid, obj);
+			//LoadedResources.emplace(objGuid, obj);
 #if WITH_EDITOR
 			LoadedResourcesByPath.emplace(obj->GetResourceName(), objGuid);
 #endif
 		}
 	}
 
-	void ResourceModule::ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function)
+	void PackageModule::ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function)
 	{
 		const auto& resMap = GetModule()->ResourcePathMap;
 		for (auto& pair : resMap)
@@ -440,11 +455,11 @@ namespace Thunder
 	}
 
 #if WITH_EDITOR
-	GameObject* ResourceModule::GetResource(NameHandle softPath)
+	GameObject* PackageModule::GetResource(NameHandle softPath)
 	{
 		if (GetModule()->LoadedResourcesByPath.contains(softPath))
 		{
-			return GetModule()->LoadedResources[GetModule()->LoadedResourcesByPath[softPath]];
+			return TryGetLoadedResource(GetModule()->LoadedResourcesByPath[softPath]);
 		}
 		return nullptr;
 	}

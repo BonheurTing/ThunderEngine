@@ -2,7 +2,7 @@
 
 #include "Module/ModuleManager.h"
 #include "CoreModule.h"
-#include "ResourceModule.h"
+#include "PackageModule.h"
 #include "FileSystem/File.h"
 #include "FileSystem/FileModule.h"
 #include "FileSystem/FileSystem.h"
@@ -16,7 +16,7 @@ namespace Thunder
 	{
 		ModuleManager::GetInstance()->LoadModule<CoreModule>();
 		ModuleManager::GetInstance()->LoadModule<FileModule>();
-		ModuleManager::GetInstance()->LoadModule<ResourceModule>();
+		ModuleManager::GetInstance()->LoadModule<PackageModule>();
 
 		IFileSystem* FileSys = FileModule::GetFileSystem("Content");
 		{
@@ -46,7 +46,7 @@ namespace Thunder
 	void TestImportResource()
 	{
 		
-		ResourceModule::GetModule()->ImportAll(true);
+		PackageModule::GetModule()->ImportAll(true);
 		/*const String fileName = FileModule::GetProjectRoot() + "\\Resource\\Mesh\\Cube.fbx";
 		const String destPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";*/
 		/*const String fileName = FileModule::GetProjectRoot() + "\\Resource\\TestPNG.png";
@@ -60,7 +60,7 @@ namespace Thunder
 		// "/Game/123"
 		// "/Game/Mesh/Cube"
 		// "/Game/TestPNG"
-		if(ResourceModule::ForceLoadBySoftPath("/Game/Mesh/Cube"))
+		if(PackageModule::ForceLoadBySoftPath("/Game/Mesh/Cube"))
 		{
 			LOG("success load package, resource count: %llu", res.size());
 		}

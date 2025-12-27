@@ -2,7 +2,7 @@
 #include "Compomemt.h"
 #include "GameModule.h"
 #include "Guid.h"
-#include "ResourceModule.h"
+#include "PackageModule.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Assertion.h"
 #include "IRenderer.h"
@@ -159,12 +159,12 @@ namespace Thunder
 		TWeakObjectPtr<StaticMeshComponent> componentPtr = this;
 		GAsyncWorkers->PushTask([meshGuid = MeshGuid, guidList = MaterialGuids, componentPtr]()
 		{
-			TStrongObjectPtr<GameResource> meshRef= ResourceModule::LoadSync(meshGuid);
+			TStrongObjectPtr<GameResource> meshRef= PackageModule::LoadSync(meshGuid);
 
 			TMap<NameHandle, TStrongObjectPtr<GameResource>> materialRefList;
 			for (const auto& [fst, snd] : guidList)
 			{
-				GameResource* res = ResourceModule::LoadSync(snd);
+				GameResource* res = PackageModule::LoadSync(snd);
 				materialRefList.emplace(fst, res);
 			}
 

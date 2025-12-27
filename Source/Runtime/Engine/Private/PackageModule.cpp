@@ -1,5 +1,5 @@
 ﻿#pragma optimize("", off)
-#include "ResourceModule.h"
+#include "PackageModule.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "External/stb_image.h"		// 定义 stb_image 实现
 #include <assimp/Importer.hpp>      // 导入接口
@@ -14,10 +14,11 @@
 #include "Container/ReflectiveContainer.h"
 #include "FileSystem/FileModule.h"
 #include "Vector.h"
+#include "Concurrent/TaskScheduler.h"
 
 namespace Thunder
 {
-	IMPLEMENT_MODULE(Resource, ResourceModule)
+	IMPLEMENT_MODULE(Package, PackageModule)
 
 	static TReflectiveContainerRef GenerateVertexBuffer(const aiMesh* mesh)
 	{
@@ -146,19 +147,19 @@ namespace Thunder
 		return (indicesBuffer);
 	}
 
-	void ResourceModule::ShutDown()
+	void PackageModule::ShutDown()
 	{
 		// print all resource dependency guid
-		LOG("--------- Loaded All Resources %d Begin ---------", static_cast<int32>(LoadedResources.size()));
-		for (const auto& [fst, snd] : LoadedResources)
+		LOG("--------- Loaded All Resources Begin ---------");
+		for (const auto& [fst, snd] : PackageMap)
 		{
-			if (auto pak = dynamic_cast<Package*>(snd))
+			if (!snd->IsLoaded())
 			{
-				LOG("Name: %s, Type: %s, GUID: %s", pak->GetPackageName().c_str(), "Package", fst.ToString().c_str());
+				continue;
 			}
-			else
+			LOG("PackageName: %s, GUID: %s", snd->Package->GetPackageName().c_str(), fst.ToString().c_str());
+			for (auto res : snd->Package->GetPackageObjects())
 			{
-				auto res = dynamic_cast<GameResource*>(snd);
 				switch (res->GetResourceType())
 				{
 				case ETempGameResourceReflective::StaticMesh:
@@ -183,7 +184,105 @@ namespace Thunder
 		LOG("--------- Loaded All Resources End ---------\n");
 	}
 
-	void ResourceModule::InitResourcePathMap()
+	void PackageModule::Tick()
+	{
+		if (!AcquireRequests.empty())
+		{
+			uint32 count = 0;
+			while(!AcquireRequests.empty() && count++ < FrameMaxDelivering)
+			{
+				PackageEntry* entry = AcquireRequests.front();
+				AcquireRequests.pop_front();
+				
+				entry->SetAcquiring(false);
+				entry->Status |= static_cast<uint32>(EPackageStatus::Loading);
+				GAsyncWorkers->PushTask([entry]{
+					TArray<GameResource*> outResources;
+					LoadSync(entry->Guid, outResources, false);
+					GGameScheduler->PushTask([entry]{
+						entry->SetLoaded(true);
+					});
+				});
+			}
+		}
+
+		if (!CompletionList.empty())
+		{
+			for (auto item : CompletionList)
+			{
+				auto entry = PackageMap[item->PackageGuid];
+				if (entry->IsLoaded() && entry->Package.IsValid())
+				{
+					item->Callback();
+				}
+			}
+		}
+	}
+
+	void PackageModule::LoadAsync(const TGuid& inGuid, TFunction<void()>&& inFunction)
+	{
+		TGuid pakGuid = ResourceToPackage[inGuid];
+
+		TAssert(PackageMap.contains(pakGuid));
+		PackageEntry* entry = PackageMap[pakGuid];
+
+		if (entry->Package)
+		{
+			if (inFunction)
+			{
+				auto newCompletion = new ResourceCompletion();
+				newCompletion->PackageGuid = inGuid;
+				newCompletion->Callback = inFunction;
+				CompletionList.push_back(newCompletion);
+			}
+			PackageModule::PackageAcquire(entry);
+		}
+
+		auto pakSoftPath = ResourcePathMap[pakGuid];
+		Package* newPak = new Package(pakSoftPath);
+		entry->Package = TWeakObjectPtr(newPak);
+		for (const auto& guid : GetPackageDependencies(pakGuid))
+		{
+			LoadAsync(guid, nullptr);
+		}
+
+		if (inFunction)
+		{
+			auto newCompletion = new ResourceCompletion();
+			newCompletion->PackageGuid = inGuid;
+			newCompletion->Callback = inFunction;
+			CompletionList.push_back(newCompletion);
+		}
+		PackageModule::PackageAcquire(entry);
+	}
+
+	void PackageModule::PackageAcquire(PackageEntry* entry)
+	{
+		if (entry->IsAcquiring())
+		{
+			return;
+		}
+		// Do Acquire
+		AcquireRequests.emplace_back(entry);
+		entry->SetAcquiring(true);
+	}
+
+	/**
+	 * 1. 方案一
+	 * if (PackageModule::DependencyCache.contais(guid))
+	 * {
+	 *	   return DependencyCache[guid];
+	 * }
+	 * 2. 方案二
+	 * 读硬盘上文件头获取依赖
+	 **/
+	TSet<TGuid> PackageModule::GetPackageDependencies(const TGuid& inGuid)
+	{
+		return PackageMap[inGuid]->GetResourceDependencies();
+	}
+
+
+	void PackageModule::InitResourcePathMap()
 	{
 		const auto contentDict = FileModule::GetResourceContentRoot();
 		TArray<String> fileNames;
@@ -209,7 +308,7 @@ namespace Thunder
 		LOG("--------- Scan All Resources End ---------\n");
 	}
 
-	String ResourceModule::CovertFullPathToSoftPath(const String& fullPath, const String& resourceName)
+	String PackageModule::CovertFullPathToSoftPath(const String& fullPath, const String& resourceName)
 	{
 		// 查找"Content"字符串的位置
 		size_t contentPos = fullPath.find("Content");
@@ -256,7 +355,7 @@ namespace Thunder
 		return softPath;
 	}
 
-	String ResourceModule::ConvertSoftPathToFullPath(const String& softPath, const String& extension)
+	String PackageModule::ConvertSoftPathToFullPath(const String& softPath, const String& extension)
 	{
 		String workingPath = softPath;
 		
@@ -308,7 +407,7 @@ namespace Thunder
 		return fullPath;
 	}
 
-	bool ResourceModule::CheckUniqueSoftPath(String& softPath)
+	bool PackageModule::CheckUniqueSoftPath(String& softPath)
 	{
 		// check duplicate name
 		String checkPath = softPath;
@@ -331,7 +430,7 @@ namespace Thunder
 
 	// todo: 导入还没处理重名的问题
 #if WITH_EDITOR
-	bool ResourceModule::ForceImport(const String& srcPath, const String& destPath)
+	bool PackageModule::ForceImport(const String& srcPath, const String& destPath)
 	{
 		// 先简单认为package重名就是覆盖，或者在import外面就解决destPath重名的问题
 		const String pacName = CovertFullPathToSoftPath(destPath); //已经是unique
@@ -504,7 +603,7 @@ namespace Thunder
 		return false;
 	}
 
-	void ResourceModule::ImportAll(bool bForce)
+	void PackageModule::ImportAll(bool bForce)
 	{
 		if (bForce)
 		{

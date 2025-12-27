@@ -1,21 +1,21 @@
 ﻿#include "StreamableManager.h"
-#include "ResourceModule.h"
+#include "PackageModule.h"
 
 namespace Thunder
 {
 	void StreamableManager::ForceLoadAllResources()
 	{
-		ResourceModule::ForAllResources([](const TGuid& guid, NameHandle name)
+		PackageModule::ForAllResources([](const TGuid& guid, NameHandle name)
 		{
-			ResourceModule::LoadSync(guid);
+			PackageModule::LoadSync(guid);
 		});
 	}
 
 	void StreamableManager::LoadAllAsync()
 	{
-		ResourceModule::ForAllResources([](const TGuid& guid, NameHandle name)
+		PackageModule::ForAllResources([](const TGuid& guid, NameHandle name)
 		{
-			ResourceModule::LoadAsync(guid);
+			PackageModule::LoadAsync(guid);
 		});
 	}
 }

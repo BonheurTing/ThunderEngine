@@ -5,7 +5,7 @@
 #include "D3D11RHIModule.h"
 #include "GameMain.h"
 #include "GameModule.h"
-#include "ResourceModule.h"
+#include "PackageModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
 #include "TestRenderer.h"
@@ -35,11 +35,11 @@ namespace Thunder
         ModuleManager::GetInstance()->LoadModule<CoreModule>();
         ModuleManager::GetInstance()->LoadModule<FileModule>();
         ModuleManager::GetInstance()->LoadModule<ShaderModule>();
-        ModuleManager::GetInstance()->LoadModule<ResourceModule>();
+        ModuleManager::GetInstance()->LoadModule<PackageModule>();
         ModuleManager::GetInstance()->LoadModule<GameModule>();
 
         // setup resource map
-        ResourceModule::InitResourcePathMap();
+        PackageModule::InitResourcePathMap();
 
         // setup rhi
         String configRHIType = GConfigManager->GetConfig("BaseEngine")->GetString("RHI");
@@ -128,7 +128,7 @@ namespace Thunder
     {
         TaskSchedulerManager::ShutDown();
         ModuleManager::GetInstance()->UnloadModule<GameModule>();
-        ModuleManager::GetInstance()->UnloadModule<ResourceModule>();
+        ModuleManager::GetInstance()->UnloadModule<PackageModule>();
         ModuleManager::GetInstance()->UnloadModule<ShaderModule>();
         ModuleManager::GetInstance()->UnloadModule<FileModule>();
         ModuleManager::GetInstance()->UnloadModule<CoreModule>();

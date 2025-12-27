@@ -1,5 +1,5 @@
 ﻿#include "GameModule.h"
-#include "ResourceModule.h"
+#include "PackageModule.h"
 #include "Scene.h"
 #include "StreamableManager.h"
 #include "FileSystem/FileModule.h"
@@ -28,33 +28,33 @@ namespace Thunder
     void GameModule::InitGameThread(TFunction<IRenderer*()>& renderFactory)
     {
         // 12.20 SimulateTest: load tassel in order：png->material->mesh
-        {
+        {/*
             uint32 A, B, C, D;
             TGuid resGuid;
             if (sscanf("B6CCBDD4-4C54316D-7806F1A4-1ED0094F", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
             {
                 resGuid = TGuid(A, B, C, D);
             }
-            GameResource* tex = ResourceModule::LoadSync(resGuid, true);
+            GameResource* tex = PackageModule::LoadSync(resGuid, true);
             tex->OnResourceLoaded();
 
             if (sscanf("BEF855D5-459251C5-CA0C088D-07658A28", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
             {
                 resGuid = TGuid(A, B, C, D);
             }
-            GameResource* mat = ResourceModule::LoadSync(resGuid, true);
+            GameResource* mat = PackageModule::LoadSync(resGuid, true);
             mat->OnResourceLoaded();
 
             if (sscanf("CFE86C56-4E01C23A-79A9038C-AC38BD89", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
             {
                 resGuid = TGuid(A, B, C, D);
             }
-            GameResource* mesh = ResourceModule::LoadSync(resGuid, true);
+            GameResource* mesh = PackageModule::LoadSync(resGuid, true);
             mesh->OnResourceLoaded();
             if (auto stMesh = static_cast<StaticMesh*>(mesh))
             {
                 stMesh->AddMaterial(static_cast<IMaterial*>(mat));
-            }
+            }*/
         }
 
         GameThreadTaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
@@ -89,7 +89,7 @@ namespace Thunder
 
     void GameModule::GetProceduralScene(const Scene* inScene)
     {
-        auto meshs = ResourceModule::GetResourceByClass<StaticMesh>();
+        auto meshs = PackageModule::GetResourceByClass<StaticMesh>();
 
         if (!meshs.empty())
         {
@@ -130,37 +130,37 @@ namespace Thunder
     {
         String fileName = FileModule::GetProjectRoot() + "\\Resource\\Mesh\\Cube.fbx";
         String destPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";
-        ResourceModule::ForceImport(fileName, destPath);
+        PackageModule::ForceImport(fileName, destPath);
 
         fileName = FileModule::GetProjectRoot() + "\\Resource\\123.fbx";
         destPath = FileModule::GetProjectRoot() + "\\Content\\123.tasset";
-        ResourceModule::ForceImport(fileName, destPath);
+        PackageModule::ForceImport(fileName, destPath);
 
         String texFullPath = FileModule::GetProjectRoot() + "\\Content\\TestPNG.tasset";
-        String texSoftPath = ResourceModule::CovertFullPathToSoftPath(texFullPath, "TestPNG");
-        bool ret = ResourceModule::ForceLoadBySoftPath(texSoftPath);
+        String texSoftPath = PackageModule::CovertFullPathToSoftPath(texFullPath, "TestPNG");
+        bool ret = PackageModule::ForceLoadBySoftPath(texSoftPath);
         TAssert(ret);
 
         fileName = FileModule::GetProjectRoot() + "\\Resource\\Material\\TestMaterial.mat";
         destPath = FileModule::GetProjectRoot() + "\\Content\\Material\\TestMaterial.tasset";
-        ResourceModule::ForceImport(fileName, destPath);
+        PackageModule::ForceImport(fileName, destPath);
     }
 
     static void SimulateAddMaterialToMesh()
     {
 
         String matFullPath = FileModule::GetProjectRoot() + "\\Content\\Material\\TestMaterial.tasset";
-        String matSoftPath = ResourceModule::CovertFullPathToSoftPath(matFullPath, "TestMaterial");
+        String matSoftPath = PackageModule::CovertFullPathToSoftPath(matFullPath, "TestMaterial");
         //bool ret = ResourceModule::ForceLoadBySoftPath(matSoftPath);
         //TAssert(ret);
-        GameObject* material = ResourceModule::GetResource(matSoftPath);
+        GameObject* material = PackageModule::GetResource(matSoftPath);
         TAssert(material != nullptr);
 
         String meshFullPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";
-        String meshSoftPath = ResourceModule::CovertFullPathToSoftPath(meshFullPath, "Cube");
+        String meshSoftPath = PackageModule::CovertFullPathToSoftPath(meshFullPath, "Cube");
         //bool ret = ResourceModule::ForceLoadBySoftPath(meshSoftPath);
         //TAssert(ret);
-        GameObject* mesh = ResourceModule::GetResource(meshSoftPath);
+        GameObject* mesh = PackageModule::GetResource(meshSoftPath);
         TAssert(mesh != nullptr);
 
         if (auto stMesh = static_cast<StaticMesh*>(mesh))

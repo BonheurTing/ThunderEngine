@@ -40,11 +40,12 @@ namespace Thunder
 		void DeSerialize(MemoryReader& archive) override;
 
 		void AddMaterial(IMaterial* material);
+		const TArray<IMaterial*>& GetMaterials() { return DefaultMaterials; }
 
 		RenderMesh* CreateResource_GameThread() override;
 
 	public:
 		TArray<SubMesh*> SubMeshes {}; //Serialize
-		TArray<IMaterial*> DefaultMaterials {}; // Dependencies guid
+		TArray<IMaterial*> DefaultMaterials {}; // Dependencies guid //12.28todo: material slot
 	};
 }

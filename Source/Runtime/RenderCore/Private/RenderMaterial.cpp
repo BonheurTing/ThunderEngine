@@ -7,7 +7,7 @@
 namespace Thunder
 {
     RenderMaterial::RenderMaterial()
-        : CompiledShaderMap(nullptr)
+        : Archive(nullptr)
         , RegisterCounts{}
         , ParameterCache{}
         , ConstantBuffer(nullptr)
@@ -22,7 +22,7 @@ namespace Thunder
 
     void RenderMaterial::SetShaderArchive(ShaderArchive* archive)
     {
-        CompiledShaderMap = archive;
+        Archive = archive;
         if (archive)
         {
             // 可以在这里进行一些初始化工作
@@ -31,12 +31,12 @@ namespace Thunder
 
     ShaderCombination* RenderMaterial::GetShaderCombination(NameHandle passName, uint64 variantId) const
     {
-        if (!CompiledShaderMap)
+        if (!Archive)
         {
             return nullptr;
         }
 
-        ShaderPass* pass = CompiledShaderMap->GetSubShader(passName);
+        ShaderPass* pass = Archive->GetSubShader(passName);
         if (!pass)
         {
             return nullptr;

@@ -497,7 +497,7 @@ namespace Thunder
 		return archive->CompileShaderVariant(passName, variantId);
     }
 
-    void ShaderModule::CompileShaderSource(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug) const
+    void ShaderModule::CompileShaderSource(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug)
 	{
 		GetModule()->ShaderCompiler->Compile(inSource, entryPoint, stage, outByteCode, debug);
     }
@@ -555,9 +555,9 @@ namespace Thunder
 
     ShaderCombination* ShaderModule::SyncCompileShaderCombination(ShaderArchive* archive, NameHandle passName, uint64 variantMask)
     {
-		String sourceCode = archive->GenerateShaderSource(passName, variantMask);
-		BinaryData outByteCode;
-		GetModule()->ShaderCompiler->Compile(sourceCode, sourceCode.size(), outByteCode);
+		// String sourceCode = archive->GenerateShaderSource(passName, variantMask);
+		// BinaryData outByteCode;
+		// GetModule()->ShaderCompiler->Compile(sourceCode, sourceCode.size(), outByteCode);
 		return nullptr;
     }
 }

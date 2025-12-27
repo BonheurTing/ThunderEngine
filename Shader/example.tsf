@@ -97,11 +97,20 @@ Shader "TestShader"
                 x = y;
             }
             
-            if constexpr (x > 10)
+            if (x > 10)
             {
                 y = 20;
             }
-
+            
+            // Variants.
+            if constexpr (_Variant1 && _Variant0)
+            {
+                y = 30;
+            }
+            if constexpr (_Variant1)
+            {
+                x = 20;
+            }
             
             // 测试注释
             float3 test_vector = float3(3, /*7*/4, 5);

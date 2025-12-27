@@ -8,6 +8,14 @@ namespace Thunder
 {
     enum class enum_shader_stage : uint8;
 
+    struct shader_codegen_state
+    {
+        NameHandle sub_shader_name;
+        uint64 variant_mask;
+        enum_shader_stage stage;
+        THashMap<NameHandle, bool> variants;
+    };
+
     enum class enum_ast_node_type : uint8
     {
         type_format,
@@ -357,7 +365,7 @@ namespace Thunder
         ast_node(enum_ast_node_type type) : node_type(type) {}
         virtual ~ast_node() = default;
 
-        virtual void generate_hlsl(String& outResult) {}
+        virtual void generate_hlsl(String& outResult, shader_codegen_state& state) {}
         virtual void generate_dxil();
         virtual void print_ast(int indent) {}
 
@@ -414,7 +422,7 @@ namespace Thunder
             return object_type != enum_object_type::none;
         }
         _NODISCARD_ String get_type_text() const;
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     };
 
@@ -426,7 +434,7 @@ namespace Thunder
             : ast_node(enum_ast_node_type::variable), type(var_type), name(std::move(name)) {}
         void set_default_value(const String& in_value) { default_value = in_value; }
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     public:
         ast_node_type_format* type = nullptr;
@@ -465,7 +473,7 @@ namespace Thunder
             global_parameters.push_back(var);
         }
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
 
     private:
@@ -508,7 +516,7 @@ namespace Thunder
             functions.push_back(function);
         }
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     private:
         friend class ShaderAST;
@@ -528,7 +536,7 @@ namespace Thunder
         scope* begin_structure(scope* outer);
         void end_structure(scope* current);
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         void add_member(ast_node_variable* mem)
         {
@@ -576,7 +584,7 @@ namespace Thunder
         scope* begin_function(scope* outer);
         void end_function(scope* current);
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
 
     private:
@@ -605,7 +613,7 @@ namespace Thunder
         variable_declaration_statement(ast_node_variable* var, ast_node_expression* expr) noexcept
         : ast_node_statement(enum_statement_type::declare), variable(var), decl_expr(expr) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     private:
         ast_node_variable* variable = nullptr;
@@ -618,7 +626,7 @@ namespace Thunder
         return_statement(ast_node_expression* expr) noexcept
         : ast_node_statement(enum_statement_type::return_), ret_value(expr) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     private:
         ast_node_expression* ret_value = nullptr;
@@ -630,7 +638,7 @@ namespace Thunder
         break_statement() noexcept
         : ast_node_statement(enum_statement_type::break_) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     };
 
@@ -640,7 +648,7 @@ namespace Thunder
         continue_statement() noexcept
         : ast_node_statement(enum_statement_type::continue_) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     };
 
@@ -650,7 +658,7 @@ namespace Thunder
         discard_statement() noexcept
         : ast_node_statement(enum_statement_type::discard_) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     };
 
@@ -660,7 +668,7 @@ namespace Thunder
         expression_statement(ast_node_expression* expr) noexcept
         : ast_node_statement(enum_statement_type::expression), expr(expr) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     private:
         ast_node_expression* expr = nullptr;
@@ -672,7 +680,7 @@ namespace Thunder
         condition_statement(ast_node_expression* expr, ast_node_statement* true_stmt, ast_node_statement* false_stmt) noexcept
         : ast_node_statement(enum_statement_type::condition), condition(expr), true_branch(true_stmt), false_branch(false_stmt) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     public:
         ast_node_expression* condition = nullptr;
@@ -686,7 +694,7 @@ namespace Thunder
         for_statement(ast_node_statement* init, ast_node_expression* cond, ast_node_expression* update, ast_node_statement* body) noexcept
         : ast_node_statement(enum_statement_type::undefined), init_stmt(init), condition(cond), update_expr(update), body_stmt(body) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     public:
         ast_node_statement* init_stmt = nullptr;
@@ -707,7 +715,7 @@ namespace Thunder
         scope* begin_block(scope* outer);
         void end_block(scope* current);
         
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     private:
         TArray<ast_node_statement*> statements; // 存储语句列表
@@ -763,7 +771,7 @@ namespace Thunder
             : ast_node(enum_ast_node_type::expression), expr_type(exprType) {}
         
         // 表达式评估函数
-        virtual evaluate_expr_result evaluate();
+        virtual evaluate_expr_result evaluate(shader_codegen_state& state);
         
     public:
         enum_expr_type expr_type;
@@ -776,9 +784,9 @@ namespace Thunder
         binary_expression() noexcept
         : ast_node_expression (enum_expr_type::binary_op) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     public:
         enum_binary_op op = enum_binary_op::undefined;
         ast_node_expression* left = nullptr;
@@ -797,7 +805,7 @@ namespace Thunder
             order[3] = in_order[3];
         }
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     public:
         ast_node_expression* prefix = nullptr;
@@ -811,7 +819,7 @@ namespace Thunder
             : ast_node_expression(enum_expr_type::component),
             component_name(expr), identifier(std::move(text)) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     private:
         ast_node_expression* component_name = nullptr;
@@ -824,7 +832,7 @@ namespace Thunder
         index_expression(ast_node_expression* expr, ast_node_expression* index_expr) noexcept
             : ast_node_expression(enum_expr_type::index), target(expr), index(index_expr) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     private:
         ast_node_expression* target = nullptr; // 被索引的表达式
@@ -839,9 +847,9 @@ namespace Thunder
             : ast_node_expression(enum_expr_type::reference)
             , identifier(std::move(id)), target(ref) {}
         
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     private:
         String identifier;
         ast_node* target = nullptr; // 指向符号表中的节点
@@ -854,9 +862,9 @@ namespace Thunder
         constant_int_expression(int value) noexcept
             : ast_node_expression(enum_expr_type::integer), value(value) {}
         
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     private:
         int value;
     };
@@ -868,9 +876,9 @@ namespace Thunder
         constant_float_expression(float value) noexcept
             : ast_node_expression(enum_expr_type::constant_float), value(value) {}
         
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     private:
         float value;
     };
@@ -882,9 +890,9 @@ namespace Thunder
         constant_bool_expression(bool value) noexcept
             : ast_node_expression(enum_expr_type::constant_bool), value(value) {}
         
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     private:
         bool value;
     };
@@ -900,9 +908,9 @@ namespace Thunder
             arguments.push_back(arg);
         }
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     private:
         String function_name;
         TArray<ast_node_expression*> arguments = {};
@@ -919,9 +927,9 @@ namespace Thunder
             arguments.push_back(arg);
         }
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     private:
         ast_node_type_format* constructor_type = nullptr;
         TArray<ast_node_expression*> arguments = {};
@@ -933,9 +941,9 @@ namespace Thunder
         assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs) noexcept
             : ast_node_expression(enum_expr_type::assignment), left_expr(lhs), right_expr(rhs) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     private:
         ast_node_expression* left_expr = nullptr;
         ast_node_expression* right_expr = nullptr;
@@ -947,9 +955,9 @@ namespace Thunder
         conditional_expression(ast_node_expression* cond, ast_node_expression* true_expr, ast_node_expression* false_expr) noexcept
             : ast_node_expression(enum_expr_type::conditional), condition(cond), true_expression(true_expr), false_expression(false_expr) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     private:
         ast_node_expression* condition = nullptr;
         ast_node_expression* true_expression = nullptr;
@@ -962,9 +970,9 @@ namespace Thunder
         unary_expression(enum_unary_op op, ast_node_expression* expr) noexcept
             : ast_node_expression(enum_expr_type::unary_op), op(op), operand(expr) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     public:
         enum_unary_op op = enum_unary_op::undefined;
         ast_node_expression* operand = nullptr;
@@ -976,9 +984,9 @@ namespace Thunder
         compound_assignment_expression(enum_assignment_op op, ast_node_expression* lhs, ast_node_expression* rhs) noexcept
             : ast_node_expression(enum_expr_type::compound_assignment), op(op), left_expr(lhs), right_expr(rhs) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
     public:
         enum_assignment_op op = enum_assignment_op::undefined;
         ast_node_expression* left_expr = nullptr;
@@ -1000,9 +1008,9 @@ namespace Thunder
             expressions.push_back(expr);
         }
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
 
     private:
         TArray<ast_node_expression*> expressions;
@@ -1015,9 +1023,9 @@ namespace Thunder
         cast_expression(ast_node_type_format* target_type, ast_node_expression* expr) noexcept
             : ast_node_expression(enum_expr_type::cast), cast_type(target_type), operand(expr) {}
 
-        void generate_hlsl(String& outResult) override;
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
-        evaluate_expr_result evaluate() override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
 
     private:
         ast_node_type_format* cast_type = nullptr;

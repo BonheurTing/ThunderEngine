@@ -156,25 +156,25 @@ namespace Thunder
 		GameModule::UnregisterTickable(this);
 		// print all resource dependency guid
 		LOG("--------- Loaded All Resources Begin ---------");
-		for (const auto& [fst, snd] : PackageMap)
+		for (const auto& pakEntry : PackageMap | std::views::values)
 		{
-			if (!snd->IsLoaded())
+			if (!pakEntry->IsLoaded())
 			{
 				continue;
 			}
-			LOG("PackageName: %s, GUID: %s", snd->Package->GetPackageName().c_str(), fst.ToString().c_str());
-			for (auto res : snd->Package->GetPackageObjects())
+			LOG("PackageName: %s, GUID: %s", pakEntry->Package->GetPackageName().c_str(), pakEntry->Guid.ToString().c_str());
+			for (auto res : pakEntry->Package->GetPackageObjects())
 			{
 				switch (res->GetResourceType())
 				{
 				case ETempGameResourceReflective::StaticMesh:
-					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "StaticMesh", fst.ToString().c_str());
+					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "StaticMesh", res->GetGUID().ToString().c_str());
 					break;
 				case ETempGameResourceReflective::Texture2D:
-					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "Texture2D", fst.ToString().c_str());
+					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "Texture2D", res->GetGUID().ToString().c_str());
 					break;
 				case ETempGameResourceReflective::Material:
-					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "Material", fst.ToString().c_str());
+					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "Material", res->GetGUID().ToString().c_str());
 					break;
 				default:
 					TAssertf(false, "Unknown resource type");
@@ -205,6 +205,11 @@ namespace Thunder
 					if (LoadSync(entry->Guid, false))
 					{
 						GGameScheduler->PushTask([entry]{
+							// trigger obj on resource load
+							for (auto res : entry->Package->GetPackageObjects())
+							{
+								res->OnResourceLoaded();
+							}
 							entry->SetLoaded(true);
 						});
 					}
@@ -304,7 +309,7 @@ namespace Thunder
 	}
 
 #if WITH_EDITOR
-	GameObject* PackageModule::GetResource(NameHandle softPath)
+	GameResource* PackageModule::GetResource(NameHandle softPath)
 	{
 		if (GetModule()->LoadedResourcesByPath.contains(softPath))
 		{
@@ -314,22 +319,18 @@ namespace Thunder
 	}
 #endif
 
-	GameObject* PackageModule::TryGetLoadedResource(const TGuid& inGuid)
+	GameResource* PackageModule::TryGetLoadedResource(const TGuid& inGuid)
 	{
 		if (!inGuid.IsValid())
 		{
 			return nullptr;
 		}
 		TGuid pakGuid = GetModule()->ResourceToPackage[inGuid];
+		TAssert(pakGuid != inGuid);
 		PackageEntry* pakEntry = GetModule()->PackageMap[pakGuid];
 		if (!pakEntry->IsLoaded())
 		{
 			return nullptr;
-		}
-		if (pakGuid == inGuid) // try get package
-		{
-			TAssert(pakEntry->Package.IsValid());
-			return pakEntry->Package.Get();
 		}
 		for (auto res : pakEntry->Package->GetPackageObjects())
 		{
@@ -656,10 +657,10 @@ namespace Thunder
 						String paramName = itr->name.GetString();
 						String paramSoftPath = itr->value.GetString();
 
-						GameObject* obj = GetResource(NameHandle(paramSoftPath));
-						if (GameResource* res = dynamic_cast<GameResource*>(obj))
+						GameResource* obj = GetResource(NameHandle(paramSoftPath));
+						if (obj && obj->GetResourceType() == ETempGameResourceReflective::Texture2D)
 						{
-							material->SetTextureParameter(NameHandle(paramName), res->GetGUID());
+							material->SetTextureParameter(NameHandle(paramName), obj->GetGUID());
 						}
 						else
 						{

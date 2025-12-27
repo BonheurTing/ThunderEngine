@@ -362,14 +362,15 @@ namespace Thunder
     	syncCompilingEntry = new (TMemory::Malloc<SyncCompilingCombinationEntry>()) SyncCompilingCombinationEntry;
     	SyncCompilingVariants[variantId] = syncCompilingEntry;
     	syncCompilingEntry->Lock.WriteLock();
+    	syncCompilingMapLock.Unlock();
     	syncCompilingEntry->Combination = ShaderModule::CompileShaderVariant(Archive->GetName(), GetName(), variantId);
+    	syncCompilingEntry->Lock.WriteUnlock();
 
     	// Write back to variants cache.
 	    auto variantsLock = VariantsLock.Write();
     	TAssertf(!Variants.contains(variantId), "Duplicated variant found.");
     	Variants[variantId] = syncCompilingEntry->Combination;
 
-    	syncCompilingEntry->Lock.WriteUnlock();
     	return syncCompilingEntry->Combination;
     }
 
@@ -418,25 +419,22 @@ namespace Thunder
     		StageMeta& stageMeta = stageMetaIt.second;
 
     		// Code-gen.
-    		ShaderCodeGenConfig codeGenConfig
+    		String source = Archive->GenerateShaderSource(ShaderCodeGenConfig
 			{
 				.SubShaderName = GetName(),
 				.VariantMask = variantId,
 				.Stage = stageType,
-			};
-    		String source = Archive->GenerateShaderSource(codeGenConfig);
+			});
 
     		newVariant->Shaders[stageType] = new (TMemory::Malloc<ShaderStage>()) ShaderStage{};
     		ShaderStage* newStageVariant = newVariant->Shaders[stageType];
 
     		String entryName = stageMeta.EntryPoint;
-    		ShaderModule::GetModule()->CompileShaderSource(source, entryName, stageType, newStageVariant->ByteCode, enableDebugInfo);
+    		ShaderModule::CompileShaderSource(source, entryName, stageType, newStageVariant->ByteCode, enableDebugInfo);
     		if (!newStageVariant->ByteCode.Data
     			|| newStageVariant->ByteCode.Size == 0)
     		{
-    			newStageVariant->~ShaderStage();
-    			TMemory::Free(newStageVariant);
-    			return nullptr;
+    			TMemory::Destroy(newStageVariant);
     		}
     		newStageVariant->VariantId = variantId;
     	}
@@ -520,24 +518,10 @@ namespace Thunder
     	}
 	}
 
-	String ShaderAST::GenerateShaderVariantSource(NameHandle passName, const TArray<ShaderVariantMeta>& variants)
-	{
-    	String result;
-    	ASTRoot->generate_hlsl(result);
-    	return result;
-	}
-
-	String ShaderAST::GenerateShaderVariantSource(NameHandle passName, uint64 variantId)
+	String ShaderAST::GenerateShaderVariantSource(shader_codegen_state& state) const
     {
     	String result;
-    	ASTRoot->generate_hlsl(result);
-    	return result;
-	}
-
-	String ShaderAST::GenerateShaderVariantSource(ShaderCodeGenConfig const& config) const
-    {
-    	String result;
-    	ASTRoot->generate_hlsl(result);
+    	ASTRoot->generate_hlsl(result, state);
     	return result;
 	}
 
@@ -636,12 +620,7 @@ namespace Thunder
     	return subShader->CompileShaderVariant(variantId);
     }
 
-    String ShaderArchive::GenerateShaderSource(NameHandle passName, uint64 variantId)
-    {
-    	return AST->GenerateShaderVariantSource(passName, variantId);
-    }
-
-	void ShaderArchive::ParseVariants(ShaderCodeGenConfig& config) const
+	void ShaderArchive::ParseVariants(ShaderCodeGenConfig const& config, shader_codegen_state& state) const
 	{
     	uint64 variantMask = config.VariantMask;
 
@@ -652,7 +631,7 @@ namespace Thunder
     		if (fixedVariantIt != GFixedVariantMap.end())
     		{
     			NameHandle globalVariantName = fixedVariantIt->second;
-    			config.ShaderVariants[globalVariantName] = !!(variantMask & variantBit);
+    			state.variants[globalVariantName] = !!(variantMask & variantBit);
     		}
 		    else
 		    {
@@ -661,7 +640,7 @@ namespace Thunder
     	}
 
     	// Shader variants.
-    	VariantMaskToName(variantMask, config.ShaderVariants);
+    	VariantMaskToName(variantMask, state.variants);
     }
 
 	uint64 ShaderArchive::VariantNameToMask(const TMap<NameHandle, bool>& variantMap) const
@@ -691,10 +670,17 @@ namespace Thunder
     	}
 	}
 
-	String ShaderArchive::GenerateShaderSource(ShaderCodeGenConfig& config) const
+	String ShaderArchive::GenerateShaderSource(ShaderCodeGenConfig const& config) const
 	{
-    	ParseVariants(config);
-    	return AST->GenerateShaderVariantSource(config);
+    	shader_codegen_state state
+    	{
+    		.sub_shader_name = config.SubShaderName,
+    		.variant_mask = config.VariantMask,
+    		.stage = ShaderModule::GetShaderASTStage(config.Stage),
+    		.variants = {}
+    	};
+    	ParseVariants(config, state);
+    	return AST->GenerateShaderVariantSource(state);
     }
 
     String ShaderArchive::GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const

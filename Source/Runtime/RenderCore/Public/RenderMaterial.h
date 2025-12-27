@@ -25,7 +25,7 @@ namespace Thunder
         ~RenderMaterial();
 
         // ========== Shader ==========
-        ShaderArchive* GetShaderArchive() const { return CompiledShaderMap; }
+        ShaderArchive* GetShaderArchive() const { return Archive; }
         void SetShaderArchive(ShaderArchive* archive);
         ShaderCombination* GetShaderCombination(NameHandle passName, uint64 variantId = 0) const;
 
@@ -52,7 +52,7 @@ namespace Thunder
         const TMap<NameHandle, bool>& GetStaticParameters() const;
 
     private:
-        ShaderArchive* CompiledShaderMap { nullptr }; // shader module manages lifetime
+        ShaderArchive* Archive { nullptr }; // shader module manages lifetime
         TShaderRegisterCounts RegisterCounts {};
         MaterialParameterCache* ParameterCache; //
 

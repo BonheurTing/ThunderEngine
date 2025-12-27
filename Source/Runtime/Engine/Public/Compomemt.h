@@ -107,7 +107,7 @@ namespace Thunder
 
 	private:
 		StaticMesh* Mesh { nullptr };
-		TMap<NameHandle, IMaterial*> OverrideMaterials {};
+		TMap<NameHandle, IMaterial*> OverrideMaterials {}; //12.28todo: material slot
 
 		// GUIDs for lite deserialize and async load
 		TGuid MeshGuid {};

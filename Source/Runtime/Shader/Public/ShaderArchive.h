@@ -3,6 +3,7 @@
 #include "../../Renderer/Public/MeshPassProcessor.h"
 #include "Concurrent/Lock.h"
 #include "Templates/RefCounting.h"
+#include "AstNode.h"
 
 namespace Thunder
 {
@@ -32,7 +33,6 @@ namespace Thunder
 		NameHandle SubShaderName;
 		uint64 VariantMask;
 		EShaderStageType Stage;
-		THashMap<NameHandle, bool> ShaderVariants;
 	};
 
 	class ShaderPass : public RefCountedObject
@@ -94,9 +94,7 @@ namespace Thunder
 
 		// parse ast to obtain Property/Variant/Parameters
 		void ParseAllTypeParameters(class ShaderArchive* archive) const;
-		String GenerateShaderVariantSource(NameHandle passName, const TArray<ShaderVariantMeta>& variants);
-		String GenerateShaderVariantSource(NameHandle passName, uint64 variantId);
-    	String GenerateShaderVariantSource(ShaderCodeGenConfig const& config) const;
+    	String GenerateShaderVariantSource(shader_codegen_state& state) const;
 		String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
 
 	private:
@@ -114,7 +112,7 @@ namespace Thunder
     	void AddSubShader(ShaderPass* inSubShader)
     	{
     		SubShaders.emplace(inSubShader->GetName(), ShaderPassRef(inSubShader));
-    		MeshDrawSubShaders.emplace(EMeshPass::BasePass, ShaderPassRef(inSubShader)); // LdwTodo : Get mesh-draw type.
+    		MeshDrawSubShaders.emplace(EMeshPass::BasePass, ShaderPassRef(inSubShader)); // 12.28Todo : Get mesh-draw type.
     	}
     	void AddPropertyMeta(const ShaderPropertyMeta& meta)
     	{
@@ -153,11 +151,10 @@ namespace Thunder
     	ShaderCombination* CompileShaderVariant(NameHandle subShaderName, uint64 variantId);
     	ShaderAST* GetAST() const { return AST; }
 
-    	String GenerateShaderSource(NameHandle passName, uint64 variantId);
-    	String GenerateShaderSource(ShaderCodeGenConfig& config) const;
+    	String GenerateShaderSource(ShaderCodeGenConfig const& config) const;
     	String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
     	MaterialParameterCache GenerateParameterCache();
-    	void ParseVariants(ShaderCodeGenConfig& config) const;
+    	void ParseVariants(ShaderCodeGenConfig const& config, shader_codegen_state& state) const;
     	uint64 VariantNameToMask(const TMap<NameHandle, bool>& variantMap) const;
     	void VariantMaskToName(uint64 variantMask, THashMap<NameHandle, bool>& variantMap) const;
 

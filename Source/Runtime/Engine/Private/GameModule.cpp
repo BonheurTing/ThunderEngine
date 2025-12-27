@@ -31,21 +31,21 @@ namespace Thunder
         {
             uint32 A, B, C, D;
             TGuid resGuid;
-            if (sscanf("28064C42-469B8D63-A19B4897-A9A8A160", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
+            if (sscanf("B6CCBDD4-4C54316D-7806F1A4-1ED0094F", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
             {
                 resGuid = TGuid(A, B, C, D);
             }
             GameResource* tex = ResourceModule::LoadSync(resGuid, true);
             tex->OnResourceLoaded();
 
-            if (sscanf("F8432BAB-4EE48DCE-C0D0A6B5-FCA7DEA3", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
+            if (sscanf("BEF855D5-459251C5-CA0C088D-07658A28", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
             {
                 resGuid = TGuid(A, B, C, D);
             }
             GameResource* mat = ResourceModule::LoadSync(resGuid, true);
             mat->OnResourceLoaded();
 
-            if (sscanf("3A8C62D8-4FE31B09-66906FB7-BAF089A9", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
+            if (sscanf("CFE86C56-4E01C23A-79A9038C-AC38BD89", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
             {
                 resGuid = TGuid(A, B, C, D);
             }
@@ -56,7 +56,6 @@ namespace Thunder
                 stMesh->AddMaterial(static_cast<IMaterial*>(mat));
             }
         }
-        
 
         GameThreadTaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
 

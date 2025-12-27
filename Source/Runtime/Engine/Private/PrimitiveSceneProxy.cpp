@@ -24,11 +24,11 @@ namespace Thunder
     {
         for (auto material : RenderMaterials)
         {
+            // Fetch shader.
             auto shaderAst = material->GetShaderArchive();
             uint64 shaderVariantMask = ShaderModule::GetVariantMask(shaderAst, material->GetStaticParameters());
-
-            // shader
             ShaderCombination* shaderVariant = ShaderModule::GetShaderCombination(shaderAst, meshPassType, shaderVariantMask);
+
             // Subshader->getRenderState(DepthStencilState, BlendState, RasterizationState)
             //[DepthStencilState, BlendState, RasterizationState] = subshader->getRenderState();
             // RenderTargets

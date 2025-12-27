@@ -36,7 +36,7 @@ namespace Thunder
             return nullptr;
         }
 
-        ShaderPass* pass = CompiledShaderMap->GetPass(passName);
+        ShaderPass* pass = CompiledShaderMap->GetSubShader(passName);
         if (!pass)
         {
             return nullptr;

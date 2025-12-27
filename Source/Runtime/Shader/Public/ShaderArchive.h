@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "ShaderDefinition.h"
 #include "../../Renderer/Public/MeshPassProcessor.h"
+#include "Concurrent/Lock.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder
@@ -8,11 +9,29 @@ namespace Thunder
 	enum class EMeshPass : uint8;
 	class ast_node;
 
+	struct SyncCompilingCombinationEntry
+	{
+		ShaderCombination* Combination = nullptr;
+		SharedLock Lock{};
+
+		SyncCompilingCombinationEntry() = default;
+		~SyncCompilingCombinationEntry() = default;
+		SyncCompilingCombinationEntry(const SyncCompilingCombinationEntry& rhs) : Combination(rhs.Combination) {}
+		SyncCompilingCombinationEntry& operator=(const SyncCompilingCombinationEntry& rhs)
+		{
+			if (this != &rhs)
+			{
+				Combination = rhs.Combination;
+			}
+			return *this;
+		}
+	};
+
 	class ShaderPass : public RefCountedObject
     {
     public:
     	ShaderPass() = delete;
-    	ShaderPass(NameHandle name) : Name(name), PassVariantMask(0) {}
+    	ShaderPass(class ShaderArchive* archive, NameHandle name) : Archive(archive), Name(name) {}
 		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
         _NODISCARD_ TShaderRegisterCounts GetShaderRegisterCounts() const { return RegisterCounts; }
     	//uint64 VariantNameToMask(const TArray<ShaderVariantMeta>& variantName) const;
@@ -23,19 +42,28 @@ namespace Thunder
 		void SetVariantDefinitionTable(const TArray<ShaderVariantMeta>& passVariantMeta);
     	void GenerateVariantDefinitionTable_Deprecated(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta);
     	void CacheDefaultShaderCache();
-    	bool CheckCache(uint64 variantId) const
+
+    	FORCEINLINE bool CheckCache(uint64 variantId)
     	{
+    		auto lock = VariantsLock.Read();
     		return Variants.contains(variantId);
     	}
-		ShaderCombination* GetShaderCombination(uint64 variantId)
+
+		FORCEINLINE ShaderCombination* GetShaderCombination(uint64 variantId)
     	{
-    		if (CheckCache(variantId))
+    		auto lock = VariantsLock.Read();
+    		auto variantIt = Variants.find(variantId);
+    		if (variantIt != Variants.end())
     		{
-    			return Variants[variantId].Get();
+    			return variantIt->second.Get();
     		}
     		return nullptr;
     	}
+
+		ShaderCombination* GetOrCompileShaderCombination(uint64 variantId);
+
     	bool CompileShader(NameHandle archiveName, const String& shaderSource, const String& includeStr, uint64 variantId);
+    	ShaderCombinationRef CompileShaderVariant(uint64 variantId);
 		bool RegisterRootSignature()
 		{
 			//TD3D12RHIModule::GetRootSignatureManager().RegisterRootSignature(Name, RegisterCounts);
@@ -45,12 +73,16 @@ namespace Thunder
 		_NODISCARD_ NameHandle GetName() const { return Name; }
 		
     private:
+		ShaderArchive* Archive = nullptr;
     	NameHandle Name;
-    	uint64 PassVariantMask;
+    	uint64 PassVariantMask = 0;
 		TShaderRegisterCounts RegisterCounts{};
-    	TArray<ShaderVariantMeta> VariantDefinitionTable; // 
-    	THashMap<EShaderStageType, StageMeta> StageMetas; //deprecated: Stage占哪几位mask
+    	TArray<ShaderVariantMeta> VariantDefinitionTable;
+    	THashMap<EShaderStageType, StageMeta> StageMetas; // Deprecated.
+		SharedLock VariantsLock;
     	THashMap<uint64, ShaderCombinationRef> Variants;
+		SharedLock SyncCompilingVariantsLock;
+    	THashMap<uint64, SyncCompilingCombinationEntry*> SyncCompilingVariants;
     };
 	using ShaderPassRef = TRefCountPtr<ShaderPass>;
 
@@ -62,6 +94,7 @@ namespace Thunder
 		// parse ast to obtain Property/Variant/Parameters
 		void ParseAllTypeParameters(class ShaderArchive* archive) const;
 		String GenerateShaderVariantSource(NameHandle passName, const TArray<ShaderVariantMeta>& variants);
+		String GenerateShaderVariantSource(NameHandle passName, uint64 variantId);
 
 	private:
 		ast_node* ASTRoot = nullptr;
@@ -74,14 +107,11 @@ namespace Thunder
     	ShaderArchive(String inShaderSource, NameHandle name) : SourcePath(std::move(inShaderSource)), Name(name) {}
     	ShaderArchive(String sourceFilePath, NameHandle shaderName, ast_node* astRoot);
     	~ShaderArchive();
-    
-    	void AddPass(NameHandle name, ShaderPass* inPass)
+
+    	void AddSubShader(ShaderPass* inSubShader)
     	{
-    		Passes.emplace(name, ShaderPassRef(inPass));
-    	}
-    	void AddSubShader(ShaderPass* inPass)
-    	{
-    		SubShaders.emplace(EMeshPass::BasePass, ShaderPassRef(inPass));
+    		SubShaders.emplace(inSubShader->GetName(), ShaderPassRef(inSubShader));
+    		MeshDrawSubShaders.emplace(EMeshPass::BasePass, ShaderPassRef(inSubShader)); // LdwTodo : Get mesh-draw type.
     	}
     	void AddPropertyMeta(const ShaderPropertyMeta& meta)
     	{
@@ -107,12 +137,13 @@ namespace Thunder
 
 	    _NODISCARD_ NameHandle GetName() const { return Name; }
     	_NODISCARD_ String GetSourcePath() const { return SourcePath; }
-    	ShaderPass* GetPass(NameHandle name);
+    	ShaderPass* GetSubShader(NameHandle name);
     	ShaderPass* GetSubShader(EMeshPass meshPassType);
     	String GetShaderSourceDir() const;
     	void GenerateIncludeString(NameHandle passName, String& outFile);
 		void CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount);
-    	bool CompileShaderPass(NameHandle passName, uint64 variantId, bool force = false);
+    	ShaderCombinationRef CompileShaderVariant(NameHandle subShaderName, uint64 variantId);
+    	ShaderAST* GetAST() const { return AST; }
 
     	// new
     	String GenerateShaderSource(NameHandle passName, uint64 variantId);
@@ -132,8 +163,8 @@ namespace Thunder
     	THashMap<NameHandle, TArray<ShaderParameterMeta>> PasseParameterMeta; //Based on the usage within the subshader
 
     	RenderStateMeta renderState {};
-    	THashMap<NameHandle, ShaderPassRef> Passes; //deprecated
-    	THashMap<EMeshPass, ShaderPassRef> SubShaders;  // = Passes
+    	THashMap<NameHandle, ShaderPassRef> SubShaders;
+    	THashMap<EMeshPass, ShaderPassRef> MeshDrawSubShaders;
     };
     
 }

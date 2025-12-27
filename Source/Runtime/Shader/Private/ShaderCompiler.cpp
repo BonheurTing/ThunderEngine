@@ -238,5 +238,136 @@ namespace Thunder
     		}
     	}
     }
+
+    void DXCCompiler::Compile(const String& inSource, const String& entryPoint, String const& target, BinaryData& outByteCode, bool debug/* = false*/)
+    {
+    	if (ShaderCompiler == nullptr || ShaderUtils == nullptr) [[unlikely]]
+    	{
+    		TAssertf(false, "Shader compiler not initialized.");
+    		return;
+    	}
+
+    	const std::wstring wideEntry = std::wstring(entryPoint.begin(), entryPoint.end());
+    	const std::wstring wideTarget = std::wstring(target.begin(), target.end());
+
+    	ComPtr<IDxcCompiler3> compiler3{};
+    	ShaderCompiler->QueryInterface(IID_PPV_ARGS(&compiler3));
+    	if (compiler3)
+    	{
+    		TArray<LPCWSTR> args = {
+    			L"-E", wideEntry.c_str(), // Entry point.
+				L"-T", wideTarget.c_str(), // Target.
+    			L"-Qstrip_reflect", // Strip reflection into a separate blob. 
+    		};
+    		if (debug)
+    		{
+    			args.push_back(L"-Zi");
+    			args.push_back(L"-O3"); // "-Od" to disable optimization.
+    		}
+    		else
+    		{
+    			args.push_back(L"-O3");
+    		}
+
+    		ComPtr<IDxcIncludeHandler> pIncludeHandler;
+    		HRESULT hr = ShaderUtils->CreateDefaultIncludeHandler(&pIncludeHandler);
+    		if (FAILED(hr))
+    		{
+    			LOG("Fail to CreateDefaultIncludeHandler.");
+    			return;
+    		}
+    	
+    		DxcBuffer sourceBlob{};
+    		sourceBlob.Ptr = inSource.c_str();
+    		sourceBlob.Size = inSource.size();
+    		ComPtr<IDxcResult> pResult;
+    		hr = compiler3->Compile(&sourceBlob, args.data(), static_cast<uint32>(args.size()), pIncludeHandler.Get(), IID_PPV_ARGS(&pResult));
+    		if (SUCCEEDED(hr))
+    		{
+    			hr = pResult->GetStatus(&hr);
+    		}
+    		if (SUCCEEDED(hr))
+    		{
+    			ComPtr<IDxcBlobUtf8> pErrors = nullptr;
+    			pResult->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&pErrors), nullptr);
+    			if (pErrors != nullptr && pErrors->GetStringLength() != 0)
+    			{
+    				TAssertf(false, "Fail to compile shader : %.*s", pErrors->GetStringLength(), pErrors->GetStringPointer());
+    				wprintf(L"DXCompiler %S\n", pErrors->GetStringPointer());
+    				outByteCode.Data = nullptr;
+    				outByteCode.Size = 0;
+    				return;
+    			}
+    		}
+    		else
+    		{
+    			TAssertf(false, "Fail to compile shader, reason unknown.");
+    			outByteCode.Data = nullptr;
+    			outByteCode.Size = 0;
+    			return;
+    		}
+    
+    		ComPtr<IDxcBlob> pShader = nullptr;
+    		ComPtr<IDxcBlobUtf16> pShaderName = nullptr;
+    		pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pShader), &pShaderName);
+    		if (pShader != nullptr && pShader->GetBufferSize() > 0)
+    		{
+    			outByteCode.Size = pShader->GetBufferSize();
+    			outByteCode.Data = pShader->GetBufferPointer();
+    		}
+    		else
+    		{
+    			TAssertf(false, "Fail to get shader compilation result.");
+    		}
+    	}
+    	else
+    	{
+    		const std::wstring wideSource = std::wstring(inSource.begin(), inSource.end());
+    		ComPtr<IDxcBlobEncoding> blobEncoding;
+    		HRESULT hr = ShaderUtils->CreateBlob(wideSource.c_str(), static_cast<uint32>(inSource.size()), 0, &blobEncoding);
+    		if (FAILED(hr))
+    		{
+    			TAssertf(false, "Fail to create source blob when compiling a shader.");
+    			return;
+    		}
+
+    		ComPtr<IDxcOperationResult> compileResult;
+    		hr = ShaderCompiler->Compile(blobEncoding.Get(), nullptr, wideEntry.c_str(), wideTarget.c_str(),
+    			nullptr, 0, nullptr, 0, nullptr, &compileResult);
+    		if (SUCCEEDED(hr))
+    		{
+    			hr = compileResult->GetStatus(&hr);
+    		}
+    		if (SUCCEEDED(hr))
+    		{
+    			ComPtr<IDxcBlob> outShader = nullptr;
+    			compileResult->GetResult(&outShader);
+    			if (outShader != nullptr)
+    			{
+    				outByteCode.Size = outShader->GetBufferSize();
+    				outByteCode.Data = outShader->GetBufferPointer();
+    			}
+    			else
+    			{
+    				TAssertf(false, "Fail to get shader compilation result.");
+    			}
+    		}
+    		else
+    		{
+    			ComPtr<IDxcBlobEncoding> errorsBlob;
+    			hr = compileResult->GetErrorBuffer(&errorsBlob);
+    			if (SUCCEEDED(hr) && errorsBlob != nullptr)
+    			{
+    				TAssertf(false, "Fail to compile shader : %.*s", errorsBlob->GetBufferSize(), errorsBlob->GetBufferPointer());
+    			}
+    			else
+    			{
+    				TAssertf(false, "Fail to compile shader, reason unknown.");
+    			}
+    			outByteCode.Data = nullptr;
+    			outByteCode.Size = 0;
+    		}
+    	}
+    }
 }
 

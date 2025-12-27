@@ -42,6 +42,8 @@ namespace Thunder
 		void Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode);
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, const THashMap<NameHandle, bool>& variantParameters, bool force = false);
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 variantId, bool force = false);
+	    static ShaderCombinationRef CompileShaderVariant(NameHandle archiveName, NameHandle passName, uint64 variantId);
+    	void CompileShaderSource(const String& inSource, const String& entryPoint, const String& target, BinaryData& outByteCode, bool debug = false) const;
 
     private:
     	static ShaderCombination* SyncCompileShaderCombination(ShaderArchive* archive, NameHandle passName, uint64 variantMask);

@@ -285,8 +285,8 @@ namespace Thunder
 		headerArchive >> magicNumber; // 读取魔数
 		if (magicNumber != 0x50414745) // "PAGE"
 		{
-			TMemory::Destroy(fileData);
 			file->Close();
+			TMemory::Destroy(fileData);
 			return false;
 		}
 		headerArchive >> checkSum; // 读取校验和
@@ -324,8 +324,8 @@ namespace Thunder
 			size_t readBytes = file->PRead(&offsetList[i], sizeof(uint32), offset);
 			if (readBytes != sizeof(uint32))
 			{
-				TMemory::Destroy(fileData);
 				file->Close();
+				TMemory::Destroy(fileData);
 				return false;
 			}
 		}
@@ -339,8 +339,8 @@ namespace Thunder
 			size_t readBytes = file->PRead(&dependencyCount, sizeof(uint32), offsetList[i]);
 			if (readBytes != sizeof(uint32))
 			{
-				TMemory::Destroy(fileData);
 				file->Close();
+				TMemory::Destroy(fileData);
 				return false;
 			}
 
@@ -353,8 +353,8 @@ namespace Thunder
 				readBytes = file->PRead(dependencies.data(), guidDataSize, offsetList[i] + sizeof(uint32));
 				if (readBytes != guidDataSize)
 				{
-					TMemory::Destroy(fileData);
 					file->Close();
+					TMemory::Destroy(fileData);
 					return false;
 				}
 			}
@@ -362,106 +362,9 @@ namespace Thunder
 			newEntry->Dependencies.emplace(guidList[i], dependencies);
 		}
 
-		TMemory::Destroy(fileData);
 		file->Close();
+		TMemory::Destroy(fileData);
 		return true;
-	}
-
-	bool PackageModule::LoadSync(const TGuid& pakGuid, TArray<GameResource*>& outResources, bool bForce)
-	{
-		if (!bForce)
-		{
-			auto loadedRes = TryGetLoadedResource(pakGuid);
-			if (loadedRes != nullptr)
-			{
-				const auto pak = static_cast<Package*>(loadedRes);
-				TAssertf(pak != nullptr, "ResourceModule::LoadSync: Loaded resource is not a Package");
-				outResources = pak->GetPackageObjects();
-				return true;
-			}
-		}
-
-		return ForceLoadPackage(pakGuid);
-	}
-
-	GameResource* PackageModule::LoadSync(const TGuid& resGuid, bool bForce)
-	{
-		if (!bForce)
-		{
-			auto loadedRes = TryGetLoadedResource(resGuid);
-			if (loadedRes != nullptr)
-			{
-				const auto res = static_cast<GameResource*>(loadedRes);
-				TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource");
-				return res;
-			}
-		}
-		if (ForceLoadPackage(GetModule()->ResourceToPackage[resGuid]))
-		{
-			auto loadedRes = TryGetLoadedResource(resGuid);
-			if (loadedRes != nullptr)
-			{
-				const auto res = static_cast<GameResource*>(loadedRes);
-				TAssertf(res != nullptr, "ResourceModule::LoadSync: Loaded resource is not a GameResource");
-				TArray<TGuid> dependencies = res->GetDependencies();
-				for (const auto& dependency : dependencies)
-				{
-					LoadSync(dependency, false);
-				}
-				return res;
-			}
-		}
-		return nullptr;
-	}
-
-	bool PackageModule::ForceLoadPackage(const TGuid& pakGuid)
-	{
-		NameHandle pakSoftPath = GetModule()->PackageMap[pakGuid]->SoftPath;
-		const auto newPackage = new Package(pakSoftPath, pakGuid);
-		return newPackage->Load();
-	}
-
-	/*void PackageModule::LoadAsync(const TGuid& guid)
-	{
-		TGuid pakGuid = GetModule()->ResourceToPackage[guid];
-		TAssertf(GetModule()->PackageMap.contains(pakGuid),
-			"ResourceModule::LoadAsync: fail to load a resource by guid: %u-%u-%u-%u", pakGuid.A, pakGuid.B, pakGuid.C, pakGuid.D);
-
-		GAsyncWorkers->PushTask([pakGuid]()
-		{
-			TArray<GameResource*> outResources;
-			if (LoadSync(pakGuid, outResources, false))
-			{
-				for (const auto res : outResources)
-				{
-					res->OnResourceLoaded();
-				}
-			}
-		});
-	}*/
-
-	GameObject* PackageModule::TryGetLoadedResource(const TGuid& inGuid)
-	{
-		TGuid pakGuid = GetModule()->ResourceToPackage[inGuid];
-		PackageEntry* pakEntry = GetModule()->PackageMap[pakGuid];
-		if (!pakEntry->IsLoaded())
-		{
-			return nullptr;
-		}
-		if (pakGuid == inGuid) // try get package
-		{
-			TAssert(pakEntry->Package.IsValid());
-			return pakEntry->Package.Get();
-		}
-		for (auto res : pakEntry->Package->GetPackageObjects())
-		{
-			if (res->GetGUID() == inGuid)
-			{
-				return res;
-			}
-		}
-		TAssert(false);
-		return nullptr;
 	}
 
 	bool PackageModule::SavePackage(Package* package)
@@ -472,31 +375,4 @@ namespace Thunder
 		}
 		return package->Save();
 	}
-
-	PackageEntry* PackageModule::AddPackageEntry(const TGuid& guid, const NameHandle& path)
-	{
-		PackageEntry* newEntry = new (TMemory::Malloc<PackageEntry>()) PackageEntry(guid, path);
-		GetModule()->PackageMap.emplace(guid, newEntry);
-		return newEntry;
-	}
-
-	void PackageModule::ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function)
-	{
-		const auto& resMap = GetModule()->PackageMap;
-		for (auto& pair : resMap)
-		{
-			function(pair.first, pair.second->SoftPath);
-		}
-	}
-
-#if WITH_EDITOR
-	GameObject* PackageModule::GetResource(NameHandle softPath)
-	{
-		if (GetModule()->LoadedResourcesByPath.contains(softPath))
-		{
-			return TryGetLoadedResource(GetModule()->LoadedResourcesByPath[softPath]);
-		}
-		return nullptr;
-	}
-#endif
 }

@@ -7,7 +7,7 @@ namespace Thunder
 	{
 		PackageModule::ForAllResources([](const TGuid& guid, NameHandle name)
 		{
-			PackageModule::LoadSync(guid);
+			PackageModule::LoadSync(guid, false);
 		});
 	}
 

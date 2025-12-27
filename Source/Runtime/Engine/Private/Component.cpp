@@ -149,43 +149,46 @@ namespace Thunder
 		}
 		Status.store(LoadingStatus::Loading, std::memory_order_release);
 
-		if (!MeshGuid.IsValid() && MaterialGuids.empty())
+		int depCounter = MeshGuid.IsValid() ? 1 : 0;
+		depCounter += static_cast<int>(MaterialGuids.size());
+		if (depCounter == 0)
 		{
 			// No dependencies, mark as loaded
 			OnLoaded();
 			return;
 		}
 
-		TWeakObjectPtr<StaticMeshComponent> componentPtr = this;
-		GAsyncWorkers->PushTask([meshGuid = MeshGuid, guidList = MaterialGuids, componentPtr]()
+		TLoadEvent<StaticMeshComponent>* loadEvent = new (TMemory::Malloc<TLoadEvent<StaticMeshComponent>>()) TLoadEvent(this);
+		loadEvent->Promise(depCounter);
+		if (MeshGuid.IsValid())
 		{
-			TStrongObjectPtr<GameResource> meshRef= PackageModule::LoadSync(meshGuid);
-
-			TMap<NameHandle, TStrongObjectPtr<GameResource>> materialRefList;
-			for (const auto& [fst, snd] : guidList)
-			{
-				GameResource* res = PackageModule::LoadSync(snd);
-				materialRefList.emplace(fst, res);
-			}
-
-			GGameScheduler->PushTask([componentPtr, meshRef, materialRefList]()
-			{
-				if (componentPtr)
-				{
-					componentPtr->Mesh = static_cast<StaticMesh*>(meshRef.Get());
-					componentPtr->OverrideMaterials.clear();
-					for (const auto& [fst, snd] : materialRefList)
-					{
-						componentPtr->OverrideMaterials.emplace(fst, static_cast<IMaterial*>(snd.Get()));
-					}
-					componentPtr->OnLoaded();
-				}
-			});
-		});
+			PackageModule::LoadAsync(MeshGuid, [loadEvent](){ loadEvent->Notify(); });
+		}
+		for (auto matGuid : MaterialGuids | std::views::values)
+		{
+			PackageModule::LoadAsync(matGuid, [loadEvent](){ loadEvent->Notify(); });
+		}
+		
 	}
 
 	void StaticMeshComponent::OnLoaded()
 	{
+		//check is in game thread
+		GameObject* expectedLoaded = PackageModule::TryGetLoadedResource(MeshGuid);
+		if (expectedLoaded)
+		{
+			Mesh = static_cast<StaticMesh*>(expectedLoaded);
+		}
+		OverrideMaterials.clear();
+		for (const auto& [fst, snd] : MaterialGuids)
+		{
+			expectedLoaded = PackageModule::TryGetLoadedResource(snd);
+			if (expectedLoaded)
+			{
+				OverrideMaterials.emplace(fst, static_cast<IMaterial*>(expectedLoaded));
+			}
+		}
+
 		// Call parent OnLoaded to mark as loaded and register tickable.
 		IComponent::OnLoaded();
 		LOG("------------ StaticMeshComponent loaded successfully");

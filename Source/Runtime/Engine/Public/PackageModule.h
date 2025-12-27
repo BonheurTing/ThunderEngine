@@ -47,9 +47,9 @@ namespace Thunder
 		void SetLoaded(bool bLoaded)
 		{
 			if (bLoaded)
-				Status &= ~static_cast<uint32>(EPackageStatus::Loaded);
-			else
 				Status |= static_cast<uint32>(EPackageStatus::Loaded);
+			else
+				Status &= ~static_cast<uint32>(EPackageStatus::Loaded);
 		}
 		TSet<TGuid> GetResourceDependencies()
 		{
@@ -93,22 +93,17 @@ namespace Thunder
 		static String CovertFullPathToSoftPath(const String& fullPath, const String& resourceName = "");
 		static String ConvertSoftPathToFullPath(const String& softPath, const String& extension = ".tasset");
 		static bool CheckUniqueSoftPath(String& softPath);
-		// 离线 fbx/png/tga -> uasset
+		// editor fbx/png/tga -> uasset
 #if WITH_EDITOR
 		static bool ForceImport(const String& srcPath, const String& destPath);
 		void ImportAll(bool bForce = true);
 #endif
 
 		// runtime
-		// load package
-		static bool LoadSync(const TGuid& pakGuid, TArray<GameResource*> &outResources, bool bForce = false);
-		static bool ForceLoadPackage(const TGuid& pakGuid);
-		// load game resource
-		static GameResource* LoadSync(const TGuid& resGuid, bool bForce = false);
-		//static void LoadAsync(const TGuid& guid); //
+		// load package or game resource
+		static bool LoadSync(const TGuid& inGuid, bool bForce);
 		static void LoadAsync(const TGuid& inGuid, TFunction<void()>&& inFunction);
 
-		//static bool IsLoaded(const TGuid& guid) { return GetModule()->LoadedResources.contains(guid); }
 		bool SavePackage(Package* package);
 
 		static PackageEntry* AddPackageEntry(const TGuid& guid, const NameHandle& path);
@@ -116,6 +111,8 @@ namespace Thunder
 		static void ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function);
 
 		// get resource
+		static bool IsLoaded(const TGuid& inGuid);
+		static GameObject* TryGetLoadedResource(const TGuid& inGuid);
 #if WITH_EDITOR
 		static GameObject* GetResource(NameHandle softPath);
 #endif
@@ -144,9 +141,8 @@ namespace Thunder
 		}
 		
 	private:
-		static GameObject* TryGetLoadedResource(const TGuid& inGuid);
 		void PackageAcquire(PackageEntry* entry);
-		TSet<TGuid> GetPackageDependencies(const TGuid& inGuid);
+		TSet<TGuid> GetPackageDependencies(const TGuid& pakGuid);
 #if WITH_EDITOR
 		void RegisterPackage(Package* package);
 #endif

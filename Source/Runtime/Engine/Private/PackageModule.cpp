@@ -5,6 +5,8 @@
 #include <assimp/Importer.hpp>      // 导入接口
 #include <assimp/scene.h>           // 场景数据（模型、材质、动画）
 #include <assimp/postprocess.h>     // 后处理选项（如三角化、优化）
+
+#include "GameModule.h"
 #include "rapidjson/document.h"
 
 #include "Mesh.h"
@@ -149,6 +151,9 @@ namespace Thunder
 
 	void PackageModule::ShutDown()
 	{
+		//todo: wait all request task down
+
+		GameModule::UnregisterTickable(this);
 		// print all resource dependency guid
 		LOG("--------- Loaded All Resources Begin ---------");
 		for (const auto& [fst, snd] : PackageMap)
@@ -197,11 +202,16 @@ namespace Thunder
 				entry->SetAcquiring(false);
 				entry->Status |= static_cast<uint32>(EPackageStatus::Loading);
 				GAsyncWorkers->PushTask([entry]{
-					TArray<GameResource*> outResources;
-					LoadSync(entry->Guid, outResources, false);
-					GGameScheduler->PushTask([entry]{
-						entry->SetLoaded(true);
-					});
+					if (LoadSync(entry->Guid, false))
+					{
+						GGameScheduler->PushTask([entry]{
+							entry->SetLoaded(true);
+						});
+					}
+					else
+					{
+						LOG("Failed to package with guid: %s", entry->Guid.ToString().c_str());
+					}
 				});
 			}
 		}
@@ -219,6 +229,20 @@ namespace Thunder
 		}
 	}
 
+	bool PackageModule::LoadSync(const TGuid& inGuid, bool bForce)
+	{
+		TGuid pakGuid = GetModule()->ResourceToPackage[inGuid];
+		if (!bForce)
+		{
+			if (IsLoaded(inGuid))
+			{
+				return true;
+			}
+		}
+
+		return GetModule()->PackageMap[pakGuid]->Package->Load();
+	}
+
 	void PackageModule::LoadAsync(const TGuid& inGuid, TFunction<void()>&& inFunction)
 	{
 		TGuid pakGuid = GetModule()->ResourceToPackage[inGuid];
@@ -231,7 +255,7 @@ namespace Thunder
 			if (inFunction)
 			{
 				auto newCompletion = new ResourceCompletion();
-				newCompletion->PackageGuid = inGuid;
+				newCompletion->PackageGuid = pakGuid;
 				newCompletion->Callback = inFunction;
 				GetModule()->CompletionList.push_back(newCompletion);
 			}
@@ -249,11 +273,73 @@ namespace Thunder
 		if (inFunction)
 		{
 			auto newCompletion = new ResourceCompletion();
-			newCompletion->PackageGuid = inGuid;
+			newCompletion->PackageGuid = pakGuid;
 			newCompletion->Callback = inFunction;
-			GetModule()->CompletionList.push_back(newCompletion);
+ 			GetModule()->CompletionList.push_back(newCompletion);
 		}
 		GetModule()->PackageAcquire(entry);
+	}
+
+	PackageEntry* PackageModule::AddPackageEntry(const TGuid& guid, const NameHandle& path)
+	{
+		PackageEntry* newEntry = new (TMemory::Malloc<PackageEntry>()) PackageEntry(guid, path);
+		GetModule()->PackageMap.emplace(guid, newEntry);
+		return newEntry;
+	}
+
+	void PackageModule::ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function)
+	{
+		const auto& resMap = GetModule()->PackageMap;
+		for (auto& pair : resMap)
+		{
+			function(pair.first, pair.second->SoftPath);
+		}
+	}
+
+	bool PackageModule::IsLoaded(const TGuid& inGuid)
+	{
+		TGuid pakGuid = GetModule()->ResourceToPackage[inGuid];
+		PackageEntry* pakEntry = GetModule()->PackageMap[pakGuid];
+		return pakEntry->IsLoaded();
+	}
+
+#if WITH_EDITOR
+	GameObject* PackageModule::GetResource(NameHandle softPath)
+	{
+		if (GetModule()->LoadedResourcesByPath.contains(softPath))
+		{
+			return TryGetLoadedResource(GetModule()->LoadedResourcesByPath[softPath]);
+		}
+		return nullptr;
+	}
+#endif
+
+	GameObject* PackageModule::TryGetLoadedResource(const TGuid& inGuid)
+	{
+		if (!inGuid.IsValid())
+		{
+			return nullptr;
+		}
+		TGuid pakGuid = GetModule()->ResourceToPackage[inGuid];
+		PackageEntry* pakEntry = GetModule()->PackageMap[pakGuid];
+		if (!pakEntry->IsLoaded())
+		{
+			return nullptr;
+		}
+		if (pakGuid == inGuid) // try get package
+		{
+			TAssert(pakEntry->Package.IsValid());
+			return pakEntry->Package.Get();
+		}
+		for (auto res : pakEntry->Package->GetPackageObjects())
+		{
+			if (res->GetGUID() == inGuid)
+			{
+				return res;
+			}
+		}
+		TAssert(false);
+		return nullptr;
 	}
 
 	void PackageModule::PackageAcquire(PackageEntry* entry)
@@ -276,9 +362,9 @@ namespace Thunder
 	 * 2. 方案二
 	 * 读硬盘上文件头获取依赖
 	 **/
-	TSet<TGuid> PackageModule::GetPackageDependencies(const TGuid& inGuid)
+	TSet<TGuid> PackageModule::GetPackageDependencies(const TGuid& pakGuid)
 	{
-		return PackageMap[inGuid]->GetResourceDependencies();
+		return PackageMap[pakGuid]->GetResourceDependencies();
 	}
 
 
@@ -299,6 +385,7 @@ namespace Thunder
 				}
 			}
 		}
+		GameModule::RegisterTickable(GetModule());
 		// print all resource guid
 		LOG("--------- Scan All Packages %d Begin ---------", static_cast<int32>(GetModule()->PackageMap.size()));
 		for (const auto& [fst, snd] : GetModule()->PackageMap)

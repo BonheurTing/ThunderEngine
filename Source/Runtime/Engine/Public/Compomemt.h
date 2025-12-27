@@ -26,9 +26,11 @@ namespace Thunder
 		{
 			if (LoadItem)
 			{
-				GGameScheduler->PushTask([item = LoadItem]()
+				GGameScheduler->PushTask([this, item = LoadItem]()
 				{
 					item->OnLoaded();
+					auto* selfPtr = this;
+					TMemory::Destroy(selfPtr);
 				});
 			}
 		}

@@ -138,8 +138,9 @@ namespace Thunder
 
         String texFullPath = FileModule::GetProjectRoot() + "\\Content\\TestPNG.tasset";
         String texSoftPath = PackageModule::CovertFullPathToSoftPath(texFullPath, "TestPNG");
-        bool ret = PackageModule::ForceLoadBySoftPath(texSoftPath);
-        TAssert(ret);
+        
+        //bool ret = PackageModule::ForceLoadPackage(texSoftPath);
+        //TAssert(ret);
 
         fileName = FileModule::GetProjectRoot() + "\\Resource\\Material\\TestMaterial.mat";
         destPath = FileModule::GetProjectRoot() + "\\Content\\Material\\TestMaterial.tasset";

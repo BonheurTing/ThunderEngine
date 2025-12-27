@@ -172,7 +172,7 @@ namespace Thunder
 					LOG("Name: %s, Type: %s, GUID: %s", res->GetResourceName().c_str(), "Material", fst.ToString().c_str());
 					break;
 				default:
-					TAssert(false, "Unknown resource type");
+					TAssertf(false, "Unknown resource type");
 				}
 				LOG("--- Dependencies GUID:");
 				for (const auto& guid : res->GetDependencies())
@@ -221,10 +221,10 @@ namespace Thunder
 
 	void PackageModule::LoadAsync(const TGuid& inGuid, TFunction<void()>&& inFunction)
 	{
-		TGuid pakGuid = ResourceToPackage[inGuid];
+		TGuid pakGuid = GetModule()->ResourceToPackage[inGuid];
 
-		TAssert(PackageMap.contains(pakGuid));
-		PackageEntry* entry = PackageMap[pakGuid];
+		TAssert(GetModule()->PackageMap.contains(pakGuid));
+		PackageEntry* entry = GetModule()->PackageMap[pakGuid];
 
 		if (entry->Package)
 		{
@@ -233,15 +233,15 @@ namespace Thunder
 				auto newCompletion = new ResourceCompletion();
 				newCompletion->PackageGuid = inGuid;
 				newCompletion->Callback = inFunction;
-				CompletionList.push_back(newCompletion);
+				GetModule()->CompletionList.push_back(newCompletion);
 			}
-			PackageModule::PackageAcquire(entry);
+			GetModule()->PackageAcquire(entry);
 		}
 
-		auto pakSoftPath = ResourcePathMap[pakGuid];
-		Package* newPak = new Package(pakSoftPath);
+		auto pakSoftPath = GetModule()->PackageMap[pakGuid]->SoftPath;
+		Package* newPak = new Package(pakSoftPath, pakGuid);
 		entry->Package = TWeakObjectPtr(newPak);
-		for (const auto& guid : GetPackageDependencies(pakGuid))
+		for (const auto& guid : GetModule()->GetPackageDependencies(pakGuid))
 		{
 			LoadAsync(guid, nullptr);
 		}
@@ -251,9 +251,9 @@ namespace Thunder
 			auto newCompletion = new ResourceCompletion();
 			newCompletion->PackageGuid = inGuid;
 			newCompletion->Callback = inFunction;
-			CompletionList.push_back(newCompletion);
+			GetModule()->CompletionList.push_back(newCompletion);
 		}
-		PackageModule::PackageAcquire(entry);
+		GetModule()->PackageAcquire(entry);
 	}
 
 	void PackageModule::PackageAcquire(PackageEntry* entry)
@@ -300,12 +300,12 @@ namespace Thunder
 			}
 		}
 		// print all resource guid
-		LOG("--------- Scan All Resources %d Begin ---------", static_cast<int32>(GetModule()->ResourcePathMap.size()));
-		for (const auto& [fst, snd] : GetModule()->ResourcePathMap)
+		LOG("--------- Scan All Packages %d Begin ---------", static_cast<int32>(GetModule()->PackageMap.size()));
+		for (const auto& [fst, snd] : GetModule()->PackageMap)
 		{
-			LOG("Name: %s, GUID: %s", snd.ToString().c_str(), fst.ToString().c_str());
+			LOG("Name: %s, GUID: %s", snd->SoftPath.ToString().c_str(), fst.ToString().c_str());
 		}
-		LOG("--------- Scan All Resources End ---------\n");
+		LOG("--------- Scan All Packages End ---------\n");
 	}
 
 	String PackageModule::CovertFullPathToSoftPath(const String& fullPath, const String& resourceName)
@@ -434,7 +434,10 @@ namespace Thunder
 	{
 		// 先简单认为package重名就是覆盖，或者在import外面就解决destPath重名的问题
 		const String pacName = CovertFullPathToSoftPath(destPath); //已经是unique
-		auto* newPackage = new Package(pacName); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
+		auto* newPackage = new Package(pacName, {}); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
+		TGuid pakGuid = newPackage->GetGUID();
+		PackageEntry*  newEntry = AddPackageEntry(pakGuid, pacName);
+		AddResourceToPackage(pakGuid, pakGuid); // pak -> pak
 
 		// 获取源文件类型
 		String fileExtension = FileModule::GetFileExtension(srcPath);
@@ -485,7 +488,8 @@ namespace Thunder
 			newStaticMesh->SetResourceName(resourceName);
 			newStaticMesh->SetOuter(newPackage);
 			TGuid meshGuid = newStaticMesh->GetGUID();
-			GetModule()->ResourcePathMap.emplace(meshGuid, resourceName);
+			AddResourceToPackage(meshGuid, pakGuid);
+			newEntry->Dependencies.insert({meshGuid, {}});
 
 			// 5. 保存 package 文件
 			newPackage->AddResource(newStaticMesh);
@@ -505,8 +509,9 @@ namespace Thunder
 				const String resourceName = CovertFullPathToSoftPath(destPath, FileModule::GetFileName(destPath));
 				newTexture->SetResourceName(resourceName);
 				newTexture->SetOuter(newPackage);
-				TGuid meshGuid = newTexture->GetGUID();
-				GetModule()->ResourcePathMap.emplace(meshGuid, resourceName);
+				TGuid texGuid = newTexture->GetGUID();
+				AddResourceToPackage(texGuid, pakGuid);
+				newEntry->Dependencies.insert({texGuid, {}});
 
 				// 保存 package 文件
 				newPackage->AddResource(newTexture);
@@ -586,7 +591,8 @@ namespace Thunder
 			material->SetOuter(newPackage);
 
 			TGuid materialGuid = material->GetGUID();
-			GetModule()->ResourcePathMap.emplace(materialGuid, matSoftPath);
+			AddResourceToPackage(materialGuid, pakGuid);
+			newEntry->Dependencies.insert({materialGuid, {}});
 
 			newPackage->AddResource(material);
 			
@@ -595,8 +601,6 @@ namespace Thunder
 		if (GetModule()->SavePackage(newPackage))
 		{
 			LOG("Successfully import and save package: %s", pacName.c_str());
-			TGuid pakGuid = newPackage->GetGUID();
-			GetModule()->ResourcePathMap.emplace(pakGuid, pacName);
 			GetModule()->RegisterPackage(newPackage);
 			return true;
 		}
@@ -622,6 +626,19 @@ namespace Thunder
 		else
 		{
 			//todo 增量导入
+		}
+	}
+
+	void PackageModule::RegisterPackage(Package* package)
+	{
+		TGuid pakGuid = package->GetGUID();
+		LoadedResourcesByPath.emplace(package->GetPackageName(), pakGuid);
+
+		const TArray<GameResource*> objects = package->GetPackageObjects();
+		for (auto obj : objects)
+		{
+			TGuid objGuid = obj->GetGUID();
+			LoadedResourcesByPath.emplace(obj->GetResourceName(), objGuid);
 		}
 	}
 #endif

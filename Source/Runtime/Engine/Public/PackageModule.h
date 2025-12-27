@@ -21,7 +21,9 @@ namespace Thunder
 		TGuid Guid;
 		NameHandle SoftPath;
 		TWeakObjectPtr<Package> Package { nullptr };
-		TMap<TGuid, TArray<TGuid>> Dependencies; //GameResource - GameResourceDependences
+		TMap<TGuid, TArray<TGuid>> Dependencies; //GameResource - GameResourceDependencies
+
+		PackageEntry(const TGuid& inGuid, NameHandle inSoftPath) : Guid(inGuid), SoftPath(inSoftPath) {}
 
 		bool IsAcquiring() const
 		{
@@ -45,9 +47,9 @@ namespace Thunder
 		void SetLoaded(bool bLoaded)
 		{
 			if (bLoaded)
-				Status &= ~static_cast<uint32>(EPackageStatus::Loading);
+				Status &= ~static_cast<uint32>(EPackageStatus::Loaded);
 			else
-				Status |= static_cast<uint32>(EPackageStatus::Loading);
+				Status |= static_cast<uint32>(EPackageStatus::Loaded);
 		}
 		TSet<TGuid> GetResourceDependencies()
 		{
@@ -99,18 +101,18 @@ namespace Thunder
 
 		// runtime
 		// load package
-		static bool LoadSync(const TGuid& guid, TArray<GameResource*> &outResources, bool bForce = false);
-		static bool ForceLoadBySoftPath(const NameHandle& softPath);
+		static bool LoadSync(const TGuid& pakGuid, TArray<GameResource*> &outResources, bool bForce = false);
+		static bool ForceLoadPackage(const TGuid& pakGuid);
 		// load game resource
-		static GameResource* LoadSync(const TGuid& guid, bool bForce = false);
-		static void LoadAsync(const TGuid& guid);
-		void LoadAsync(const TGuid& inGuid, TFunction<void()>&& inFunction);
+		static GameResource* LoadSync(const TGuid& resGuid, bool bForce = false);
+		//static void LoadAsync(const TGuid& guid); //
+		static void LoadAsync(const TGuid& inGuid, TFunction<void()>&& inFunction);
 
 		//static bool IsLoaded(const TGuid& guid) { return GetModule()->LoadedResources.contains(guid); }
 		bool SavePackage(Package* package);
-		void RegisterPackage(Package* package);
 
-		static void AddResourcePathPair(const TGuid& guid, const NameHandle& path) { GetModule()->ResourcePathMap.emplace(guid, path); }
+		static PackageEntry* AddPackageEntry(const TGuid& guid, const NameHandle& path);
+		static void AddResourceToPackage(const TGuid& resGuid, const TGuid& pakGuid) { GetModule()->ResourceToPackage.emplace(resGuid, pakGuid); }
 		static void ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function);
 
 		// get resource
@@ -140,12 +142,14 @@ namespace Thunder
 			}
 			return result;
 		}
-
 		
 	private:
 		static GameObject* TryGetLoadedResource(const TGuid& inGuid);
 		void PackageAcquire(PackageEntry* entry);
 		TSet<TGuid> GetPackageDependencies(const TGuid& inGuid);
+#if WITH_EDITOR
+		void RegisterPackage(Package* package);
+#endif
 
 	private:
 		// loading assistance
@@ -160,8 +164,7 @@ namespace Thunder
 		TMap<NameHandle, TGuid> LoadedResourcesByPath {}; // 使用虚拟路径作为键, 便于开发者使用，editor only
 #endif												// 导入资源和新建/生成时需要检查重名问题，package load原则上不用检查
 
-		TMap<TGuid, NameHandle> ResourcePathMap {}; // Package的路径映射+Package中Object的路径映射，使用 TGuid 作为键；
-													// 启动时扫描content目录建立guid到路径虚拟路径映射，world streaming等使用
+		//TMap<TGuid, NameHandle> ResourcePathMap {}; // 启动时扫描content目录建立guid到路径虚拟路径映射，world streaming等使用, 包含package和其中的game res
 
 		TMap<TGuid, TGuid> ResourceToPackage {}; // 启动时扫描content目录建立resourece guid到Package guid 的映射，辅助加载卸载功能使用
 

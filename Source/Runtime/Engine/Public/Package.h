@@ -12,7 +12,7 @@ namespace Thunder
 	class Package : public GameObject
 	{
 	public:
-		Package(const NameHandle& name);
+		Package(const NameHandle& name, const TGuid& inGuid);
 
 		void AddResource(GameResource* obj)
 		{

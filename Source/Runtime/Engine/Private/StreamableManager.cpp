@@ -15,7 +15,7 @@ namespace Thunder
 	{
 		PackageModule::ForAllResources([](const TGuid& guid, NameHandle name)
 		{
-			PackageModule::LoadAsync(guid);
+			PackageModule::GetModule()->LoadAsync(guid, nullptr);
 		});
 	}
 }

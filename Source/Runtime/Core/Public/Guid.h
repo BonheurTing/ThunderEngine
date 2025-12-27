@@ -14,8 +14,6 @@ namespace Thunder
 		TGuid(uint32 InA, uint32 InB, uint32 InC, uint32 InD)
 			: A(InA), B(InB), C(InC), D(InD) {}
 
-		TGuid(const TGuid& X) : A(X.A), B(X.B), C(X.C), D(X.D) {}
-
 		bool IsValid() const
 		{
 			return (A | B | C | D) != 0; // 全0为无效

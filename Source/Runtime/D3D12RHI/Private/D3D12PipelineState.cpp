@@ -76,7 +76,7 @@ namespace Thunder
 		{
 			if (shaderBound.contains(sourceStage))
 			{
-				const BinaryData* byteCode = shaderBound[sourceStage]->ByteCode;
+				const BinaryData* byteCode = &shaderBound[sourceStage]->ByteCode;
 				destination.pShaderBytecode = byteCode->Data;
 				destination.BytecodeLength = byteCode->Size;
 			}

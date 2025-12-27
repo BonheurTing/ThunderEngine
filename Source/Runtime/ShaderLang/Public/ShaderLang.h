@@ -70,6 +70,8 @@ namespace Thunder
 		// 作用域
 		TArray<scope*> symbol_scopes;
 
+		TMap<String, shader_lang_symbol> variants_map; // Variants look-up.
+
 		// 自定义的类型
 		TArray<ast_node*> custom_types; // for indirect types
 
@@ -90,6 +92,7 @@ namespace Thunder
 		void parsing_archive_begin(const token_data& name);
 		ast_node* parsing_archive_end(ast_node* content);
 		void add_variable_to_list(ast_node_type_format* type, const token_data& name, ast_node_expression* default_value);
+		void add_variant(ast_node_variable* variant);
 		void parsing_variable_end(const token_data& name, const token_data& text);
 
 		void parsing_pass_begin(const token_data& name);

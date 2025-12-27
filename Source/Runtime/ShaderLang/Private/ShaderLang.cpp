@@ -61,7 +61,7 @@ namespace Thunder
 
 	ast_node* shader_lang_state::get_global_symbol(const String& name)
 	{
-		// 从最内层作用域向外层查找
+		// Traverse from inner scope to outer.
 		for (auto it = symbol_scopes.rbegin(); it != symbol_scopes.rend(); ++it)
 		{
 			ast_node* node = (*it)->find_local_symbol(name);
@@ -70,6 +70,13 @@ namespace Thunder
 				return node;
 			}
 		}
+
+		auto variant_it = variants_map.find(name);
+		if (variant_it != variants_map.end())
+		{
+			return variant_it->second.owner;
+		}
+
 		return nullptr;
 	}
 
@@ -128,10 +135,22 @@ namespace Thunder
 		
 		if (default_value != nullptr)
 		{
-			variable->set_default_value(default_value->evaluate().to_string());
+			shader_codegen_state temp_state{};
+			variable->set_default_value(default_value->evaluate(temp_state).to_string());
 		}
 
 		current_variables.push_back(variable);
+	}
+
+	void shader_lang_state::add_variant(ast_node_variable* variant)
+	{
+		String variant_name = variant->name;
+		variants_map[variant_name] = shader_lang_symbol
+		{
+			.name = variant_name,
+			.type = enum_symbol_type::variable,
+			.owner = variant
+		};
 	}
 
 	void shader_lang_state::parsing_variable_end(const token_data& name, const token_data& text)
@@ -141,6 +160,7 @@ namespace Thunder
 			for (const auto& var : current_variables)
 			{
 				current_archive->add_variant(var);
+				add_variant(var);
 			}
 		}
 		else if (name.token_id == TOKEN_PARAMETERS)
@@ -396,7 +416,8 @@ namespace Thunder
 
 	int shader_lang_state::evaluate_integer_expression(ast_node_expression* expr, const parse_location& loc)
 	{
-		const auto ret = expr->evaluate();
+		shader_codegen_state temp_state{};
+		const auto ret = expr->evaluate(temp_state);
 		if (ret.result_type == enum_eval_result_type::constant_int)
 		{
 			return ret.int_value;
@@ -404,7 +425,7 @@ namespace Thunder
 		else
 		{
 			String type_text;
-			ret.type->generate_hlsl(type_text);
+			ret.type->generate_hlsl(type_text, temp_state);
 			debug_log("Expected integer expression, but " + type_text, &loc);
 			return 0; // 或者抛出异常
 		}
@@ -833,7 +854,8 @@ namespace Thunder
 		//ast_root->print_ast(0);
 		printf("\n");
 		String outHlsl;
-		ast_root->generate_hlsl(outHlsl);
+		shader_codegen_state temp_state{};
+		ast_root->generate_hlsl(outHlsl, temp_state);
 		printf("------------ Generate HLSL ------------\n%s", outHlsl.c_str());
 		printf("------------ Generate HLSL End ------------\n\n");
 

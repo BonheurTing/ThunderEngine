@@ -45,7 +45,7 @@ namespace Thunder
             GameResource* mat = PackageModule::LoadSync(resGuid, true);
             mat->OnResourceLoaded();
             GameMaterial* gameMaterial = static_cast<GameMaterial*>(mat);
-            gameMaterial->SetStaticParameter("_Variant0", true);
+            // gameMaterial->SetStaticParameter("_Variant0", true);
             gameMaterial->SetStaticParameter("_Variant1", true);
 
             if (sscanf("CFE86C56-4E01C23A-79A9038C-AC38BD89", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
@@ -157,14 +157,14 @@ namespace Thunder
         String matSoftPath = PackageModule::CovertFullPathToSoftPath(matFullPath, "TestMaterial");
         //bool ret = ResourceModule::ForceLoadBySoftPath(matSoftPath);
         //TAssert(ret);
-        GameObject* material = PackageModule::GetResource(matSoftPath);
+        GameResource* material = PackageModule::GetResource(matSoftPath);
         TAssert(material != nullptr);
 
         String meshFullPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";
         String meshSoftPath = PackageModule::CovertFullPathToSoftPath(meshFullPath, "Cube");
         //bool ret = ResourceModule::ForceLoadBySoftPath(meshSoftPath);
         //TAssert(ret);
-        GameObject* mesh = PackageModule::GetResource(meshSoftPath);
+        GameResource* mesh = PackageModule::GetResource(meshSoftPath);
         TAssert(mesh != nullptr);
 
         if (auto stMesh = static_cast<StaticMesh*>(mesh))

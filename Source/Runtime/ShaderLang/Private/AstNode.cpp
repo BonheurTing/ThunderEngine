@@ -175,7 +175,7 @@ namespace Thunder
         return text;
     }
 
-    void ast_node_type_format::generate_hlsl(String& outResult)
+    void ast_node_type_format::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         // 生成类型限定符
         if (is_in)
@@ -202,9 +202,9 @@ namespace Thunder
         outResult += get_type_text();
     }
 
-    void ast_node_variable::generate_hlsl(String& outResult)
+    void ast_node_variable::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
-        type->generate_hlsl(outResult);
+        type->generate_hlsl(outResult, state);
         outResult += " " + name;
         if (type->is_semantic)
         {
@@ -212,7 +212,7 @@ namespace Thunder
         }
     }
 
-    void ast_node_archive::generate_hlsl(String& outResult)
+    void ast_node_archive::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         TArray<ast_node_variable*> objects;
         if (!object_parameters.empty())
@@ -225,7 +225,7 @@ namespace Thunder
                     objects.push_back(param);
                     continue;
                 }
-                param->generate_hlsl(outResult);
+                param->generate_hlsl(outResult, state);
                 outResult += ";\n";
             }
             outResult += "};\n\n";
@@ -240,7 +240,7 @@ namespace Thunder
                     objects.push_back(param);
                     continue;
                 }
-                param->generate_hlsl(outResult);
+                param->generate_hlsl(outResult, state);
                 outResult += ";\n";
             }
             outResult += "};\n\n";
@@ -255,7 +255,7 @@ namespace Thunder
                     objects.push_back(param);
                     continue;
                 }
-                param->generate_hlsl(outResult);
+                param->generate_hlsl(outResult, state);
                 outResult += ";\n";
             }
             outResult += "};\n\n";
@@ -263,44 +263,44 @@ namespace Thunder
         int object_index = 0;
         for (const auto& obj : objects)
         {
-            obj->type->generate_hlsl(outResult);
+            obj->type->generate_hlsl(outResult, state);
             outResult += " " + obj->name + " : register(t" + std::to_string(object_index++) + ");\n";
         }
         outResult += "\n";
 
         for (const auto pass : passes)
         {
-            pass->generate_hlsl(outResult);
+            pass->generate_hlsl(outResult, state);
             outResult += "\n";
         }
     }
 
-    void ast_node_pass::generate_hlsl(String& outResult)
+    void ast_node_pass::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         for (const auto& def : structures)
         {
-            def->generate_hlsl(outResult);
+            def->generate_hlsl(outResult, state);
             outResult += "\n";
         }
         for (const auto& def : functions)
         {
-            def->generate_hlsl(outResult);
+            def->generate_hlsl(outResult, state);
             outResult += "\n";
         }
     }
     
-    void ast_node_struct::generate_hlsl(String& outResult)
+    void ast_node_struct::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += "struct " + name + " {\n";
         for (const auto& member : members)
         {
-            member->generate_hlsl(outResult);
+            member->generate_hlsl(outResult, state);
             outResult += ";\n";
         }
         outResult += "};\n";
     }
 
-    void ast_node_function::generate_hlsl(std::string& outResult)
+    void ast_node_function::generate_hlsl(std::string& outResult, shader_codegen_state& state)
     {
         String paramList;
         for (const auto& param : params)
@@ -309,11 +309,11 @@ namespace Thunder
             {
                 paramList += ", ";
             }
-            param->generate_hlsl(paramList);
+            param->generate_hlsl(paramList, state);
         }
 
         String funcSignature;
-        return_type->generate_hlsl(funcSignature);
+        return_type->generate_hlsl(funcSignature, state);
         funcSignature += " " + func_name.ToString() + "(" + paramList + ")";
 
         if (!semantic.empty())
@@ -326,85 +326,87 @@ namespace Thunder
         }
 
         String funcBody;
-        body->generate_hlsl(funcBody);
+        body->generate_hlsl(funcBody, state);
         outResult += funcSignature + "{\n" + funcBody + "}\n";
     }
 
-    void ast_node_block::generate_hlsl(String& outResult)
+    void ast_node_block::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         for(const auto stat : statements)
         {
-            stat->generate_hlsl(outResult);
+            stat->generate_hlsl(outResult, state);
         }
     }
 
-    void variable_declaration_statement::generate_hlsl(String& outResult)
+    void variable_declaration_statement::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
-        variable->generate_hlsl(outResult);
+        variable->generate_hlsl(outResult, state);
         
         if (decl_expr)
         {
             outResult += " = ";
-            decl_expr->generate_hlsl(outResult);
+            decl_expr->generate_hlsl(outResult, state);
         }
         
         outResult += ";\n";
     }
 
-    void return_statement::generate_hlsl(String& outResult)
+    void return_statement::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += "return ";
         if (ret_value != nullptr)
         {
-            ret_value->generate_hlsl(outResult);
+            ret_value->generate_hlsl(outResult, state);
         }
         outResult += ";\n";
     }
 
-    void break_statement::generate_hlsl(String& outResult)
+    void break_statement::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += "break;\n";
     }
 
-    void continue_statement::generate_hlsl(String& outResult)
+    void continue_statement::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += "continue;\n";
     }
 
-    void discard_statement::generate_hlsl(String& outResult)
+    void discard_statement::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += "discard;\n";
     }
 
-    void expression_statement::generate_hlsl(String& outResult)
+    void expression_statement::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         if (expr != nullptr)
         {
-            expr->generate_hlsl(outResult);
+            expr->generate_hlsl(outResult, state);
             outResult += ";\n";
         }
     }
 
-    void condition_statement::generate_hlsl(String& outResult)
+    void condition_statement::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         if (!condition)
+        {
             return;
+        }
 
-        const auto cond_ret = condition->evaluate();
+        const auto cond_ret = condition->evaluate(state);
         if (cond_ret.result_type == enum_eval_result_type::constant_bool)
         {
             if (cond_ret.bool_value)
             {
                 if (true_branch)
                 {
-                    true_branch->generate_hlsl(outResult);
+                    true_branch->generate_hlsl(outResult, state);
                 }
             }
             else
             {
                 if (false_branch)
                 {
-                    false_branch->generate_hlsl(outResult);
+                    false_branch->generate_hlsl(outResult, state);
                 }
             }
         }
@@ -414,14 +416,14 @@ namespace Thunder
             {
                 if (true_branch)
                 {
-                    true_branch->generate_hlsl(outResult);
+                    true_branch->generate_hlsl(outResult, state);
                 }
             }
             else
             {
                 if (false_branch)
                 {
-                    false_branch->generate_hlsl(outResult);
+                    false_branch->generate_hlsl(outResult, state);
                 }
             }
         }
@@ -431,14 +433,14 @@ namespace Thunder
             {
                 if (true_branch)
                 {
-                    true_branch->generate_hlsl(outResult);
+                    true_branch->generate_hlsl(outResult, state);
                 }
             }
             else
             {
                 if (false_branch)
                 {
-                    false_branch->generate_hlsl(outResult);
+                    false_branch->generate_hlsl(outResult, state);
                 }
             }
         }
@@ -447,25 +449,25 @@ namespace Thunder
             if (true_branch)
             {
                 outResult += "if (";
-                condition->generate_hlsl(outResult);
+                condition->generate_hlsl(outResult, state);
                 outResult += ") {\n";
-                true_branch->generate_hlsl(outResult);
+                true_branch->generate_hlsl(outResult, state);
                 outResult += "}\n";
             }
             if (false_branch)
             {
                 outResult += "else {\n";
-                false_branch->generate_hlsl(outResult);
+                false_branch->generate_hlsl(outResult, state);
                 outResult += "}\n";
             }
         }
     }
 
-    void binary_expression::generate_hlsl(String& outResult)
+    void binary_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         TAssertf(left != nullptr && right != nullptr, "Binary operation left or right is null");
         //outResult += "(";
-        left->generate_hlsl(outResult);
+        left->generate_hlsl(outResult, state);
         switch (op) {
         case enum_binary_op::add: outResult += " + "; break;
         case enum_binary_op::sub: outResult += " - "; break;
@@ -490,13 +492,13 @@ namespace Thunder
         case enum_binary_op::greater_equal: outResult += " >= "; break;
         case enum_binary_op::undefined: break;
         }
-        right->generate_hlsl(outResult);
+        right->generate_hlsl(outResult, state);
         //outResult += ")";
     }
 
-    void shuffle_expression::generate_hlsl(String& outResult)
+    void shuffle_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
-        prefix->generate_hlsl(outResult);
+        prefix->generate_hlsl(outResult, state);
         outResult += ".";
         for (const char i : order)
         {
@@ -511,51 +513,51 @@ namespace Thunder
         }
     }
 
-    void component_expression::generate_hlsl(String& outResult)
+    void component_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
-        component_name->generate_hlsl(outResult);
+        component_name->generate_hlsl(outResult, state);
         outResult += ".";
         outResult += identifier;
     }
 
-    void index_expression::generate_hlsl(String& outResult)
+    void index_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
-        target->generate_hlsl(outResult);
+        target->generate_hlsl(outResult, state);
         outResult += "[";
         if (index)
         {
-            index->generate_hlsl(outResult);
+            index->generate_hlsl(outResult, state);
         }
         outResult += "]";
     }
 
-    void reference_expression::generate_hlsl(String& outResult)
+    void reference_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += identifier;
     }
 
-    void constant_int_expression::generate_hlsl(String& outResult)
+    void constant_int_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += std::to_string(value);
     }
 
-    void constant_float_expression::generate_hlsl(String& outResult)
+    void constant_float_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += std::to_string(value) + "f";
     }
 
-    void constant_bool_expression::generate_hlsl(String& outResult)
+    void constant_bool_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += value ? "true" : "false";
     }
 
-    void for_statement::generate_hlsl(String& outResult)
+    void for_statement::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += "for (";
         if (init_stmt)
         {
             String init_str;
-            init_stmt->generate_hlsl(init_str);
+            init_stmt->generate_hlsl(init_str, state);
             // Remove trailing semicolon and newline from init statement
             if (!init_str.empty() && init_str.back() == '\n')
                 init_str.pop_back();
@@ -567,24 +569,24 @@ namespace Thunder
         
         if (condition)
         {
-            condition->generate_hlsl(outResult);
+            condition->generate_hlsl(outResult, state);
         }
         outResult += "; ";
         
         if (update_expr)
         {
-            update_expr->generate_hlsl(outResult);
+            update_expr->generate_hlsl(outResult, state);
         }
         outResult += ") {\n";
         
         if (body_stmt)
         {
-            body_stmt->generate_hlsl(outResult);
+            body_stmt->generate_hlsl(outResult, state);
         }
         outResult += "}\n";
     }
 
-    void function_call_expression::generate_hlsl(String& outResult)
+    void function_call_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += function_name + "(";
         String arguments_string;
@@ -594,17 +596,17 @@ namespace Thunder
             {
                 arguments_string += ", ";
             }
-            argument->generate_hlsl(arguments_string);
+            argument->generate_hlsl(arguments_string, state);
         }
         outResult += arguments_string;
         outResult += ")";
     }
 
-    void constructor_expression::generate_hlsl(String& outResult)
+    void constructor_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         if (constructor_type)
         {
-            constructor_type->generate_hlsl(outResult);
+            constructor_type->generate_hlsl(outResult, state);
         }
         outResult += "(";
         String arguments_string;
@@ -614,88 +616,88 @@ namespace Thunder
             {
                 arguments_string += ", ";
             }
-            argument->generate_hlsl(arguments_string);
+            argument->generate_hlsl(arguments_string, state);
         }
         outResult += arguments_string;
         outResult += ")";
     }
 
-    void assignment_expression::generate_hlsl(String& outResult)
+    void assignment_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         if (left_expr)
         {
-            left_expr->generate_hlsl(outResult);
+            left_expr->generate_hlsl(outResult, state);
         }
         outResult += " = ";
         if (right_expr)
         {
-            right_expr->generate_hlsl(outResult);
+            right_expr->generate_hlsl(outResult, state);
         }
     }
 
-    void conditional_expression::generate_hlsl(String& outResult)
+    void conditional_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         if (condition)
         {
-            condition->generate_hlsl(outResult);
+            condition->generate_hlsl(outResult, state);
         }
         outResult += " ? ";
         if (true_expression)
         {
-            true_expression->generate_hlsl(outResult);
+            true_expression->generate_hlsl(outResult, state);
         }
         outResult += " : ";
         if (false_expression)
         {
-            false_expression->generate_hlsl(outResult);
+            false_expression->generate_hlsl(outResult, state);
         }
     }
 
-    void unary_expression::generate_hlsl(String& outResult)
+    void unary_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         switch (op) {
         case enum_unary_op::pre_inc:
             outResult += "++";
-            if (operand) operand->generate_hlsl(outResult);
+            if (operand) operand->generate_hlsl(outResult, state);
             break;
         case enum_unary_op::pre_dec:
             outResult += "--";
-            if (operand) operand->generate_hlsl(outResult);
+            if (operand) operand->generate_hlsl(outResult, state);
             break;
         case enum_unary_op::post_inc:
-            if (operand) operand->generate_hlsl(outResult);
+            if (operand) operand->generate_hlsl(outResult, state);
             outResult += "++";
             break;
         case enum_unary_op::post_dec:
-            if (operand) operand->generate_hlsl(outResult);
+            if (operand) operand->generate_hlsl(outResult, state);
             outResult += "--";
             break;
         case enum_unary_op::positive:
             outResult += "+";
-            if (operand) operand->generate_hlsl(outResult);
+            if (operand) operand->generate_hlsl(outResult, state);
             break;
         case enum_unary_op::negative:
             outResult += "-";
-            if (operand) operand->generate_hlsl(outResult);
+            if (operand) operand->generate_hlsl(outResult, state);
             break;
         case enum_unary_op::logical_not:
             outResult += "!";
-            if (operand) operand->generate_hlsl(outResult);
+            if (operand) operand->generate_hlsl(outResult, state);
             break;
         case enum_unary_op::bit_not:
             outResult += "~";
-            if (operand) operand->generate_hlsl(outResult);
+            if (operand) operand->generate_hlsl(outResult, state);
             break;
         case enum_unary_op::undefined:
             break;
         }
     }
 
-    void compound_assignment_expression::generate_hlsl(String& outResult)
+    void compound_assignment_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         if (left_expr)
         {
-            left_expr->generate_hlsl(outResult);
+            left_expr->generate_hlsl(outResult, state);
         }
         switch (op) {
         case enum_assignment_op::assign: outResult += " = "; break;
@@ -713,11 +715,11 @@ namespace Thunder
         }
         if (right_expr)
         {
-            right_expr->generate_hlsl(outResult);
+            right_expr->generate_hlsl(outResult, state);
         }
     }
 
-    void chain_expression::generate_hlsl(String& outResult)
+    void chain_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += "{";
         for (size_t i = 0; i < expressions.size(); ++i)
@@ -728,23 +730,23 @@ namespace Thunder
             }
             if (expressions[i])
             {
-                expressions[i]->generate_hlsl(outResult);
+                expressions[i]->generate_hlsl(outResult, state);
             }
         }
         outResult += "}";
     }
 
-    void cast_expression::generate_hlsl(String& outResult)
+    void cast_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         outResult += "(";
         if (cast_type)
         {
-            cast_type->generate_hlsl(outResult);
+            cast_type->generate_hlsl(outResult, state);
         }
         outResult += ")";
         if (operand)
         {
-            operand->generate_hlsl(outResult);
+            operand->generate_hlsl(outResult, state);
         }
     }
 
@@ -755,7 +757,8 @@ namespace Thunder
     {
         print_blank(indent);
         String type_text;
-        generate_hlsl(type_text);
+        shader_codegen_state temp_state{};
+        generate_hlsl(type_text, temp_state);
         printf("Type: %s", type_text.c_str());
     }
 
@@ -1270,7 +1273,7 @@ namespace Thunder
     }
 
     // 基类evaluate函数默认实现
-    evaluate_expr_result ast_node_expression::evaluate()
+    evaluate_expr_result ast_node_expression::evaluate(shader_codegen_state& state)
     {
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
@@ -1278,21 +1281,63 @@ namespace Thunder
     }
 
     // 二元运算表达式evaluate实现
-    evaluate_expr_result binary_expression::evaluate()
+    evaluate_expr_result binary_expression::evaluate(shader_codegen_state& state)
     {
         if (!left || !right)
         {
             return {};
         }
 
-        const evaluate_expr_result left_result = left->evaluate();
-        const evaluate_expr_result right_result = right->evaluate();
+        const evaluate_expr_result left_result = left->evaluate(state);
+        const evaluate_expr_result right_result = right->evaluate(state);
 
         // 如果任一操作数无法确定，返回未确定结果
         if (left_result.result_type == enum_eval_result_type::undetermined ||
             right_result.result_type == enum_eval_result_type::undetermined)
         {
             return {};
+        }
+
+        // Booleans.
+        if (left_result.result_type == enum_eval_result_type::constant_bool &&
+            right_result.result_type == enum_eval_result_type::constant_bool)
+        {
+            switch (op)
+            {
+            case enum_binary_op::add:
+                return { (left_result.bool_value ? 1 : 0) + (right_result.bool_value ? 1 : 0) };
+            case enum_binary_op::sub:
+                return { (left_result.bool_value ? 1 : 0) - (right_result.bool_value ? 1 : 0) };
+            case enum_binary_op::mul:
+                return { (left_result.bool_value ? 1 : 0) * (right_result.bool_value ? 1 : 0) };
+            case enum_binary_op::div:
+                if (right_result.bool_value)
+                {
+                    return { (left_result.bool_value ? 1 : 0) };
+                }
+                else
+                {
+                    return {}; // Divide by zero.
+                }
+            case enum_binary_op::equal:
+                return { left_result.bool_value == right_result.bool_value };
+            case enum_binary_op::not_equal:
+                return { left_result.bool_value != right_result.bool_value };
+            case enum_binary_op::less:
+                return { (left_result.bool_value ? 1 : 0) < (right_result.bool_value ? 1 : 0) };
+            case enum_binary_op::less_equal:
+                return { (left_result.bool_value ? 1 : 0) <= (right_result.bool_value ? 1 : 0) };
+            case enum_binary_op::greater:
+                return { (left_result.bool_value ? 1 : 0) > (right_result.bool_value ? 1 : 0) };
+            case enum_binary_op::greater_equal:
+                return { (left_result.bool_value ? 1 : 0) >= (right_result.bool_value ? 1 : 0) };
+            case enum_binary_op::logical_and:
+                return { left_result.bool_value && right_result.bool_value };
+            case enum_binary_op::logical_or:
+                return { left_result.bool_value || right_result.bool_value };
+            case enum_binary_op::undefined:
+                return {};
+            }
         }
 
         // 常量折叠 - 整数运算
@@ -1447,44 +1492,55 @@ namespace Thunder
         return {};
     }
 
-    // 引用表达式evaluate实现
-    evaluate_expr_result reference_expression::evaluate()
+    evaluate_expr_result reference_expression::evaluate(shader_codegen_state& state)
     {
         if (!target)
         {
             return {};
         }
 
-        // 如果引用的是常量，尝试获取其值
+        // Referencing an expression.
         if (target->node_type == enum_ast_node_type::expression)
         {
             const auto expr = static_cast<ast_node_expression*>(target);
-            return expr->evaluate();
+            return expr->evaluate(state);
         }
 
-        // 对于变量或其他类型，返回变量类型的结果
+        // Variants.
+        if (target->node_type == enum_ast_node_type::variable)
+        {
+            const auto variable = static_cast<ast_node_variable*>(target);
+            NameHandle variable_name = variable->name;
+            auto variant_it = state.variants.find(variable_name);
+            if (variant_it != state.variants.end())
+            {
+                return { variant_it->second };
+            }
+        }
+
+        // Variables.
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::variable;
         result.result_node = target;
         return result;
     }
 
-    evaluate_expr_result constant_int_expression::evaluate()
+    evaluate_expr_result constant_int_expression::evaluate(shader_codegen_state& state)
     {
         return {value};
     }
 
-    evaluate_expr_result constant_float_expression::evaluate()
+    evaluate_expr_result constant_float_expression::evaluate(shader_codegen_state& state)
     {
         return {value};
     }
 
-    evaluate_expr_result constant_bool_expression::evaluate()
+    evaluate_expr_result constant_bool_expression::evaluate(shader_codegen_state& state)
     {
         return {value};
     }
 
-    evaluate_expr_result function_call_expression::evaluate()
+    evaluate_expr_result function_call_expression::evaluate(shader_codegen_state& state)
     {
         // 函数调用一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
@@ -1492,7 +1548,7 @@ namespace Thunder
         return result;
     }
 
-    evaluate_expr_result constructor_expression::evaluate()
+    evaluate_expr_result constructor_expression::evaluate(shader_codegen_state& state)
     {
         // 构造函数调用一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
@@ -1500,7 +1556,7 @@ namespace Thunder
         return result;
     }
 
-    evaluate_expr_result assignment_expression::evaluate()
+    evaluate_expr_result assignment_expression::evaluate(shader_codegen_state& state)
     {
         // 赋值表达式一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
@@ -1508,36 +1564,36 @@ namespace Thunder
         return result;
     }
 
-    evaluate_expr_result conditional_expression::evaluate()
+    evaluate_expr_result conditional_expression::evaluate(shader_codegen_state& state)
     {
         if (!condition)
         {
             return {};
         }
 
-        const evaluate_expr_result cond_result = condition->evaluate();
+        const evaluate_expr_result cond_result = condition->evaluate(state);
         
         // 如果条件是常量，可以直接选择分支
         if (cond_result.result_type == enum_eval_result_type::constant_bool)
         {
             if (cond_result.bool_value)
             {
-                return true_expression ? true_expression->evaluate() : evaluate_expr_result{};
+                return true_expression ? true_expression->evaluate(state) : evaluate_expr_result{};
             }
             else
             {
-                return false_expression ? false_expression->evaluate() : evaluate_expr_result{};
+                return false_expression ? false_expression->evaluate(state) : evaluate_expr_result{};
             }
         }
         else if (cond_result.result_type == enum_eval_result_type::constant_int)
         {
             if (cond_result.int_value != 0)
             {
-                return true_expression ? true_expression->evaluate() : evaluate_expr_result{};
+                return true_expression ? true_expression->evaluate(state) : evaluate_expr_result{};
             }
             else
             {
-                return false_expression ? false_expression->evaluate() : evaluate_expr_result{};
+                return false_expression ? false_expression->evaluate(state) : evaluate_expr_result{};
             }
         }
         
@@ -1547,14 +1603,14 @@ namespace Thunder
         return result;
     }
 
-    evaluate_expr_result unary_expression::evaluate()
+    evaluate_expr_result unary_expression::evaluate(shader_codegen_state& state)
     {
         if (!operand)
         {
             return {};
         }
 
-        const evaluate_expr_result operand_result = operand->evaluate();
+        const evaluate_expr_result operand_result = operand->evaluate(state);
         
         // 对于 ++ 和 -- 运算符，一般无法在编译时求值
         if (op == enum_unary_op::pre_inc || op == enum_unary_op::pre_dec ||
@@ -1617,7 +1673,7 @@ namespace Thunder
         return result;
     }
 
-    evaluate_expr_result compound_assignment_expression::evaluate()
+    evaluate_expr_result compound_assignment_expression::evaluate(shader_codegen_state& state)
     {
         // 复合赋值表达式一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
@@ -1625,24 +1681,24 @@ namespace Thunder
         return result;
     }
 
-    evaluate_expr_result chain_expression::evaluate()
+    evaluate_expr_result chain_expression::evaluate(shader_codegen_state& state)
     {
         // 链式表达式返回最后一个表达式的值
         if (!expressions.empty() && expressions.back())
         {
-            return expressions.back()->evaluate();
+            return expressions.back()->evaluate(state);
         }
         return {};
     }
 
-    evaluate_expr_result cast_expression::evaluate()
+    evaluate_expr_result cast_expression::evaluate(shader_codegen_state& state)
     {
         if (!operand)
         {
             return {};
         }
 
-        evaluate_expr_result operand_result = operand->evaluate();
+        evaluate_expr_result operand_result = operand->evaluate(state);
         
         // 对于常量表达式，尝试进行类型转换
         if (cast_type)

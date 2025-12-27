@@ -173,33 +173,25 @@ namespace Thunder
 
 	void StaticMeshComponent::OnLoaded()
 	{
+		OverrideMaterials.clear();
 		//check is in game thread
-		GameObject* expectedLoaded = PackageModule::TryGetLoadedResource(MeshGuid);
-		if (expectedLoaded)
+		GameResource* expectedLoaded = PackageModule::TryGetLoadedResource(MeshGuid);
+		if (expectedLoaded && expectedLoaded->GetResourceType() == ETempGameResourceReflective::StaticMesh)
 		{
 			Mesh = static_cast<StaticMesh*>(expectedLoaded);
 		}
-		OverrideMaterials.clear();
 		for (const auto& [fst, snd] : MaterialGuids)
 		{
 			expectedLoaded = PackageModule::TryGetLoadedResource(snd);
-			if (expectedLoaded)
-			{
-				OverrideMaterials.emplace(fst, static_cast<IMaterial*>(expectedLoaded));
+			if (expectedLoaded && expectedLoaded->GetResourceType() == ETempGameResourceReflective::Material)
+			{ 
+				OverrideMaterials[fst] = static_cast<IMaterial*>(expectedLoaded);
 			}
 		}
 
 		// Call parent OnLoaded to mark as loaded and register tickable.
 		IComponent::OnLoaded();
 		LOG("------------ StaticMeshComponent loaded successfully");
-		// Register StaticMeshSceneProxy.
-		if (OverrideMaterials.empty() && Mesh != nullptr) //12.21 SimulateTest
-		{
-			for (auto mat : Mesh->DefaultMaterials)
-			{
-				OverrideMaterials.emplace(mat->GetResourceName(), mat);
-			}
-		}
 
 		SceneProxy = new (TMemory::Malloc<StaticMeshSceneProxy>()) StaticMeshSceneProxy(this);
 		Owner->GetScene()->GetRenderer()->RegisterSceneProxy(SceneProxy);

@@ -112,9 +112,9 @@ namespace Thunder
 
 		// get resource
 		static bool IsLoaded(const TGuid& inGuid);
-		static GameObject* TryGetLoadedResource(const TGuid& inGuid);
+		static GameResource* TryGetLoadedResource(const TGuid& inGuid);
 #if WITH_EDITOR
-		static GameObject* GetResource(NameHandle softPath);
+		static GameResource* GetResource(NameHandle softPath);
 #endif
 		template<typename T>
 		static TArray<GameObject*> GetResourceByClass()

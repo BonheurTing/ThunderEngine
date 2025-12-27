@@ -1,4 +1,6 @@
+
 #pragma optimize("", off)
+
 #include "ShaderModule.h"
 #include <fstream>
 #include <sstream>
@@ -196,20 +198,20 @@ namespace Thunder
 
 	uint64 ShaderModule::GetVariantMask(ShaderArchive* archive, const TMap<NameHandle, bool>& parameters)
 	{
-		//todo mask = input layout + global config + variant parameters
-
+		// Global variants.
 		uint64 variantMask = 0;
-		/*if (inputLayout->HasAttribute("Color"))
+		if (GConfigManager->GetConfig("BaseEngine")->GetBool("EnableRenderFeature0"))
 		{
-			variantMask |= EnableVertexColor;
-		} 
-
-		if (globalconfig->GetBool("EnableLumen"))
-		{
-			variantMask |= EnableLumen;
+			variantMask |= EFixedVariant_GlobalVariant0;
 		}
-		*/
-		variantMask = archive->GetSubShader(EMeshPass::BasePass)->VariantNameToMask(parameters);
+		if (GConfigManager->GetConfig("BaseEngine")->GetBool("EnableRenderFeature1"))
+		{
+			variantMask |= EFixedVariant_GlobalVariant1;
+		}
+
+		// Shader variants.
+		variantMask |= archive->GetSubShader(EMeshPass::BasePass)->VariantNameToMask(parameters);
+
 		return variantMask;
 	}
 

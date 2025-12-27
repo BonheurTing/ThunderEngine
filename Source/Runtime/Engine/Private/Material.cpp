@@ -250,6 +250,12 @@ namespace Thunder
 		MarkRenderStateDirty();
 	}
 
+	void GameMaterial::SetStaticParameter(const NameHandle& paramName, bool value)
+	{
+		OverrideParameters->StaticParameters[paramName] = value;
+		MarkRenderStateDirty();
+	}
+
 	// ========== Parameter getters ==========
 
 	bool GameMaterial::GetIntParameter(const NameHandle& paramName, int32& outValue) const
@@ -291,6 +297,17 @@ namespace Thunder
 		if (it != OverrideParameters->TextureParameters.end())
 		{
 			outTextureGuid = it->second;
+			return true;
+		}
+		return false;
+	}
+
+	bool GameMaterial::GetStaticParameter(const NameHandle& paramName, bool& outValue) const
+	{
+		auto it = OverrideParameters->StaticParameters.find(paramName);
+		if (it != OverrideParameters->StaticParameters.end())
+		{
+			outValue = it->second;
 			return true;
 		}
 		return false;

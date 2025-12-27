@@ -10,16 +10,13 @@ namespace Thunder
 	class ICompiler;
 	class ShaderArchive;
 
-	enum FixedVariantMask : uint64
+	enum EFixedVariant : uint64
 	{
-		ShaderVariantsBegin = 0,
-		VertexVariantsBegin = 32,
-		GlobalVariantsBegin = 48,
+		EFixedVariant_ShaderVariantsBegin = 0,
+		EFixedVariant_GlobalVariantsBegin = 32,
 
-		EnableVertexColor = 1 << VertexVariantsBegin,
-		EnableUv2 = EnableVertexColor << 1,
-
-		EnableLumen = 1 << GlobalVariantsBegin
+		EFixedVariant_GlobalVariant0 = 1ull << (EFixedVariant_GlobalVariantsBegin + 0),
+		EFixedVariant_GlobalVariant1 = 1ull << (EFixedVariant_GlobalVariantsBegin + 1),
 	};
 	
     class SHADER_API ShaderModule : public IModule

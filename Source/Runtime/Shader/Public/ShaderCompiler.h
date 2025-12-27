@@ -13,10 +13,13 @@ namespace Thunder
     {
     public:
     	virtual ~ICompiler() = default;
-    	virtual void Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const THashMap<NameHandle, bool>& marco,
-    		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) = 0;
 
-		virtual void Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode) = 0;
+    	virtual void Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const THashMap<NameHandle, bool>& marco,
+    		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) = 0; // Deprecated.
+
+		virtual void Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode) = 0; // Deprecated.
+
+		virtual void Compile(const String& inSource, const String& entryPoint, String const& target, BinaryData& outByteCode, bool debug = false) = 0;
     };
     
     class SHADER_API FXCCompiler : public ICompiler
@@ -24,9 +27,11 @@ namespace Thunder
     public:
     	FXCCompiler();
     	void Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const THashMap<NameHandle, bool>& marco,
-    		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) override;
+    		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) override; // Deprecated.
 
-    	void Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode) override;
+    	void Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode) override; // Deprecated.
+
+    	void Compile(const String& inSource, const String& entryPoint, String const& target, BinaryData& outByteCode, bool debug = false) override {}
     };
     
     class SHADER_API DXCCompiler : public ICompiler
@@ -34,8 +39,9 @@ namespace Thunder
     public:
     	DXCCompiler();
     	void Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const THashMap<NameHandle, bool>& marco,
-    		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) override;
-    	void Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode) override {}
+    		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) override; // Deprecated.
+    	void Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode) override {} // Deprecated.
+    	void Compile(const String& inSource, const String& entryPoint, String const& target, BinaryData& outByteCode, bool debug = false) override;
     private:
         ComPtr<IDxcUtils> ShaderUtils;
         ComPtr<IDxcCompiler> ShaderCompiler;

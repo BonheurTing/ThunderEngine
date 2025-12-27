@@ -347,11 +347,76 @@ namespace Thunder
     	outCount.ShaderResourceCount = static_cast<uint8>(sbGeneratedCode.size()) - outCount.UnorderedAccessCount;
     }
 
+	ShaderCombination* ShaderPass::GetOrCompileShaderCombination(uint64 variantId)
+    {
+    	// Variants map quick path.
+	    {
+	    	auto lock = VariantsLock.Read();
+	    	auto variantIt = Variants.find(variantId);
+	    	if (variantIt != Variants.end())
+	    	{
+	    		return variantIt->second.Get();
+	    	}
+    	}
+
+    	// Sync-compilation deduplication.
+	    SyncCompilingCombinationEntry* syncCompilingEntry = nullptr;
+	    {
+    		auto syncCompilingMapLock = SyncCompilingVariantsLock.Read();
+	    	auto variantIt = SyncCompilingVariants.find(variantId);
+	    	if (variantIt != SyncCompilingVariants.end()) [[unlikely]]
+	    	{
+	    		// Already compiling, fetch compiling status.
+	    		syncCompilingEntry = SyncCompilingVariants[variantId];
+	    	}
+	    }
+
+    	// Deduplication hit.
+    	if (syncCompilingEntry) [[unlikely]]
+    	{
+    		// Wait for sync compilation thread finishing compiling.
+    		auto variantLockGuard = syncCompilingEntry->Lock.Read();
+    		return syncCompilingEntry->Combination;
+    	}
+
+    	// Deduplication miss.
+	    auto syncCompilingMapLock = SyncCompilingVariantsLock.Write();
+	    {
+    		// Check again.
+	    	auto variantIt = SyncCompilingVariants.find(variantId);
+	    	if (variantIt != SyncCompilingVariants.end()) [[unlikely]]
+	    	{
+	    		// Already compiling, fetch compiling status.
+	    		syncCompilingEntry = SyncCompilingVariants[variantId];
+	    		syncCompilingMapLock.Unlock();
+	    		
+	    		// Wait for sync compilation thread finishing compiling.
+	    		auto variantLockGuard = syncCompilingEntry->Lock.Read();
+	    		return syncCompilingEntry->Combination;
+	    	}
+	    }
+
+    	// Launch a compilation task.
+    	syncCompilingEntry = new (TMemory::Malloc<SyncCompilingCombinationEntry>()) SyncCompilingCombinationEntry;
+    	SyncCompilingVariants[variantId] = syncCompilingEntry;
+    	syncCompilingEntry->Lock.WriteLock();
+    	syncCompilingEntry->Combination = ShaderModule::CompileShaderVariant(Archive->GetName(), GetName(), variantId);
+
+    	// Write back to variants cache.
+	    auto variantsLock = VariantsLock.Write();
+    	TAssertf(!Variants.contains(variantId), "Duplicated variant found.");
+    	Variants[variantId] = syncCompilingEntry->Combination;
+
+    	syncCompilingEntry->Lock.WriteUnlock();
+    	return syncCompilingEntry->Combination;
+    }
+
     //////////////////////////////////////////////////////////////////////////////////////////
     /// Compile Shader
     //////////////////////////////////////////////////////////////////////////////////////////
     bool ShaderPass::CompileShader(NameHandle archiveName, const String& shaderSource, const String& includeStr, uint64 variantId)
     {
+    	TAssertf(false, "ShaderPass::CompileShader is deprecated.");
     	TAssertf((PassVariantMask & variantId) == variantId, "Compile Shader: Invalid variantId");
     	// Stage
     	Variants[variantId] = MakeRefCount<ShaderCombination>();
@@ -378,7 +443,34 @@ namespace Thunder
     	return true;
     }
 
-	ShaderAST::~ShaderAST()
+    ShaderCombinationRef ShaderPass::CompileShaderVariant(uint64 variantId)
+    {
+#if WITH_EDITOR
+    	bool constexpr enableDebugInfo = true;
+#else
+    	bool constexpr enableDebugInfo = false;
+#endif
+
+    	String source = Archive->GenerateShaderSource(GetName(), variantId);
+    	ShaderCombinationRef newVariant = MakeRefCount<ShaderCombination>();
+    	for (auto& meta : StageMetas)
+    	{
+    		newVariant->Shaders[meta.first] = new (TMemory::Malloc<ShaderStage>()) ShaderStage{};
+    		ShaderStage* newStageVariant = newVariant->Shaders[meta.first];
+
+    		const uint64 stageVariantId = variantId & meta.second.VariantMask;
+    		ShaderModule::GetModule()->CompileShaderSource(source, meta.second.EntryPoint.c_str(),
+    			GShaderModuleTarget[meta.first], *newStageVariant->ByteCode, enableDebugInfo);
+    		if (newStageVariant->ByteCode->Size == 0)
+    		{
+    			return nullptr;
+    		}
+    		newStageVariant->VariantId = stageVariantId;
+    	}
+		return newVariant;
+    }
+
+    ShaderAST::~ShaderAST()
     {
     	if (ASTRoot)
     	{
@@ -435,7 +527,7 @@ namespace Thunder
     		for (ast_node_pass* var : node->passes)
     		{
     			//parse subshader
-    			ShaderPass* currentPass = new ShaderPass(var->name);
+    			ShaderPass* currentPass = new ShaderPass(archive, var->name);
     			currentPass->SetVariantDefinitionTable(archive->VariantMeta);
     			archive->AddSubShader(currentPass);
     			archive->AddPassParameterMeta(var->name, dummyPassMeta);
@@ -445,7 +537,14 @@ namespace Thunder
 
 	String ShaderAST::GenerateShaderVariantSource(NameHandle passName, const TArray<ShaderVariantMeta>& variants)
 	{
-    	String result = "";
+    	String result;
+    	ASTRoot->generate_hlsl(result);
+    	return result;
+	}
+
+	String ShaderAST::GenerateShaderVariantSource(NameHandle passName, uint64 variantId)
+    {
+    	String result;
     	ASTRoot->generate_hlsl(result);
     	return result;
 	}
@@ -465,21 +564,22 @@ namespace Thunder
     	}
     }
 
-    ShaderPass* ShaderArchive::GetPass(NameHandle name)
+    ShaderPass* ShaderArchive::GetSubShader(NameHandle name)
     {
-    	if (Passes.contains(name))
+    	auto subShaderIt = SubShaders.find(name);
+    	if (subShaderIt != SubShaders.end())
     	{
-    		return Passes[name].Get();
+    		return subShaderIt->second;
     	}
-    	TAssertf(false, "Pass not exist");
+    	TAssertf(false, "Pass \"%s\" not found in archive \"%s\".", name.c_str(), Name.c_str());
     	return nullptr;
     }
 
     ShaderPass* ShaderArchive::GetSubShader(EMeshPass meshPassType)
     {
-    	if (SubShaders.contains(meshPassType))
+    	if (MeshDrawSubShaders.contains(meshPassType))
     	{
-    		return SubShaders[meshPassType].Get();
+    		return MeshDrawSubShaders[meshPassType].Get();
     	}
     	return nullptr;
     }
@@ -507,30 +607,21 @@ namespace Thunder
     	}
     }
 	
-    bool ShaderArchive::CompileShaderPass(NameHandle passName, uint64 variantId, bool force)
+    ShaderCombinationRef ShaderArchive::CompileShaderVariant(NameHandle subShaderName, uint64 variantId)
     {
-    	ShaderPass* targetPass = GetPass(passName);
-    	if (!force && targetPass && targetPass->CheckCache(variantId))
-    	{
-    		return true;
-    	}
-    	// SourcePath
-    	const String fileName = FileModule::GetEngineRoot() + "\\Shader\\" + SourcePath;
-    	String shaderSource;
-    	FileModule::LoadFileToString(fileName, shaderSource);
-    	// include file
-    	String shaderIncludeStr;
-    	GenerateIncludeString(passName, shaderIncludeStr);
-    	if (shaderIncludeStr.empty())
-    	{
-    		return false;
-    	}
-    	return targetPass->CompileShader(Name, shaderSource, shaderIncludeStr, variantId);
+    	// Retrieve sub-shader.
+    	ShaderPass* subShader = GetSubShader(subShaderName);
+    	if (!subShader) [[unlikely]]
+		{
+			TAssertf(false, "Failed to compile shader : sub-shader \"%s\" not find in archive \"%s\".", subShaderName.c_str(), Name.c_str());
+			return nullptr;
+		}
+    	return subShader->CompileShaderVariant(variantId);
     }
 
     String ShaderArchive::GenerateShaderSource(NameHandle passName, uint64 variantId)
     {
-    	return AST->GenerateShaderVariantSource(passName, {});
+    	return AST->GenerateShaderVariantSource(passName, variantId);
     }
 
 	void AddParameters(const TArray<ShaderParameterMeta>& parameterMeta, MaterialParameterCache& cache)

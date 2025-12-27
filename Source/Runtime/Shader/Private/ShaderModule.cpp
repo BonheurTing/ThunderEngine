@@ -219,12 +219,7 @@ namespace Thunder
 	{
 		if (ShaderPass* subShader = archive->GetSubShader(meshPassType))
 		{
-			ShaderCombination* shaderVariant = subShader->GetShaderCombination(variantMask);
-			if (shaderVariant == nullptr)
-			{
-				shaderVariant = SyncCompileShaderCombination(archive, subShader->GetName(), variantMask);
-			}
-			return shaderVariant;
+			return subShader->GetOrCompileShaderCombination(variantMask);
 		}
 		return nullptr;
 	}
@@ -417,7 +412,7 @@ namespace Thunder
 			TAssertf(false, "ShaderArchive not exist");
 			return false;
 		}
-		if (const auto pass = ShaderMap[shaderName]->GetPass(passName))
+		if (const auto pass = ShaderMap[shaderName]->GetSubShader(passName))
 		{
 			outRegisterCounts = pass->GetShaderRegisterCounts();
 			return true;
@@ -446,7 +441,7 @@ namespace Thunder
 			TAssertf(false, "ShaderArchive not exist");
 			return nullptr;
 		}
-		if (const auto pass = ShaderMap[shaderName]->GetPass(passName))
+		if (const auto pass = ShaderMap[shaderName]->GetSubShader(passName))
 		{
 			if (pass->CheckCache(variantId))
 			{
@@ -479,7 +474,26 @@ namespace Thunder
 			TAssertf(false, "ShaderArchive not exist");
     		return false;
     	}
-    	return ShaderMap[shaderType]->CompileShaderPass(passName, VariantId);
+    	// return ShaderMap[shaderType]->CompileShaderVariant(passName, VariantId);
+		return true;
+    }
+
+    ShaderCombinationRef ShaderModule::CompileShaderVariant(NameHandle archiveName, NameHandle passName, uint64 variantId)
+	{
+		auto& shaderMap = GetModule()->ShaderMap;
+		auto archiveIt = shaderMap.find(archiveName);
+		if (archiveIt == shaderMap.end()) [[unlikely]]
+		{
+			TAssertf(false, "Failed to compile shader : archive \"%s\" not exist.", archiveName.c_str());
+			return nullptr;
+		}
+		ShaderArchive* archive = archiveIt->second;
+		return archive->CompileShaderVariant(passName, variantId);
+    }
+
+    void ShaderModule::CompileShaderSource(const String& inSource, const String& entryPoint, const String& target, BinaryData& outByteCode, bool debug) const
+	{
+		GetModule()->ShaderCompiler->Compile(inSource, entryPoint, target, outByteCode, debug);
     }
 
     ShaderCombination* ShaderModule::SyncCompileShaderCombination(ShaderArchive* archive, NameHandle passName, uint64 variantMask)

@@ -78,6 +78,18 @@ namespace Thunder
 				LockObject.WriteUnlock();
 			}
 		}
+
+		void Unlock()
+		{
+			if (LockType == ERWLockType::ReadOnly)
+			{
+				LockObject.ReadUnlock();
+			}
+			else
+			{
+				LockObject.WriteUnlock();
+			}
+		}
 	
 	private:
 		TRWLockGuard(TRWLockGuard&&) = delete;
@@ -160,6 +172,9 @@ namespace Thunder
 
 	class SharedLock
 	{
+		friend class TRWLockGuard<SharedLock>;
+
+	public:
 		void ReadLock()
 		{
 			Mutex.lock_shared();
@@ -180,21 +195,17 @@ namespace Thunder
 			Mutex.unlock();
 		}
 
-		friend class TRWLockGuard<SharedLock>;
-
-		public:
-			
-
-			TRWLockGuard<SharedLock> Read()
-			{
-				return TRWLockGuard<SharedLock>(*this, ERWLockType::ReadOnly);
-			}
-			TRWLockGuard<SharedLock> Write()
-			{
-				return TRWLockGuard<SharedLock>(*this, ERWLockType::ReadWrite);
-			}
-		private:
-			std::shared_mutex Mutex;
+		TRWLockGuard<SharedLock> Read()
+		{
+			return TRWLockGuard<SharedLock>(*this, ERWLockType::ReadOnly);
+		}
+		TRWLockGuard<SharedLock> Write()
+		{
+			return TRWLockGuard<SharedLock>(*this, ERWLockType::ReadWrite);
+		}
+		
+	private:
+		std::shared_mutex Mutex;
 	};
 	
 }

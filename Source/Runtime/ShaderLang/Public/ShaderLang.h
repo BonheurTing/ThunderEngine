@@ -26,6 +26,19 @@ namespace Thunder
 		all
 	};
 
+	enum class enum_shader_stage : uint8
+	{
+		unknown = 0,
+		vertex,
+		hull,
+		domain,
+		pixel,
+		compute,
+		geometry,
+		mesh,
+		max
+	};
+
 	/* Shader parsing state.
 	 * 核心功能：
 	* 1，符号表管理（变量、函数、类型等）
@@ -83,6 +96,7 @@ namespace Thunder
 		ast_node* parsing_pass_end();
 		void add_definition_member(ast_node* def);
 		void add_attribute_entry(const token_data& key, const token_data& value);
+		void add_stage_entry(const token_data& stage_token, const token_data& entry_name);
 		
 		void parsing_struct_begin(const token_data& name);
 		ast_node_struct* parsing_struct_end();

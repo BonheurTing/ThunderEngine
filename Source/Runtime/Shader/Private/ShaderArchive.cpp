@@ -5,6 +5,7 @@
 #include "Assertion.h"
 #include "AstNode.h"
 #include "CoreModule.h"
+#include "ShaderLang.h"
 #include "ShaderModule.h"
 #include "FileSystem/FileModule.h"
 #include "Templates/RefCounting.h"
@@ -431,9 +432,9 @@ namespace Thunder
     		//todo: include file
     		newVariant.Shaders[meta.first] = new ShaderStage{};
     		ShaderStage* newStageVariant = newVariant.Shaders[meta.first];
-    		ShaderModule::GetModule()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], *newStageVariant->ByteCode);
+    		ShaderModule::GetModule()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant->ByteCode);
     
-    		if (newStageVariant->ByteCode->Size == 0)
+    		if (newStageVariant->ByteCode.Size == 0)
     		{
     			TAssertf(false, "Compile Shader: Output an empty ByteCode");
     			return false;
@@ -443,7 +444,7 @@ namespace Thunder
     	return true;
     }
 
-    ShaderCombinationRef ShaderPass::CompileShaderVariant(uint64 variantId)
+    ShaderCombination* ShaderPass::CompileShaderVariant(uint64 variantId)
     {
 #if WITH_EDITOR
     	bool constexpr enableDebugInfo = true;
@@ -452,20 +453,24 @@ namespace Thunder
 #endif
 
     	String source = Archive->GenerateShaderSource(GetName(), variantId);
-    	ShaderCombinationRef newVariant = MakeRefCount<ShaderCombination>();
-    	for (auto& meta : StageMetas)
+    	ShaderCombination* newVariant = new (TMemory::Malloc<ShaderCombination>()) ShaderCombination;
+    	for (auto& stageMetaIt : StageMetas)
     	{
-    		newVariant->Shaders[meta.first] = new (TMemory::Malloc<ShaderStage>()) ShaderStage{};
-    		ShaderStage* newStageVariant = newVariant->Shaders[meta.first];
+    		EShaderStageType stageType = stageMetaIt.first;
+    		StageMeta& stageMeta = stageMetaIt.second;
+    		newVariant->Shaders[stageType] = new (TMemory::Malloc<ShaderStage>()) ShaderStage{};
+    		ShaderStage* newStageVariant = newVariant->Shaders[stageType];
 
-    		const uint64 stageVariantId = variantId & meta.second.VariantMask;
-    		ShaderModule::GetModule()->CompileShaderSource(source, meta.second.EntryPoint.c_str(),
-    			GShaderModuleTarget[meta.first], *newStageVariant->ByteCode, enableDebugInfo);
-    		if (newStageVariant->ByteCode->Size == 0)
+    		String entryName = stageMeta.EntryPoint;
+    		ShaderModule::GetModule()->CompileShaderSource(source, entryName, stageType, newStageVariant->ByteCode, enableDebugInfo);
+    		if (!newStageVariant->ByteCode.Data
+    			|| newStageVariant->ByteCode.Size == 0)
     		{
+    			newStageVariant->~ShaderStage();
+    			TMemory::Free(newStageVariant);
     			return nullptr;
     		}
-    		newStageVariant->VariantId = stageVariantId;
+    		newStageVariant->VariantId = variantId;
     	}
 		return newVariant;
     }
@@ -524,13 +529,26 @@ namespace Thunder
     			meta.Default = var->default_value;
     			dummyPassMeta.push_back(meta);
     		}
-    		for (ast_node_pass* var : node->passes)
+    		for (ast_node_pass* sub_shader_node : node->passes)
     		{
     			//parse subshader
-    			ShaderPass* currentPass = new ShaderPass(archive, var->name);
+    			ShaderPass* currentPass = new ShaderPass(archive, sub_shader_node->name);
+    			for (uint8 stage = 1; stage < static_cast<uint8>(enum_shader_stage::max); ++stage)
+    			{
+    				String entry = sub_shader_node->get_stage_entry(static_cast<enum_shader_stage>(stage));
+    				if (!entry.empty())
+    				{
+    					EShaderStageType engineStage = ShaderModule::GetShaderStage(static_cast<enum_shader_stage>(stage));
+    					currentPass->AddStageMeta(engineStage, 
+    					{
+    						.EntryPoint = entry,
+    						.VariantMask = 0
+    					});
+    				}
+    			}
     			currentPass->SetVariantDefinitionTable(archive->VariantMeta);
     			archive->AddSubShader(currentPass);
-    			archive->AddPassParameterMeta(var->name, dummyPassMeta);
+    			archive->AddPassParameterMeta(sub_shader_node->name, dummyPassMeta);
     		}
     	}
 	}
@@ -547,6 +565,31 @@ namespace Thunder
     	String result;
     	ASTRoot->generate_hlsl(result);
     	return result;
+	}
+
+	String ShaderAST::GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const
+	{
+    	// Find sub-shader.
+		TAssert(ASTRoot->node_type == enum_ast_node_type::archive);
+		ast_node_archive* archiveNode = static_cast<ast_node_archive*>(ASTRoot);
+    	ast_node_pass* subShaderNode = nullptr;
+		for (ast_node_pass* pass : archiveNode->passes)
+		{
+			if (pass->name == subShaderName)
+			{
+				subShaderNode = pass;
+				break;
+			}
+		}
+
+    	if (!subShaderNode)
+    	{
+    		TAssert(false, "Sub-shader \"%s\" not found.", subShaderName.c_str());
+    		return "";
+    	}
+
+    	enum_shader_stage astStage = ShaderModule::GetShaderASTStage(stageType);
+    	return subShaderNode->get_stage_entry(astStage);
 	}
 
 	ShaderArchive::ShaderArchive(String sourceFilePath, NameHandle shaderName, ast_node* astRoot)
@@ -607,7 +650,7 @@ namespace Thunder
     	}
     }
 	
-    ShaderCombinationRef ShaderArchive::CompileShaderVariant(NameHandle subShaderName, uint64 variantId)
+    ShaderCombination* ShaderArchive::CompileShaderVariant(NameHandle subShaderName, uint64 variantId)
     {
     	// Retrieve sub-shader.
     	ShaderPass* subShader = GetSubShader(subShaderName);
@@ -624,7 +667,12 @@ namespace Thunder
     	return AST->GenerateShaderVariantSource(passName, variantId);
     }
 
-	void AddParameters(const TArray<ShaderParameterMeta>& parameterMeta, MaterialParameterCache& cache)
+    String ShaderArchive::GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const
+    {
+    	return AST->GetSubShaderEntry(subShaderName, stageType);
+    }
+
+    void AddParameters(const TArray<ShaderParameterMeta>& parameterMeta, MaterialParameterCache& cache)
     {
     	for (auto meta : parameterMeta)
     	{

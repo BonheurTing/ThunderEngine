@@ -161,9 +161,12 @@ namespace Thunder
         if (object_type != enum_object_type::none)
         {
             text = TemplateTypeNames[static_cast<size_t>(object_type)];
-            text += '<';
-            text += get_type_text_internal();
-            text += '>';
+            if (basic_type != enum_basic_type::tp_none)
+            {
+                text += '<';
+                text += get_type_text_internal();
+                text += '>';
+            }
         }
         else
         {

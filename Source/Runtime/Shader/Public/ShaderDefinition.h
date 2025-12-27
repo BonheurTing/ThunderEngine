@@ -19,19 +19,19 @@ namespace Thunder
 		Geometry,
     	Mesh
     };
-    
+
     struct StageMeta
     {
-    	NameHandle EntryPoint;
+    	String EntryPoint;
     	uint64 VariantMask = 0;
     };
     
     struct ShaderStage : public RefCountedObject
     {
-    	BinaryData* ByteCode;
+    	BinaryData ByteCode;
     	uint64 VariantId;
     };
-	using ShaderStageRef = TRefCountPtr<ShaderStage>;
+	using ShaderStageRef = TRefCountPtr<ShaderStage, true>;
     
     struct ShaderCombination : public RefCountedObject
     {
@@ -51,9 +51,9 @@ namespace Thunder
     	{
     		for (auto& pair : Shaders)
     		{
-    			if (pair.second->ByteCode->Size > 0)
+    			if (pair.second->ByteCode.Size > 0)
     			{
-    				TMemory::Destroy(pair.second->ByteCode->Data);
+    				TMemory::Free(pair.second->ByteCode.Data);
     			}
     		}
     	}
@@ -63,14 +63,14 @@ namespace Thunder
 	        const auto iter = Shaders.find(type);
     		if (iter != Shaders.end())
 			{
-				return iter->second->ByteCode;
+				return &(iter->second->ByteCode);
 			}
     		return nullptr;
     	}
 
     	THashMap<EShaderStageType, ShaderStageRef> Shaders;
     };
-	using ShaderCombinationRef = TRefCountPtr<ShaderCombination>;
+	using ShaderCombinationRef = TRefCountPtr<ShaderCombination, true>;
     
     struct ShaderVariantMeta
     {

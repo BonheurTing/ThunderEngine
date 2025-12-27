@@ -109,6 +109,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 /* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
 %type <token> identifier key_identifier type_identifier new_identifier primary_identifier any_identifier
 %type <token> primitive_types scalar_types
+%type <token> stage_token
 %type <node> definitions properties_definition variants_definition parameters_definition
 %type <token> inout_modifier type_qualification maybe_semantic
 %type <type> type variable_type type_qualifications maybe_type_qualifications
@@ -306,11 +307,17 @@ attribute_entry:
     ;
 
 stage_token:
-    TOKEN_VERTEX | TOKEN_PIXEL
+    TOKEN_VERTEX {
+        $$ = $1;
+    }
+    | TOKEN_PIXEL {
+        $$ = $1;
+    }
     ;
 
 stage_definition:
     TOKEN_USING stage_token ASSIGN primary_identifier SEMICOLON {
+        sl_state->add_stage_entry($2, $4);
         $$ = nullptr;
     }
     ;

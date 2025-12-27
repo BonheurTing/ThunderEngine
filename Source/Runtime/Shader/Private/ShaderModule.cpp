@@ -152,7 +152,7 @@ namespace Thunder
 		{
 		case EGfxApiType::D3D12:
 			{
-				ShaderCompiler = MakeRefCount<FXCCompiler>();
+				ShaderCompiler = MakeRefCount<DXCCompiler>();
 				break;
 			}
 		case EGfxApiType::D3D11:
@@ -478,7 +478,7 @@ namespace Thunder
 		return true;
     }
 
-    ShaderCombinationRef ShaderModule::CompileShaderVariant(NameHandle archiveName, NameHandle passName, uint64 variantId)
+    ShaderCombination* ShaderModule::CompileShaderVariant(NameHandle archiveName, NameHandle passName, uint64 variantId)
 	{
 		auto& shaderMap = GetModule()->ShaderMap;
 		auto archiveIt = shaderMap.find(archiveName);
@@ -491,9 +491,60 @@ namespace Thunder
 		return archive->CompileShaderVariant(passName, variantId);
     }
 
-    void ShaderModule::CompileShaderSource(const String& inSource, const String& entryPoint, const String& target, BinaryData& outByteCode, bool debug) const
+    void ShaderModule::CompileShaderSource(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug) const
 	{
-		GetModule()->ShaderCompiler->Compile(inSource, entryPoint, target, outByteCode, debug);
+		GetModule()->ShaderCompiler->Compile(inSource, entryPoint, stage, outByteCode, debug);
+    }
+
+    enum_shader_stage ShaderModule::GetShaderASTStage(EShaderStageType stage)
+    {
+		switch (stage)
+		{
+		case EShaderStageType::Vertex:
+			return enum_shader_stage::vertex;
+		case EShaderStageType::Pixel:
+			return enum_shader_stage::pixel;
+		case EShaderStageType::Hull:
+			return enum_shader_stage::hull;
+		case EShaderStageType::Domain:
+			return enum_shader_stage::domain;
+		case EShaderStageType::Geometry:
+			return enum_shader_stage::geometry;
+		case EShaderStageType::Compute:
+			return enum_shader_stage::compute;
+		case EShaderStageType::Mesh:
+			return enum_shader_stage::mesh;
+		case EShaderStageType::Unknown:
+		default:
+			TAssert(false, "Unexpected shader stage : %d.", static_cast<int>(stage));
+			return enum_shader_stage::unknown;
+		}
+    }
+
+    EShaderStageType ShaderModule::GetShaderStage(enum_shader_stage stage)
+	{
+		switch (stage)
+		{
+		case enum_shader_stage::vertex:
+			return EShaderStageType::Vertex;
+		case enum_shader_stage::pixel:
+			return EShaderStageType::Pixel;
+		case enum_shader_stage::hull:
+			return EShaderStageType::Hull;
+		case enum_shader_stage::domain:
+			return EShaderStageType::Domain;
+		case enum_shader_stage::geometry:
+			return EShaderStageType::Geometry;
+		case enum_shader_stage::compute:
+			return EShaderStageType::Compute;
+		case enum_shader_stage::mesh:
+			return EShaderStageType::Mesh;
+		case enum_shader_stage::max:
+		case enum_shader_stage::unknown:
+		default:
+			TAssert(false, "Unexpected shader stage : %d.", static_cast<int>(stage));
+			return EShaderStageType::Unknown;
+		}
     }
 
     ShaderCombination* ShaderModule::SyncCompileShaderCombination(ShaderArchive* archive, NameHandle passName, uint64 variantMask)

@@ -239,7 +239,7 @@ namespace Thunder
     	}
     }
 
-    void DXCCompiler::Compile(const String& inSource, const String& entryPoint, String const& target, BinaryData& outByteCode, bool debug/* = false*/)
+    void DXCCompiler::Compile(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug/* = false*/)
     {
     	if (ShaderCompiler == nullptr || ShaderUtils == nullptr) [[unlikely]]
     	{
@@ -248,6 +248,20 @@ namespace Thunder
     	}
 
     	const std::wstring wideEntry = std::wstring(entryPoint.begin(), entryPoint.end());
+
+    	// Get shader target.
+    	static const THashMap<EShaderStageType, String> kShaderModuleTarget = {
+    		{ EShaderStageType::Vertex, "vs_6_0" },
+			{ EShaderStageType::Pixel, "ps_6_0" },
+			{ EShaderStageType::Compute, "cs_6_0" }
+    	};
+    	auto shaderTargetIt = kShaderModuleTarget.find(stage);
+    	if (shaderTargetIt == kShaderModuleTarget.end())
+    	{
+    		TAssertf(false, "Unsupported shader stage : %d.", static_cast<int>(stage));
+    		return;
+    	}
+    	String target = shaderTargetIt->second;
     	const std::wstring wideTarget = std::wstring(target.begin(), target.end());
 
     	ComPtr<IDxcCompiler3> compiler3{};
@@ -312,8 +326,10 @@ namespace Thunder
     		pResult->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&pShader), &pShaderName);
     		if (pShader != nullptr && pShader->GetBufferSize() > 0)
     		{
+    			byte* shaderBinaryData = new (TMemory::Malloc(pShader->GetBufferSize())) byte;
+    			memcpy(shaderBinaryData, pShader->GetBufferPointer(), pShader->GetBufferSize());
     			outByteCode.Size = pShader->GetBufferSize();
-    			outByteCode.Data = pShader->GetBufferPointer();
+    			outByteCode.Data = shaderBinaryData;
     		}
     		else
     		{

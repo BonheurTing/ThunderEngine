@@ -144,45 +144,6 @@ namespace Thunder
     	return 0;
     }*/
 
-    uint64 ShaderPass::VariantNameToMask(const TMap<NameHandle, bool>& parameters) const
-    {
-    	uint64 mask = 0;
-    	const int totalVariantNum = static_cast<int>(VariantDefinitionTable.size());
-    	for (int i = 0; i < totalVariantNum; i++)
-    	{
-    		if (parameters.contains(VariantDefinitionTable[i].Name) && parameters.at(VariantDefinitionTable[i].Name))
-    		{
-    			mask = mask | (1ULL << i);
-    		}
-    	}
-    	return mask;
-    }
-
-    void ShaderPass::VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, THashMap<NameHandle, bool>& shaderMarco) const
-    {
-    	const int totalVariantNum = static_cast<int>(VariantDefinitionTable.size());
-    	TAssertf(variantId >> totalVariantNum == 0, "Error input VariantId");
-    	for (int i = 0; i < totalVariantNum; i++)
-    	{
-    		if (variantMask & (1ULL << i))
-    		{
-    			shaderMarco[VariantDefinitionTable[i].Name] = (variantId & (1ULL << i)) > 0;
-    		}
-    	}
-    }
-
-    void ShaderPass::SetVariantDefinitionTable(const TArray<ShaderVariantMeta>& passVariantMeta)
-    {
-    	PassVariantMask = 0;
-    	int i = 0;
-    	for (auto& meta : passVariantMeta)
-    	{
-    		VariantDefinitionTable.push_back(meta);
-    		PassVariantMask = PassVariantMask | (1ULL << i);
-    		i++;
-    	}
-    }
-
     void ShaderPass::GenerateVariantDefinitionTable_Deprecated(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta)
     {
     	// gen VariantDefinitionTable
@@ -418,17 +379,15 @@ namespace Thunder
     bool ShaderPass::CompileShader(NameHandle archiveName, const String& shaderSource, const String& includeStr, uint64 variantId)
     {
     	TAssertf(false, "ShaderPass::CompileShader is deprecated.");
-    	TAssertf((PassVariantMask & variantId) == variantId, "Compile Shader: Invalid variantId");
     	// Stage
     	Variants[variantId] = MakeRefCount<ShaderCombination>();
     	ShaderCombination& newVariant = *Variants[variantId];
     	for (auto& meta : StageMetas)
     	{
     		// Variant Marco
-    		TAssertf((meta.second.VariantMask & PassVariantMask) == meta.second.VariantMask, "Compile Shader: Invalid stage variantId");
     		const uint64 stageVariantId = variantId & meta.second.VariantMask;
     		THashMap<NameHandle, bool> shaderMarco{};
-    		VariantIdToShaderMarco(stageVariantId, meta.second.VariantMask, shaderMarco);
+    		Archive->VariantMaskToName(stageVariantId, shaderMarco);
     		//todo: include file
     		newVariant.Shaders[meta.first] = new ShaderStage{};
     		ShaderStage* newStageVariant = newVariant.Shaders[meta.first];
@@ -452,12 +411,21 @@ namespace Thunder
     	bool constexpr enableDebugInfo = false;
 #endif
 
-    	String source = Archive->GenerateShaderSource(GetName(), variantId);
     	ShaderCombination* newVariant = new (TMemory::Malloc<ShaderCombination>()) ShaderCombination;
     	for (auto& stageMetaIt : StageMetas)
     	{
     		EShaderStageType stageType = stageMetaIt.first;
     		StageMeta& stageMeta = stageMetaIt.second;
+
+    		// Code-gen.
+    		ShaderCodeGenConfig codeGenConfig
+			{
+				.SubShaderName = GetName(),
+				.VariantMask = variantId,
+				.Stage = stageType,
+			};
+    		String source = Archive->GenerateShaderSource(codeGenConfig);
+
     		newVariant->Shaders[stageType] = new (TMemory::Malloc<ShaderStage>()) ShaderStage{};
     		ShaderStage* newStageVariant = newVariant->Shaders[stageType];
 
@@ -531,23 +499,22 @@ namespace Thunder
     		}
     		for (ast_node_pass* sub_shader_node : node->passes)
     		{
-    			//parse subshader
-    			ShaderPass* currentPass = new ShaderPass(archive, sub_shader_node->name);
+    			// Parse sub-shader.
+    			ShaderPass* subShader = new ShaderPass(archive, sub_shader_node->name);
     			for (uint8 stage = 1; stage < static_cast<uint8>(enum_shader_stage::max); ++stage)
     			{
     				String entry = sub_shader_node->get_stage_entry(static_cast<enum_shader_stage>(stage));
     				if (!entry.empty())
     				{
     					EShaderStageType engineStage = ShaderModule::GetShaderStage(static_cast<enum_shader_stage>(stage));
-    					currentPass->AddStageMeta(engineStage, 
+    					subShader->AddStageMeta(engineStage, 
     					{
     						.EntryPoint = entry,
     						.VariantMask = 0
     					});
     				}
     			}
-    			currentPass->SetVariantDefinitionTable(archive->VariantMeta);
-    			archive->AddSubShader(currentPass);
+    			archive->AddSubShader(subShader);
     			archive->AddPassParameterMeta(sub_shader_node->name, dummyPassMeta);
     		}
     	}
@@ -561,6 +528,13 @@ namespace Thunder
 	}
 
 	String ShaderAST::GenerateShaderVariantSource(NameHandle passName, uint64 variantId)
+    {
+    	String result;
+    	ASTRoot->generate_hlsl(result);
+    	return result;
+	}
+
+	String ShaderAST::GenerateShaderVariantSource(ShaderCodeGenConfig const& config) const
     {
     	String result;
     	ASTRoot->generate_hlsl(result);
@@ -665,6 +639,62 @@ namespace Thunder
     String ShaderArchive::GenerateShaderSource(NameHandle passName, uint64 variantId)
     {
     	return AST->GenerateShaderVariantSource(passName, variantId);
+    }
+
+	void ShaderArchive::ParseVariants(ShaderCodeGenConfig& config) const
+	{
+    	uint64 variantMask = config.VariantMask;
+
+    	// Fixed variants.
+    	for (uint64 variantBit = EFixedVariant_GlobalVariantsBegin; variantBit < 64; ++variantBit)
+    	{
+    		auto fixedVariantIt = GFixedVariantMap.find(static_cast<EFixedVariant>(1ull << variantBit));
+    		if (fixedVariantIt != GFixedVariantMap.end())
+    		{
+    			NameHandle globalVariantName = fixedVariantIt->second;
+    			config.ShaderVariants[globalVariantName] = !!(variantMask & variantBit);
+    		}
+		    else
+		    {
+			    break;
+		    }
+    	}
+
+    	// Shader variants.
+    	VariantMaskToName(variantMask, config.ShaderVariants);
+    }
+
+	uint64 ShaderArchive::VariantNameToMask(const TMap<NameHandle, bool>& variantMap) const
+    {
+    	uint64 mask = 0;
+    	const int totalVariantNum = static_cast<int>(VariantMeta.size());
+    	for (int variantBitIndex = 0; variantBitIndex < totalVariantNum; ++variantBitIndex)
+    	{
+    		NameHandle variantName = VariantMeta[variantBitIndex].Name;
+    		auto variantIt = variantMap.find(variantName);
+    		if (variantIt != variantMap.end() && variantIt->second)
+    		{
+    			mask = mask | (1ULL << variantBitIndex);
+    		}
+    	}
+    	return mask;
+	}
+
+	void ShaderArchive::VariantMaskToName(uint64 variantMask, THashMap<NameHandle, bool>& variantMap) const
+    {
+    	const int totalVariantNum = static_cast<int>(VariantMeta.size());
+    	TAssertf(((variantMask & 0xFFFFFFFF) >> totalVariantNum) == 0, "Variant mask contains undefined bits, archive name \"%s\".", GetName().c_str());
+    	for (int variantBitIndex = 0; variantBitIndex < totalVariantNum; variantBitIndex++)
+    	{
+    		NameHandle variantName = VariantMeta[variantBitIndex].Name;
+    		variantMap[variantName] = !!(variantMask & (1ULL << variantBitIndex));
+    	}
+	}
+
+	String ShaderArchive::GenerateShaderSource(ShaderCodeGenConfig& config) const
+	{
+    	ParseVariants(config);
+    	return AST->GenerateShaderVariantSource(config);
     }
 
     String ShaderArchive::GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const

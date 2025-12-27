@@ -27,6 +27,14 @@ namespace Thunder
 		}
 	};
 
+	struct ShaderCodeGenConfig
+	{
+		NameHandle SubShaderName;
+		uint64 VariantMask;
+		EShaderStageType Stage;
+		THashMap<NameHandle, bool> ShaderVariants;
+	};
+
 	class ShaderPass : public RefCountedObject
     {
     public:
@@ -34,12 +42,7 @@ namespace Thunder
     	ShaderPass(class ShaderArchive* archive, NameHandle name) : Archive(archive), Name(name) {}
 		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
         _NODISCARD_ TShaderRegisterCounts GetShaderRegisterCounts() const { return RegisterCounts; }
-    	//uint64 VariantNameToMask(const TArray<ShaderVariantMeta>& variantName) const;
-		uint64 VariantNameToMask(const TMap<NameHandle, bool>& parameters) const;
-    	void VariantIdToShaderMarco(uint64 variantId, uint64 variantMask, THashMap<NameHandle, bool>& shaderMarco) const;
     	void AddStageMeta(EShaderStageType type, const StageMeta& meta) {StageMetas[type] = meta;}
-		//void SetPassVariantMeta(const Array<VariantMeta>& meta) {VariantDefinitionTable = meta;}
-		void SetVariantDefinitionTable(const TArray<ShaderVariantMeta>& passVariantMeta);
     	void GenerateVariantDefinitionTable_Deprecated(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta);
     	void CacheDefaultShaderCache();
 
@@ -75,10 +78,8 @@ namespace Thunder
     private:
 		ShaderArchive* Archive = nullptr;
     	NameHandle Name;
-    	uint64 PassVariantMask = 0;
 		TShaderRegisterCounts RegisterCounts{};
-    	TArray<ShaderVariantMeta> VariantDefinitionTable;
-    	THashMap<EShaderStageType, StageMeta> StageMetas; // Deprecated.
+    	THashMap<EShaderStageType, StageMeta> StageMetas;
 		SharedLock VariantsLock;
     	THashMap<uint64, ShaderCombinationRef> Variants;
 		SharedLock SyncCompilingVariantsLock;
@@ -95,6 +96,7 @@ namespace Thunder
 		void ParseAllTypeParameters(class ShaderArchive* archive) const;
 		String GenerateShaderVariantSource(NameHandle passName, const TArray<ShaderVariantMeta>& variants);
 		String GenerateShaderVariantSource(NameHandle passName, uint64 variantId);
+    	String GenerateShaderVariantSource(ShaderCodeGenConfig const& config) const;
 		String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
 
 	private:
@@ -120,7 +122,12 @@ namespace Thunder
     	}
     	void AddVariantMeta(const ShaderVariantMeta& meta)
     	{
-    		VariantMeta.push_back(meta);
+    		uint64 currentVariantCount = VariantMeta.size();
+    		TAssert(currentVariantCount <= 32, "Variant count can't be greater than 32, archive name \"%s\".", GetName().c_str());
+    		if (currentVariantCount < 32)
+    		{
+    			VariantMeta.push_back(meta);
+    		}
     	}
     	void AddGlobalParameterMeta(const ShaderParameterMeta& meta)
     	{
@@ -147,9 +154,13 @@ namespace Thunder
     	ShaderAST* GetAST() const { return AST; }
 
     	String GenerateShaderSource(NameHandle passName, uint64 variantId);
+    	String GenerateShaderSource(ShaderCodeGenConfig& config) const;
     	String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
     	MaterialParameterCache GenerateParameterCache();
-    	
+    	void ParseVariants(ShaderCodeGenConfig& config) const;
+    	uint64 VariantNameToMask(const TMap<NameHandle, bool>& variantMap) const;
+    	void VariantMaskToName(uint64 variantMask, THashMap<NameHandle, bool>& variantMap) const;
+
     private:
     	friend class ShaderAST;
     	String SourcePath;

@@ -257,6 +257,32 @@ namespace Thunder
 		}
 	}
 
+	void shader_lang_state::add_stage_entry(const token_data& stage_token, const token_data& entry_name)
+	{
+		if (current_pass == nullptr)
+		{
+			debug_log("No current pass to add stage entry to.");
+			return;
+		}
+
+		enum_shader_stage stage_type = enum_shader_stage::unknown;
+		if (stage_token.token_id == TOKEN_VERTEX)
+		{
+			stage_type = enum_shader_stage::vertex;
+		}
+		else if (stage_token.token_id == TOKEN_PIXEL)
+		{
+			stage_type = enum_shader_stage::pixel;
+		}
+		else
+		{
+			debug_log("Unknown stage token in add_stage_entry.");
+			return;
+		}
+
+		current_pass->set_stage_entry(stage_type, entry_name.text);
+	}
+
 	void shader_lang_state::parsing_struct_begin(const token_data& name)
 	{
 		TAssert(current_structure == nullptr);

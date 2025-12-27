@@ -63,7 +63,7 @@ namespace Thunder
 		ShaderCombination* GetOrCompileShaderCombination(uint64 variantId);
 
     	bool CompileShader(NameHandle archiveName, const String& shaderSource, const String& includeStr, uint64 variantId);
-    	ShaderCombinationRef CompileShaderVariant(uint64 variantId);
+    	ShaderCombination* CompileShaderVariant(uint64 variantId);
 		bool RegisterRootSignature()
 		{
 			//TD3D12RHIModule::GetRootSignatureManager().RegisterRootSignature(Name, RegisterCounts);
@@ -95,6 +95,7 @@ namespace Thunder
 		void ParseAllTypeParameters(class ShaderArchive* archive) const;
 		String GenerateShaderVariantSource(NameHandle passName, const TArray<ShaderVariantMeta>& variants);
 		String GenerateShaderVariantSource(NameHandle passName, uint64 variantId);
+		String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
 
 	private:
 		ast_node* ASTRoot = nullptr;
@@ -142,11 +143,11 @@ namespace Thunder
     	String GetShaderSourceDir() const;
     	void GenerateIncludeString(NameHandle passName, String& outFile);
 		void CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount);
-    	ShaderCombinationRef CompileShaderVariant(NameHandle subShaderName, uint64 variantId);
+    	ShaderCombination* CompileShaderVariant(NameHandle subShaderName, uint64 variantId);
     	ShaderAST* GetAST() const { return AST; }
 
-    	// new
     	String GenerateShaderSource(NameHandle passName, uint64 variantId);
+    	String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
     	MaterialParameterCache GenerateParameterCache();
     	
     private:

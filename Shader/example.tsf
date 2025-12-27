@@ -27,7 +27,7 @@ Shader "TestShader"
             DepthTest : Near,
             BlendMode : Opaque
         }
-        
+
         using VertexEntry = vert;
         using PixelEntry = frag;
 
@@ -41,7 +41,7 @@ Shader "TestShader"
             float2 uv1 : TEXCOORD1;
         #endif
         };
-        
+
         struct v2f
         {
             float4 pos : SV_POSITION;
@@ -62,13 +62,15 @@ Shader "TestShader"
             return o;
         }
         
-        float test_function(int x) : SV_Target
+        float3 test_function(int x) : SV_Target
         {
-            return 0.5;
+            return float3(0.5f, 0.5f, 1.0f);
         }
 
         ps_out frag(in v2f v)
         {
+            int x = 0;
+            int y = 1;
             for (int i = 0; i < 10; i++)
             {
                 x += y;
@@ -99,18 +101,18 @@ Shader "TestShader"
             {
                 y = 20;
             }
-            
+
             
             // 测试注释
-            float test_float4[3] = { 3, /*7*/4, 5 };
+            float3 test_vector = float3(3, /*7*/4, 5);
             /*测试
             多行注释
             */
-            float test_float_component = (float)test_float4[2];
+            float test_float_component = (float)(test_vector[2]);
             int to_convert = x > 1 ? 3: 5;
             float converted = float(to_convert);
             float3 test_float3 = float3(1, 2, 3);
-            float4 test_initialize = float4(1);
+            float4 test_initialize = float4(1, 1, 1, 1);
             test_initialize = float4(test_float3, 1);
             
             converted = (float)(to_convert);
@@ -118,7 +120,7 @@ Shader "TestShader"
             ps_out test_out = (ps_out)0;
 
             ps_out out_;
-            float test_return_value = test_function(1)[0][1][2 * 5][x + 1].xxx;
+            float3 test_return_value = test_function(1)[2 * 5 * 0 * x].xxx;
             out_.color0 = test_return_value.xxxx;
             out_.color1 = test_return_value.rrrr;
             return out_;

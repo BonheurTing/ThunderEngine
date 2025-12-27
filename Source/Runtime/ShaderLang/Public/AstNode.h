@@ -6,6 +6,8 @@
 
 namespace Thunder
 {
+    enum class enum_shader_stage : uint8;
+
     enum class enum_ast_node_type : uint8
     {
         type_format,
@@ -487,6 +489,15 @@ namespace Thunder
 
         void set_name(const String& pass_name) { name = pass_name; }
         void set_attributes(const shader_attributes& attrs) { attributes = attrs; }
+        void set_stage_entry(enum class enum_shader_stage stage, const String& entry)
+        {
+            stage_entries[stage] = entry;
+        }
+        String get_stage_entry(enum class enum_shader_stage stage) const
+        {
+            auto it = stage_entries.find(stage);
+            return it != stage_entries.end() ? it->second : "";
+        }
 
         void add_structure(class ast_node_struct* structure)
         {
@@ -503,6 +514,7 @@ namespace Thunder
         friend class ShaderAST;
         String name;
         shader_attributes attributes;
+        THashMap<enum class enum_shader_stage, String> stage_entries;
         TArray<ast_node_struct*> structures;
         TArray<ast_node_function*> functions;
     };

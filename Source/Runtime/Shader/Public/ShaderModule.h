@@ -19,6 +19,7 @@ namespace Thunder
 		EFixedVariant_GlobalVariant0 = 1ull << (EFixedVariant_GlobalVariantsBegin + 0),
 		EFixedVariant_GlobalVariant1 = 1ull << (EFixedVariant_GlobalVariantsBegin + 1),
 	};
+	extern const THashMap<EFixedVariant, String> GFixedVariantMap;
 	
     class SHADER_API ShaderModule : public IModule
     {

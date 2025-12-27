@@ -20,6 +20,12 @@ namespace Thunder
 {
 	IMPLEMENT_MODULE(Shader, ShaderModule)
 	
+	const THashMap<EFixedVariant, String> GFixedVariantMap = 
+	{
+		{ EFixedVariant_GlobalVariant0, "_GlobalVariant0" },
+		{ EFixedVariant_GlobalVariant1, "_GlobalVariant1" },
+	};
+
 	using namespace rapidjson;
 	namespace
 	{
@@ -210,7 +216,7 @@ namespace Thunder
 		}
 
 		// Shader variants.
-		variantMask |= archive->GetSubShader(EMeshPass::BasePass)->VariantNameToMask(parameters);
+		variantMask |= archive->VariantNameToMask(parameters);
 
 		return variantMask;
 	}

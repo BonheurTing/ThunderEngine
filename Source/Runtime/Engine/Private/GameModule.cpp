@@ -44,6 +44,9 @@ namespace Thunder
             }
             GameResource* mat = PackageModule::LoadSync(resGuid, true);
             mat->OnResourceLoaded();
+            GameMaterial* gameMaterial = static_cast<GameMaterial*>(mat);
+            gameMaterial->SetStaticParameter("_Variant0", true);
+            gameMaterial->SetStaticParameter("_Variant1", true);
 
             if (sscanf("CFE86C56-4E01C23A-79A9038C-AC38BD89", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
             {

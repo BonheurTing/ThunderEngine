@@ -55,11 +55,13 @@ namespace Thunder
 		void SetFloatParameter(const NameHandle& paramName, float value);
 		void SetVectorParameter(const NameHandle& paramName, const TVector4f& value);
 		void SetTextureParameter(const NameHandle& paramName, const TGuid& textureGuid);
+		void SetStaticParameter(const NameHandle& paramName, bool value);
 
 		bool GetIntParameter(const NameHandle& paramName, int32& outValue) const;
 		bool GetFloatParameter(const NameHandle& paramName, float& outValue) const;
 		bool GetVectorParameter(const NameHandle& paramName, TVector4f& outValue) const;
 		bool GetTextureParameter(const NameHandle& paramName, TGuid& outTextureGuid) const;
+		bool GetStaticParameter(const NameHandle& paramName, bool& outValue) const;
 
 		void RemoveIntParameter(const NameHandle& paramName);
 		void RemoveFloatParameter(const NameHandle& paramName);

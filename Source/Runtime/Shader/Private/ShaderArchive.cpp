@@ -118,69 +118,25 @@ namespace Thunder
     			}
     		}
     	}
-    }
 
-    /*uint64 ShaderPass::VariantNameToMask(const TArray<ShaderVariantMeta>& variantName) const
-    {
-    	if (!variantName.empty())
+    	template<typename InElementType>
+		void GenerateParameterResourceCount(const TArray<InElementType>& param, uint8& outSRVNum, uint8& outUAVNum)
     	{
-    		uint64 mask = 0;
-    		const int totalVariantNum = static_cast<int>(VariantDefinitionTable.size());
-    		for (auto& meta : variantName)
+    		for (auto& meta : param)
     		{
-    			int i = 0;
-    			for (; i < totalVariantNum; i++)
+    			if (strstr(meta.Type.c_str(), "Texture"))
     			{
-    				if (meta.Name == VariantDefinitionTable[i].Name)
+    				if (strstr(meta.Type.c_str(), "RWTexture"))
     				{
-    					mask = mask | 1 << i;
-    					break;
+    					outUAVNum++;
+    				}
+    				else
+    				{
+    					outSRVNum++;
     				}
     			}
-    			TAssertf(i < totalVariantNum, "Couldn't find variant %s", meta.Name);
-    		}
-    		return mask;
-    	}
-    	return 0;
-    }*/
-
-    void ShaderPass::GenerateVariantDefinitionTable_Deprecated(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta)
-    {
-    	// gen VariantDefinitionTable
-    	/*THashSet<NameHandle> variantDefinition;
-    	for (auto& meta : passVariantMeta)
-    	{
-    		TAssertf(!variantDefinition.contains(meta.Name), "Duplicate variant definitions: %s", meta.Name);
-    		variantDefinition.insert(meta.Name);
-    		VariantDefinitionTable.push_back(meta);
-    	}
-    
-    	for (auto [fst, snd] : stageVariantMeta)
-    	{
-    		for (const auto& meta : snd)
-    		{
-    			TAssertf(!variantDefinition.contains(meta.Name), "Duplicate variant definitions: %s", meta.Name);
-    			variantDefinition.insert(meta.Name);
-    			VariantDefinitionTable.push_back(meta);
     		}
     	}
-    	TAssertf(variantDefinition.size() == VariantDefinitionTable.size(), "Invalid variant definitions");
-    	
-    	// gen PassVariantMask and StageVariantMask
-    	PassVariantMask = 0;
-    	for (int i = 0; i < static_cast<int>(VariantDefinitionTable.size()); i++)
-    	{
-    		PassVariantMask = PassVariantMask << 1 | 1;
-    	}
-    	const uint64 sharedStageMask = VariantNameToMask(passVariantMeta);
-    	for (auto& meta:  StageMetas)
-    	{
-    		meta.second.VariantMask = sharedStageMask;
-    		if (stageVariantMeta.contains(meta.first))
-    		{
-    			meta.second.VariantMask = meta.second.VariantMask | VariantNameToMask( stageVariantMeta.at(meta.first) );
-    		}
-    	}*/
     }
 
     void ShaderPass::CacheDefaultShaderCache()
@@ -188,125 +144,20 @@ namespace Thunder
     	//todo: gen default mask and default combination
     	//todo: compile default
     }
-    
-    void ShaderArchive::GenerateIncludeString(NameHandle passName, String& outFile)
-    {
-    	const bool hasPassParameters = PasseParameterMeta.contains(passName);
-    	//check duplicate names
-    	THashSet<NameHandle> uniqueNames;
-    	for (auto& meta : PropertyMeta)
-    	{
-    		uniqueNames.insert(meta.Name);
-    	}
-    	for (auto& meta : GlobalParameterMeta)
-    	{
-    		uniqueNames.insert(meta.Name);
-    	}
-    	if (hasPassParameters)
-    	{
-    		for (auto& meta : PasseParameterMeta[passName])
-    		{
-    			uniqueNames.insert(meta.Name);
-    		}
-    	}
-    	const bool hasDuplicateNames = uniqueNames.size() != PropertyMeta.size() + GlobalParameterMeta.size()
-    		+ (hasPassParameters ? PasseParameterMeta[passName].size() : 0);
-    	TAssertf(!hasDuplicateNames, "The parameters of the shader defines repeat");
-    	if (hasDuplicateNames)
-    	{
-    		return;
-    	}
-    	// preprocess param
-    	TArray<CBParamBinding> cbGeneratedCode;
-    	TArray<String> sbGeneratedCode;
-    	uint8 dummy = 0;
-    	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode, dummy);
-    	GenerateParameterCodeArray<ShaderParameterMeta>(GlobalParameterMeta, cbGeneratedCode, sbGeneratedCode, dummy);
-    	if (hasPassParameters)
-    	{
-    		GenerateParameterCodeArray<ShaderParameterMeta>(PasseParameterMeta[passName], cbGeneratedCode, sbGeneratedCode, dummy);
-    	}
-    	const bool hasInvalidParam = uniqueNames.size() != cbGeneratedCode.size() + sbGeneratedCode.size();
-    	TAssertf(!hasInvalidParam, "The shader has invalid parameter definitions");
-    	if (hasInvalidParam)
-    	{
-    		return;
-    	}
-    
-    	std::stringstream codeStream;
-    	// cb
-    	if (!cbGeneratedCode.empty())
-    	{
-    		codeStream << "cbuffer GeneratedConstantBuffer : register(b0)\n{\n";
-    	
-    		std::sort(cbGeneratedCode.begin(), cbGeneratedCode.end(), CBParamBinding::cmp);
-    		TDeque<CBParamBinding> cbQueue;
-    		cbQueue.assign(cbGeneratedCode.begin(), cbGeneratedCode.end());
-    
-    		//todo: this is temporary algorithm to be optimized
-    		int paddingNum = 0;
-    		while (!cbQueue.empty())
-    		{
-    			CBParamBinding& cur = cbQueue.front();
-    			codeStream << cur.GenCode;
-    			cbQueue.pop_front();
-    			int sizeToAlign = cur.Size;
-    			while (sizeToAlign % 16 != 0)
-    			{
-    				const int lackSize = 16 - sizeToAlign % 16;
-    				if (!cbQueue.empty())
-    				{
-    					CBParamBinding& pad = cbQueue.back();
-    					if (pad.Size <= lackSize)
-    					{
-    						codeStream << pad.GenCode;
-    						cbQueue.pop_back();
-    						sizeToAlign += pad.Size;
-    						continue;
-    					}
-    				}
-    				codeStream << "\tfloat" << lackSize / 4 << " padding" << paddingNum << ";\n";
-    				paddingNum++;
-    				break;
-    			}
-    		}
-    		codeStream << "}\n";
-    	}
-    	// sb & texture
-    	int registerIndex = 0;
-    	for (String& code : sbGeneratedCode)
-    	{
-    		codeStream << code << " : register(t" << registerIndex << ");\n";
-    		registerIndex++;
-    	}
-    	// sampler
-    	{
-    		codeStream << "SamplerState GPointClampSampler : register(s0);\n";
-    		codeStream << "SamplerState GPointWrapSampler : register(s1);\n";
-    		codeStream << "SamplerState GLinearClampSampler : register(s2);\n";
-    		codeStream << "SamplerState GLinearWrapSampler : register(s3);\n";
-    		codeStream << "SamplerState GAnisotropicClampSampler : register(s4);\n";
-    		codeStream << "SamplerState GAnisotropicWrapSampler : register(s5);\n";
-    	}
-    	
-    	outFile =  codeStream.str();
-    }
-    
+
 	void ShaderArchive::CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount)
     {
     	outCount.SamplerCount = 6;
     	outCount.ConstantBufferCount = 1;
-
-    	TArray<CBParamBinding> cbGeneratedCode;
-    	TArray<String> sbGeneratedCode;
+    	outCount.ShaderResourceCount = 0;
     	outCount.UnorderedAccessCount = 0;
-    	GenerateParameterCodeArray<ShaderPropertyMeta>(PropertyMeta, cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
-    	GenerateParameterCodeArray<ShaderParameterMeta>(GlobalParameterMeta, cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
+    	GenerateParameterResourceCount<ShaderPropertyMeta>(PropertyMeta, outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
+    	GenerateParameterResourceCount<ShaderParameterMeta>(GlobalParameterMeta,  outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
+    	GenerateParameterResourceCount<ShaderParameterMeta>(ObjectParameterMeta,  outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
     	if (PasseParameterMeta.contains(passName))
     	{
-    		GenerateParameterCodeArray<ShaderParameterMeta>(PasseParameterMeta[passName], cbGeneratedCode, sbGeneratedCode, outCount.UnorderedAccessCount);
+    		GenerateParameterResourceCount<ShaderParameterMeta>(PasseParameterMeta[passName], outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
     	}
-    	outCount.ShaderResourceCount = static_cast<uint8>(sbGeneratedCode.size()) - outCount.UnorderedAccessCount;
     }
 
 	ShaderCombination* ShaderPass::GetOrCompileShaderCombination(uint64 variantId)
@@ -460,6 +311,7 @@ namespace Thunder
     			ShaderPropertyMeta meta{};
     			meta.Name = var->name;
     			meta.Type = var->type->get_type_text();
+    			meta.Format = var->type->get_type_format_text();
     			meta.Default = var->default_value;
     			archive->AddPropertyMeta(meta);
     		}
@@ -475,6 +327,7 @@ namespace Thunder
     			ShaderParameterMeta meta{};
     			meta.Name = var->name;
     			meta.Type = var->type->get_type_text();
+    			meta.Format = var->type->get_type_format_text();
     			meta.Default = var->default_value;
     			archive->AddGlobalParameterMeta(meta);
     		}
@@ -483,6 +336,7 @@ namespace Thunder
     			ShaderParameterMeta meta{};
     			meta.Name = var->name;
     			meta.Type = var->type->get_type_text();
+    			meta.Format = var->type->get_type_format_text();
     			meta.Default = var->default_value;
     			archive->AddObjectParameterMeta(meta);
     		}
@@ -492,6 +346,7 @@ namespace Thunder
     			ShaderParameterMeta meta{};
     			meta.Name = var->name;
     			meta.Type = var->type->get_type_text();
+    			meta.Format = var->type->get_type_format_text();
     			meta.Default = var->default_value;
     			dummyPassMeta.push_back(meta);
     		}
@@ -542,7 +397,7 @@ namespace Thunder
 
     	if (!subShaderNode)
     	{
-    		TAssert(false, "Sub-shader \"%s\" not found.", subShaderName.c_str());
+    		TAssertf(false, "Sub-shader \"%s\" not found.", subShaderName.c_str());
     		return "";
     	}
 
@@ -563,6 +418,16 @@ namespace Thunder
     	{
     		TMemory::Free(AST);
     	}
+    }
+
+    void ShaderArchive::AddSubShader(ShaderPass* inSubShader)
+    {
+    	TShaderRegisterCounts counts{};
+    	CalcRegisterCounts(inSubShader->GetName(), counts);
+    	inSubShader->SetShaderRegisterCounts(counts);
+    		
+    	SubShaders.emplace(inSubShader->GetName(), ShaderPassRef(inSubShader));
+    	MeshDrawSubShaders.emplace(EMeshPass::BasePass, ShaderPassRef(inSubShader)); // 12.28Todo : Get mesh-draw type.
     }
 
     ShaderPass* ShaderArchive::GetSubShader(NameHandle name)
@@ -748,5 +613,8 @@ namespace Thunder
     	}
     	return newVisibleParameters;
     }
+
+
+	
 }
 #pragma optimize("", on)

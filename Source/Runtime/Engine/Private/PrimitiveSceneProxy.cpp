@@ -2,8 +2,11 @@
 #include "HAL/Event.h"
 #include "Compomemt.h"
 #include "FrameGraph.h"
+#include "IDynamicRHI.h"
+#include "PipelineStateCache.h"
 #include "RenderMaterial.h"
 #include "RHICommand.h"
+#include "ShaderArchive.h"
 #include "ShaderModule.h"
 #include "Misc/CoreGlabal.h"
 #include "Memory/TransientAllocator.h"
@@ -36,12 +39,36 @@ namespace Thunder
             // inputLayout
             //InputLayout = FPrimitiveSceneProxy->GetInputLayout();
 
-            uint64 psoKey = 0;//HashPSOKey(shaderVariant->GetKey(), RenderState->GetKey(), RenderTargets, InputLayout->GetKey());
-            TRHIPipelineState* pipelineStateObject = ShaderModule::GetPSO(psoKey);
+            TGraphicsPipelineStateDescriptor psoDesc;
+            bool ret = ShaderModule::GetPassRegisterCounts(shaderAst, meshPassType, psoDesc.RegisterCounts);
+            TAssertf(ret, "Fail to get register count.");
+            TArray<RHIVertexElement> inputElements =
+            {
+                { ERHIVertexInputSemantic::Position, 0, RHIFormat::R32G32B32_FLOAT, 0, 0, false },
+                { ERHIVertexInputSemantic::TexCoord, 0, RHIFormat::R32G32_FLOAT, 0, 12, false }
+            };
+            psoDesc.VertexDeclaration = RHIVertexDeclarationDescriptor{ inputElements }; // GetMesh()->GetVertexDeclaration();
+            psoDesc.shaderVariant = shaderVariant;
+            psoDesc.RenderTargetFormats[0] = RHIFormat::R8G8B8A8_UNORM; // context->GetMeshDrawPass(meshDrawType)->GetOutput()[0].Format;
+            psoDesc.DepthStencilFormat = RHIFormat::UNKNOWN; // context->GetMeshDrawPass(meshDrawType)->GetDepthOutput().Format;
+            // psoDesc.Pass = context->GetMeshDrawPass(meshDrawType)->GetPass();
+            psoDesc.NumSamples = 1;
+            psoDesc.PrimitiveType = ERHIPrimitiveType::Triangle; // Check(GetMesh()->GetPrimitiveType() == E_Triangle);
+            psoDesc.RenderTargetsEnabled = 1;
 
-            RHIDrawCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDrawCommand>()) RHIDrawCommand;
-            newCommand->GraphicsPSO = pipelineStateObject;
-            context->AddCommand(newCommand);
+            //SetGraphicsPipelineState(context, psoDesc); //sync
+            
+            //RHIBlendState					BlendState; // subShader->GetBlendState();
+            //RHIRasterizerState			    RasterizerState; // subShader->GetRasterizerState();
+            //RHIDepthStencilState            DepthStencilState; // subShader->GetRasterizerState();
+
+            auto pipelineStateObject = RHICreateGraphicsPipelineState(psoDesc); //sync
+            if (pipelineStateObject)
+            {
+                RHIDrawCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDrawCommand>()) RHIDrawCommand;
+                newCommand->GraphicsPSO = pipelineStateObject;
+                context->AddCommand(newCommand);
+            }
         }
     }
 

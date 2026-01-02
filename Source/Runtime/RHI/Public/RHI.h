@@ -134,13 +134,15 @@ namespace Thunder
 		RHIBlendState					BlendState;
 		RHIRasterizerState			    RasterizerState;
 		RHIDepthStencilState            DepthStencilState;
+		// Render pass.
 		RHIFormat	                    RenderTargetFormats[MAX_RENDER_TARGETS];
 		RHIFormat                       DepthStencilFormat : 8;
 		ERHIPrimitiveType				PrimitiveType : 3;
 		uint8							RenderTargetsEnabled : 1;
 		uint8							NumSamples : 4;
+		// Dynamic states.
 
-		NameHandle						ShaderIdentifier;
+		class ShaderCombination*		shaderVariant;
 		
 		void GetStateIdentifier(TArray<uint8>& outIdentifier) const;
 		TGraphicsPipelineStateDescriptor() :
@@ -154,7 +156,7 @@ namespace Thunder
 			PrimitiveType{ERHIPrimitiveType::Undefined},
 			RenderTargetsEnabled{0},
 			NumSamples{1},
-			ShaderIdentifier{""}
+			shaderVariant{ nullptr }
 		{}
 	};
 	struct TComputePipelineStateDescriptor

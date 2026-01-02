@@ -35,11 +35,10 @@ namespace Thunder
     	static ShaderCombination* GetShaderCombination(ShaderArchive* archive, EMeshPass meshPassType, uint64 variantMask); // meshPassType -> subShaderName
 		static TRHIPipelineState* GetPSO(uint64 psoKey);
 
-    	bool GetPassRegisterCounts(NameHandle shaderName, NameHandle passName, TShaderRegisterCounts& outRegisterCounts);
+	    static bool GetPassRegisterCounts(ShaderArchive* archive, EMeshPass meshPassType, TShaderRegisterCounts& outRegisterCounts);
     	ShaderCombination* GetShaderCombination(const String& combinationHandle);
     	ShaderCombination* GetShaderCombination(NameHandle shaderName, NameHandle passName, uint64 variantId);
 
-    	bool ParseShaderFile_Deprecated();
     	static MaterialParameterCache ParseShaderParameters(NameHandle archiveName);
 		void Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode);
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, const THashMap<NameHandle, bool>& variantParameters, bool force = false);
@@ -49,9 +48,6 @@ namespace Thunder
 	    static enum_shader_stage GetShaderASTStage(EShaderStageType stage);
 	    static EShaderStageType GetShaderStage(enum_shader_stage stage);
 
-    private:
-    	static ShaderCombination* SyncCompileShaderCombination(ShaderArchive* archive, NameHandle passName, uint64 variantMask);
-    	
     private:
     	THashMap<NameHandle, ShaderArchive*> ShaderMap;
     	TRefCountPtr<ICompiler> ShaderCompiler;

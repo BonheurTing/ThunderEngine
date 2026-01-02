@@ -67,11 +67,8 @@ namespace Thunder
 		outD3D12Desc.Desc.DSVFormat = static_cast<DXGI_FORMAT>(rhiDesc.DepthStencilFormat);
 		outD3D12Desc.Desc.SampleDesc.Count = rhiDesc.NumSamples;
 		outD3D12Desc.Desc.SampleDesc.Quality = 0;
-		
-		ShaderModule* shaderModule = ShaderModule::GetModule();
-		ShaderCombination* combination = shaderModule->GetShaderCombination(rhiDesc.ShaderIdentifier.ToString());
-		TAssertf(combination != nullptr, "Failed to get shader combination");
-		auto& shaderBound = combination->Shaders;
+
+		auto& shaderBound = rhiDesc.shaderVariant->Shaders;
 		auto CopyShader = [&shaderBound](D3D12_SHADER_BYTECODE& destination, EShaderStageType sourceStage)
 		{
 			if (shaderBound.contains(sourceStage))
@@ -92,7 +89,8 @@ namespace Thunder
 		TArray<uint8> stateIdentifier;
 		rhiDesc.GetStateIdentifier(stateIdentifier);
 		outD3D12Desc.CombinedHash = FCrc::StrCrc32(stateIdentifier.data());
-		outD3D12Desc.CombinedHash = FCrc::StrCrc32(rhiDesc.ShaderIdentifier.c_str(), outD3D12Desc.CombinedHash);
+		uint32 shaderHash = ShaderCombination::GetTypeHash(*rhiDesc.shaderVariant);
+		outD3D12Desc.CombinedHash = FCrc::StrCrc32(&shaderHash, outD3D12Desc.CombinedHash);
 	}
 	
 	TD3D12GraphicsPipelineState* TD3D12PipelineStateCache::CreateAndAddToCache(const TGraphicsPipelineStateDescriptor& rhiDesc, const TD3D12GraphicsPipelineStateDesc& d3d12Desc)
@@ -110,6 +108,17 @@ namespace Thunder
 			TAssertf(false, "Failed to create graphics pipeline state");
 			return nullptr;
 		}
+	}
+
+	uint64 HashPSODesc(const TGraphicsPipelineStateDescriptor& Desc)
+	{
+		//1.2todo HashPSOKey(shaderVariant->GetKey(), RenderState->GetKey(), RenderTargets, InputLayout->GetKey());
+		return 0; 
+	}
+
+	uint64 HashPSODesc(const TComputePipelineStateDescriptor& Desc)
+	{
+		return 0;
 	}
 
 	TD3D12GraphicsPipelineState* TD3D12PipelineStateCache::FindOrCreateGraphicsPipelineState(const TGraphicsPipelineStateDescriptor& rhiDesc)

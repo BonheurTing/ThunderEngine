@@ -96,6 +96,9 @@ namespace Thunder
 		THashMap<TD3D12GraphicsPipelineStateDesc, TRefCountPtr<TD3D12GraphicsPipelineState>> GraphicsPipelineStateCache;
 		//HashMap<TD3D12ComputePipelineStateDesc, TD3D12ComputePipelineState> ComputePipelineStateCache;
 	};
+
+	static uint64 HashPSODesc(const TGraphicsPipelineStateDescriptor& Desc);
+	static uint64 HashPSODesc(const TComputePipelineStateDescriptor& Desc);
 	
 }
 

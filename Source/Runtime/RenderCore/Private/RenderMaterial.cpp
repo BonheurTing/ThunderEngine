@@ -94,9 +94,6 @@ namespace Thunder
         // 填充Shader相关信息
         outDesc.RegisterCounts = RegisterCounts;
 
-        // 设置Shader标识符（用于查找编译好的Shader）
-        outDesc.ShaderIdentifier = passName;
-
         // TODO: 从ShaderArchive获取RenderState并填充到PSO
         // if (CompiledShaderMap)
         // {

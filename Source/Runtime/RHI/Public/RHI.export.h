@@ -33,7 +33,6 @@
 #  define RHI_DEPRECATED_NO_EXPORT RHI_NO_EXPORT RHI_DEPRECATED
 #endif
 
-/* NOLINTNEXTLINE(readability-avoid-unconditional-preprocessor-if) */
 #if 0 /* DEFINE_NO_DEPRECATED */
 #  ifndef RHI_NO_DEPRECATED
 #    define RHI_NO_DEPRECATED

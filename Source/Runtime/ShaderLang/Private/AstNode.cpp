@@ -175,6 +175,18 @@ namespace Thunder
         return text;
     }
 
+    String ast_node_type_format::get_type_format_text() const
+    {
+        if (object_type != enum_object_type::none)
+        {
+            if (basic_type != enum_basic_type::tp_none)
+            {
+                return get_type_text_internal();
+            }
+        }
+        return "";
+    }
+
     void ast_node_type_format::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         // 生成类型限定符

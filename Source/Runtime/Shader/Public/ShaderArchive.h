@@ -43,7 +43,6 @@ namespace Thunder
 		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
         _NODISCARD_ TShaderRegisterCounts GetShaderRegisterCounts() const { return RegisterCounts; }
     	void AddStageMeta(EShaderStageType type, const StageMeta& meta) {StageMetas[type] = meta;}
-    	void GenerateVariantDefinitionTable_Deprecated(const TArray<ShaderVariantMeta>& passVariantMeta, const THashMap<EShaderStageType, TArray<ShaderVariantMeta>>& stageVariantMeta);
     	void CacheDefaultShaderCache();
 
     	FORCEINLINE bool CheckCache(uint64 variantId)
@@ -109,11 +108,7 @@ namespace Thunder
     	ShaderArchive(String sourceFilePath, NameHandle shaderName, ast_node* astRoot);
     	~ShaderArchive();
 
-    	void AddSubShader(ShaderPass* inSubShader)
-    	{
-    		SubShaders.emplace(inSubShader->GetName(), ShaderPassRef(inSubShader));
-    		MeshDrawSubShaders.emplace(EMeshPass::BasePass, ShaderPassRef(inSubShader)); // 12.28Todo : Get mesh-draw type.
-    	}
+    	void AddSubShader(ShaderPass* inSubShader);
     	void AddPropertyMeta(const ShaderPropertyMeta& meta)
     	{
     		PropertyMeta.push_back(meta);
@@ -121,7 +116,7 @@ namespace Thunder
     	void AddVariantMeta(const ShaderVariantMeta& meta)
     	{
     		uint64 currentVariantCount = VariantMeta.size();
-    		TAssert(currentVariantCount <= 32, "Variant count can't be greater than 32, archive name \"%s\".", GetName().c_str());
+    		TAssertf(currentVariantCount <= 32, "Variant count can't be greater than 32, archive name \"%s\".", GetName().c_str());
     		if (currentVariantCount < 32)
     		{
     			VariantMeta.push_back(meta);
@@ -146,7 +141,6 @@ namespace Thunder
     	ShaderPass* GetSubShader(NameHandle name);
     	ShaderPass* GetSubShader(EMeshPass meshPassType);
     	String GetShaderSourceDir() const;
-    	void GenerateIncludeString(NameHandle passName, String& outFile);
 		void CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount);
     	ShaderCombination* CompileShaderVariant(NameHandle subShaderName, uint64 variantId);
     	ShaderAST* GetAST() const { return AST; }

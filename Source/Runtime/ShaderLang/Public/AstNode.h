@@ -422,6 +422,7 @@ namespace Thunder
             return object_type != enum_object_type::none;
         }
         _NODISCARD_ String get_type_text() const;
+        _NODISCARD_ String get_type_format_text() const;
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     };

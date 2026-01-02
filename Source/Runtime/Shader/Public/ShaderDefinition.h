@@ -25,11 +25,28 @@ namespace Thunder
     	String EntryPoint;
     	uint64 VariantMask = 0;
     };
+
+	struct ShaderBytecodeHash
+	{
+		uint64 Hash[2];
+
+		bool operator ==(const ShaderBytecodeHash& b) const
+		{
+			return (Hash[0] == b.Hash[0] && Hash[1] == b.Hash[1]);
+		}
+
+		bool operator !=(const ShaderBytecodeHash& b) const
+		{
+			return (Hash[0] != b.Hash[0] || Hash[1] != b.Hash[1]);
+		}
+	};
     
     struct ShaderStage : public RefCountedObject
     {
     	BinaryData ByteCode;
     	uint64 VariantId;
+
+    	ShaderBytecodeHash GetBytecodeHash() const; //todo only d3d
     };
 	using ShaderStageRef = TRefCountPtr<ShaderStage, true>;
     
@@ -68,9 +85,12 @@ namespace Thunder
     		return nullptr;
     	}
 
+    	static uint32 GetTypeHash(const ShaderCombination& combination);
+
     	THashMap<EShaderStageType, ShaderStageRef> Shaders;
     };
-	using ShaderCombinationRef = TRefCountPtr<ShaderCombination, true>;
+
+    using ShaderCombinationRef = TRefCountPtr<ShaderCombination, true>;
     
     struct ShaderVariantMeta
     {

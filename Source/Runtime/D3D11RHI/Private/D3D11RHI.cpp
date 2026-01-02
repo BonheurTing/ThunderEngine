@@ -51,14 +51,10 @@ namespace Thunder
 
 	TRHIGraphicsPipelineState* D3D11DynamicRHI::RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer)
 	{
-		const TArray<RHIVertexElement>& inElements = initializer.VertexDeclaration.Elements;
-		ShaderModule* shaderModule = ShaderModule::GetModule();
-		
-		ShaderCombination* combination = shaderModule->GetShaderCombination(initializer.ShaderIdentifier.ToString());
-		TAssertf(combination != nullptr, "Failed to get shader combination");
-		const BinaryData* shaderByteCode = combination->GetByteCode(EShaderStageType::Vertex);
+		const BinaryData* shaderByteCode = initializer.shaderVariant->GetByteCode(EShaderStageType::Vertex);
 		TAssertf(shaderByteCode->Data != nullptr, "Failed to get vertex shader byte code");
-		
+
+		const TArray<RHIVertexElement>& inElements = initializer.VertexDeclaration.Elements;
 		TArray<D3D11_INPUT_ELEMENT_DESC> descs;
 		for(const RHIVertexElement& element : inElements)
 		{

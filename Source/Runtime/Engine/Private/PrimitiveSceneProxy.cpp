@@ -13,96 +13,55 @@
 
 namespace Thunder
 {
-    PrimitiveSceneProxy::PrimitiveSceneProxy(const PrimitiveComponent* inComponent)
+    PrimitiveSceneProxy::PrimitiveSceneProxy(PrimitiveComponent* inComponent)
+        : Component(inComponent)
     {
-        const TMap<NameHandle, IMaterial*> gameMaterials = inComponent->GetMaterials();
-        RenderMaterials.reserve(gameMaterials.size());
-        for (const auto& val : gameMaterials | std::views::values)
-        {
-            RenderMaterials.push_back(val->GetMaterialResource());
-        }
     }
 
-    void PrimitiveSceneProxy::AddDrawCall(FRenderContext* context, EMeshPass meshPassType)
+    PrimitiveSceneProxy::~PrimitiveSceneProxy()
     {
-        for (auto material : RenderMaterials)
-        {
-            // Fetch shader.
-            auto shaderAst = material->GetShaderArchive();
-            uint64 shaderVariantMask = ShaderModule::GetVariantMask(shaderAst, material->GetStaticParameters());
-            ShaderCombination* shaderVariant = ShaderModule::GetShaderCombination(shaderAst, meshPassType, shaderVariantMask);
-
-            // Subshader->getRenderState(DepthStencilState, BlendState, RasterizationState)
-            //[DepthStencilState, BlendState, RasterizationState] = subshader->getRenderState();
-            // RenderTargets
-            //RenderTargets = meshdrawpass->GetRenderTargetLayout();
-            // inputLayout
-            //InputLayout = FPrimitiveSceneProxy->GetInputLayout();
-
-            TGraphicsPipelineStateDescriptor psoDesc;
-            bool ret = ShaderModule::GetPassRegisterCounts(shaderAst, meshPassType, psoDesc.RegisterCounts);
-            TAssertf(ret, "Fail to get register count.");
-            TArray<RHIVertexElement> inputElements =
-            {
-                { ERHIVertexInputSemantic::Position, 0, RHIFormat::R32G32B32_FLOAT, 0, 0, false },
-                { ERHIVertexInputSemantic::TexCoord, 0, RHIFormat::R32G32_FLOAT, 0, 12, false }
-            };
-            psoDesc.VertexDeclaration = RHIVertexDeclarationDescriptor{ inputElements }; // GetMesh()->GetVertexDeclaration();
-            psoDesc.shaderVariant = shaderVariant;
-            psoDesc.RenderTargetFormats[0] = RHIFormat::R8G8B8A8_UNORM; // context->GetMeshDrawPass(meshDrawType)->GetOutput()[0].Format;
-            psoDesc.DepthStencilFormat = RHIFormat::UNKNOWN; // context->GetMeshDrawPass(meshDrawType)->GetDepthOutput().Format;
-            // psoDesc.Pass = context->GetMeshDrawPass(meshDrawType)->GetPass();
-            psoDesc.NumSamples = 1;
-            psoDesc.PrimitiveType = ERHIPrimitiveType::Triangle; // Check(GetMesh()->GetPrimitiveType() == E_Triangle);
-            psoDesc.RenderTargetsEnabled = 1;
-
-            //SetGraphicsPipelineState(context, psoDesc); //sync
-            
-            //RHIBlendState					BlendState; // subShader->GetBlendState();
-            //RHIRasterizerState			    RasterizerState; // subShader->GetRasterizerState();
-            //RHIDepthStencilState            DepthStencilState; // subShader->GetRasterizerState();
-
-            auto pipelineStateObject = RHICreateGraphicsPipelineState(psoDesc); //sync
-            if (pipelineStateObject)
-            {
-                RHIDrawCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDrawCommand>()) RHIDrawCommand;
-                newCommand->GraphicsPSO = pipelineStateObject;
-                context->AddCommand(newCommand);
-            }
-        }
+        TMemory::Destroy(SceneInfo);
     }
 
     StaticMeshSceneProxy::StaticMeshSceneProxy(StaticMeshComponent* inComponent)
         : PrimitiveSceneProxy(inComponent)
     {
-        
+        const TMap<NameHandle, IMaterial*>& gameMaterials = inComponent->GetMaterials();
+        TArray<RenderMaterial*> renderMaterials{};
+        renderMaterials.reserve(gameMaterials.size());
+        for (const auto& val : gameMaterials | std::views::values)
+        {
+            renderMaterials.push_back(val->GetMaterialResource());
+        }
+        TArray<SubMesh*> subMeshes = inComponent->GetMesh()->GetSubMeshes();
+        SceneInfo = new (TMemory::Malloc<StaticMeshSceneInfo>()) StaticMeshSceneInfo{ std::move(subMeshes), std::move(renderMaterials) };
     }
 
     void SceneView::CullSceneProxies()
     {
-        VisibleSceneProxies.clear();
+        VisibleSceneInfos.clear();
 
-        auto& proxySet = OwnerFrameGraph->GetSceneProxies();
-        TArray<PrimitiveSceneProxy*> allProxies( proxySet.begin(), proxySet.end() );
-        uint32 proxyNum = static_cast<uint32>(allProxies.size());
+        auto& infoSet = OwnerFrameGraph->GetSceneInfos();
+        TArray<PrimitiveSceneInfo*> allSceneInfos( infoSet.begin(), infoSet.end() );
+        uint32 proxyNum = static_cast<uint32>(allSceneInfos.size());
         if (proxyNum > 0)
         {
-            TArray<TArray<PrimitiveSceneProxy*>> LocalVisibleProxies(GSyncWorkers->GetNumThreads());
+            TArray<TArray<PrimitiveSceneInfo*>> LocalVisibleProxies(GSyncWorkers->GetNumThreads());
 
             const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
             auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
             dispatcher->Promise(static_cast<int>(proxyNum));
-            GSyncWorkers->ParallelFor([&allProxies, &LocalVisibleProxies, dispatcher, proxyNum, this](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
+            GSyncWorkers->ParallelFor([&allSceneInfos, &LocalVisibleProxies, dispatcher, proxyNum, this](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
             {
                 for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
                 {
                     if (index >= proxyNum) break;
 
-                    if (allProxies[index]->NeedRenderView(ViewType))
+                    if (allSceneInfos[index]->NeedRenderView(ViewType))
                     {
-                        if (FrustumCull(allProxies[index]))
+                        if (FrustumCull(allSceneInfos[index]))
                         {
-                            LocalVisibleProxies[threadId].push_back(allProxies[index]);
+                            LocalVisibleProxies[threadId].push_back(allSceneInfos[index]);
                         }
                     }
 
@@ -119,15 +78,15 @@ namespace Thunder
             for (const auto& proxies : LocalVisibleProxies) {
                 totalSize += proxies.size();
             }
-            VisibleSceneProxies.reserve(totalSize);
+            VisibleSceneInfos.reserve(totalSize);
             for (const auto& proxies : LocalVisibleProxies) {
-                VisibleSceneProxies.insert(VisibleSceneProxies.end(), proxies.begin(), proxies.end());
+                VisibleSceneInfos.insert(VisibleSceneInfos.end(), proxies.begin(), proxies.end());
             }
         }
     }
 
 
-    TArray<PrimitiveSceneProxy*>& SceneView::GetVisibleSceneProxies()
+    TArray<PrimitiveSceneInfo*>& SceneView::GetVisibleSceneInfos()
     {
         //TODO main loop
         if (!IsCulled())
@@ -137,6 +96,6 @@ namespace Thunder
             uint32 frameNum = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
             CurrentFrameCulled.store(frameNum, std::memory_order_release);
         }
-        return VisibleSceneProxies;
+        return VisibleSceneInfos;
     }
 }

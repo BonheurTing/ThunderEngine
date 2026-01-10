@@ -1,4 +1,5 @@
 #pragma once
+#include "PrimitiveSceneInfo.h"
 #include "SceneView.h"
 
 namespace Thunder
@@ -11,14 +12,15 @@ namespace Thunder
     class PrimitiveSceneProxy
     {
     public:
-        ENGINE_API PrimitiveSceneProxy(const PrimitiveComponent* inComponent);
-        virtual ~PrimitiveSceneProxy() = default;
+        ENGINE_API PrimitiveSceneProxy(PrimitiveComponent* inComponent);
+        virtual ~PrimitiveSceneProxy();
 
-        void AddDrawCall(FRenderContext* context, EMeshPass meshPassType);
         bool NeedRenderView(EViewType type) { return true; }
+        PrimitiveSceneInfo* GetSceneInfo() const { return SceneInfo; }
 
-    private:
-        TArray<RenderMaterial*> RenderMaterials; // inComponent manages its lifetime
+    protected:
+        PrimitiveComponent* Component = nullptr;
+        PrimitiveSceneInfo* SceneInfo = nullptr;
     };
 
     class StaticMeshSceneProxy : public PrimitiveSceneProxy

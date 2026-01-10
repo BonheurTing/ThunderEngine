@@ -194,7 +194,7 @@ namespace Thunder
 		LOG("------------ StaticMeshComponent loaded successfully");
 
 		SceneProxy = new (TMemory::Malloc<StaticMeshSceneProxy>()) StaticMeshSceneProxy(this);
-		Owner->GetScene()->GetRenderer()->RegisterSceneProxy(SceneProxy);
+		Owner->GetScene()->GetRenderer()->RegisterSceneInfo(SceneProxy->GetSceneInfo());
 	}
 
 	// TransformComponent implementation

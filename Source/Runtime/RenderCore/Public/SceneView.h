@@ -17,11 +17,11 @@ namespace Thunder
     public:
         SceneView(class FrameGraph* owner, EViewType type) : OwnerFrameGraph(owner), ViewType(type) {}
 
-        TArray<class PrimitiveSceneProxy*>& GetVisibleSceneProxies();
+        TArray<class PrimitiveSceneInfo*>& GetVisibleSceneInfos();
 
     private:
         void CullSceneProxies();
-        bool FrustumCull(PrimitiveSceneProxy* sceneProxy) { return true; }
+        bool FrustumCull(PrimitiveSceneInfo* sceneInfo) { return true; }
         bool IsCulled() const;
 
     public:
@@ -41,7 +41,7 @@ namespace Thunder
         EViewType ViewType = EViewType::Num;
 
         std::atomic_uint32_t CurrentFrameCulled = 0;
-        TArray<PrimitiveSceneProxy*> VisibleSceneProxies;
+        TArray<PrimitiveSceneInfo*> VisibleSceneInfos;
     };
 
 }

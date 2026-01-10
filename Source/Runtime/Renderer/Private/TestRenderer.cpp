@@ -1,10 +1,13 @@
 #pragma optimize("", off)
 #include "TestRenderer.h"
 #include "FrameGraph.h"
+#include "MeshDrawCommand.h"
+#include "MeshPass.h"
 #include "MeshPassProcessor.h"
 #include "RHICommand.h"
 #include "Memory/TransientAllocator.h"
-#include "PrimitiveSceneProxy.h"
+#include "PrimitiveSceneInfo.h"
+#include "RenderModule.h"
 
 namespace Thunder
 {
@@ -155,10 +158,15 @@ namespace Thunder
             operations.write(GBufferSceneDepth);
             mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this](FRenderContext* context)
             {
+                MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::PrePass);
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
-                for (auto& sceneProxy : mainView->GetVisibleSceneProxies())
+                for (auto& sceneInfo : mainView->GetVisibleSceneInfos()) // Todo : Parallel processing.
                 {
-                    sceneProxy->AddDrawCall(context, EMeshPass::DepthPass);
+                    auto staticMeshes = sceneInfo->GetStaticMeshes();
+                    for (const auto& batch : staticMeshes | std::views::values)
+                    {
+                        processor->AddMeshBatch(context, batch, EMeshPass::PrePass);
+                    }
                 }
                 Print("Execute PrePass");
             });
@@ -175,10 +183,15 @@ namespace Thunder
             operations.write(ShadowDepth);
             mFrameGraph->AddPass(EVENT_NAME("ShaderDepth"), std::move(operations), [this](FRenderContext* context)
             {
-                auto mainView = mFrameGraph->GetSceneView(EViewType::ShadowView);
-                for (auto& sceneProxy : mainView->GetVisibleSceneProxies())
+                MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::ShadowPass);
+                auto shadowView = mFrameGraph->GetSceneView(EViewType::ShadowView);
+                for (auto& sceneInfo : shadowView->GetVisibleSceneInfos())
                 {
-                    sceneProxy->AddDrawCall(context, EMeshPass::DepthPass);
+                    auto staticMeshes = sceneInfo->GetStaticMeshes();
+                    for (const auto& batch : staticMeshes | std::views::values)
+                    {
+                        processor->AddMeshBatch(context, batch, EMeshPass::PrePass);
+                    }
                 }
                 Print("Execute ShaderDepth");
             });
@@ -191,10 +204,15 @@ namespace Thunder
             operations.write(GBufferSceneDepth);
             mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this](FRenderContext* context)
             {
+                MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::BasePass);
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
-                for (auto& sceneProxy : mainView->GetVisibleSceneProxies())
+                for (auto& sceneInfo : mainView->GetVisibleSceneInfos())
                 {
-                    sceneProxy->AddDrawCall(context, EMeshPass::BasePass);
+                    auto staticMeshes = sceneInfo->GetStaticMeshes();
+                    for (const auto& batch : staticMeshes | std::views::values)
+                    {
+                        processor->AddMeshBatch(context, batch, EMeshPass::PrePass);
+                    }
                 }
                 Print("Execute GBufferPass");
             });

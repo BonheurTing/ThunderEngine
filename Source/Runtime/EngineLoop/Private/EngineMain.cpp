@@ -6,6 +6,7 @@
 #include "GameMain.h"
 #include "GameModule.h"
 #include "PackageModule.h"
+#include "RenderModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
 #include "TestRenderer.h"
@@ -35,6 +36,7 @@ namespace Thunder
         ModuleManager::GetInstance()->LoadModule<CoreModule>();
         ModuleManager::GetInstance()->LoadModule<FileModule>();
         ModuleManager::GetInstance()->LoadModule<ShaderModule>();
+        ModuleManager::GetInstance()->LoadModule<RenderModule>();
         ModuleManager::GetInstance()->LoadModule<PackageModule>();
         ModuleManager::GetInstance()->LoadModule<GameModule>();
 
@@ -130,6 +132,7 @@ namespace Thunder
         ModuleManager::GetInstance()->UnloadModule<GameModule>();
         ModuleManager::GetInstance()->UnloadModule<PackageModule>();
         ModuleManager::GetInstance()->UnloadModule<ShaderModule>();
+        ModuleManager::GetInstance()->UnloadModule<RenderModule>();
         ModuleManager::GetInstance()->UnloadModule<FileModule>();
         ModuleManager::GetInstance()->UnloadModule<CoreModule>();
     }

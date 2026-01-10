@@ -5,6 +5,7 @@
 #include "Assertion.h"
 #include "AstNode.h"
 #include "CoreModule.h"
+#include "MeshPass.h"
 #include "ShaderLang.h"
 #include "ShaderModule.h"
 #include "FileSystem/FileModule.h"

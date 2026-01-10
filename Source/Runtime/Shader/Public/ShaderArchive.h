@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "ShaderDefinition.h"
-#include "../../Renderer/Public/MeshPassProcessor.h"
 #include "Concurrent/Lock.h"
 #include "Templates/RefCounting.h"
 #include "AstNode.h"

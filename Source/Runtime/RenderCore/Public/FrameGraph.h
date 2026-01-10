@@ -54,9 +54,9 @@ namespace Thunder
         // render
         const IRenderer* GetRenderer() const { return OwnerRenderer; }
         SceneView* GetSceneView(EViewType type) const { return Views[static_cast<int>(type)]; }
-        TSet<PrimitiveSceneProxy*>& GetSceneProxies() { return SceneProxies; }
-        void RegisterSceneProxy(class PrimitiveSceneProxy* sceneProxy) { SceneProxies.insert(sceneProxy); }
-        void UnregisterSceneProxy(class PrimitiveSceneProxy* sceneProxy) { SceneProxies.erase(sceneProxy); }
+        TSet<PrimitiveSceneInfo*>& GetSceneInfos() { return SceneInfos; }
+        void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo) { SceneInfos.insert(sceneInfo); }
+        void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo) { SceneInfos.erase(sceneInfo); }
 
         // Internal methods used by FrameGraphBuilder
         void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction, bool bIsMeshDrawPass = false);
@@ -92,7 +92,7 @@ namespace Thunder
         // render
         IRenderer* OwnerRenderer { nullptr };
         TArray<SceneView*> Views;
-        TSet<PrimitiveSceneProxy*> SceneProxies;
+        TSet<PrimitiveSceneInfo*> SceneInfos;
 
         // Command execution contexts
         FRenderContext* MainContext = nullptr;  // Main render thread context

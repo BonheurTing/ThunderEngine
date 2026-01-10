@@ -42,6 +42,8 @@ namespace Thunder
 		void AddMaterial(IMaterial* material);
 		const TArray<IMaterial*>& GetMaterials() { return DefaultMaterials; }
 
+		TArray<SubMesh*>& GetSubMeshes() { return SubMeshes; }
+
 		RenderMesh* CreateResource_GameThread() override;
 
 	public:

@@ -95,5 +95,20 @@ namespace Thunder
             T dw = b.W - a.W;
             return static_cast<T>(std::sqrt(dx * dx + dy * dy + dz * dz + dw * dw));
         }
+
+        FORCEINLINE uint64 CountTrailingZeros64(uint64 Value)
+        {
+            unsigned long BitIndex;	// 0-based, where the LSB is 0 and MSB is 63
+            return _BitScanForward64( &BitIndex, Value ) ? BitIndex : 64;
+        }
+
+        static constexpr FORCEINLINE int32 CountBits(uint64 Bits)
+        {
+            // https://en.wikipedia.org/wiki/Hamming_weight
+            Bits -= (Bits >> 1) & 0x5555555555555555ull;
+            Bits = (Bits & 0x3333333333333333ull) + ((Bits >> 2) & 0x3333333333333333ull);
+            Bits = (Bits + (Bits >> 4)) & 0x0f0f0f0f0f0f0f0full;
+            return (Bits * 0x0101010101010101) >> 56;
+        }
     }
 }

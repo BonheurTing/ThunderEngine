@@ -39,8 +39,8 @@ namespace Thunder
             }
         }
 
-        void RegisterSceneProxy(PrimitiveSceneProxy* sceneProxy) const { mFrameGraph->RegisterSceneProxy(sceneProxy); }
-        void UnregisterSceneProxy(PrimitiveSceneProxy* sceneProxy) const { mFrameGraph->UnregisterSceneProxy(sceneProxy); }
+        void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->RegisterSceneInfo(sceneInfo); }
+        void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->UnregisterSceneInfo(sceneInfo); }
 
         FrameGraph* GetFrameGraph() const { return mFrameGraph; }
 

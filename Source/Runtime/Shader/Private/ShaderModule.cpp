@@ -7,6 +7,7 @@
 #include "Assertion.h"
 #include "CoreModule.h"
 #include "CRC.h"
+#include "MeshPass.h"
 #include "PreProcessor.h"
 #include "ShaderLang.h"
 #include "ShaderCompiler.h"
@@ -285,7 +286,30 @@ namespace Thunder
 		}
     }
 
-	ShaderBytecodeHash ShaderStage::GetBytecodeHash() const
+    EMeshPass ShaderModule::GetMeshPass(String const& passName)
+    {
+		if (passName == "PrePass")
+		{
+			return EMeshPass::PrePass;
+		}
+		else if (passName == "BasePass")
+		{
+			return EMeshPass::BasePass;
+		}
+		else if (passName == "ShadowPass")
+		{
+			return EMeshPass::ShadowPass;
+		}
+		else if (passName == "Translucent")
+		{
+			return EMeshPass::Translucent;
+		}
+
+		TAssertf(false, "Unknown mesh pass type : %s.", passName.c_str());
+		return EMeshPass::Num;
+    }
+
+    ShaderBytecodeHash ShaderStage::GetBytecodeHash() const
 	{
 		ShaderBytecodeHash Hash;
 		if (ByteCode.Size == 0)

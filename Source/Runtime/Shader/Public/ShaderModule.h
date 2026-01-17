@@ -47,6 +47,7 @@ namespace Thunder
     	static void CompileShaderSource(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug = false);
 	    static enum_shader_stage GetShaderASTStage(EShaderStageType stage);
 	    static EShaderStageType GetShaderStage(enum_shader_stage stage);
+	    static EMeshPass GetMeshPass(String const& passName);
 
     private:
     	THashMap<NameHandle, ShaderArchive*> ShaderMap;

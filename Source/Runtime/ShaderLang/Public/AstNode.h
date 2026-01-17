@@ -496,6 +496,7 @@ namespace Thunder
         ast_node_pass() : ast_node(enum_ast_node_type::pass) {}
         ast_node_pass(const String& pass_name) : ast_node(enum_ast_node_type::pass), name(pass_name) {}
 
+        String const& get_name() const noexcept { return name; }
         void set_name(const String& pass_name) { name = pass_name; }
         void set_attributes(const shader_attributes& attrs) { attributes = attrs; }
         void set_stage_entry(enum class enum_shader_stage stage, const String& entry)
@@ -507,6 +508,7 @@ namespace Thunder
             auto it = stage_entries.find(stage);
             return it != stage_entries.end() ? it->second : "";
         }
+        shader_attributes const& get_attributes() const noexcept { return attributes; }
 
         void add_structure(class ast_node_struct* structure)
         {

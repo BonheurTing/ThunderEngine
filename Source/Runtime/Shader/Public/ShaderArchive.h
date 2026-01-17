@@ -3,6 +3,7 @@
 #include "Concurrent/Lock.h"
 #include "Templates/RefCounting.h"
 #include "AstNode.h"
+#include "MeshPass.h"
 
 namespace Thunder
 {
@@ -38,7 +39,7 @@ namespace Thunder
     {
     public:
     	ShaderPass() = delete;
-    	ShaderPass(class ShaderArchive* archive, NameHandle name) : Archive(archive), Name(name) {}
+    	ShaderPass(class ShaderArchive* archive, const ast_node_pass* astNode);
 		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
         _NODISCARD_ TShaderRegisterCounts GetShaderRegisterCounts() const { return RegisterCounts; }
     	void AddStageMeta(EShaderStageType type, const StageMeta& meta) {StageMetas[type] = meta;}
@@ -72,10 +73,13 @@ namespace Thunder
 		}
 
 		_NODISCARD_ NameHandle GetName() const { return Name; }
-		
+		_NODISCARD_ EMeshPass GetMeshPass() const { return MeshPass; }
+		_NODISCARD_ bool IsMeshPass() const { return static_cast<uint32>(MeshPass) < static_cast<uint32>(EMeshPass::Num); }
+
     private:
 		ShaderArchive* Archive = nullptr;
     	NameHandle Name;
+		EMeshPass MeshPass = EMeshPass::Num;
 		TShaderRegisterCounts RegisterCounts{};
     	THashMap<EShaderStageType, StageMeta> StageMetas;
 		SharedLock VariantsLock;

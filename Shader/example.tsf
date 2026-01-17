@@ -135,4 +135,48 @@ Shader "TestShader"
             return out_;
         }
     }
+    SubShader "PrePass"
+    {
+        Attributes
+        {
+            MeshDrawType : "PrePass",
+            DepthTest : Near,
+            BlendMode : Opaque
+        }
+
+        using VertexEntry = PrePassVert;
+        using PixelEntry = PrePassFrag;
+
+        struct PrePassInput
+        {
+            float4 vertex : POSITION;
+            float2 uv : TEXCOORD0;
+        };
+
+        struct PrePassVSOut
+        {
+            float4 pos : SV_POSITION;
+            float2 uv : TEXCOORD0;
+        };
+        
+        struct PrePassOut
+        {
+            float4 color0 : SV_Target0;
+        };
+        
+        PrePassVSOut PrePassVert(PrePassInput v)
+        {
+            PrePassVSOut o;
+            o.pos = v.vertex.wwxy;
+            o.uv = v.uv;
+            return o;
+        }
+
+        PrePassOut PrePassFrag(in PrePassVSOut v)
+        {
+            PrePassOut dummy;
+            dummy.color0 = float4(1.0, 0.0, 0.0, 1.0);
+            return dummy;
+        }
+    }
 }

@@ -140,6 +140,13 @@ namespace Thunder
     	}
     }
 
+    ShaderPass::ShaderPass(class ShaderArchive* archive, const ast_node_pass* astNode)
+		: Archive(archive), Name(astNode->get_name())
+    {
+    	auto const& attributes = astNode->get_attributes();
+    	MeshPass = ShaderModule::GetMeshPass(attributes.mesh_draw_type);
+    }
+
     void ShaderPass::CacheDefaultShaderCache()
     {
     	//todo: gen default mask and default combination
@@ -354,7 +361,7 @@ namespace Thunder
     		for (ast_node_pass* sub_shader_node : node->passes)
     		{
     			// Parse sub-shader.
-    			ShaderPass* subShader = new ShaderPass(archive, sub_shader_node->name);
+    			ShaderPass* subShader = new ShaderPass(archive, sub_shader_node);
     			for (uint8 stage = 1; stage < static_cast<uint8>(enum_shader_stage::max); ++stage)
     			{
     				String entry = sub_shader_node->get_stage_entry(static_cast<enum_shader_stage>(stage));
@@ -426,9 +433,11 @@ namespace Thunder
     	TShaderRegisterCounts counts{};
     	CalcRegisterCounts(inSubShader->GetName(), counts);
     	inSubShader->SetShaderRegisterCounts(counts);
-    		
     	SubShaders.emplace(inSubShader->GetName(), ShaderPassRef(inSubShader));
-    	MeshDrawSubShaders.emplace(EMeshPass::BasePass, ShaderPassRef(inSubShader)); // 12.28Todo : Get mesh-draw type.
+    	if (inSubShader->IsMeshPass())
+    	{
+    		MeshDrawSubShaders.emplace(inSubShader->GetMeshPass(), ShaderPassRef(inSubShader));
+    	}
     }
 
     ShaderPass* ShaderArchive::GetSubShader(NameHandle name)

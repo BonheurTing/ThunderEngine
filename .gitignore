@@ -25,6 +25,7 @@
 *.app
 *.ipa
 *.sln
+*.slnx
 *.user
 
 # git

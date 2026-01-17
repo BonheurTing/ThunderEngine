@@ -16,7 +16,8 @@ namespace Thunder
     struct RENDERCORE_API FRenderContext
     {
     public:
-        FRenderContext();
+        FRenderContext() = delete;
+        FRenderContext(class FrameGraph* owner);
         ~FRenderContext();
 
         // Clear all commands and free allocator
@@ -37,6 +38,8 @@ namespace Thunder
         
         FORCEINLINE void SetCurrentPass(class FrameGraphPass* pass) { CurrentPass = pass; }
         FORCEINLINE FrameGraphPass* GetCurrentPass() const { return CurrentPass; }
+        FORCEINLINE FrameGraph* GetFrameGraph() const { return FrameGraph; }
+        RenderPass* GetRenderPass() const;
 
     private:
         // Array of recorded commands
@@ -45,6 +48,7 @@ namespace Thunder
         // Transient allocator for command allocation
         TransientAllocator* TransientAllocatorPtr[2];
         
+        FrameGraph* FrameGraph = nullptr;
         FrameGraphPass* CurrentPass = nullptr;
     };
 }

@@ -9,6 +9,7 @@
 #include "ShaderDefinition.h"
 #include "d3dx12.h"
 #include "ShaderModule.h"
+#include "../../RenderCore/Public/RenderPass.h"
 
 namespace Thunder
 {
@@ -52,19 +53,14 @@ namespace Thunder
 		
 		if (rhiDesc.RenderTargetsEnabled)
 		{
-			outD3D12Desc.Desc.NumRenderTargets = 0;
-			for (int i = 0; i < MAX_RENDER_TARGETS; ++i)
+			uint32 const renderTargetCount = static_cast<uint32>(rhiDesc.Pass->GetRenderTargetCount());
+			outD3D12Desc.Desc.NumRenderTargets = renderTargetCount;
+			for (uint32 i = 0u; i < renderTargetCount; ++i)
 			{
-				if (rhiDesc.RenderTargetFormats[i] != RHIFormat::UNKNOWN)
-				{
-					outD3D12Desc.Desc.NumRenderTargets++;
-					outD3D12Desc.Desc.RTVFormats[i] = static_cast<DXGI_FORMAT>(rhiDesc.RenderTargetFormats[i]);
-					continue;
-				}
-				break;
+				outD3D12Desc.Desc.RTVFormats[i] = static_cast<DXGI_FORMAT>(rhiDesc.Pass->GetRenderTargetFormat(i));
 			}
 		}
-		outD3D12Desc.Desc.DSVFormat = static_cast<DXGI_FORMAT>(rhiDesc.DepthStencilFormat);
+		outD3D12Desc.Desc.DSVFormat = static_cast<DXGI_FORMAT>(rhiDesc.Pass->GetDepthStencilFormat());
 		outD3D12Desc.Desc.SampleDesc.Count = rhiDesc.NumSamples;
 		outD3D12Desc.Desc.SampleDesc.Quality = 0;
 

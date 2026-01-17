@@ -34,6 +34,20 @@ namespace Thunder
 		}
 	}
 
+	RenderPass* RenderModule::GetRenderPass(RenderPassKey const& key)
+	{
+		auto& renderPassMap = GetModule()->RenderPasses;
+		auto passIt = renderPassMap.find(key);
+		if (passIt != renderPassMap.end()) [[likely]]
+		{
+			return passIt->second;
+		}
+
+		RenderPass* pass = new RenderPass(key);
+		renderPassMap.insert({ key, pass });
+		return pass;
+	}
+
 	class MeshPassProcessor* RenderModule::GetMeshPassProcessor(EMeshPass passType)
 	{
 		size_t index = static_cast<size_t>(passType);

@@ -4,30 +4,19 @@
 
 namespace Thunder
 {
-    enum class EPixelFormat : uint8
-    {
-        UNKNOWN,
-        RGBA8888,
-        RGBA16F,
-        RGBA32F,
-        RGB10A2,
-        R16F,
-        R32F,
-        D24S8,
-        D32S8X24,
-        D32F
-    };
-
     struct FGRenderTargetDesc
     {
         uint32 Width = 0;
         uint32 Height = 0;
-        EPixelFormat Format = EPixelFormat::UNKNOWN;
+        RHIFormat Format = RHIFormat::UNKNOWN;
         bool bIsDepthStencil = false;
 
         FGRenderTargetDesc() = default;
-        FGRenderTargetDesc(uint32 inWidth, uint32 inHeight, EPixelFormat inFormat, bool bInIsDepthStencil = false)
-            : Width(inWidth), Height(inHeight), Format(inFormat), bIsDepthStencil(bInIsDepthStencil) {}
+        FGRenderTargetDesc(uint32 inWidth, uint32 inHeight, RHIFormat inFormat, bool bInIsDepthStencil = false)
+            : Width(inWidth), Height(inHeight), Format(inFormat), bIsDepthStencil(bInIsDepthStencil)
+        {
+            bIsDepthStencil = IsDepthStencilFormat(inFormat);
+        }
 
         bool operator==(const FGRenderTargetDesc& other) const
         {
@@ -36,24 +25,27 @@ namespace Thunder
         }
     };
 
-    class RENDERCORE_API FGRenderTarget
+    class RENDERCORE_API FGRenderTarget : public RefCountedObject
     {
     public:
         FGRenderTarget() = default;
-        FGRenderTarget(uint32 width, uint32 height, EPixelFormat format);
+        FGRenderTarget(uint32 width, uint32 height, RHIFormat format);
 
         const FGRenderTargetDesc& GetDesc() const { return Desc; }
         uint32 GetWidth() const { return Desc.Width; }
         uint32 GetHeight() const { return Desc.Height; }
-        EPixelFormat GetFormat() const { return Desc.Format; }
+        RHIFormat GetFormat() const { return Desc.Format; }
 
-        uint32 GetID() const { return ID; }
+        uint32 GetID() const { return CurrentFrameTargetId; }
+        void SetId(uint32 inID) { CurrentFrameTargetId = inID; }
+        bool IsSame(const FGRenderTarget& other) const { return Desc == other.Desc; }
+        bool IsSame(const FGRenderTarget* other) const { return Desc == other->Desc; }
 
     private:
         FGRenderTargetDesc Desc;
-        uint32 ID = 0;
-        static uint32 NextID;
+        uint32 CurrentFrameTargetId = 0xFFFFFFFF;
     };
+    using FGRenderTargetRef = TRefCountPtr<FGRenderTarget>;
 
     #define RENDERTARGET_UNUSED_FRAME_THRESHOLD 60
     #define RENDERTARGET_MAX_RELEASE_PER_FRAME 5

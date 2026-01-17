@@ -16,7 +16,7 @@
 #include "TestRenderer.h"
 #include "FileSystem/FileModule.h"
 
-#define EXIT_FRAME_THRESHOLD 100
+#define EXIT_FRAME_THRESHOLD 10000
 
 namespace Thunder
 {

@@ -181,10 +181,23 @@ namespace Thunder
     
         SAMPLER_FEEDBACK_MIN_MIP_OPAQUE         = 189,
         SAMPLER_FEEDBACK_MIP_REGION_USED_OPAQUE = 190,
-    
-    
+
         FORCE_UINT                  = 0xff
     };
+
+    FORCEINLINE bool IsDepthStencilFormat(RHIFormat format)
+    {
+        switch (format)
+        {
+        case RHIFormat::D32_FLOAT_S8X24_UINT:
+        case RHIFormat::D32_FLOAT:
+        case RHIFormat::D24_UNORM_S8_UINT:
+        case RHIFormat::D16_UNORM:
+            return true;
+        default:
+            return false;
+        }
+    }
 
     enum class ERHIViewDimension : uint32
     {

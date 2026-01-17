@@ -25,8 +25,8 @@ namespace Thunder
         mFrameGraph->Reset();
 
         // GBuffer pass.
-        FGRenderTarget GBufferRT0{ 1920, 1080, EPixelFormat::RGBA8888 };
-        FGRenderTarget GBufferRT1{ 1920, 1080, EPixelFormat::RGBA8888 };
+        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
 
         // Register render targets
         mFrameGraph->RegisterRenderTarget(GBufferRT0);
@@ -34,8 +34,8 @@ namespace Thunder
 
         {
             PassOperations operations;
-            operations.write(GBufferRT0);
-            operations.write(GBufferRT1);
+            operations.Write(GBufferRT0);
+            operations.Write(GBufferRT1);
             mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this](FRenderContext* Context)
             {
                 RHIDrawCommand* newCommand = new (Context->GetTransientAllocator_RenderThread()->Allocate<RHIDrawCommand>()) RHIDrawCommand;
@@ -58,14 +58,14 @@ namespace Thunder
         }
 
         // Lighting pass.
-        FGRenderTarget LightingRT{ 1920, 1080, EPixelFormat::RGBA16F };
+        static FGRenderTargetRef LightingRT = new FGRenderTarget{ 1920, 1080, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(LightingRT);
 
         {
             PassOperations operations;
-            operations.read(GBufferRT0);
-            operations.read(GBufferRT1);
-            operations.write(LightingRT);
+            operations.Read(GBufferRT0);
+            operations.Read(GBufferRT1);
+            operations.Write(LightingRT);
             mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this](FRenderContext* context)
             {
                 RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
@@ -75,13 +75,13 @@ namespace Thunder
         }
 
         // PostProcess1 pass.
-        FGRenderTarget PostProcessRT1{ 1280, 720, EPixelFormat::RGBA16F };
+        static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{ 1280, 720, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(PostProcessRT1);
 
         {
             PassOperations operations;
-            operations.read(LightingRT);
-            operations.write(PostProcessRT1);
+            operations.Read(LightingRT);
+            operations.Write(PostProcessRT1);
             mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this](FRenderContext* context)
             {
                 RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
@@ -91,13 +91,13 @@ namespace Thunder
         }
 
         // PostProcess2 pass.
-        FGRenderTarget postProcessRT2{ 1920, 1080, EPixelFormat::RGBA8888 };
+        static FGRenderTargetRef postProcessRT2 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
         mFrameGraph->RegisterRenderTarget(postProcessRT2);
 
         {
             PassOperations operations;
-            operations.read(LightingRT);
-            operations.write(postProcessRT2);
+            operations.Read(LightingRT);
+            operations.Write(postProcessRT2);
             mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this](FRenderContext* context)
             {
                 RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
@@ -140,9 +140,9 @@ namespace Thunder
         mFrameGraph->Reset();
 
         // GBuffer pass.
-        FGRenderTarget GBufferRT0{ 1920, 1080, EPixelFormat::RGBA8888 };
-        FGRenderTarget GBufferRT1{ 1920, 1080, EPixelFormat::RGBA8888 };
-        FGRenderTarget GBufferSceneDepth{ 1920, 1080, EPixelFormat::D32S8X24 };
+        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{ 1920, 1080, RHIFormat::D32_FLOAT_S8X24_UINT };
 
         // Register render targets
         mFrameGraph->RegisterRenderTarget(GBufferRT0);
@@ -150,12 +150,12 @@ namespace Thunder
         mFrameGraph->RegisterRenderTarget(GBufferSceneDepth);
 
         {
-            FGRenderTarget DummyRT{ 1920, 1080, EPixelFormat::RGBA8888 };
+            static FGRenderTargetRef DummyRT = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
             mFrameGraph->RegisterRenderTarget(DummyRT);
 
             PassOperations operations;
-            operations.write(DummyRT);
-            operations.write(GBufferSceneDepth);
+            operations.Write(DummyRT);
+            operations.Write(GBufferSceneDepth);
             mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this](FRenderContext* context)
             {
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::PrePass);
@@ -173,14 +173,14 @@ namespace Thunder
         }
 
         {
-            FGRenderTarget DummyRT{ 1920, 1080, EPixelFormat::RGBA8888 };
+            static FGRenderTargetRef DummyRT = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
             mFrameGraph->RegisterRenderTarget(DummyRT);
-            FGRenderTarget ShadowDepth{ 1920, 1080, EPixelFormat::D32S8X24 };
+            static FGRenderTargetRef ShadowDepth = new FGRenderTarget{ 1920, 1080, RHIFormat::D32_FLOAT_S8X24_UINT };
             mFrameGraph->RegisterRenderTarget(ShadowDepth);
-            
+
             PassOperations operations;
-            operations.write(DummyRT);
-            operations.write(ShadowDepth);
+            operations.Write(DummyRT);
+            operations.Write(ShadowDepth);
             mFrameGraph->AddPass(EVENT_NAME("ShaderDepth"), std::move(operations), [this](FRenderContext* context)
             {
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::ShadowPass);
@@ -199,9 +199,9 @@ namespace Thunder
 
         {
             PassOperations operations;
-            operations.write(GBufferRT0);
-            operations.write(GBufferRT1);
-            operations.write(GBufferSceneDepth);
+            operations.Write(GBufferRT0);
+            operations.Write(GBufferRT1);
+            operations.Write(GBufferSceneDepth);
             mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this](FRenderContext* context)
             {
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::BasePass);
@@ -219,14 +219,14 @@ namespace Thunder
         }
 
         // Lighting pass.
-        FGRenderTarget LightingRT{ 1920, 1080, EPixelFormat::RGBA16F };
+        static FGRenderTargetRef LightingRT = new FGRenderTarget{ 1920, 1080, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(LightingRT);
 
         {
             PassOperations operations;
-            operations.read(GBufferRT0);
-            operations.read(GBufferRT1);
-            operations.write(LightingRT);
+            operations.Read(GBufferRT0);
+            operations.Read(GBufferRT1);
+            operations.Write(LightingRT);
             mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this](FRenderContext* context)
             {
                 RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
@@ -236,13 +236,13 @@ namespace Thunder
         }
 
         // PostProcess1 pass.
-        FGRenderTarget PostProcessRT1{ 1280, 720, EPixelFormat::RGBA16F };
+        static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{ 1280, 720, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(PostProcessRT1);
 
         {
             PassOperations operations;
-            operations.read(LightingRT);
-            operations.write(PostProcessRT1);
+            operations.Read(LightingRT);
+            operations.Write(PostProcessRT1);
             mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this](FRenderContext* context)
             {
                 RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
@@ -252,13 +252,13 @@ namespace Thunder
         }
 
         // PostProcess2 pass.
-        FGRenderTarget postProcessRT2{ 1920, 1080, EPixelFormat::RGBA8888 };
+        static FGRenderTargetRef postProcessRT2 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
         mFrameGraph->RegisterRenderTarget(postProcessRT2);
 
         {
             PassOperations operations;
-            operations.read(LightingRT);
-            operations.write(postProcessRT2);
+            operations.Read(LightingRT);
+            operations.Write(postProcessRT2);
             mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this](FRenderContext* context)
             {
                 RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;

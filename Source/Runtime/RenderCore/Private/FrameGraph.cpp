@@ -11,14 +11,24 @@
 
 namespace Thunder
 {
-    void PassOperations::read(const FGRenderTarget& renderTarget)
+    void PassOperations::Read(const FGRenderTarget* renderTarget)
     {
-        ReadTargets.push_back(renderTarget.GetID());
+        ReadTargets.push_back(renderTarget->GetID());
     }
 
-    void PassOperations::write(const FGRenderTarget& renderTarget)
+    void PassOperations::Read(const FGRenderTargetRef& renderTarget)
     {
-        WriteTargets.push_back(renderTarget.GetID());
+        ReadTargets.push_back(renderTarget->GetID());
+    }
+
+    void PassOperations::Write(const FGRenderTarget* renderTarget)
+    {
+        WriteTargets.push_back(renderTarget->GetID());
+    }
+
+    void PassOperations::Write(const FGRenderTargetRef& renderTarget)
+    {
+        WriteTargets.push_back(renderTarget->GetID());
     }
 
     FrameGraph::FrameGraph(IRenderer* owner, int contextNum) : OwnerRenderer(owner)
@@ -52,7 +62,7 @@ namespace Thunder
         Passes.clear();
         PassIndexMap.clear();
         ExecutionOrder.clear();
-        RenderTargetDescs.clear();
+        RenderTargets.clear();
         AllocatedRenderTargets.clear();
         RenderTargetLifetimes.clear();
         PresentTargetID = 0;
@@ -87,7 +97,7 @@ namespace Thunder
         MainContext->ClearCommands();
         MainContext->FreeAllocator();
 
-        // Execute passes according to pseudo-code design
+        // Execute passes in order.
         for (size_t i = 0; i < ExecutionOrder.size(); ++i)
         {
             size_t passIndex = ExecutionOrder[i];
@@ -136,16 +146,30 @@ namespace Thunder
 
     void FrameGraph::AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction, bool bIsMeshDrawPass)
     {
-        auto pass = MakeRefCount<FrameGraphPass>(name, std::move(operations), std::move(executeFunction), bIsMeshDrawPass);
+        auto pass = MakeRefCount<FrameGraphPass>(this, name, std::move(operations), std::move(executeFunction), bIsMeshDrawPass);
         Passes.push_back(pass);
         PassIndexMap[name] = (static_cast<int>(Passes.size()) - 1);
+    }
+
+    bool FrameGraph::GetRenderTargetFormat(uint32 renderTargetIndex, RHIFormat& outFormat, bool& outIsDepthStencil) const
+    {
+        auto it = RenderTargets.find(renderTargetIndex);
+        if (it == RenderTargets.end())
+        {
+            TAssertf(false, "Render target not found, index : %d.", renderTargetIndex);
+            return false;
+        }
+        auto const& desc = it->second->GetDesc();
+        outFormat = desc.Format;
+        outIsDepthStencil = desc.bIsDepthStencil;
+        return true;
     }
 
     void FrameGraph::InitializeRenderContexts(uint32 threadCount)
     {
         if (!MainContext)
         {
-            MainContext = new FRenderContext();
+            MainContext = new FRenderContext(this);
         }
 
         // Clear existing contexts
@@ -159,20 +183,22 @@ namespace Thunder
         RenderContexts.reserve(threadCount);
         for (uint32 i = 0; i < threadCount; ++i)
         {
-            RenderContexts.push_back(new FRenderContext());
+            RenderContexts.push_back(new FRenderContext(this));
         }
     }
 
-    void FrameGraph::SetPresentTarget(const FGRenderTarget& renderTarget)
+    void FrameGraph::SetPresentTarget(const FGRenderTarget* renderTarget)
     {
-        PresentTargetID = renderTarget.GetID();
+        TAssert(renderTarget->GetID() != 0xFFFFFFFF, "Present target is not registered yet.");
+        PresentTargetID = renderTarget->GetID();
         bHasPresentTarget = true;
-        RenderTargetDescs[PresentTargetID] = renderTarget.GetDesc();
     }
 
-    void FrameGraph::RegisterRenderTarget(const FGRenderTarget& renderTarget)
+    void FrameGraph::RegisterRenderTarget(FGRenderTarget* renderTarget)
     {
-        RenderTargetDescs[renderTarget.GetID()] = renderTarget.GetDesc();
+        uint32 id = static_cast<uint32>(RenderTargets.size());
+        RenderTargets[id] = renderTarget;
+        RenderTargets[id]->SetId(id);
     }
 
     void FrameGraph::ClearRenderTargetPool()
@@ -352,10 +378,12 @@ namespace Thunder
 
         for (const auto& [rtID, lifetime] : sortedLifetimes)
         {
-            if (RenderTargetDescs.find(rtID) == RenderTargetDescs.end())
+            if (RenderTargets.find(rtID) == RenderTargets.end())
+            {
                 continue;
+            }
 
-            const auto& desc = RenderTargetDescs[rtID];
+            const auto& renderTarget = RenderTargets[rtID];
             RenderTextureRef allocatedTarget = nullptr;
 
             // Check if we can reuse a render target that has finished its lifetime
@@ -367,10 +395,10 @@ namespace Thunder
                     if (AllocatedRenderTargets.find(availableRtID) != AllocatedRenderTargets.end())
                     {
                         auto availableTarget = AllocatedRenderTargets[availableRtID];
-                        const auto& availableDesc = RenderTargetDescs[availableRtID];
+                        const auto& availableFrameGraphTarget = RenderTargets[availableRtID];
 
                         // Check if specs are compatible for reuse
-                        if (availableDesc == desc)
+                        if (availableFrameGraphTarget->IsSame(renderTarget.Get()))
                         {
                             allocatedTarget = availableTarget;
                             availableTargets.erase(it);
@@ -383,13 +411,13 @@ namespace Thunder
             // If no reusable target found, allocate new one from pool
             if (!allocatedTarget)
             {
-                allocatedTarget = Pool.AcquireRenderTarget(desc);
+                allocatedTarget = Pool.AcquireRenderTarget(renderTarget->GetDesc());
             }
 
             AllocatedRenderTargets[rtID] = allocatedTarget;
 
             // Schedule this target to be available after its lifetime ends
-            availableTargets.push_back({lifetime.second, rtID});
+            availableTargets.emplace_back(lifetime.second, rtID);
 
             // Keep availableTargets sorted by end time
             std::sort(availableTargets.begin(), availableTargets.end());

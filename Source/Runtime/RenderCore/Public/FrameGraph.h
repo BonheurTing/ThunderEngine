@@ -5,6 +5,7 @@
 #include "RenderResource.h"
 #include "RenderTargetPool.h"
 #include "RenderContext.h"
+#include "RenderPass.h"
 #include "RHI.h"
 #include "SceneView.h"
 
@@ -16,8 +17,10 @@ namespace Thunder
     class RENDERCORE_API PassOperations
     {
     public:
-        void read(const FGRenderTarget& renderTarget);
-        void write(const FGRenderTarget& renderTarget);
+        void Read(const FGRenderTarget* renderTarget);
+        void Read(const FGRenderTargetRef& renderTarget);
+        void Write(const FGRenderTarget* renderTarget);
+        void Write(const FGRenderTargetRef& renderTarget);
 
         const TArray<uint32>& GetReadTargets() const { return ReadTargets; }
         const TArray<uint32>& GetWriteTargets() const { return WriteTargets; }
@@ -31,23 +34,17 @@ namespace Thunder
 
     struct FrameGraphPass : public RefCountedObject
     {
+        FrameGraph* FrameGraph = nullptr;
         String Name;
         PassOperations Operations;
         PassExecutionFunction ExecuteFunction;
         bool bCulled = false;
         bool bIsMeshDrawPass = false;  // Flag to indicate if this is a mesh draw pass.
-        TArray<FGRenderTarget> RenderTargets;
 
         FrameGraphPass() = delete;
-        FrameGraphPass(const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction, bool inIsMeshDrawPass = false)
-            : Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)), bIsMeshDrawPass(inIsMeshDrawPass)
-        {
-            auto const& writeTargets = Operations.GetWriteTargets();
-            for (auto const& targetId : writeTargets)
-            {
-                RenderTargets.push_back()
-            }
-        }
+        FrameGraphPass(class FrameGraph* graph, const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction, bool inIsMeshDrawPass = false)
+            : FrameGraph(graph), Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)), bIsMeshDrawPass(inIsMeshDrawPass) {}
+        PassOperations const& GetOperations() const { return Operations; }
     };
 
     class RENDERCORE_API FrameGraph : public RefCountedObject
@@ -69,8 +66,10 @@ namespace Thunder
 
         // Internal methods used by FrameGraphBuilder
         void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction, bool bIsMeshDrawPass = false);
-        void SetPresentTarget(const FGRenderTarget& renderTarget);
-        void RegisterRenderTarget(const FGRenderTarget& renderTarget);
+        void SetPresentTarget(const FGRenderTarget* renderTarget);
+        FORCEINLINE void SetPresentTarget(FGRenderTargetRef const& renderTarget) { SetPresentTarget(renderTarget.Get()); }
+        void RegisterRenderTarget(FGRenderTarget* renderTarget);
+        FORCEINLINE void RegisterRenderTarget(FGRenderTargetRef const& renderTarget) { RegisterRenderTarget(renderTarget.Get()); }
         void ClearRenderTargetPool();
 
         // Command execution support
@@ -86,7 +85,8 @@ namespace Thunder
             return (passIt != PassIndexMap.end()) ? Passes[passIt->second].Get() : nullptr;
         }
         FORCEINLINE FrameGraphPass* GetPass(const String& name) { return GetPass(NameHandle{ name }); }
-        FORCEINLINE FrameGraphPass* GetPass(int passIndex) { return passIndex < Passes.size() ? Passes[passIndex].Get() : nullptr; }
+        FORCEINLINE FrameGraphPass* GetPass(int passIndex) const { return passIndex < Passes.size() ? Passes[passIndex].Get() : nullptr; }
+        bool GetRenderTargetFormat(uint32 renderTargetIndex, RHIFormat& outFormat, bool& outIsDepthStencil) const;
 
     private:
         // Initialize render contexts for multi-threading
@@ -97,24 +97,25 @@ namespace Thunder
         void ScheduleRenderTargetLifetime();
         void AllocateRenderTargets();
 
+        // Passes.
         TArray<TRefCountPtr<FrameGraphPass>> Passes;
         TMap<NameHandle, int32> PassIndexMap;
         TArray<size_t> ExecutionOrder;
-        THashMap<uint32, FGRenderTargetDesc> RenderTargetDescs;
+
+        // Render targets.
+        THashMap<uint32, FGRenderTargetRef> RenderTargets;
         THashMap<uint32, RenderTextureRef> AllocatedRenderTargets;
         THashMap<uint32, std::pair<size_t, size_t>> RenderTargetLifetimes; // target -> (first_use, last_use)
-
         uint32 PresentTargetID = 0;
         bool bHasPresentTarget = false;
-
         RenderTargetPool Pool;
 
-        // render
+        // Renderer.
         IRenderer* OwnerRenderer { nullptr };
         TArray<SceneView*> Views;
         TSet<PrimitiveSceneInfo*> SceneInfos;
 
-        // Command execution contexts
+        // Command execution contexts.
         FRenderContext* MainContext = nullptr;  // Main render thread context
         TArray<FRenderContext*> RenderContexts; // Worker thread contexts
         TArray<IRHICommand*> AllCommands[2];       // Consolidated commands for execution

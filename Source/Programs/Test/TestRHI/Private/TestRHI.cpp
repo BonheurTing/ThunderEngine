@@ -142,8 +142,8 @@ int main()
         ret = shaderModule->CompileShaderCollection("Triangle", "ScreenPass", 0);
         TAssertf(ret, "Failed to compile shader.");
         psoDesc.ShaderIdentifier = "Triangle|ScreenPass|0";
-        psoDesc.RenderTargetFormats[0] = RHIFormat::R8G8B8A8_UNORM;
-        psoDesc.DepthStencilFormat = RHIFormat::UNKNOWN;
+        // psoDesc.RenderTargetFormats[0] = RHIFormat::R8G8B8A8_UNORM;
+        // psoDesc.DepthStencilFormat = RHIFormat::UNKNOWN;
         psoDesc.NumSamples = 1;
         psoDesc.PrimitiveType = ERHIPrimitiveType::Triangle;
         psoDesc.RenderTargetsEnabled = 1;

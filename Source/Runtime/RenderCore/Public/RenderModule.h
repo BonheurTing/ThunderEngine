@@ -5,6 +5,7 @@
 #include "Module/ModuleManager.h"
 #include <array>
 #include "MeshPassProcessor.h"
+#include "RenderPass.h"
 
 namespace Thunder
 {
@@ -18,8 +19,11 @@ namespace Thunder
     	static MeshPassProcessor* GetMeshPassProcessor(EMeshPass passType);
     	static void SetMeshPassProcessorCreator(EMeshPass passType, TFunction<class MeshPassProcessor*()> creator);
 
+    	static RenderPass* GetRenderPass(RenderPassKey const& key);
+
     private:
     	std::array<MeshPassProcessorRef, static_cast<size_t>(EMeshPass::Num)> MeshPassProcessors;
     	std::array<TFunction<class MeshPassProcessor*()>, static_cast<size_t>(EMeshPass::Num)> MeshPassProcessorCreators;
+    	THashMap<RenderPassKey, RenderPassRef> RenderPasses;
     };
 }

@@ -136,10 +136,7 @@ namespace Thunder
 		RHIBlendState					BlendState;
 		RHIRasterizerState			    RasterizerState;
 		RHIDepthStencilState            DepthStencilState;
-		// Render pass.
 		RenderPass*						Pass = nullptr;
-		RHIFormat	                    RenderTargetFormats[MAX_RENDER_TARGETS];
-		RHIFormat                       DepthStencilFormat : 8;
 		ERHIPrimitiveType				PrimitiveType : 3 = ERHIPrimitiveType::Triangle;
 		uint8							RenderTargetsEnabled : 1 = true;
 		uint8							NumSamples : 4 = 1;
@@ -154,8 +151,6 @@ namespace Thunder
 			BlendState{},
 			RasterizerState{},
 			DepthStencilState{},
-			RenderTargetFormats{RHIFormat::UNKNOWN},
-			DepthStencilFormat{RHIFormat::UNKNOWN},
 			PrimitiveType{ERHIPrimitiveType::Undefined},
 			RenderTargetsEnabled{0},
 			NumSamples{1},

@@ -64,11 +64,15 @@ namespace Thunder
             }
 
             // Get pass.
-            FrameGraphPass* frameGraphPass = context->GetCurrentPass();
-            psoDesc.Pass = frameGraphPass->GetRenderPass();
+            psoDesc.Pass = context->GetRenderPass();
+            if (!psoDesc.Pass) [[unlikely]]
+            {
+                TAssertf(false, "Fail to prepare mesh draw command, render pass is invalid.");
+                return false;
+            }
 
-            psoDesc.RenderTargetFormats[0] = RHIFormat::R8G8B8A8_UNORM; // context->GetMeshDrawPass(meshDrawType)->GetOutput()[0].Format;
-            psoDesc.DepthStencilFormat = RHIFormat::UNKNOWN; // context->GetMeshDrawPass(meshDrawType)->GetDepthOutput().Format;
+            // psoDesc.RenderTargetFormats[0] = RHIFormat::R8G8B8A8_UNORM; // context->GetMeshDrawPass(meshDrawType)->GetOutput()[0].Format;
+            // psoDesc.DepthStencilFormat = RHIFormat::UNKNOWN; // context->GetMeshDrawPass(meshDrawType)->GetDepthOutput().Format;
             // psoDesc.Pass = context->GetMeshDrawPass(meshDrawType)->GetPass();
             psoDesc.NumSamples = 1;
             psoDesc.PrimitiveType = ERHIPrimitiveType::Triangle; // Check(GetMesh()->GetPrimitiveType() == E_Triangle);

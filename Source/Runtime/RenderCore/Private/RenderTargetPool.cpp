@@ -2,10 +2,8 @@
 
 namespace Thunder
 {
-    uint32 FGRenderTarget::NextID = 1;
-
-    FGRenderTarget::FGRenderTarget(uint32 width, uint32 height, EPixelFormat format)
-        : Desc(width, height, format), ID(NextID++)
+    FGRenderTarget::FGRenderTarget(uint32 width, uint32 height, RHIFormat format)
+        : Desc(width, height, format)
     {
     }
 
@@ -25,28 +23,9 @@ namespace Thunder
             }
         }
 
-        // Create new render target if no compatible one found
-        RHIFormat rhiFormat = RHIFormat::UNKNOWN;
-        switch (desc.Format)
-        {
-        case EPixelFormat::RGBA8888:
-            rhiFormat = RHIFormat::R8G8B8A8_UNORM;
-            break;
-        case EPixelFormat::RGBA16F:
-            rhiFormat = RHIFormat::R16G16B16A16_FLOAT;
-            break;
-        case EPixelFormat::RGBA32F:
-            rhiFormat = RHIFormat::R32G32B32A32_FLOAT;
-            break;
-        case EPixelFormat::D32S8X24:
-            rhiFormat = RHIFormat::D32_FLOAT_S8X24_UINT;
-            break;
-        default:
-            break;
-        }
-
+        // Create new render target if no compatible one found.
         RenderTextureRef newTarget = new RenderTexture2D(
-            desc.Width, desc.Height, rhiFormat, nullptr);
+            desc.Width, desc.Height, desc.Format, nullptr);
         UsedTargets.push_back(newTarget);
         return newTarget;
     }

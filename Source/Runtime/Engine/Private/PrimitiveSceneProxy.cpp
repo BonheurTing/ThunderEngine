@@ -1,3 +1,4 @@
+#pragma optimize("", off)
 #include "PrimitiveSceneProxy.h"
 #include "HAL/Event.h"
 #include "Compomemt.h"

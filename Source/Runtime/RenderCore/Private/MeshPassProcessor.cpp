@@ -8,6 +8,11 @@
 #include "RHICommand.h"
 #include "ShaderModule.h"
 #include "Memory/TransientAllocator.h"
+#include "Container/ReflectiveContainer.h"
+#include "BasicDefinition.h"
+#include "RenderMesh.h"
+#include "RenderTranslator.h"
+#include "RHI.h"
 
 namespace Thunder
 {
@@ -34,24 +39,34 @@ namespace Thunder
             auto shaderAst = material->GetShaderArchive();
             uint64 shaderVariantMask = ShaderModule::GetVariantMask(shaderAst, material->GetStaticParameters());
             ShaderCombination* shaderVariant = ShaderModule::GetShaderCombination(shaderAst, meshPassType, shaderVariantMask);
-
-            // Subshader->getRenderState(DepthStencilState, BlendState, RasterizationState)
-            //[DepthStencilState, BlendState, RasterizationState] = subshader->getRenderState();
-            // RenderTargets
-            //RenderTargets = meshdrawpass->GetRenderTargetLayout();
-            // inputLayout
-            //InputLayout = FPrimitiveSceneInfo->GetInputLayout();
-
-            TGraphicsPipelineStateDescriptor psoDesc;
-            bool ret = ShaderModule::GetPassRegisterCounts(shaderAst, meshPassType, psoDesc.RegisterCounts);
-            TAssertf(ret, "Fail to get register count.");
-            TArray<RHIVertexElement> inputElements =
+            if (!shaderVariant) [[unlikely]]
             {
-                { ERHIVertexInputSemantic::Position, 0, RHIFormat::R32G32B32_FLOAT, 0, 0, false },
-                { ERHIVertexInputSemantic::TexCoord, 0, RHIFormat::R32G32_FLOAT, 0, 12, false }
-            };
-            psoDesc.VertexDeclaration = RHIVertexDeclarationDescriptor{ inputElements }; // GetMesh()->GetVertexDeclaration();
+                // Shader is not ready yet.
+                return false;
+            }
+
+            // Get register counts.
+            TGraphicsPipelineStateDescriptor psoDesc;
+            bool succeeded = ShaderModule::GetPassRegisterCounts(shaderAst, meshPassType, psoDesc.RegisterCounts);
+            if (!succeeded) [[unlikely]]
+            {
+                TAssertf(false, "Fail to prepare mesh draw command, register count is invalid.");
+                return false;
+            }
             psoDesc.shaderVariant = shaderVariant;
+
+            // Get vertex declaration.
+            succeeded = subMesh->GetVertexDeclaration(psoDesc.VertexDeclaration);
+            if (!succeeded) [[unlikely]]
+            {
+                TAssertf(false, "Fail to prepare mesh draw command, vertex declaration is invalid.");
+                return false;
+            }
+
+            // Get pass.
+            FrameGraphPass* frameGraphPass = context->GetCurrentPass();
+            psoDesc.Pass = frameGraphPass->GetRenderPass();
+
             psoDesc.RenderTargetFormats[0] = RHIFormat::R8G8B8A8_UNORM; // context->GetMeshDrawPass(meshDrawType)->GetOutput()[0].Format;
             psoDesc.DepthStencilFormat = RHIFormat::UNKNOWN; // context->GetMeshDrawPass(meshDrawType)->GetDepthOutput().Format;
             // psoDesc.Pass = context->GetMeshDrawPass(meshDrawType)->GetPass();

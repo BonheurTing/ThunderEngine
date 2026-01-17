@@ -10,6 +10,9 @@ namespace Thunder
         TReflectiveContainerRef Vertices { nullptr };
         TReflectiveContainerRef Indices { nullptr };
         AABB BoundingBox {};
+
+        bool GetVertexDeclaration(TArray<RHIVertexElement>& outDeclarations) const;
+        bool GetVertexDeclaration(RHIVertexDeclarationDescriptor& outDeclarations) const;
     };
 
     class RenderMesh : public RenderResource

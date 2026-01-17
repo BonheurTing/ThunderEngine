@@ -50,6 +50,7 @@ namespace Thunder
         }
 
         Passes.clear();
+        PassIndexMap.clear();
         ExecutionOrder.clear();
         RenderTargetDescs.clear();
         AllocatedRenderTargets.clear();
@@ -103,6 +104,7 @@ namespace Thunder
                 else
                 {
                     // Execute regular pass with main context
+                    MainContext->SetCurrentPass(pass.Get());
                     pass->ExecuteFunction(MainContext);
 
                     // Add main context commands to consolidated list
@@ -134,8 +136,9 @@ namespace Thunder
 
     void FrameGraph::AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction, bool bIsMeshDrawPass)
     {
-        auto pass = MakeRefCount<PassData>(name, std::move(operations), std::move(executeFunction), bIsMeshDrawPass);
+        auto pass = MakeRefCount<FrameGraphPass>(name, std::move(operations), std::move(executeFunction), bIsMeshDrawPass);
         Passes.push_back(pass);
+        PassIndexMap[name] = (static_cast<int>(Passes.size()) - 1);
     }
 
     void FrameGraph::InitializeRenderContexts(uint32 threadCount)

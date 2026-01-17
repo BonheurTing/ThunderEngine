@@ -1,11 +1,77 @@
 ﻿#pragma optimize("", off)
 #include "RenderMesh.h"
 #include "IDynamicRHI.h"
+#include "RenderTranslator.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Container/ReflectiveContainer.h"
 
 namespace Thunder
 {
+    bool SubMesh::GetVertexDeclaration(TArray<RHIVertexElement>& outDeclarations) const
+    {
+        auto const& container = Vertices;
+        outDeclarations.clear();
+
+        if (!container)
+        {
+            TAssert(false, "Failed to get vertex declaration, vertex buffer is empty.");
+            return false;
+        }
+
+        size_t componentCount = container->GetComponentCount();
+        for (size_t i = 0; i < componentCount; ++i)
+        {
+            const TypeComponent* componentInfo = container->GetComponentInfo(i);
+            if (!componentInfo)
+            {
+                TAssert(false, "Empty component found in vertex buffer.");
+                continue;
+            }
+
+            ERHIVertexInputSemantic semantic = RenderTranslator::GetVertexSemanticFromName(componentInfo->Name);
+            if (semantic == ERHIVertexInputSemantic::Unknown)
+            {
+                TAssert(false, "Invalid vertex semantic found in vertex buffer.");
+                continue;
+            }
+
+            RHIFormat format = RenderTranslator::GetRHIFormatFromTypeKind(componentInfo->Kind);
+            if (format == RHIFormat::UNKNOWN)
+            {
+                TAssert(false, "Invalid vertex format found in vertex buffer.");
+                continue;
+            }
+
+            // Get semantic index.
+            uint8 semanticIndex = 0;
+            String name = componentInfo->Name;
+            for (size_t j = 0; j < name.size(); ++j)
+            {
+                if (isdigit(name[j]))
+                {
+                    semanticIndex = static_cast<uint8>(std::stoi(name.substr(j)));
+                    break;
+                }
+            }
+
+            outDeclarations.emplace_back(
+                semantic,
+                semanticIndex,
+                format,
+                0, // InputSlot.
+                static_cast<uint16>(componentInfo->Offset),
+                false // PerInstanceData.
+            );
+        }
+
+        return true;
+    }
+
+    bool SubMesh::GetVertexDeclaration(RHIVertexDeclarationDescriptor& outDeclarations) const
+    {
+        return GetVertexDeclaration(outDeclarations.Elements);
+    }
+
     void RenderMesh::InitRHI()
     {
         CreateMesh_RenderThread();

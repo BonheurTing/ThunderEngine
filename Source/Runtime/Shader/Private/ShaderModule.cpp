@@ -156,7 +156,7 @@ namespace Thunder
 			outRegisterCounts = subShader->GetShaderRegisterCounts();
 			return true;
 		}
-		TAssertf(false, "ShaderPass not exist");
+		TAssertf(false, "Sub-shader \"%s\" not exist in archive \"%s\"", ShaderModule::GetMeshPassName(meshPassType).c_str(), archive->GetName().c_str());
 		return false;
 	}
 
@@ -307,6 +307,24 @@ namespace Thunder
 
 		TAssertf(false, "Unknown mesh pass type : %s.", passName.c_str());
 		return EMeshPass::Num;
+    }
+
+    String ShaderModule::GetMeshPassName(EMeshPass passType)
+    {
+		switch (passType)
+		{
+		case EMeshPass::PrePass:
+			return "PrePass";
+		case EMeshPass::BasePass:
+			return "BasePass";
+		case EMeshPass::ShadowPass:
+			return "ShadowPass";
+		case EMeshPass::Translucent:
+			return "Translucent";
+		case EMeshPass::Num:
+		default:
+			return "Unknown";
+		}
     }
 
     ShaderBytecodeHash ShaderStage::GetBytecodeHash() const

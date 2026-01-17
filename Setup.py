@@ -29,7 +29,7 @@ if __name__ == "__main__":
     solution_files = [
         "./Intermediate/Build/ThunderEditor.sln",
         "./Intermediate/Build/ThunderEditor.slnx"
-
+    ]
     
     found_solution = False
 

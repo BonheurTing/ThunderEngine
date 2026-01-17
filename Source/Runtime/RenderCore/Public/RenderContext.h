@@ -34,6 +34,9 @@ namespace Thunder
         // Get the transient allocator for this context
         TransientAllocator* GetTransientAllocator_RenderThread() const;
         TransientAllocator* GetTransientAllocator_RHIThread() const;
+        
+        FORCEINLINE void SetCurrentPass(class FrameGraphPass* pass) { CurrentPass = pass; }
+        FORCEINLINE FrameGraphPass* GetCurrentPass() const { return CurrentPass; }
 
     private:
         // Array of recorded commands
@@ -41,5 +44,7 @@ namespace Thunder
 
         // Transient allocator for command allocation
         TransientAllocator* TransientAllocatorPtr[2];
+        
+        FrameGraphPass* CurrentPass = nullptr;
     };
 }

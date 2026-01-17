@@ -29,16 +29,25 @@ namespace Thunder
 
     using PassExecutionFunction = TFunction<void(FRenderContext*)>;
 
-    struct PassData : public RefCountedObject
+    struct FrameGraphPass : public RefCountedObject
     {
         String Name;
         PassOperations Operations;
         PassExecutionFunction ExecuteFunction;
         bool bCulled = false;
-        bool bIsMeshDrawPass = false;  // Flag to indicate if this is a mesh draw pass
+        bool bIsMeshDrawPass = false;  // Flag to indicate if this is a mesh draw pass.
+        TArray<FGRenderTarget> RenderTargets;
 
-        PassData(const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction, bool inIsMeshDrawPass = false)
-            : Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)), bIsMeshDrawPass(inIsMeshDrawPass) {}
+        FrameGraphPass() = delete;
+        FrameGraphPass(const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction, bool inIsMeshDrawPass = false)
+            : Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)), bIsMeshDrawPass(inIsMeshDrawPass)
+        {
+            auto const& writeTargets = Operations.GetWriteTargets();
+            for (auto const& targetId : writeTargets)
+            {
+                RenderTargets.push_back()
+            }
+        }
     };
 
     class RENDERCORE_API FrameGraph : public RefCountedObject
@@ -69,6 +78,16 @@ namespace Thunder
         const TArray<FRenderContext*>& GetRenderContexts() const { return RenderContexts; }
         TArray<IRHICommand*>& GetCurrentAllCommands(int frontIndex) { return AllCommands[frontIndex]; }
 
+        FORCEINLINE FrameGraphPass* GetPass(NameHandle name)
+        {
+            auto passIt = PassIndexMap.find(name);
+            TAssertf(passIt->second < Passes.size(), "Invalid pass index found, pass name : \"%s\".", name.c_str());
+            TAssertf(passIt != PassIndexMap.end(), "Pass not found, pass name : \"%s\".", name.c_str());
+            return (passIt != PassIndexMap.end()) ? Passes[passIt->second].Get() : nullptr;
+        }
+        FORCEINLINE FrameGraphPass* GetPass(const String& name) { return GetPass(NameHandle{ name }); }
+        FORCEINLINE FrameGraphPass* GetPass(int passIndex) { return passIndex < Passes.size() ? Passes[passIndex].Get() : nullptr; }
+
     private:
         // Initialize render contexts for multi-threading
         void InitializeRenderContexts(uint32 threadCount);
@@ -78,7 +97,8 @@ namespace Thunder
         void ScheduleRenderTargetLifetime();
         void AllocateRenderTargets();
 
-        TArray<TRefCountPtr<PassData>> Passes;
+        TArray<TRefCountPtr<FrameGraphPass>> Passes;
+        TMap<NameHandle, int32> PassIndexMap;
         TArray<size_t> ExecutionOrder;
         THashMap<uint32, FGRenderTargetDesc> RenderTargetDescs;
         THashMap<uint32, RenderTextureRef> AllocatedRenderTargets;

@@ -6,7 +6,9 @@ namespace Thunder
 {
 	using namespace Microsoft::WRL;
 #define MAX_RENDER_TARGETS 8
-	
+
+	class RenderPass;
+
 	struct RHIVertexElement
 	{
 		RHIVertexElement(ERHIVertexInputSemantic name, uint8 index, RHIFormat format, uint8 inputSlot, uint16 alignedByteOffset, bool isPerInstanceData)
@@ -135,11 +137,12 @@ namespace Thunder
 		RHIRasterizerState			    RasterizerState;
 		RHIDepthStencilState            DepthStencilState;
 		// Render pass.
+		RenderPass*						Pass = nullptr;
 		RHIFormat	                    RenderTargetFormats[MAX_RENDER_TARGETS];
 		RHIFormat                       DepthStencilFormat : 8;
-		ERHIPrimitiveType				PrimitiveType : 3;
-		uint8							RenderTargetsEnabled : 1;
-		uint8							NumSamples : 4;
+		ERHIPrimitiveType				PrimitiveType : 3 = ERHIPrimitiveType::Triangle;
+		uint8							RenderTargetsEnabled : 1 = true;
+		uint8							NumSamples : 4 = 1;
 		// Dynamic states.
 
 		class ShaderCombination*		shaderVariant;

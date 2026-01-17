@@ -50,15 +50,12 @@ namespace Thunder
 		GetD3D12VertexDeclaration(rhiDesc.VertexDeclaration, outD3D12Desc.InputLayout);
 		outD3D12Desc.Desc.InputLayout.NumElements = static_cast<UINT>(outD3D12Desc.InputLayout.size());
 		outD3D12Desc.Desc.InputLayout.pInputElementDescs = outD3D12Desc.InputLayout.data();
-		
-		if (rhiDesc.RenderTargetsEnabled)
+
+		uint32 const renderTargetCount = static_cast<uint32>(rhiDesc.Pass->GetRenderTargetCount());
+		outD3D12Desc.Desc.NumRenderTargets = renderTargetCount;
+		for (uint32 i = 0u; i < renderTargetCount; ++i)
 		{
-			uint32 const renderTargetCount = static_cast<uint32>(rhiDesc.Pass->GetRenderTargetCount());
-			outD3D12Desc.Desc.NumRenderTargets = renderTargetCount;
-			for (uint32 i = 0u; i < renderTargetCount; ++i)
-			{
-				outD3D12Desc.Desc.RTVFormats[i] = static_cast<DXGI_FORMAT>(rhiDesc.Pass->GetRenderTargetFormat(i));
-			}
+			outD3D12Desc.Desc.RTVFormats[i] = static_cast<DXGI_FORMAT>(rhiDesc.Pass->GetRenderTargetFormat(i));
 		}
 		outD3D12Desc.Desc.DSVFormat = static_cast<DXGI_FORMAT>(rhiDesc.Pass->GetDepthStencilFormat());
 		outD3D12Desc.Desc.SampleDesc.Count = rhiDesc.NumSamples;

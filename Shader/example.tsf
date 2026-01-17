@@ -24,8 +24,8 @@ Shader "TestShader"
         Attributes
         {
             MeshDrawType : "BasePass",
-            DepthTest : Near,
-            BlendMode : Opaque
+            DepthTest : "Near",
+            BlendMode : "Opaque"
         }
 
         using VertexEntry = vert;
@@ -140,8 +140,8 @@ Shader "TestShader"
         Attributes
         {
             MeshDrawType : "PrePass",
-            DepthTest : Near,
-            BlendMode : Opaque
+            DepthTest : "Greater",
+            BlendMode : "Opaque"
         }
 
         using VertexEntry = PrePassVert;

@@ -298,10 +298,10 @@ attribute_entry:
     TOKEN_MESHDRAWTYPE COLON STRING_CONSTANT {
         sl_state->add_attribute_entry($1, $3);
     }
-    | TOKEN_DEPTHTEST COLON key_identifier {
+    | TOKEN_DEPTHTEST COLON STRING_CONSTANT {
         sl_state->add_attribute_entry($1, $3);
     }
-    | TOKEN_BLENDMODE COLON key_identifier {
+    | TOKEN_BLENDMODE COLON STRING_CONSTANT {
         sl_state->add_attribute_entry($1, $3);
     }
     ;

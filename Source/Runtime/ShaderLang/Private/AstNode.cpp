@@ -844,7 +844,7 @@ namespace Thunder
                 switch (attributes.blend_mode)
                 {
                 case enum_blend_mode::opaque: printf("Opaque\n"); break;
-                case enum_blend_mode::masked: printf("Masked\n"); break;
+                case enum_blend_mode::translucent: printf("Translucent\n"); break;
                 default: printf("Undefined\n"); break;
                 }
             }

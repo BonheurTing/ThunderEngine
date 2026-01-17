@@ -244,7 +244,7 @@ namespace Thunder
     {
         undefined,
         opaque,
-        masked
+        translucent
     };
 
     enum class enum_symbol_type : uint8
@@ -267,8 +267,8 @@ namespace Thunder
     struct shader_attributes
     {
         String mesh_draw_type;  // "BasePass", "ShadowPass", etc.
-        enum_depth_test depth_test = enum_depth_test::undefined;
-        enum_blend_mode blend_mode = enum_blend_mode::undefined;
+        enum_depth_test depth_test = enum_depth_test::less;
+        enum_blend_mode blend_mode = enum_blend_mode::opaque;
 
         shader_attributes() = default;
     };

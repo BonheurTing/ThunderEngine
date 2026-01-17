@@ -3,6 +3,7 @@
 #include "Module/ModuleManager.h"
 #include "ShaderCompiler.h"
 #include "ShaderLang.h"
+#include "RenderStates.h"
 
 namespace Thunder
 {
@@ -45,10 +46,16 @@ namespace Thunder
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 variantId, bool force = false);
 	    static ShaderCombination* CompileShaderVariant(NameHandle archiveName, NameHandle passName, uint64 variantId);
     	static void CompileShaderSource(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug = false);
+
+    	// Translators.
 	    static enum_shader_stage GetShaderASTStage(EShaderStageType stage);
 	    static EShaderStageType GetShaderStage(enum_shader_stage stage);
 	    static EMeshPass GetMeshPass(String const& passName);
 	    static String GetMeshPassName(EMeshPass passType);
+    	static enum_blend_mode GetShaderASTBlendMode(EShaderBlendMode blendMode);
+    	static EShaderBlendMode GetBlendMode(enum_blend_mode blendMode);
+    	static enum_depth_test GetShaderASTDepthState(EShaderDepthState depthTest);
+    	static EShaderDepthState GetDepthState(enum_depth_test depthTest);
 
     private:
     	THashMap<NameHandle, ShaderArchive*> ShaderMap;

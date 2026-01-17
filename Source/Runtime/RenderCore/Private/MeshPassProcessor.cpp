@@ -71,21 +71,15 @@ namespace Thunder
                 return false;
             }
 
-            // psoDesc.RenderTargetFormats[0] = RHIFormat::R8G8B8A8_UNORM; // context->GetMeshDrawPass(meshDrawType)->GetOutput()[0].Format;
-            // psoDesc.DepthStencilFormat = RHIFormat::UNKNOWN; // context->GetMeshDrawPass(meshDrawType)->GetDepthOutput().Format;
-            // psoDesc.Pass = context->GetMeshDrawPass(meshDrawType)->GetPass();
-            psoDesc.NumSamples = 1;
-            psoDesc.PrimitiveType = ERHIPrimitiveType::Triangle; // Check(GetMesh()->GetPrimitiveType() == E_Triangle);
-            psoDesc.RenderTargetsEnabled = 1;
+            // Get render state.
+            succeeded = material->GetRenderState(meshPassType, psoDesc.BlendState, psoDesc.RasterizerState, psoDesc.DepthStencilState);
+            if (!succeeded) [[unlikely]]
+            {
+                TAssertf(false, "Fail to prepare mesh draw command, render state is invalid.");
+                return false;
+            }
 
-            //SetGraphicsPipelineState(context, psoDesc); //sync
-
-            //RHIBlendState					BlendState; // subShader->GetBlendState();
-            //RHIRasterizerState			    RasterizerState; // subShader->GetRasterizerState();
-            //RHIDepthStencilState            DepthStencilState; // subShader->GetRasterizerState();
-
-            auto pipelineStateObject = RHICreateGraphicsPipelineState(psoDesc); //sync
-            if (pipelineStateObject)
+            if (auto pipelineStateObject = RHICreateGraphicsPipelineState(psoDesc))
             {
                 RHIDrawCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDrawCommand>()) RHIDrawCommand;
                 newCommand->GraphicsPSO = pipelineStateObject;

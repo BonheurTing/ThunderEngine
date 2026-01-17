@@ -190,7 +190,7 @@ namespace Thunder
                     auto staticMeshes = sceneInfo->GetStaticMeshes();
                     for (const auto& batch : staticMeshes | std::views::values)
                     {
-                        processor->AddMeshBatch(context, batch, EMeshPass::PrePass);
+                        processor->AddMeshBatch(context, batch, EMeshPass::ShadowPass);
                     }
                 }
                 Print("Execute ShaderDepth");
@@ -211,7 +211,7 @@ namespace Thunder
                     auto staticMeshes = sceneInfo->GetStaticMeshes();
                     for (const auto& batch : staticMeshes | std::views::values)
                     {
-                        processor->AddMeshBatch(context, batch, EMeshPass::PrePass);
+                        processor->AddMeshBatch(context, batch, EMeshPass::BasePass);
                     }
                 }
                 Print("Execute GBufferPass");

@@ -146,7 +146,6 @@ int main()
         // psoDesc.DepthStencilFormat = RHIFormat::UNKNOWN;
         psoDesc.NumSamples = 1;
         psoDesc.PrimitiveType = ERHIPrimitiveType::Triangle;
-        psoDesc.RenderTargetsEnabled = 1;
         if (auto pso = RHICreateGraphicsPipelineState(psoDesc))
         {
             std::cout << "Succeed to create pso" << std::endl;

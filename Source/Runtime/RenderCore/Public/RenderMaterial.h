@@ -4,6 +4,8 @@
 #include "Container.h"
 #include "Vector.h"
 #include "Guid.h"
+#include "MeshPass.h"
+#include "RHI.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder
@@ -50,6 +52,8 @@ namespace Thunder
         void BindParametersToRHI(class RHICommandList* cmdList) const;
         //const MaterialParameterCache& GetParameterCache() const { return ParameterCache; }
         const TMap<NameHandle, bool>& GetStaticParameters() const;
+
+        bool GetRenderState(EMeshPass meshPassType, RHIBlendState& outBlendState, RHIRasterizerState& outRasterizerState, RHIDepthStencilState& outDepthStencilState);
 
     private:
         ShaderArchive* Archive { nullptr }; // shader module manages lifetime

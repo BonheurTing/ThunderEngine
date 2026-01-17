@@ -1,8 +1,11 @@
 ﻿#include "RenderMaterial.h"
+
+#include "RenderTranslator.h"
 #include "ShaderArchive.h"
 #include "ShaderDefinition.h"
 #include "RHIResource.h"
 #include "RHI.h"
+#include "ShaderModule.h"
 
 namespace Thunder
 {
@@ -127,5 +130,70 @@ namespace Thunder
     const TMap<NameHandle, bool>& RenderMaterial::GetStaticParameters() const
     {
         return ParameterCache->StaticParameters;
+    }
+
+    bool RenderMaterial::GetRenderState(EMeshPass meshPassType, RHIBlendState& outBlendState, RHIRasterizerState& outRasterizerState, RHIDepthStencilState& outDepthStencilState)
+    {
+        // Get sub-shader.
+        ShaderPass* subShader = Archive->GetSubShader(meshPassType);
+        if (!subShader) [[unlikely]]
+        {
+            TAssertf(false, "Sub-shader \"%s\" not found in archive \"%s\".", ShaderModule::GetMeshPassName(meshPassType).c_str(), Archive->GetName().c_str());
+            return false;
+        }
+
+        // Blend state : currently we only have opaque and transparent modes.
+        outBlendState = RHIBlendState{}; // Reset.
+        switch (subShader->GetBlendMode())
+        {
+        case EShaderBlendMode::Translucent:
+            {
+                for (uint32 targetIndex = 0u; targetIndex < MAX_RENDER_TARGETS; ++targetIndex)
+                {
+                    RHIBlendDescriptor& targetBlend = outBlendState.RenderTarget[targetIndex];
+                    targetBlend.BlendEnable = 1;
+                }
+            }
+            break;
+        case EShaderBlendMode::Opaque:
+        case EShaderBlendMode::Unknown:
+        default:
+            break; // Use default behavior.
+        }
+
+        // Rasterization state.
+        outRasterizerState = RHIRasterizerState{};
+
+        // Depth stencil state.
+        outDepthStencilState = RHIDepthStencilState{};
+        switch (subShader->GetDepthState())
+        {
+        case EShaderDepthState::Never:
+            outDepthStencilState.DepthFunc = ERHIComparisonFunc::Never;
+            break;
+        case EShaderDepthState::Less:
+            outDepthStencilState.DepthFunc = ERHIComparisonFunc::Less;
+            break;
+        case EShaderDepthState::Equal:
+            outDepthStencilState.DepthFunc = ERHIComparisonFunc::Equal;
+            break;
+        case EShaderDepthState::Greater:
+            outDepthStencilState.DepthFunc = ERHIComparisonFunc::Greater;
+            break;
+        case EShaderDepthState::Always:
+            outDepthStencilState.DepthFunc = ERHIComparisonFunc::Always;
+            break;
+        case EShaderDepthState::Unknown:
+        default:
+            break; // Use default behavior.
+        }
+        switch (subShader->GetStencilState())
+        {
+        case EShaderStencilState::Default:
+        case EShaderStencilState::Unknown:
+            break; // Use default behavior.
+        }
+
+        return true;
     }
 }

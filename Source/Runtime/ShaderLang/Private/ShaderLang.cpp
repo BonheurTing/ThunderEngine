@@ -263,8 +263,7 @@ namespace Thunder
 		{
 			// 解析 BlendMode 枚举值
 			if (value.text == "Opaque") current_attributes.blend_mode = enum_blend_mode::opaque;
-			else if (value.text == "Masked") current_attributes.blend_mode = enum_blend_mode::masked;
-			else if (value.text == "Translusent") current_attributes.blend_mode = enum_blend_mode::masked;
+			else if (value.text == "Translucent") current_attributes.blend_mode = enum_blend_mode::translucent;
 			else
 			{
 				debug_log("Unknown BlendMode value: " + value.text);

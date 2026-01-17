@@ -327,6 +327,70 @@ namespace Thunder
 		}
     }
 
+    enum_blend_mode ShaderModule::GetShaderASTBlendMode(EShaderBlendMode blendMode)
+    {
+	    switch (blendMode)
+	    {
+		case EShaderBlendMode::Opaque:
+	    	return enum_blend_mode::opaque;
+	    case EShaderBlendMode::Translucent:
+	    	return enum_blend_mode::translucent;
+	    default:
+	    	return enum_blend_mode::undefined;
+	    }
+    }
+
+    EShaderBlendMode ShaderModule::GetBlendMode(enum_blend_mode blendMode)
+	{
+		switch (blendMode)
+		{
+		case enum_blend_mode::opaque:
+			return EShaderBlendMode::Opaque;
+		case enum_blend_mode::translucent:
+			return EShaderBlendMode::Translucent;
+		default:
+			return EShaderBlendMode::Unknown;
+		}
+    }
+
+    enum_depth_test ShaderModule::GetShaderASTDepthState(EShaderDepthState depthTest)
+    {
+		switch (depthTest)
+		{
+		case EShaderDepthState::Never:
+			return enum_depth_test::never;
+		case EShaderDepthState::Less:
+			return enum_depth_test::less;
+		case EShaderDepthState::Greater:
+			return enum_depth_test::greater;
+		case EShaderDepthState::Equal:
+			return enum_depth_test::equal;
+		case EShaderDepthState::Always:
+			return enum_depth_test::always;
+		default:
+			return enum_depth_test::undefined;
+		}
+    }
+
+    EShaderDepthState ShaderModule::GetDepthState(enum_depth_test depthTest)
+    {
+		switch (depthTest)
+		{
+		case enum_depth_test::never:
+			return EShaderDepthState::Never;
+		case enum_depth_test::less:
+			return EShaderDepthState::Less;
+		case enum_depth_test::greater:
+			return EShaderDepthState::Greater;
+		case enum_depth_test::equal:
+			return EShaderDepthState::Equal;
+		case enum_depth_test::always:
+			return EShaderDepthState::Always;
+		default:
+			return EShaderDepthState::Unknown;
+		}
+    }
+
     ShaderBytecodeHash ShaderStage::GetBytecodeHash() const
 	{
 		ShaderBytecodeHash Hash;

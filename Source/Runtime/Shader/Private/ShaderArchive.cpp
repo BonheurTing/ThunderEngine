@@ -145,6 +145,9 @@ namespace Thunder
     {
     	auto const& attributes = astNode->get_attributes();
     	MeshPass = ShaderModule::GetMeshPass(attributes.mesh_draw_type);
+    	BlendMode = ShaderModule::GetBlendMode(attributes.blend_mode);
+    	DepthState = ShaderModule::GetDepthState(attributes.depth_test);
+    	StencilState = EShaderStencilState::Default;
     }
 
     void ShaderPass::CacheDefaultShaderCache()

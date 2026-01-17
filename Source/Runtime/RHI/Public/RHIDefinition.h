@@ -407,7 +407,8 @@ namespace Thunder
     // +1 for the dx12 value
     enum class ERHIComparisonFunc : uint8
     {
-        Never = 0,
+        Unknown = 0,
+        Never,
         Less,
         Equal,
         LessEqual,

@@ -4,6 +4,7 @@
 #include "Templates/RefCounting.h"
 #include "AstNode.h"
 #include "MeshPass.h"
+#include "RenderStates.h"
 
 namespace Thunder
 {
@@ -75,17 +76,26 @@ namespace Thunder
 		_NODISCARD_ NameHandle GetName() const { return Name; }
 		_NODISCARD_ EMeshPass GetMeshPass() const { return MeshPass; }
 		_NODISCARD_ bool IsMeshPass() const { return static_cast<uint32>(MeshPass) < static_cast<uint32>(EMeshPass::Num); }
+		
+		EShaderBlendMode GetBlendMode() const { return BlendMode; }
+		EShaderDepthState GetDepthState() const { return DepthState; }
+		EShaderStencilState GetStencilState() const { return StencilState; }
 
     private:
 		ShaderArchive* Archive = nullptr;
     	NameHandle Name;
-		EMeshPass MeshPass = EMeshPass::Num;
 		TShaderRegisterCounts RegisterCounts{};
     	THashMap<EShaderStageType, StageMeta> StageMetas;
 		SharedLock VariantsLock;
     	THashMap<uint64, ShaderCombinationRef> Variants;
 		SharedLock SyncCompilingVariantsLock;
     	THashMap<uint64, SyncCompilingCombinationEntry*> SyncCompilingVariants;
+
+		// Pass meta.
+		EMeshPass MeshPass = EMeshPass::Num;
+		EShaderBlendMode BlendMode = EShaderBlendMode::Unknown;
+		EShaderDepthState DepthState = EShaderDepthState::Unknown;
+		EShaderStencilState StencilState = EShaderStencilState::Unknown;
     };
 	using ShaderPassRef = TRefCountPtr<ShaderPass>;
 

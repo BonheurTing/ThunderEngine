@@ -131,31 +131,18 @@ namespace Thunder
 
 	struct TGraphicsPipelineStateDescriptor
 	{
-		TShaderRegisterCounts           RegisterCounts;
-		RHIVertexDeclarationDescriptor	VertexDeclaration;
-		RHIBlendState					BlendState;
-		RHIRasterizerState			    RasterizerState;
-		RHIDepthStencilState            DepthStencilState;
+		TShaderRegisterCounts           RegisterCounts{};
+		RHIVertexDeclarationDescriptor	VertexDeclaration{};
+		RHIBlendState					BlendState{};
+		RHIRasterizerState			    RasterizerState{};
+		RHIDepthStencilState            DepthStencilState{};
 		RenderPass*						Pass = nullptr;
 		ERHIPrimitiveType				PrimitiveType : 3 = ERHIPrimitiveType::Triangle;
-		uint8							RenderTargetsEnabled : 1 = true;
 		uint8							NumSamples : 4 = 1;
-		// Dynamic states.
+		class ShaderCombination*		shaderVariant = nullptr;
 
-		class ShaderCombination*		shaderVariant;
-		
 		void GetStateIdentifier(TArray<uint8>& outIdentifier) const;
-		TGraphicsPipelineStateDescriptor() :
-			RegisterCounts{},
-			VertexDeclaration{},
-			BlendState{},
-			RasterizerState{},
-			DepthStencilState{},
-			PrimitiveType{ERHIPrimitiveType::Undefined},
-			RenderTargetsEnabled{0},
-			NumSamples{1},
-			shaderVariant{ nullptr }
-		{}
+		TGraphicsPipelineStateDescriptor() = default;
 	};
 	struct TComputePipelineStateDescriptor
 	{

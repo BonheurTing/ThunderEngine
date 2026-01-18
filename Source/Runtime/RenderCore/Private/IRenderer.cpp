@@ -6,7 +6,7 @@ namespace Thunder
 {
     IRenderer::IRenderer()
     {
-        mFrameGraph = new FrameGraph(this, GAsyncWorkers->GetNumThreads());
+        mFrameGraph = new FrameGraph(this, GSyncWorkers->GetNumThreads());
     }
 
     IRenderer::~IRenderer()

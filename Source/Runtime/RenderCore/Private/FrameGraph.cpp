@@ -105,23 +105,26 @@ namespace Thunder
             {
                 auto& pass = Passes[passIndex];
 
-                if (pass->bIsMeshDrawPass)
                 {
-                    // TODO: Implement mesh draw pass execution with parallel workers
-                    // This matches the pseudo-code for parallel primitive processing
-                    // For now, we'll skip this as requested - to be implemented later
-                }
-                else
-                {
-                    // Execute regular pass with main context
-                    MainContext->SetCurrentPass(pass.Get());
-                    pass->ExecuteFunction(MainContext);
+                    // Execute pass.
+                    SetCurrentPass(pass.Get());
+                    pass->ExecuteFunction();
 
-                    // Add main context commands to consolidated list
-                    const auto& commands = MainContext->GetCommands();
-                    
-                    AllCommands[frameIndex].insert(AllCommands[frameIndex].end(), commands.begin(), commands.end());
+                    // Add main context commands.
+                    const auto& mainCommands = MainContext->GetCommands();
+                    AllCommands[frameIndex].insert(AllCommands[frameIndex].end(), mainCommands.begin(), mainCommands.end());
                     MainContext->ClearCommands();
+
+                    // Add threaded commands.
+                    for (auto& context : RenderContexts)
+                    {
+                        auto const& commands = context->GetCommands();
+                        if (!commands.empty())
+                        {
+                            AllCommands[frameIndex].insert(AllCommands[frameIndex].end(), commands.begin(), commands.end());
+                        }
+                        context->ClearCommands();
+                    }
                 }
 
                 // After pass execution, release render targets that are no longer needed

@@ -163,7 +163,7 @@ namespace Thunder
 			}
 		private:
 
-			TFunction<void(uint32, uint32, uint32)>* Function; //存TFunction指针，不用构造，只需8字节
+			TFunction<void(uint32, uint32, uint32)>* Function;
 			uint32 Head;
 			uint32 Size;
 			uint32 BundleId;
@@ -171,7 +171,6 @@ namespace Thunder
 
 		for (uint32 i = 0; i < NumTask; i += BundleSize)
 		{
-			//TaskBundle构造需要TFunction指针，因此传入地址；对于为什么ParallelFor用&接完这里还要&，想象接的是String& Body，TaskBundle如果不加&，就是把String类型给String*类型，无法匹配构造函数
 			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(&Body, i, BundleSize, i/BundleSize);
 			PushTask(bundleTask);
 		}
@@ -182,9 +181,8 @@ namespace Thunder
 		class TaskBundle : public ITask
 		{
 		public:
-			TaskBundle(const TFunction<void(uint32, uint32, uint32)>& InFunction, uint32 InStart, uint32 InSize, uint32 InThreadId) //接引用
-			: Function(InFunction) //变量不是指针，免不了一次构造，注意TFunction的大小，是func一个指针大小(8字节)+capture data的大小；
-			//对于TestMultiThread.cpp的例子，capture data是一个lambda对象，其中capture了两个vector的引用，即两个指针，大小是16字节；那么一共24字节，对于capture数据较小的情况可以用这个方式
+			TaskBundle(const TFunction<void(uint32, uint32, uint32)>& InFunction, uint32 InStart, uint32 InSize, uint32 InThreadId)
+			: Function(InFunction)
 			, Head(InStart)
 			, Size(InSize)
 			, ThreadId(InThreadId)

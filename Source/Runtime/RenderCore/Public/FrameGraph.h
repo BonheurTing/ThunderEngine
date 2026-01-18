@@ -30,7 +30,7 @@ namespace Thunder
         TArray<uint32> WriteTargets;
     };
 
-    using PassExecutionFunction = TFunction<void(FRenderContext*)>;
+    using PassExecutionFunction = TFunction<void()>;
 
     struct FrameGraphPass : public RefCountedObject
     {
@@ -39,11 +39,10 @@ namespace Thunder
         PassOperations Operations;
         PassExecutionFunction ExecuteFunction;
         bool bCulled = false;
-        bool bIsMeshDrawPass = false;  // Flag to indicate if this is a mesh draw pass.
 
         FrameGraphPass() = delete;
         FrameGraphPass(class FrameGraph* graph, const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction, bool inIsMeshDrawPass = false)
-            : FrameGraph(graph), Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)), bIsMeshDrawPass(inIsMeshDrawPass) {}
+            : FrameGraph(graph), Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)) {}
         PassOperations const& GetOperations() const { return Operations; }
     };
 
@@ -77,6 +76,14 @@ namespace Thunder
         const TArray<FRenderContext*>& GetRenderContexts() const { return RenderContexts; }
         TArray<IRHICommand*>& GetCurrentAllCommands(int frontIndex) { return AllCommands[frontIndex]; }
 
+        FORCEINLINE void SetCurrentPass(FrameGraphPass* pass) const
+        {
+            MainContext->SetCurrentPass(pass);
+            for (auto& context : RenderContexts)
+            {
+                context->SetCurrentPass(pass);
+            }
+        }
         FORCEINLINE FrameGraphPass* GetPass(NameHandle name)
         {
             auto passIt = PassIndexMap.find(name);

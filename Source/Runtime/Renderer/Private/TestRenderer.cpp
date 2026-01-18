@@ -4,10 +4,14 @@
 #include "MeshDrawCommand.h"
 #include "MeshPass.h"
 #include "MeshPassProcessor.h"
+#include "PlatformProcess.h"
 #include "RHICommand.h"
 #include "Memory/TransientAllocator.h"
 #include "PrimitiveSceneInfo.h"
 #include "RenderModule.h"
+#include "Concurrent/ConcurrentBase.h"
+#include "Concurrent/TaskScheduler.h"
+#include "HAL/Event.h"
 
 namespace Thunder
 {
@@ -36,9 +40,10 @@ namespace Thunder
             PassOperations operations;
             operations.Write(GBufferRT0);
             operations.Write(GBufferRT1);
-            mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this](FRenderContext* Context)
+            mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
             {
-                RHIDrawCommand* newCommand = new (Context->Allocate<RHIDrawCommand>()) RHIDrawCommand;
+                auto context = mFrameGraph->GetMainContext();
+                RHIDrawCommand* newCommand = new (context->Allocate<RHIDrawCommand>()) RHIDrawCommand;
 
                 // Set render resources
                 //Command->VBToSet = VB;
@@ -52,7 +57,7 @@ namespace Thunder
                 newCommand->BaseVertexLocation = 0;
                 newCommand->StartInstanceLocation = 0;
 
-                Context->AddCommand(newCommand);
+                context->AddCommand(newCommand);
                 Print("Execute gbuffer");
             });
         }
@@ -66,8 +71,9 @@ namespace Thunder
             operations.Read(GBufferRT0);
             operations.Read(GBufferRT1);
             operations.Write(LightingRT);
-            mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this](FRenderContext* context)
+            mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this]()
             {
+                auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute lighting");
@@ -82,8 +88,9 @@ namespace Thunder
             PassOperations operations;
             operations.Read(LightingRT);
             operations.Write(PostProcessRT1);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this](FRenderContext* context)
+            mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this]()
             {
+                auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute postprocess1");
@@ -98,8 +105,9 @@ namespace Thunder
             PassOperations operations;
             operations.Read(LightingRT);
             operations.Write(postProcessRT2);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this](FRenderContext* context)
+            mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this]()
             {
+                auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute postprocess2");
@@ -156,9 +164,10 @@ namespace Thunder
             PassOperations operations;
             operations.Write(DummyRT);
             operations.Write(GBufferSceneDepth);
-            mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this](FRenderContext* context)
+            mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this]()
             {
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::PrePass);
+                auto context = mFrameGraph->GetMainContext();
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
                 for (auto& sceneInfo : mainView->GetVisibleSceneInfos()) // Todo : Parallel processing.
                 {
@@ -169,7 +178,7 @@ namespace Thunder
                     }
                 }
                 Print("Execute PrePass");
-            });
+            }, true);
         }
 
         {
@@ -181,8 +190,9 @@ namespace Thunder
             PassOperations operations;
             operations.Write(DummyRT);
             operations.Write(ShadowDepth);
-            mFrameGraph->AddPass(EVENT_NAME("ShaderDepth"), std::move(operations), [this](FRenderContext* context)
+            mFrameGraph->AddPass(EVENT_NAME("ShaderDepth"), std::move(operations), [this]()
             {
+                auto context = mFrameGraph->GetMainContext();
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::ShadowPass);
                 auto shadowView = mFrameGraph->GetSceneView(EViewType::ShadowView);
                 for (auto& sceneInfo : shadowView->GetVisibleSceneInfos())
@@ -194,7 +204,7 @@ namespace Thunder
                     }
                 }
                 Print("Execute ShaderDepth");
-            });
+            }, true);
         }
 
         {
@@ -202,20 +212,48 @@ namespace Thunder
             operations.Write(GBufferRT0);
             operations.Write(GBufferRT1);
             operations.Write(GBufferSceneDepth);
-            mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this](FRenderContext* context)
+            mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
             {
-                MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::BasePass);
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
-                for (auto& sceneInfo : mainView->GetVisibleSceneInfos())
+                auto const& sceneInfos = mainView->GetVisibleSceneInfos();
+                uint32 const sceneInfoCount = static_cast<uint32>(sceneInfos.size());
+                if (sceneInfoCount == 0)
                 {
-                    auto staticMeshes = sceneInfo->GetStaticMeshes();
-                    for (const auto& batch : staticMeshes | std::views::values)
-                    {
-                        processor->AddMeshBatch(context, batch, EMeshPass::BasePass);
-                    }
+                    return;
                 }
+
+                const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+                auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
+                dispatcher->Promise(static_cast<int>(sceneInfoCount));
+                GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
+                {
+                    auto const& contexts = mFrameGraph->GetRenderContexts();
+                    auto context = contexts[threadId];
+                    MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::BasePass);
+                    for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
+                    {
+                        if (index >= sceneInfoCount)
+                        {
+                            break;
+                        }
+
+                        auto sceneInfo = sceneInfos[index];
+                        auto const& staticMeshes = sceneInfo->GetStaticMeshes();
+                        for (const auto& batch : staticMeshes | std::views::values)
+                        {
+                            processor->AddMeshBatch(context, batch, EMeshPass::BasePass);
+                        }
+
+                        dispatcher->Notify();
+                    }
+                }, sceneInfoCount);
+
+                doWorkEvent->Wait();
+                FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
+                TMemory::Destroy(dispatcher);
+
                 Print("Execute GBufferPass");
-            });
+            }, true);
         }
 
         // Lighting pass.
@@ -227,8 +265,9 @@ namespace Thunder
             operations.Read(GBufferRT0);
             operations.Read(GBufferRT1);
             operations.Write(LightingRT);
-            mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this](FRenderContext* context)
+            mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this]()
             {
+                auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute lighting");
@@ -243,8 +282,9 @@ namespace Thunder
             PassOperations operations;
             operations.Read(LightingRT);
             operations.Write(PostProcessRT1);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this](FRenderContext* context)
+            mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this]()
             {
+                auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute postprocess1");
@@ -259,8 +299,9 @@ namespace Thunder
             PassOperations operations;
             operations.Read(LightingRT);
             operations.Write(postProcessRT2);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this](FRenderContext* context)
+            mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this]()
             {
+                auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute postprocess2");

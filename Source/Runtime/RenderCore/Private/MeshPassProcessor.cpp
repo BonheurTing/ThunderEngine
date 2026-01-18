@@ -22,17 +22,19 @@ namespace Thunder
     {
     }
 
-    bool MeshPassProcessor::AddMeshBatch(FRenderContext* context, const MeshBatch* batch, EMeshPass meshPassType)
+    bool MeshPassProcessor::AddMeshBatch(FRenderContext* context, const MeshBatch* batch, EMeshPass meshPassType, bool cacheMeshDrawCommand)
     {
-        return Process(context, batch, meshPassType);
+        return Process(context, batch, meshPassType, cacheMeshDrawCommand);
     }
 
-    bool MeshPassProcessor::Process(FRenderContext* context, const MeshBatch* batch, EMeshPass meshPassType)
+    bool MeshPassProcessor::Process(FRenderContext* context, const MeshBatch* batch, EMeshPass meshPassType, bool cacheMeshDrawCommand)
     {
         auto const& elements = batch->GetElements();
         for (auto const& meshBatchElement : elements)
         {
-            RHIDrawCommand* newCommand = new (context->Allocate<RHIDrawCommand>()) RHIDrawCommand;
+            RHIDrawCommand* newCommand = (cacheMeshDrawCommand) ?
+                new (TMemory::Malloc<RHICachedDrawCommand>()) RHICachedDrawCommand :
+                new (context->Allocate<RHIDrawCommand>()) RHIDrawCommand;
             RenderMaterial* material = meshBatchElement.Material;
             SubMesh* subMesh = meshBatchElement.SubMesh;
 
@@ -45,15 +47,29 @@ namespace Thunder
             }
             newCommand->GraphicsPSO = pso;
 
-            context->AddCommand(newCommand);
+            // Add mesh-draw command.
+            FinalizeCommand(context, batch, subMesh->SubMeshIndex, newCommand, cacheMeshDrawCommand);
         }
 
         return true;
     }
 
+    void MeshPassProcessor::FinalizeCommand(FRenderContext* context, const MeshBatch* batch, uint32 elementIndex, RHIDrawCommand* command, bool cacheMeshDrawCommand)
+    {
+        if (cacheMeshDrawCommand)
+        {
+            context->AddCachedCommand(batch, elementIndex, static_cast<RHICachedDrawCommand*>(command));
+        }
+        else
+        {
+            context->AddCommand(command);
+        }
+    }
+
     TRHIGraphicsPipelineState* MeshPassProcessor::GetPipelineState(const FRenderContext* context, EMeshPass meshPassType, const SubMesh* subMesh, RenderMaterial* material)
     {
         // Fetch shader.
+        TGraphicsPipelineStateDescriptor psoDesc;
         auto shaderAst = material->GetShaderArchive();
         uint64 shaderVariantMask = ShaderModule::GetVariantMask(shaderAst, material->GetStaticParameters());
         ShaderCombination* shaderVariant = ShaderModule::GetShaderCombination(shaderAst, meshPassType, shaderVariantMask);
@@ -62,16 +78,15 @@ namespace Thunder
             // Shader is not ready yet.
             return nullptr;
         }
+        psoDesc.shaderVariant = shaderVariant;
 
         // Get register counts.
-        TGraphicsPipelineStateDescriptor psoDesc;
         bool succeeded = ShaderModule::GetPassRegisterCounts(shaderAst, meshPassType, psoDesc.RegisterCounts);
         if (!succeeded) [[unlikely]]
         {
             TAssertf(false, "Failed to get pipeline state, register count is invalid.");
             return nullptr;
         }
-        psoDesc.shaderVariant = shaderVariant;
 
         // Get vertex declaration.
         succeeded = subMesh->GetVertexDeclaration(psoDesc.VertexDeclaration);

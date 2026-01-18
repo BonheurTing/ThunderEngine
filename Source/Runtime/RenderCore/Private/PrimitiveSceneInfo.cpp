@@ -2,6 +2,7 @@
 
 #include "IDynamicRHI.h"
 #include "RenderMaterial.h"
+#include "RenderModule.h"
 #include "RHICommand.h"
 #include "ShaderModule.h"
 #include "Memory/TransientAllocator.h"
@@ -10,6 +11,28 @@ namespace Thunder
 {
     bool PrimitiveSceneInfo::CacheMeshDrawCommand(FRenderContext* context, EMeshPass meshPassType)
     {
+        // Add all static mesh batches.
+        auto meshProcessor = RenderModule::GetMeshPassProcessor(meshPassType);
+        for (const auto& batchIt : StaticMeshes)
+        {
+            auto const& batchKey = batchIt.first;
+            auto const& batch = batchIt.second;
+
+            // Check pass relevance.
+            auto relevanceIt = StaticMeshRelevances.find(batchKey);
+            if (relevanceIt == StaticMeshRelevances.end()) [[unlikely]]
+            {
+                TAssertf(false, "Static mesh batch relevance not found.");
+                continue;
+            }
+            if (!relevanceIt->second->CommandInfosMask.Get(meshPassType))
+            {
+                continue;
+            }
+
+            meshProcessor->AddMeshBatch(context, batch, meshPassType, true);
+        }
+
         return true;
     }
 
@@ -47,12 +70,13 @@ namespace Thunder
     {
         TAssertf(subMeshes.size() == renderMaterials.size(), "SubMeshes size mismatch.");
         StaticMeshes[key] = new (TMemory::Malloc<StaticMeshBatch>())
-            StaticMeshBatch{ this, subMeshes, renderMaterials };
+            StaticMeshBatch{ this, subMeshes, renderMaterials, 0 };
         StaticMeshRelevances[key] = new (TMemory::Malloc<StaticMeshBatchRelevance>())
             StaticMeshBatchRelevance{ MeshPassMask{ 0xFFffFFffFFffFFffULL } };
     }
 
     StaticMeshSceneInfo::StaticMeshSceneInfo(TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& materials)
+        : PrimitiveSceneInfo(true)
     {
         AddStaticMesh(MeshBatchKey{ .LodLevel = 0 }, subMeshes, materials);
     }

@@ -91,7 +91,7 @@ namespace Thunder
 
 		for (uint32 i = 0; i < subMeshCount; ++i)
 		{
-			const auto subMesh = new (TMemory::Malloc<SubMesh>()) SubMesh();
+			const auto subMesh = new (TMemory::Malloc<SubMesh>()) SubMesh(i);
 
 			// 反序列化顶点缓冲区
 			subMesh->Vertices = MakeRefCount<ReflectiveContainer>();

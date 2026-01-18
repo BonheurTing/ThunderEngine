@@ -160,5 +160,12 @@ namespace Thunder
     {
         return GDynamicRHI->RHIWaitForFrame(frameIndex);
     }
+
+    RHI_API extern std::atomic_uint64_t GCachedMeshDrawCommandIndex;
+    FORCEINLINE uint64 RHIAllocateCachedMeshDrawCommandIndex()
+    {
+        TAssertf(GCachedMeshDrawCommandIndex.load(std::memory_order_acquire) < 0xFFFFFFFFFFFFFFFFull, "Cached mesh-draw index is out-of-range.");
+        return GCachedMeshDrawCommandIndex.fetch_add(1, std::memory_order_acq_rel);
+    }
 }
 

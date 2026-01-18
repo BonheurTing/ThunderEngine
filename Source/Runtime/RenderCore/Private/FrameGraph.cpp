@@ -5,12 +5,19 @@
 #include "RenderContext.h"
 #include "RHICommand.h"
 #include "IRHIModule.h"
+#include "PlatformProcess.h"
+#include "PrimitiveSceneInfo.h"
+#include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskGraph.h"
+#include "Concurrent/TaskScheduler.h"
+#include "HAL/Event.h"
 #include "Misc/CoreGlabal.h"
 
 
 namespace Thunder
 {
+    class TaskDispatcher;
+
     void PassOperations::Read(const FGRenderTarget* renderTarget)
     {
         ReadTargets.push_back(renderTarget->GetID());
@@ -147,9 +154,161 @@ namespace Thunder
         }
     }
 
-    void FrameGraph::AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction, bool bIsMeshDrawPass)
+    void FrameGraph::RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo)
     {
-        auto pass = MakeRefCount<FrameGraphPass>(this, name, std::move(operations), std::move(executeFunction), bIsMeshDrawPass);
+        SceneInfos.insert(sceneInfo);
+        if (sceneInfo->IsMeshDrawCacheSupported())
+        {
+            uint32 const gameThreadIndex = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) % 2;
+            SceneInfoUpdateSet[gameThreadIndex].insert(sceneInfo);
+        }
+    }
+
+    void FrameGraph::UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo)
+    {
+        SceneInfos.erase(sceneInfo);
+        if (sceneInfo->IsMeshDrawCacheSupported())
+        {
+            uint32 const gameThreadIndex = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) % 2;
+            SceneInfoUpdateSet[gameThreadIndex].erase(sceneInfo);
+        }
+    }
+
+    void FrameGraph::UpdateSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo)
+    {
+        auto sceneInfoIt = SceneInfos.find(sceneInfo);
+        if (sceneInfoIt == SceneInfos.end()) [[unlikely]]
+        {
+            TAssertf(false, "Scene info not registered.");
+            return;
+        }
+
+        uint32 const gameThreadIndex = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) % 2;
+        SceneInfoUpdateSet[gameThreadIndex].insert(sceneInfo);
+    }
+
+    void FrameGraph::UpdateSceneInfo_RenderThread()
+    {
+        uint32 const renderThreadIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
+        SceneInfoCurrentUpdateSet.clear();
+        SceneInfoCurrentUpdateSet.swap(SceneInfoUpdateSet[renderThreadIndex]);
+    }
+
+    void FrameGraph::UpdatePassSceneInfo(EMeshPass passType)
+    {
+        // Get scene infos to update.
+        TArray<PrimitiveSceneInfo*> sceneInfos{};
+        for (auto const& sceneInfo : SceneInfoCurrentUpdateSet)
+        {
+            sceneInfos.push_back(sceneInfo);
+        }
+        uint32 const sceneInfoCount = static_cast<uint32>(sceneInfos.size());
+        if (sceneInfoCount == 0)
+        {
+            return;
+        }
+
+        // Dispatch update tasks.
+        const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+        auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
+        dispatcher->Promise(static_cast<int>(sceneInfoCount));
+        GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount, passType](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
+        {
+            auto const& contexts = GetRenderContexts();
+            auto context = contexts[threadId];
+            for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
+            {
+                if (index >= sceneInfoCount)
+                {
+                    break;
+                }
+
+                // Cache static mesh-draw commands for current pass.
+                for (auto& sceneInfo : sceneInfos)
+                {
+                    if (sceneInfo->IsMeshDrawCacheSupported())
+                    {
+                        sceneInfo->CacheMeshDrawCommand(context, passType);
+                    }
+                }
+
+                dispatcher->Notify();
+            }
+        }, sceneInfoCount);
+
+        // Wait for task to finish.
+        doWorkEvent->Wait();
+        FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
+        TMemory::Destroy(dispatcher);
+
+        // Finalize commands.
+        for (auto& context : RenderContexts)
+        {
+            auto const& cachedCommands = context->GetCachedCommands();
+            for (auto& cachedCommandEntry : cachedCommands)
+            {
+                // Get mesh batch and command.
+                auto const& meshBatch = std::get<0>(cachedCommandEntry);
+                auto const& elementIndex = std::get<1>(cachedCommandEntry);
+                auto const& command = std::get<2>(cachedCommandEntry);
+                PrimitiveSceneInfo* sceneInfo = meshBatch->GetSceneInfo();
+
+                // Cache mesh-draw command.
+                auto cachedDrawListIt = CachedDrawLists.find(passType);
+                if (cachedDrawListIt == CachedDrawLists.end())
+                {
+                    CachedDrawLists[passType] = CachedPassMeshDrawList{};
+                }
+                CachedPassMeshDrawList& cachedDrawList = CachedDrawLists[passType];
+                uint64 commandIndex = command->CachedCommandIndex;
+                cachedDrawList.MeshDrawCommands[commandIndex] = command;
+
+                // Save mesh draw info.
+                sceneInfo->EmplaceDrawCommandInfo(passType, meshBatch->GetKey(), elementIndex, commandIndex);
+            }
+
+            context->ClearCachedCommands();
+        }
+    }
+
+    void FrameGraph::ResolveVisibility(EViewType viewType, EMeshPass passType)
+    {
+        // Update pass.
+        UpdatePassSceneInfo(passType);
+
+        // Cull.
+        auto view = GetSceneView(viewType);
+        if (!view->IsCulled())
+        {
+            view->CullSceneProxies();
+        }
+
+        // Save visible cached mesh-draw commands.
+        auto const& visibleSceneInfos = view->GetVisibleStaticSceneInfos();
+        auto& visibleCachedDrawList = VisibleCachedDrawLists[passType];
+        visibleCachedDrawList.clear();
+        for (auto const& sceneInfo : visibleSceneInfos)
+        {
+            bool const isStatic = sceneInfo->IsMeshDrawCacheSupported();
+            if (!isStatic) [[unlikely]]
+            {
+                TAssertf(false, "Trying to cache a dynamic mesh batch.");
+                continue;
+            }
+
+            // Add cached command.
+            auto const& meshDrawCommandInfoMap = sceneInfo->GetDrawCommandInfo(passType);
+            for (const MeshDrawCommandInfo& commandInfo : meshDrawCommandInfoMap | std::views::values)
+            {
+                RHICachedDrawCommand* command = CachedDrawLists[passType].MeshDrawCommands[commandInfo.CommandIndex];
+                visibleCachedDrawList.push_back(command);
+            }
+        }
+    }
+
+    void FrameGraph::AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction)
+    {
+        auto pass = MakeRefCount<FrameGraphPass>(this, name, std::move(operations), std::move(executeFunction));
         Passes.push_back(pass);
         PassIndexMap[name] = (static_cast<int>(Passes.size()) - 1);
     }
@@ -192,7 +351,7 @@ namespace Thunder
 
     void FrameGraph::SetPresentTarget(const FGRenderTarget* renderTarget)
     {
-        TAssert(renderTarget->GetID() != 0xFFFFFFFF, "Present target is not registered yet.");
+        TAssertf(renderTarget->GetID() != 0xFFFFFFFF, "Present target is not registered yet.");
         PresentTargetID = renderTarget->GetID();
         bHasPresentTarget = true;
     }

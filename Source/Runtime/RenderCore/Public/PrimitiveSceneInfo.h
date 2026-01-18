@@ -13,23 +13,24 @@ namespace Thunder
     class PrimitiveSceneInfo
     {
     public:
-        RENDERCORE_API PrimitiveSceneInfo() = default;
+        RENDERCORE_API PrimitiveSceneInfo(bool meshDrawCacheSupported = false) : MeshDrawCacheSupported(meshDrawCacheSupported) {}
         virtual ~PrimitiveSceneInfo() = default;
 
         virtual bool NeedRenderView(EViewType type) { return true; }
         TMap<MeshBatchKey, StaticMeshBatch*> const& GetStaticMeshes() { return StaticMeshes; }
 
-        MeshDrawCommandInfo* GetDrawCommandInfo(EMeshPass passType)
+        TMap<uint32, MeshDrawCommandInfo> GetDrawCommandInfo(EMeshPass passType)
         {
-            auto commandInfoIt = StaticMeshCommandInfos.find(static_cast<uint32>(passType));
-            if (commandInfoIt != StaticMeshCommandInfos.end())
-            {
-                return &(commandInfoIt->second);
-            }
-            return nullptr;
+            auto& meshDrawInfoMap = StaticMeshCommandInfos[passType][MeshBatchKey{}];
+            return meshDrawInfoMap;
+        }
+        void EmplaceDrawCommandInfo(EMeshPass passType, MeshBatchKey meshBatchKey, uint32 subMeshIndex, uint64 commandIndex)
+        {
+            StaticMeshCommandInfos[passType][meshBatchKey][subMeshIndex] = MeshDrawCommandInfo{ commandIndex };
         }
 
         RENDERCORE_API bool CacheMeshDrawCommand(FRenderContext* context, EMeshPass meshPassType);
+        RENDERCORE_API bool IsMeshDrawCacheSupported() const  { return MeshDrawCacheSupported; }
 
     protected:
         void DestroyStaticMeshes();
@@ -37,9 +38,10 @@ namespace Thunder
         void AddStaticMesh(MeshBatchKey const& key, TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& renderMaterials);
 
     protected:
-        TMap<uint32, MeshDrawCommandInfo> StaticMeshCommandInfos;
+        TMap<EMeshPass, TMap<MeshBatchKey, TMap<uint32, MeshDrawCommandInfo>>> StaticMeshCommandInfos; // Pass, batch, submesh.
         TMap<MeshBatchKey, StaticMeshBatch*> StaticMeshes;
         TMap<MeshBatchKey, StaticMeshBatchRelevance*> StaticMeshRelevances;
+        bool MeshDrawCacheSupported = false;
     };
 
     class StaticMeshSceneInfo : public PrimitiveSceneInfo

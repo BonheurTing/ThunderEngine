@@ -36,6 +36,28 @@ namespace Thunder
         }
     }
 
+    void FRenderContext::AddCommandList(TArray<RHICachedDrawCommand*> commandList)
+    {
+        Commands.insert(Commands.end(), commandList.begin(), commandList.end());
+    }
+
+    void FRenderContext::AddCachedCommand(const MeshBatch* batch, uint32 elementIndex, RHICachedDrawCommand* command)
+    {
+        if (batch && command)
+        {
+            CachedDrawCommands.emplace_back(batch, elementIndex, command);
+        }
+        else
+        {
+            TAssertf(false, "Failed to add cached draw command, batch or command is invalid.");
+        }
+    }
+
+    void FRenderContext::ClearCachedCommands()
+    {
+        CachedDrawCommands.clear();
+    }
+
     void FRenderContext::ClearCommands()
     {
         Commands.clear();

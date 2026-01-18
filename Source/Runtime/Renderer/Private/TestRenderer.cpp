@@ -27,6 +27,7 @@ namespace Thunder
         }
 
         mFrameGraph->Reset();
+        mFrameGraph->UpdateSceneInfo_RenderThread();
 
         // GBuffer pass.
         static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
@@ -146,6 +147,7 @@ namespace Thunder
         }
 
         mFrameGraph->Reset();
+        mFrameGraph->UpdateSceneInfo_RenderThread();
 
         // GBuffer pass.
         static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
@@ -167,18 +169,26 @@ namespace Thunder
             mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this]()
             {
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::PrePass);
-                auto context = mFrameGraph->GetMainContext();
+                auto mainContext = mFrameGraph->GetMainContext();
+                mFrameGraph->ResolveVisibility(EViewType::MainView, EMeshPass::PrePass);
+
+                // Add cached mesh batches.
+                TArray<RHICachedDrawCommand*> const& cachedDrawList = mFrameGraph->GetVisibleCachedDrawList(EMeshPass::PrePass);
+                mainContext->AddCommandList(cachedDrawList);
+
+                // Add dynamic mesh batches.
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
-                for (auto& sceneInfo : mainView->GetVisibleSceneInfos()) // Todo : Parallel processing.
+                for (auto& sceneInfo : mainView->GetVisibleDynamicSceneInfos())
                 {
                     auto staticMeshes = sceneInfo->GetStaticMeshes();
                     for (const auto& batch : staticMeshes | std::views::values)
                     {
-                        processor->AddMeshBatch(context, batch, EMeshPass::PrePass);
+                        processor->AddMeshBatch(mainContext, batch, EMeshPass::PrePass);
                     }
                 }
+
                 Print("Execute PrePass");
-            }, true);
+            });
         }
 
         {
@@ -195,7 +205,7 @@ namespace Thunder
                 auto context = mFrameGraph->GetMainContext();
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::ShadowPass);
                 auto shadowView = mFrameGraph->GetSceneView(EViewType::ShadowView);
-                for (auto& sceneInfo : shadowView->GetVisibleSceneInfos())
+                for (auto& sceneInfo : shadowView->GetVisibleDynamicSceneInfos())
                 {
                     auto staticMeshes = sceneInfo->GetStaticMeshes();
                     for (const auto& batch : staticMeshes | std::views::values)
@@ -204,7 +214,7 @@ namespace Thunder
                     }
                 }
                 Print("Execute ShaderDepth");
-            }, true);
+            });
         }
 
         {
@@ -214,46 +224,52 @@ namespace Thunder
             operations.Write(GBufferSceneDepth);
             mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
             {
+                auto mainContext = mFrameGraph->GetMainContext();
+                mFrameGraph->ResolveVisibility(EViewType::MainView, EMeshPass::BasePass);
+
+                // Add cached mesh batches.
+                TArray<RHICachedDrawCommand*> const& cachedDrawList = mFrameGraph->GetVisibleCachedDrawList(EMeshPass::BasePass);
+                mainContext->AddCommandList(cachedDrawList);
+
+                // Add dynamic mesh batches.
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
-                auto const& sceneInfos = mainView->GetVisibleSceneInfos();
+                auto const& sceneInfos = mainView->GetVisibleDynamicSceneInfos();
                 uint32 const sceneInfoCount = static_cast<uint32>(sceneInfos.size());
-                if (sceneInfoCount == 0)
+                if (sceneInfoCount > 0)
                 {
-                    return;
+                    const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
+                    auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
+                    dispatcher->Promise(static_cast<int>(sceneInfoCount));
+                    GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
+                    {
+                        auto const& contexts = mFrameGraph->GetRenderContexts();
+                        auto context = contexts[threadId];
+                        MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::BasePass);
+                        for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
+                        {
+                            if (index >= sceneInfoCount)
+                            {
+                                break;
+                            }
+
+                            auto sceneInfo = sceneInfos[index];
+                            auto const& staticMeshes = sceneInfo->GetStaticMeshes();
+                            for (const auto& batch : staticMeshes | std::views::values)
+                            {
+                                processor->AddMeshBatch(context, batch, EMeshPass::BasePass);
+                            }
+
+                            dispatcher->Notify();
+                        }
+                    }, sceneInfoCount);
+
+                    doWorkEvent->Wait();
+                    FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
+                    TMemory::Destroy(dispatcher);
                 }
 
-                const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
-                auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
-                dispatcher->Promise(static_cast<int>(sceneInfoCount));
-                GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
-                {
-                    auto const& contexts = mFrameGraph->GetRenderContexts();
-                    auto context = contexts[threadId];
-                    MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::BasePass);
-                    for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
-                    {
-                        if (index >= sceneInfoCount)
-                        {
-                            break;
-                        }
-
-                        auto sceneInfo = sceneInfos[index];
-                        auto const& staticMeshes = sceneInfo->GetStaticMeshes();
-                        for (const auto& batch : staticMeshes | std::views::values)
-                        {
-                            processor->AddMeshBatch(context, batch, EMeshPass::BasePass);
-                        }
-
-                        dispatcher->Notify();
-                    }
-                }, sceneInfoCount);
-
-                doWorkEvent->Wait();
-                FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
-                TMemory::Destroy(dispatcher);
-
                 Print("Execute GBufferPass");
-            }, true);
+            });
         }
 
         // Lighting pass.

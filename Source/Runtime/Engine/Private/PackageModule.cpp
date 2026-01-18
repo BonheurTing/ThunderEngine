@@ -558,7 +558,7 @@ namespace Thunder
 				const aiMesh* mesh = scene->mMeshes[i];
 				LOG("Mesh %d: %d vertices\n", i, mesh->mNumVertices);
 
-				const auto subMesh = new (TMemory::Malloc<SubMesh>()) SubMesh();
+				const auto subMesh = new (TMemory::Malloc<SubMesh>()) SubMesh(i);
 
 				subMesh->Vertices = GenerateVertexBuffer(mesh);
 				subMesh->Indices = GenerateIndicesBuffer(mesh);

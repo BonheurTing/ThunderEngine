@@ -10,6 +10,10 @@ namespace Thunder
         TReflectiveContainerRef Vertices { nullptr };
         TReflectiveContainerRef Indices { nullptr };
         AABB BoundingBox {};
+        uint32 SubMeshIndex{ 0 };
+
+        SubMesh() = delete;
+        SubMesh(uint32 index) : SubMeshIndex(index) {}
 
         bool GetVertexDeclaration(TArray<RHIVertexElement>& outDeclarations) const;
         bool GetVertexDeclaration(RHIVertexDeclarationDescriptor& outDeclarations) const;

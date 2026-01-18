@@ -6,11 +6,11 @@ namespace Thunder
 {
     struct MeshDrawCommandInfo
     {
-        uint32 CommandIndex;
+        uint64 CommandIndex;
     };
-    
-    struct MeshDrawCommand
+
+    struct CachedPassMeshDrawList
     {
-        
+        TMap<uint64, struct RHICachedDrawCommand*> MeshDrawCommands;
     };
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "IDynamicRHI.h"
+#include "IRHIModule.h"
 #include "RHIContext.h"
 #include "RHIResource.h"
 
@@ -59,5 +61,11 @@ namespace Thunder
         int32 BaseVertexLocation = 0;
         uint32 StartInstanceLocation = 0;
         uint32 StartVertexLocation = 0;
+    };
+
+    struct RHICachedDrawCommand : public RHIDrawCommand
+    {
+        RHICachedDrawCommand() : CachedCommandIndex(RHIAllocateCachedMeshDrawCommandIndex()) {}
+        uint64 CachedCommandIndex = 0;
     };
 }

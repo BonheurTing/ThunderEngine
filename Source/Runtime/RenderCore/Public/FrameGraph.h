@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 //#include "IRenderer.h"
+#include "MeshDrawCommand.h"
+#include "MeshPass.h"
 #include "RenderResource.h"
 #include "RenderTargetPool.h"
 #include "RenderContext.h"
@@ -41,7 +43,7 @@ namespace Thunder
         bool bCulled = false;
 
         FrameGraphPass() = delete;
-        FrameGraphPass(class FrameGraph* graph, const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction, bool inIsMeshDrawPass = false)
+        FrameGraphPass(class FrameGraph* graph, const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction)
             : FrameGraph(graph), Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)) {}
         PassOperations const& GetOperations() const { return Operations; }
     };
@@ -60,11 +62,15 @@ namespace Thunder
         const IRenderer* GetRenderer() const { return OwnerRenderer; }
         SceneView* GetSceneView(EViewType type) const { return Views[static_cast<int>(type)]; }
         TSet<PrimitiveSceneInfo*>& GetSceneInfos() { return SceneInfos; }
-        void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo) { SceneInfos.insert(sceneInfo); }
-        void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo) { SceneInfos.erase(sceneInfo); }
+        void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo);
+        void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo);
+        void UpdateSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
+        void UpdateSceneInfo_RenderThread();
+        void UpdatePassSceneInfo(EMeshPass passType);
+        void ResolveVisibility(EViewType viewType, EMeshPass passType);
 
         // Internal methods used by FrameGraphBuilder
-        void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction, bool bIsMeshDrawPass = false);
+        void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction);
         void SetPresentTarget(const FGRenderTarget* renderTarget);
         FORCEINLINE void SetPresentTarget(FGRenderTargetRef const& renderTarget) { SetPresentTarget(renderTarget.Get()); }
         void RegisterRenderTarget(FGRenderTarget* renderTarget);
@@ -95,6 +101,8 @@ namespace Thunder
         FORCEINLINE FrameGraphPass* GetPass(int passIndex) const { return passIndex < Passes.size() ? Passes[passIndex].Get() : nullptr; }
         bool GetRenderTargetFormat(uint32 renderTargetIndex, RHIFormat& outFormat, bool& outIsDepthStencil) const;
 
+        TArray<RHICachedDrawCommand*> const& GetVisibleCachedDrawList(EMeshPass passType) { return VisibleCachedDrawLists[passType]; }
+        
     private:
         // Initialize render contexts for multi-threading
         void InitializeRenderContexts(uint32 threadCount);
@@ -121,11 +129,17 @@ namespace Thunder
         IRenderer* OwnerRenderer { nullptr };
         TArray<SceneView*> Views;
         TSet<PrimitiveSceneInfo*> SceneInfos;
+        TSet<PrimitiveSceneInfo*> SceneInfoUpdateSet[2]; // Game thread and render thread double buffer.
+        TSet<PrimitiveSceneInfo*> SceneInfoCurrentUpdateSet;
 
         // Command execution contexts.
         FRenderContext* MainContext = nullptr;  // Main render thread context
         TArray<FRenderContext*> RenderContexts; // Worker thread contexts
         TArray<IRHICommand*> AllCommands[2];       // Consolidated commands for execution
+
+        // Mesh-draw.
+        TMap<EMeshPass, CachedPassMeshDrawList> CachedDrawLists;
+        TMap<EMeshPass, TArray<RHICachedDrawCommand*>> VisibleCachedDrawLists;
     };
 
     #define EVENT_NAME(Name) Name

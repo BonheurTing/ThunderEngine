@@ -36,20 +36,23 @@ namespace Thunder
     class MeshBatch
     {
     public:
-        RENDERCORE_API MeshBatch(class PrimitiveSceneInfo* sceneInfo) : SceneInfo(sceneInfo) {}
+        RENDERCORE_API MeshBatch(class PrimitiveSceneInfo* sceneInfo, uint32 lodLevel = 0) : SceneInfo(sceneInfo), LodLevel(lodLevel) {}
         RENDERCORE_API virtual ~MeshBatch() = default;
 
         const TArray<MeshBatchElement>& GetElements() const { return Elements; }
+        PrimitiveSceneInfo* GetSceneInfo() const { return SceneInfo; }
+        MeshBatchKey GetKey() const { return { LodLevel }; }
 
     protected:
         PrimitiveSceneInfo* SceneInfo = nullptr;
         TArray<MeshBatchElement> Elements;
+        uint32 LodLevel = 0; // Not in use yet.
     };
 
     class StaticMeshBatch : public MeshBatch
     {
     public:
-        RENDERCORE_API StaticMeshBatch(PrimitiveSceneInfo* sceneInfo, TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& materials);
+        RENDERCORE_API StaticMeshBatch(PrimitiveSceneInfo* sceneInfo, TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& materials, uint32 lodLevel = 0);
 
     protected:
         TArray<SubMesh*> SubMeshes;

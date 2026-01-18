@@ -52,9 +52,7 @@ namespace Thunder
     
     struct ShaderCombination : public RefCountedObject
     {
-    	ShaderCombination() = default;
-		/*ShaderCombination(const ShaderCombination& rhs) = default;
-		ShaderCombination& operator=(const ShaderCombination& rhs) = default;*/
+    	ShaderCombination(class ShaderPass* subShader) : SubShader(subShader) {}
     	ShaderCombination& operator=(ShaderCombination&& rhs) noexcept
     	{
     		Shaders = std::move(rhs.Shaders);
@@ -86,7 +84,10 @@ namespace Thunder
     	}
 
     	static uint32 GetTypeHash(const ShaderCombination& combination);
+    	
+    	ShaderPass* GetSubShader() const { return SubShader; }
 
+    	ShaderPass* SubShader = nullptr;
     	THashMap<EShaderStageType, ShaderStageRef> Shaders;
     };
 

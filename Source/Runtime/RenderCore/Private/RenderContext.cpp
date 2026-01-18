@@ -47,11 +47,11 @@ namespace Thunder
         return TransientAllocatorPtr[index];
     }
 
-    TransientAllocator* FRenderContext::GetTransientAllocator_RHIThread() const
-    {
-        uint32 index = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
-        return TransientAllocatorPtr[index];
-    }
+    // TransientAllocator* FRenderContext::GetTransientAllocator_RHIThread() const
+    // {
+    //     uint32 index = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
+    //     return TransientAllocatorPtr[index];
+    // }
 
     RenderPass* FRenderContext::GetRenderPass() const
     {

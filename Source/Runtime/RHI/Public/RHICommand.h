@@ -23,8 +23,6 @@ namespace Thunder
         }
         /** Execute the command on the given command context */
         RHI_API virtual void Execute(RHICommandContext* cmdList) = 0;
-
-        int TestMember = 5;
     };
 
     /**
@@ -43,17 +41,17 @@ namespace Thunder
     {
         RHI_API void Execute(RHICommandContext* cmdList) override;
 
-        // Render resources
+        // Render resources.
         RHIVertexBufferRef VBToSet;
         RHIIndexBufferRef IBToSet;
         TRHIPipelineState* GraphicsPSO = nullptr;
 
-        // TODO: Add these later as requested
+        // TODO.
         // RHIConstantBufferRef CB;
         // TArray<RHIResourceBinding> Bindings;
         // ERHIDrawType DrawType;
 
-        // Draw parameters
+        // Draw parameters.
         uint32 IndexCount = 0;
         uint32 VertexCount = 0;
         uint32 InstanceCount = 1;

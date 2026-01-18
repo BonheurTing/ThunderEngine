@@ -38,7 +38,7 @@ namespace Thunder
             operations.Write(GBufferRT1);
             mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this](FRenderContext* Context)
             {
-                RHIDrawCommand* newCommand = new (Context->GetTransientAllocator_RenderThread()->Allocate<RHIDrawCommand>()) RHIDrawCommand;
+                RHIDrawCommand* newCommand = new (Context->Allocate<RHIDrawCommand>()) RHIDrawCommand;
 
                 // Set render resources
                 //Command->VBToSet = VB;
@@ -68,7 +68,7 @@ namespace Thunder
             operations.Write(LightingRT);
             mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this](FRenderContext* context)
             {
-                RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
+                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute lighting");
             });
@@ -84,7 +84,7 @@ namespace Thunder
             operations.Write(PostProcessRT1);
             mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this](FRenderContext* context)
             {
-                RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
+                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute postprocess1");
             });
@@ -100,7 +100,7 @@ namespace Thunder
             operations.Write(postProcessRT2);
             mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this](FRenderContext* context)
             {
-                RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
+                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute postprocess2");
             });
@@ -229,7 +229,7 @@ namespace Thunder
             operations.Write(LightingRT);
             mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this](FRenderContext* context)
             {
-                RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
+                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute lighting");
             });
@@ -245,7 +245,7 @@ namespace Thunder
             operations.Write(PostProcessRT1);
             mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this](FRenderContext* context)
             {
-                RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
+                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute postprocess1");
             });
@@ -261,7 +261,7 @@ namespace Thunder
             operations.Write(postProcessRT2);
             mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this](FRenderContext* context)
             {
-                RHIDummyCommand* newCommand = new (context->GetTransientAllocator_RenderThread()->Allocate<RHIDummyCommand>()) RHIDummyCommand;
+                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute postprocess2");
             });

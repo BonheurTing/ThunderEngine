@@ -320,7 +320,7 @@ namespace Thunder
         NonMonitored = 0x4
     };
 
-    enum class ERHIBlend : uint8
+    enum class ERHIBlend : uint32
     {
         Zero = 1,
         One	= 2,
@@ -343,7 +343,7 @@ namespace Thunder
         InvAlphaFactor = 21
     };
 
-    enum class ERHIBlendOp : uint8
+    enum class ERHIBlendOp : uint32
     {
         Add = 1,
         Subtract = 2,
@@ -352,7 +352,7 @@ namespace Thunder
         Max = 5
     };
 
-    enum class ERHILogicOp : uint8
+    enum class ERHILogicOp : uint32
     {
         Clear = 0,
         Set = 1,
@@ -398,17 +398,16 @@ namespace Thunder
         float SlopeScaledBias = 0.f;
     };
 
-    enum class ERHIDepthWriteMask : uint8
+    enum class ERHIDepthWriteMask : uint32
     {
         Zero = 0,
         All = 1
     };
 
     // +1 for the dx12 value
-    enum class ERHIComparisonFunc : uint8
+    enum class ERHIComparisonFunc : uint32
     {
-        Unknown = 0,
-        Never,
+        Never = 0,
         Less,
         Equal,
         LessEqual,
@@ -419,7 +418,7 @@ namespace Thunder
     };
 
     // +1 for the dx12 value
-    enum class ERHIStencilOp : uint8
+    enum class ERHIStencilOp : uint32
     {
         Keep = 0,
         Zero,

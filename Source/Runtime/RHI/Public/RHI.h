@@ -11,8 +11,7 @@ namespace Thunder
 
 	struct RHIVertexElement
 	{
-		RHIVertexElement(ERHIVertexInputSemantic name, uint8 index, RHIFormat format, uint8 inputSlot, uint16 alignedByteOffset, bool isPerInstanceData)
-			: Name(name), Index(index), Format(format), InputSlot(inputSlot), AlignedByteOffset(alignedByteOffset), IsPerInstanceData(isPerInstanceData) {}
+		RHIVertexElement(ERHIVertexInputSemantic name, uint8 index, RHIFormat format, uint8 inputSlot, uint16 alignedByteOffset, bool isPerInstanceData);
 		
 		union
 		{
@@ -45,8 +44,8 @@ namespace Thunder
 			uint8 Hash[5];
 			struct
 			{
-				uint8 BlendEnable : 1;
-				uint8 LogicOpEnable : 1;
+				uint32 BlendEnable : 1;
+				uint32 LogicOpEnable : 1;
 				ERHIBlend SrcBlend : 5;
 				ERHIBlend DestBlend : 5;
 				ERHIBlendOp BlendOp : 3;
@@ -109,14 +108,7 @@ namespace Thunder
 
 			struct
 			{
-				uint8 DepthEnable : 1;
-				ERHIDepthWriteMask DepthWriteMask: 1;
-				ERHIComparisonFunc DepthFunc : 3;
-				uint8 StencilEnable : 1;
-				uint8 Padding : 1;
-				uint8 StencilReadMask : 8;
-				uint8 StencilWriteMask : 8;
-
+				// 24 bits.
 				ERHIStencilOp FrontFaceStencilFailOp : 3;
 				ERHIStencilOp FrontFaceStencilDepthFailOp : 3;
 				ERHIStencilOp FrontFaceStencilPassOp : 3;
@@ -125,6 +117,17 @@ namespace Thunder
 				ERHIStencilOp BackFaceStencilDepthFailOp : 3;
 				ERHIStencilOp BackFaceStencilPassOp : 3;
 				ERHIComparisonFunc BackFaceStencilFunc : 3;
+
+				// 8 bits.
+				uint32 DepthEnable : 1;
+				ERHIDepthWriteMask DepthWriteMask: 1;
+				ERHIComparisonFunc DepthFunc : 3;
+				uint32 StencilEnable : 1;
+				uint32 Padding : 2;
+
+				// 16 bits.
+				uint8 StencilReadMask : 8;
+				uint8 StencilWriteMask : 8;
 			};
 		};
 	};

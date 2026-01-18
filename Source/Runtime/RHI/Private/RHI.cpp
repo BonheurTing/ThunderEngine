@@ -8,6 +8,18 @@ namespace Thunder
 		{ ERHIDepthBiasType::Invalid, {} }
 	};
 
+	RHIVertexElement::RHIVertexElement(ERHIVertexInputSemantic name, uint8 index, RHIFormat format, uint8 inputSlot,
+		uint16 alignedByteOffset, bool isPerInstanceData)
+		: Name(name)
+		, Index(index)
+		, Format(format)
+		, InputSlot(inputSlot)
+		, AlignedByteOffset(alignedByteOffset)
+		, IsPerInstanceData(isPerInstanceData)
+		, Padding(0)
+	{
+	}
+
 	RHIBlendDescriptor::RHIBlendDescriptor() :  // NOLINT(cppcoreguidelines-pro-type-member-init)
 		BlendEnable(0),
 		LogicOpEnable(0),

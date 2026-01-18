@@ -81,15 +81,15 @@ namespace Thunder
 
 		TArray<uint8> stateIdentifier;
 		rhiDesc.GetStateIdentifier(stateIdentifier);
-		outD3D12Desc.CombinedHash = FCrc::StrCrc32(stateIdentifier.data());
+		outD3D12Desc.CombinedHash = FCrc::BinaryCrc32(stateIdentifier.data(), static_cast<uint32>(stateIdentifier.size()), 0);
 		uint32 shaderHash = ShaderCombination::GetTypeHash(*rhiDesc.shaderVariant);
-		outD3D12Desc.CombinedHash = FCrc::StrCrc32(&shaderHash, outD3D12Desc.CombinedHash);
+		outD3D12Desc.CombinedHash = FCrc::BinaryCrc32(reinterpret_cast<const uint8*>(&shaderHash), 4, outD3D12Desc.CombinedHash);
 	}
 	
 	TD3D12GraphicsPipelineState* TD3D12PipelineStateCache::CreateAndAddToCache(const TGraphicsPipelineStateDescriptor& rhiDesc, const TD3D12GraphicsPipelineStateDesc& d3d12Desc)
 	{
 		ComPtr<ID3D12PipelineState> pso;
-		
+
 		const HRESULT hr = ParentDevice->CreateGraphicsPipelineState(&d3d12Desc.Desc, IID_PPV_ARGS(&pso));
 		if (SUCCEEDED(hr))
 		{
@@ -99,6 +99,23 @@ namespace Thunder
 		else
 		{
 			TAssertf(false, "Failed to create graphics pipeline state");
+			return nullptr;
+		}
+	}
+
+	D3D12GraphicsPipelineStateRef TD3D12PipelineStateCache::CreateGraphicsPSO(const TGraphicsPipelineStateDescriptor& rhiDesc, const TD3D12GraphicsPipelineStateDesc& d3d12Desc) const
+	{
+		ComPtr<ID3D12PipelineState> pso;
+
+		const HRESULT hr = ParentDevice->CreateGraphicsPipelineState(&d3d12Desc.Desc, IID_PPV_ARGS(&pso));
+		if (SUCCEEDED(hr))
+		{
+			D3D12GraphicsPipelineStateRef psoRef = MakeRefCount<TD3D12GraphicsPipelineState>(rhiDesc, pso);
+			return psoRef;
+		}
+		else
+		{
+			TAssertf(false, "Failed to create graphics pipeline state, error code : %d.", hr);
 			return nullptr;
 		}
 	}
@@ -119,14 +136,68 @@ namespace Thunder
 		TD3D12GraphicsPipelineStateDesc d3d12Desc{};
 		GetD3D12GraphicsPipelineStateDesc(rhiDesc, d3d12Desc);
 
-		if (GraphicsPipelineStateCache.contains(d3d12Desc))
-		{
-			return GraphicsPipelineStateCache[d3d12Desc].Get();
-		}
-		else
-		{
-			return CreateAndAddToCache(rhiDesc, d3d12Desc);
-		}
+    	// PSO map quick path.
+	    {
+			auto lock = CacheLock.Read();
+	    	auto psoIt = GraphicsPipelineStateCache.find(d3d12Desc);
+	    	if (psoIt != GraphicsPipelineStateCache.end())
+	    	{
+	    		return psoIt->second.Get();
+	    	}
+    	}
+
+    	// Sync-compilation deduplication.
+	    SyncCompilingGraphicsPSOEntry* syncCompilingEntry = nullptr;
+	    {
+    		auto syncCompilingMapLock = SyncCompilingPSOMapLock.Read();
+	    	auto psoIt = SyncCompilingPSOMap.find(d3d12Desc);
+	    	if (psoIt != SyncCompilingPSOMap.end()) [[unlikely]]
+	    	{
+	    		// Already compiling, fetch compiling status.
+	    		syncCompilingEntry = SyncCompilingPSOMap[d3d12Desc];
+	    	}
+	    }
+
+    	// Deduplication hit.
+    	if (syncCompilingEntry) [[unlikely]]
+    	{
+    		// Wait for sync compilation thread finishing compiling.
+    		auto psoLockGuard = syncCompilingEntry->Lock.Read();
+    		return syncCompilingEntry->GraphicsPSO;
+    	}
+
+    	// Deduplication miss.
+	    SyncCompilingPSOMapLock.WriteLock();
+	    {
+    		// Check again.
+	    	auto psoIt = SyncCompilingPSOMap.find(d3d12Desc);
+	    	if (psoIt != SyncCompilingPSOMap.end()) [[unlikely]]
+	    	{
+	    		// Already compiling, fetch compiling status.
+	    		syncCompilingEntry = SyncCompilingPSOMap[d3d12Desc];
+	    		SyncCompilingPSOMapLock.WriteUnlock();
+	    		
+	    		// Wait for sync compilation thread finishing compiling.
+	    		auto psoLockGuard = syncCompilingEntry->Lock.Read();
+	    		return syncCompilingEntry->GraphicsPSO;
+	    	}
+	    }
+
+    	// Launch a compilation task.
+    	syncCompilingEntry = new (TMemory::Malloc<SyncCompilingGraphicsPSOEntry>()) SyncCompilingGraphicsPSOEntry;
+    	SyncCompilingPSOMap[d3d12Desc] = syncCompilingEntry;
+    	syncCompilingEntry->Lock.WriteLock();
+    	SyncCompilingPSOMapLock.WriteUnlock();
+		auto psoRef = CreateGraphicsPSO(rhiDesc, d3d12Desc); // Compile a PSO.
+    	syncCompilingEntry->GraphicsPSO = psoRef;
+    	syncCompilingEntry->Lock.WriteUnlock();
+
+    	// Write back to pso cache.
+	    auto psoCacheLock = CacheLock.Write();
+    	TAssertf(!GraphicsPipelineStateCache.contains(d3d12Desc), "Duplicated pso found.");
+    	GraphicsPipelineStateCache[d3d12Desc] = psoRef;
+
+    	return psoRef.Get();
 	}
 
 }

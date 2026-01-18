@@ -204,7 +204,7 @@ namespace Thunder
     	}
 
     	// Deduplication miss.
-	    auto syncCompilingMapLock = SyncCompilingVariantsLock.Write();
+	    SyncCompilingVariantsLock.WriteLock();
 	    {
     		// Check again.
 	    	auto variantIt = SyncCompilingVariants.find(variantId);
@@ -212,8 +212,8 @@ namespace Thunder
 	    	{
 	    		// Already compiling, fetch compiling status.
 	    		syncCompilingEntry = SyncCompilingVariants[variantId];
-	    		syncCompilingMapLock.Unlock();
-	    		
+	    		SyncCompilingVariantsLock.WriteUnlock();
+
 	    		// Wait for sync compilation thread finishing compiling.
 	    		auto variantLockGuard = syncCompilingEntry->Lock.Read();
 	    		return syncCompilingEntry->Combination;
@@ -224,7 +224,7 @@ namespace Thunder
     	syncCompilingEntry = new (TMemory::Malloc<SyncCompilingCombinationEntry>()) SyncCompilingCombinationEntry;
     	SyncCompilingVariants[variantId] = syncCompilingEntry;
     	syncCompilingEntry->Lock.WriteLock();
-    	syncCompilingMapLock.Unlock();
+    	SyncCompilingVariantsLock.WriteUnlock();
     	syncCompilingEntry->Combination = ShaderModule::CompileShaderVariant(Archive->GetName(), GetName(), variantId);
     	syncCompilingEntry->Lock.WriteUnlock();
 
@@ -243,7 +243,7 @@ namespace Thunder
     {
     	TAssertf(false, "ShaderPass::CompileShader is deprecated.");
     	// Stage
-    	Variants[variantId] = MakeRefCount<ShaderCombination>();
+    	Variants[variantId] = MakeRefCount<ShaderCombination>(this);
     	ShaderCombination& newVariant = *Variants[variantId];
     	for (auto& meta : StageMetas)
     	{
@@ -274,7 +274,7 @@ namespace Thunder
     	bool constexpr enableDebugInfo = false;
 #endif
 
-    	ShaderCombination* newVariant = new (TMemory::Malloc<ShaderCombination>()) ShaderCombination;
+    	ShaderCombination* newVariant = new (TMemory::Malloc<ShaderCombination>()) ShaderCombination{ this };
     	for (auto& stageMetaIt : StageMetas)
     	{
     		EShaderStageType stageType = stageMetaIt.first;

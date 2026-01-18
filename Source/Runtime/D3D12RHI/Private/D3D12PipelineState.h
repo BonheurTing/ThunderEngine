@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "RHIResource.h"
 #include "D3D12RHICommon.h"
+#include "Concurrent/Lock.h"
 
 namespace Thunder
 {
@@ -68,6 +69,7 @@ namespace Thunder
 	private:
 		ComPtr<ID3D12PipelineState> PipelineState = nullptr;
 	};
+	using D3D12GraphicsPipelineStateRef = TRefCountPtr<TD3D12GraphicsPipelineState>;
 
 	class TD3D12ComputePipelineState : public TRHIComputePipelineState
 	{
@@ -92,13 +94,34 @@ namespace Thunder
 		
 	private:
 		TD3D12GraphicsPipelineState* CreateAndAddToCache(const TGraphicsPipelineStateDescriptor& rhiDesc, const TD3D12GraphicsPipelineStateDesc& d3d12Desc);
+		D3D12GraphicsPipelineStateRef CreateGraphicsPSO(const TGraphicsPipelineStateDescriptor& rhiDesc, const TD3D12GraphicsPipelineStateDesc& d3d12Desc) const;
 
+		SharedLock CacheLock;
 		THashMap<TD3D12GraphicsPipelineStateDesc, TRefCountPtr<TD3D12GraphicsPipelineState>> GraphicsPipelineStateCache;
+		SharedLock SyncCompilingPSOMapLock;
+		THashMap<TD3D12GraphicsPipelineStateDesc, class SyncCompilingGraphicsPSOEntry*> SyncCompilingPSOMap;
 		//HashMap<TD3D12ComputePipelineStateDesc, TD3D12ComputePipelineState> ComputePipelineStateCache;
+	};
+
+	struct SyncCompilingGraphicsPSOEntry
+	{
+		D3D12GraphicsPipelineStateRef GraphicsPSO = nullptr;
+		SharedLock Lock{};
+
+		SyncCompilingGraphicsPSOEntry() = default;
+		~SyncCompilingGraphicsPSOEntry() = default;
+		SyncCompilingGraphicsPSOEntry(const SyncCompilingGraphicsPSOEntry& rhs) : GraphicsPSO(rhs.GraphicsPSO) {}
+		SyncCompilingGraphicsPSOEntry& operator=(const SyncCompilingGraphicsPSOEntry& rhs)
+		{
+			if (this != &rhs)
+			{
+				GraphicsPSO = rhs.GraphicsPSO;
+			}
+			return *this;
+		}
 	};
 
 	static uint64 HashPSODesc(const TGraphicsPipelineStateDescriptor& Desc);
 	static uint64 HashPSODesc(const TComputePipelineStateDescriptor& Desc);
-	
 }
 

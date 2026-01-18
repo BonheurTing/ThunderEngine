@@ -10,12 +10,12 @@ namespace Thunder
     void RHIDrawCommand::Execute(RHICommandContext* cmdList)
     {
         LOG("execute draw command");
-        return;
         // Set pipeline state first
         if (GraphicsPSO)
         {
             cmdList->SetPipelineState(GraphicsPSO);
         }
+        return;
 
         // Set vertex buffer
         if (VBToSet)

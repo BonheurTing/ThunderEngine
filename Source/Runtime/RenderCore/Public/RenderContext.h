@@ -3,11 +3,11 @@
 #include "RenderCore.export.h"
 #include "CoreMinimal.h"
 #include "RHI.h"
+#include "Memory/TransientAllocator.h"
 
 namespace Thunder
 {
     class IRHICommand;
-    class TransientAllocator;
 
     /**
      * Thread-specific render context that holds recorded commands
@@ -34,8 +34,14 @@ namespace Thunder
 
         // Get the transient allocator for this context
         TransientAllocator* GetTransientAllocator_RenderThread() const;
-        TransientAllocator* GetTransientAllocator_RHIThread() const;
-        
+        // TransientAllocator* GetTransientAllocator_RHIThread() const;
+
+        template<typename T>
+        void* Allocate(size_t count = 1) const // Call on render thread.
+        {
+            return GetTransientAllocator_RenderThread()->Allocate(sizeof(T) * count, alignof(T));
+        }
+
         FORCEINLINE void SetCurrentPass(class FrameGraphPass* pass) { CurrentPass = pass; }
         FORCEINLINE FrameGraphPass* GetCurrentPass() const { return CurrentPass; }
         FORCEINLINE FrameGraph* GetFrameGraph() const { return FrameGraph; }

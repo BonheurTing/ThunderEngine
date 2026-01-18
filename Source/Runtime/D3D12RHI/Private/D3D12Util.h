@@ -52,10 +52,10 @@ namespace Thunder
 	{
 		D3D12_DEPTH_STENCIL_DESC desc
 		{
-			depthStencilDesc.DepthEnable,
+			(depthStencilDesc.DepthEnable > 0),
 			static_cast<D3D12_DEPTH_WRITE_MASK>(depthStencilDesc.DepthWriteMask),
-			static_cast<D3D12_COMPARISON_FUNC>(depthStencilDesc.DepthFunc),
-			depthStencilDesc.StencilEnable,
+			static_cast<D3D12_COMPARISON_FUNC>(static_cast<uint8>(depthStencilDesc.DepthFunc) + 1),
+			(depthStencilDesc.StencilEnable > 0),
 			depthStencilDesc.StencilReadMask,
 			depthStencilDesc.StencilWriteMask,
 			{

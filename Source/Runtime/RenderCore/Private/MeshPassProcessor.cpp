@@ -48,17 +48,17 @@ namespace Thunder
             newCommand->GraphicsPSO = pso;
 
             // Add mesh-draw command.
-            FinalizeCommand(context, batch, subMesh->SubMeshIndex, newCommand, cacheMeshDrawCommand);
+            FinalizeCommand(context, batch, newCommand, cacheMeshDrawCommand);
         }
 
         return true;
     }
 
-    void MeshPassProcessor::FinalizeCommand(FRenderContext* context, const MeshBatch* batch, uint32 elementIndex, RHIDrawCommand* command, bool cacheMeshDrawCommand)
+    void MeshPassProcessor::FinalizeCommand(FRenderContext* context, const MeshBatch* batch, RHIDrawCommand* command, bool cacheMeshDrawCommand)
     {
         if (cacheMeshDrawCommand)
         {
-            context->AddCachedCommand(batch, elementIndex, static_cast<RHICachedDrawCommand*>(command));
+            context->AddCachedCommand(batch, static_cast<RHICachedDrawCommand*>(command));
         }
         else
         {

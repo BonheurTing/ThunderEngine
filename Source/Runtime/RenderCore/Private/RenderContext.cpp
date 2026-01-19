@@ -41,11 +41,11 @@ namespace Thunder
         Commands.insert(Commands.end(), commandList.begin(), commandList.end());
     }
 
-    void FRenderContext::AddCachedCommand(const MeshBatch* batch, uint32 elementIndex, RHICachedDrawCommand* command)
+    void FRenderContext::AddCachedCommand(const MeshBatch* batch, RHICachedDrawCommand* command)
     {
         if (batch && command)
         {
-            CachedDrawCommands.emplace_back(batch, elementIndex, command);
+            CachedDrawCommands.emplace_back(batch, command);
         }
         else
         {

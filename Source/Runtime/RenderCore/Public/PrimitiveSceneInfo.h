@@ -19,14 +19,14 @@ namespace Thunder
         virtual bool NeedRenderView(EViewType type) { return true; }
         TMap<MeshBatchKey, StaticMeshBatch*> const& GetStaticMeshes() { return StaticMeshes; }
 
-        TMap<uint32, MeshDrawCommandInfo> GetDrawCommandInfo(EMeshPass passType)
+        MeshDrawCommandInfo const& GetDrawCommandInfo(EMeshPass passType, MeshBatchKey batchKey)
         {
-            auto& meshDrawInfoMap = StaticMeshCommandInfos[passType][MeshBatchKey{}];
-            return meshDrawInfoMap;
+            auto& meshDrawInfo = StaticMeshCommandInfos[passType][batchKey];
+            return meshDrawInfo;
         }
-        void EmplaceDrawCommandInfo(EMeshPass passType, MeshBatchKey meshBatchKey, uint32 subMeshIndex, uint64 commandIndex)
+        void EmplaceDrawCommandInfo(EMeshPass passType, MeshBatchKey meshBatchKey, uint64 commandIndex)
         {
-            StaticMeshCommandInfos[passType][meshBatchKey][subMeshIndex] = MeshDrawCommandInfo{ commandIndex };
+            StaticMeshCommandInfos[passType][meshBatchKey] = MeshDrawCommandInfo{ commandIndex };
         }
 
         RENDERCORE_API bool CacheMeshDrawCommand(FRenderContext* context, EMeshPass meshPassType);
@@ -35,10 +35,10 @@ namespace Thunder
     protected:
         void DestroyStaticMeshes();
         void DestroyStaticMesh(MeshBatchKey key);
-        void AddStaticMesh(MeshBatchKey const& key, TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& renderMaterials);
+        void AddStaticMesh(MeshBatchKey const& key, SubMesh* const& subMesh, RenderMaterial* const& material);
 
     protected:
-        TMap<EMeshPass, TMap<MeshBatchKey, TMap<uint32, MeshDrawCommandInfo>>> StaticMeshCommandInfos; // Pass, batch, submesh.
+        TMap<EMeshPass, TMap<MeshBatchKey, MeshDrawCommandInfo>> StaticMeshCommandInfos; // Pass, batch.
         TMap<MeshBatchKey, StaticMeshBatch*> StaticMeshes;
         TMap<MeshBatchKey, StaticMeshBatchRelevance*> StaticMeshRelevances;
         bool MeshDrawCacheSupported = false;

@@ -62,8 +62,8 @@ namespace Thunder
         const IRenderer* GetRenderer() const { return OwnerRenderer; }
         SceneView* GetSceneView(EViewType type) const { return Views[static_cast<int>(type)]; }
         TSet<PrimitiveSceneInfo*>& GetSceneInfos() { return SceneInfos; }
-        void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo);
-        void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo);
+        void RegisterSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
+        void UnregisterSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
         void UpdateSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
         void UpdateSceneInfo_RenderThread();
         void UpdatePassSceneInfo(EMeshPass passType);
@@ -130,6 +130,8 @@ namespace Thunder
         TArray<SceneView*> Views;
         TSet<PrimitiveSceneInfo*> SceneInfos;
         TSet<PrimitiveSceneInfo*> SceneInfoUpdateSet[2]; // Game thread and render thread double buffer.
+        TSet<PrimitiveSceneInfo*> SceneInfoRegistrationSet[2];
+        TSet<PrimitiveSceneInfo*> SceneInfoUnregistrationSet[2];
         TSet<PrimitiveSceneInfo*> SceneInfoCurrentUpdateSet;
 
         // Command execution contexts.

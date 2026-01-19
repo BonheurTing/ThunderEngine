@@ -1,19 +1,18 @@
 ﻿
 #include "MeshBatch.h"
 
+#include "RenderMesh.h"
+
 
 namespace Thunder
 {
-    StaticMeshBatch::StaticMeshBatch(PrimitiveSceneInfo* sceneInfo, TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& materials, uint32 lodLevel)
-        : MeshBatch{ sceneInfo, 0 }, SubMeshes(subMeshes), Materials(materials)
+    StaticMeshBatch::StaticMeshBatch(PrimitiveSceneInfo* sceneInfo, class SubMesh* const& subMesh, RenderMaterial* const& material, uint32 lodLevel)
+        : MeshBatch{ sceneInfo, MeshBatchKey{ lodLevel, subMesh->SubMeshIndex } }
     {
-        TAssertf(SubMeshes.size() == Materials.size(), "SubMesh count does not match material count.");
-        for (uint32 subMeshIndex = 0; subMeshIndex < SubMeshes.size(); ++subMeshIndex)
-        {
-            Elements.push_back(MeshBatchElement{
-                .SubMesh = SubMeshes[subMeshIndex],
-                .Material = Materials[subMeshIndex]
-            });
-        }
+        Elements.push_back(MeshBatchElement{
+            .SubMesh = subMesh,
+            .Material = material,
+            .ElementIndex = 0 // Static mesh batch only has one element.
+        });
     }
 }

@@ -38,8 +38,8 @@ namespace Thunder
         void ClearCommands();
 
         // Cache mesh-draw command.
-        void AddCachedCommand(const class MeshBatch* batch, uint32 elementIndex, class RHICachedDrawCommand* command);
-        TArray<std::tuple<const MeshBatch*, uint32, RHICachedDrawCommand*>> const& GetCachedCommands() const { return CachedDrawCommands; }
+        void AddCachedCommand(const class MeshBatch* batch, class RHICachedDrawCommand* command);
+        TArray<std::tuple<const MeshBatch*, RHICachedDrawCommand*>> const& GetCachedCommands() const { return CachedDrawCommands; }
         void ClearCachedCommands();
 
         // Get the transient allocator for this context
@@ -62,7 +62,7 @@ namespace Thunder
         TArray<IRHICommand*> Commands;
 
         // Cached commands.
-        TArray<std::tuple<const MeshBatch*, uint32, RHICachedDrawCommand*>> CachedDrawCommands;
+        TArray<std::tuple<const MeshBatch*, RHICachedDrawCommand*>> CachedDrawCommands;
 
         // Transient allocator for command allocation
         TransientAllocator* TransientAllocatorPtr[2];

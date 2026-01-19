@@ -2,6 +2,7 @@
 
 #include "IDynamicRHI.h"
 #include "RenderMaterial.h"
+#include "RenderMesh.h"
 #include "RenderModule.h"
 #include "RHICommand.h"
 #include "ShaderModule.h"
@@ -66,11 +67,10 @@ namespace Thunder
         }
     }
 
-    void PrimitiveSceneInfo::AddStaticMesh(MeshBatchKey const& key, TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& renderMaterials)
+    void PrimitiveSceneInfo::AddStaticMesh(MeshBatchKey const& key, SubMesh* const& subMesh, RenderMaterial* const& material)
     {
-        TAssertf(subMeshes.size() == renderMaterials.size(), "SubMeshes size mismatch.");
         StaticMeshes[key] = new (TMemory::Malloc<StaticMeshBatch>())
-            StaticMeshBatch{ this, subMeshes, renderMaterials, 0 };
+            StaticMeshBatch{ this, subMesh, material, 0 };
         StaticMeshRelevances[key] = new (TMemory::Malloc<StaticMeshBatchRelevance>())
             StaticMeshBatchRelevance{ MeshPassMask{ 0xFFffFFffFFffFFffULL } };
     }
@@ -78,7 +78,13 @@ namespace Thunder
     StaticMeshSceneInfo::StaticMeshSceneInfo(TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& materials)
         : PrimitiveSceneInfo(true)
     {
-        AddStaticMesh(MeshBatchKey{ .LodLevel = 0 }, subMeshes, materials);
+        TAssertf(subMeshes.size() == materials.size(), "SubMeshes size mismatch.");
+        for (uint32 subMeshIndex = 0; subMeshIndex < subMeshes.size(); ++subMeshIndex)
+        {
+            SubMesh* subMesh = subMeshes[subMeshIndex];
+            RenderMaterial* material = materials[subMeshIndex];
+            AddStaticMesh(MeshBatchKey{ .LodLevel = 0, .SubMeshIndex = subMesh->SubMeshIndex }, subMesh, material);
+        }
     }
 
     StaticMeshSceneInfo::~StaticMeshSceneInfo()

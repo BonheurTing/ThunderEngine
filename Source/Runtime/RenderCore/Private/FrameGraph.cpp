@@ -154,35 +154,23 @@ namespace Thunder
         }
     }
 
-    void FrameGraph::RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo)
+    // Called on game thread.
+    void FrameGraph::RegisterSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo)
     {
-        SceneInfos.insert(sceneInfo);
-        if (sceneInfo->IsMeshDrawCacheSupported())
-        {
-            uint32 const gameThreadIndex = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) % 2;
-            SceneInfoUpdateSet[gameThreadIndex].insert(sceneInfo);
-        }
+        uint32 const gameThreadIndex = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) % 2;
+        SceneInfoRegistrationSet[gameThreadIndex].insert(sceneInfo);
+        SceneInfoUpdateSet[gameThreadIndex].insert(sceneInfo);
     }
 
-    void FrameGraph::UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo)
+    void FrameGraph::UnregisterSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo)
     {
-        SceneInfos.erase(sceneInfo);
-        if (sceneInfo->IsMeshDrawCacheSupported())
-        {
-            uint32 const gameThreadIndex = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) % 2;
-            SceneInfoUpdateSet[gameThreadIndex].erase(sceneInfo);
-        }
+        uint32 const gameThreadIndex = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) % 2;
+        SceneInfoUnregistrationSet[gameThreadIndex].insert(sceneInfo);
+        SceneInfoUpdateSet[gameThreadIndex].erase(sceneInfo);
     }
 
     void FrameGraph::UpdateSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo)
     {
-        auto sceneInfoIt = SceneInfos.find(sceneInfo);
-        if (sceneInfoIt == SceneInfos.end()) [[unlikely]]
-        {
-            TAssertf(false, "Scene info not registered.");
-            return;
-        }
-
         uint32 const gameThreadIndex = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire) % 2;
         SceneInfoUpdateSet[gameThreadIndex].insert(sceneInfo);
     }
@@ -190,6 +178,22 @@ namespace Thunder
     void FrameGraph::UpdateSceneInfo_RenderThread()
     {
         uint32 const renderThreadIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
+
+        // Register.
+        auto const& registerRequests = SceneInfoRegistrationSet[renderThreadIndex];
+        for (auto const& registerRequest : registerRequests)
+        {
+            SceneInfos.insert(registerRequest);
+        }
+
+        // Unregister.
+        auto const& unregisterRequests = SceneInfoUnregistrationSet[renderThreadIndex];
+        for (auto const& unregisterRequest : unregisterRequests)
+        {
+            SceneInfos.erase(unregisterRequest);
+        }
+
+        // Update.
         SceneInfoCurrentUpdateSet.clear();
         SceneInfoCurrentUpdateSet.swap(SceneInfoUpdateSet[renderThreadIndex]);
     }
@@ -249,8 +253,7 @@ namespace Thunder
             {
                 // Get mesh batch and command.
                 auto const& meshBatch = std::get<0>(cachedCommandEntry);
-                auto const& elementIndex = std::get<1>(cachedCommandEntry);
-                auto const& command = std::get<2>(cachedCommandEntry);
+                auto const& command = std::get<1>(cachedCommandEntry);
                 PrimitiveSceneInfo* sceneInfo = meshBatch->GetSceneInfo();
 
                 // Cache mesh-draw command.
@@ -264,7 +267,7 @@ namespace Thunder
                 cachedDrawList.MeshDrawCommands[commandIndex] = command;
 
                 // Save mesh draw info.
-                sceneInfo->EmplaceDrawCommandInfo(passType, meshBatch->GetKey(), elementIndex, commandIndex);
+                sceneInfo->EmplaceDrawCommandInfo(passType, meshBatch->GetKey(), commandIndex);
             }
 
             context->ClearCachedCommands();
@@ -297,11 +300,17 @@ namespace Thunder
             }
 
             // Add cached command.
-            auto const& meshDrawCommandInfoMap = sceneInfo->GetDrawCommandInfo(passType);
-            for (const MeshDrawCommandInfo& commandInfo : meshDrawCommandInfoMap | std::views::values)
+            auto const& staticMeshes = sceneInfo->GetStaticMeshes();
+            for (const auto& batchKey : staticMeshes | std::views::keys)
             {
-                RHICachedDrawCommand* command = CachedDrawLists[passType].MeshDrawCommands[commandInfo.CommandIndex];
-                visibleCachedDrawList.push_back(command);
+                auto const& commandInfo = sceneInfo->GetDrawCommandInfo(passType, batchKey);
+                auto commandIt = CachedDrawLists[passType].MeshDrawCommands.find(commandInfo.CommandIndex);
+                if (commandIt == CachedDrawLists[passType].MeshDrawCommands.end())
+                {
+                    TAssertf(false, "Mesh draw command index is invalid, this mesh draw is not cached yet.");
+                    continue;
+                }
+                visibleCachedDrawList.push_back(commandIt->second);
             }
         }
     }

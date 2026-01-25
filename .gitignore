@@ -54,3 +54,7 @@ Saved/
 Debug/
 Source/ThirdParty/EASTL
 Source/ThirdParty/llvm8
+
+# AI
+AGENTS.md
+CLAUDE.md

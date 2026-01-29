@@ -227,47 +227,26 @@ namespace Thunder
     void ast_node_archive::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         TArray<ast_node_variable*> objects;
-        if (!object_parameters.empty())
+        for (auto const& uniform_buffer_entry : uniform_buffer_parameters)
         {
-            outResult += "cbuffer cbObject : register(b0, space0)\n{\n";
-            for (const auto& param : object_parameters)
+            String const& buffer_name = uniform_buffer_entry.first;
+            auto const& buffer_parameters = uniform_buffer_entry.second;
+            auto uniform_buffer_definition_it = GUniformBufferDefinitions.find(buffer_name);
+            if (uniform_buffer_definition_it == GUniformBufferDefinitions.end())
             {
-                if (param->type->is_object())
-                {
-                    objects.push_back(param);
-                    continue;
-                }
-                param->generate_hlsl(outResult, state);
-                outResult += ";\n";
+                TAssert(false, "Unknown uniform buffer : \"%s\".", buffer_name.c_str());
+                continue;
             }
-            outResult += "};\n\n";
-        }
-        if (!pass_parameters.empty())
-        {
-            outResult += "cbuffer cbPass : register(b1, space0)\n{\n";
-            for (const auto& param : pass_parameters)
+            uint16 const buffer_index = uniform_buffer_definition_it->second.index;
+            outResult += "cbuffer cb" + buffer_name + " : register(b" + std::to_string(buffer_index) + ", space0)\n{\n";
+            for (auto const& parameter : buffer_parameters)
             {
-                if (param->type->is_object())
+                if (parameter->type->is_object())
                 {
-                    objects.push_back(param);
+                    objects.push_back(parameter);
                     continue;
                 }
-                param->generate_hlsl(outResult, state);
-                outResult += ";\n";
-            }
-            outResult += "};\n\n";
-        }
-        if (!global_parameters.empty())
-        {
-            outResult += "cbuffer cbGlobal : register(b2, space0)\n{\n";
-            for (const auto& param : global_parameters)
-            {
-                if (param->type->is_object())
-                {
-                    objects.push_back(param);
-                    continue;
-                }
-                param->generate_hlsl(outResult, state);
+                parameter->generate_hlsl(outResult, state);
                 outResult += ";\n";
             }
             outResult += "};\n\n";

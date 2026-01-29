@@ -461,17 +461,9 @@ namespace Thunder
         {
             variants.push_back(var);
         }
-        void add_object_parameter(ast_node_variable* var)
+        void add_uniform_buffer_parameter(String const& buffer_name, ast_node_variable* var)
         {
-            object_parameters.push_back(var);
-        }
-        void add_pass_parameter(ast_node_variable* var)
-        {
-            pass_parameters.push_back(var);
-        }
-        void add_global_parameter(ast_node_variable* var)
-        {
-            global_parameters.push_back(var);
+            uniform_buffer_parameters[buffer_name].push_back(var);
         }
 
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
@@ -483,9 +475,7 @@ namespace Thunder
         scope_ref global_scope;
         TArray<ast_node_variable*> properties;
         TArray<ast_node_variable*> variants;
-        TArray<ast_node_variable*> object_parameters;
-        TArray<ast_node_variable*> pass_parameters;
-        TArray<ast_node_variable*> global_parameters;
+        TMap<String, TArray<ast_node_variable*>> uniform_buffer_parameters;
         TArray<ast_node_pass*> passes;
         
     };

@@ -5,6 +5,7 @@
 #include "AstNode.h"
 #include "MeshPass.h"
 #include "RenderStates.h"
+#include "ShaderBindingsLayout.h"
 
 namespace Thunder
 {
@@ -105,7 +106,7 @@ namespace Thunder
 		~ShaderAST();
 
 		// parse ast to obtain Property/Variant/Parameters
-		void ParseAllTypeParameters(class ShaderArchive* archive) const;
+		void Reflect(class ShaderArchive* archive) const;
     	String GenerateShaderVariantSource(shader_codegen_state& state) const;
 		String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
 
@@ -135,19 +136,20 @@ namespace Thunder
     			VariantMeta.push_back(meta);
     		}
     	}
-    	void AddGlobalParameterMeta(const ShaderParameterMeta& meta)
+    	FORCEINLINE TArray<ShaderParameterMeta>&  EnsureAndGetUniformBufferMetaList(String const& uniformBufferName)
     	{
-    		GlobalParameterMeta.push_back(meta);
+    		return UniformParameterMeta[uniformBufferName];
     	}
-    	void AddObjectParameterMeta(const ShaderParameterMeta& meta)
+    	FORCEINLINE TArray<ShaderParameterMeta>& GetUniformBufferMetaList(String const& uniformBufferName)
     	{
-    		ObjectParameterMeta.push_back(meta);
+    		TAssertf(UniformParameterMeta.contains(uniformBufferName), "Uniform buffer \"%s\" does not exist.", uniformBufferName.c_str());
+    		return UniformParameterMeta[uniformBufferName];
     	}
-    	void AddPassParameterMeta(NameHandle name, const TArray<ShaderParameterMeta>& metas)
+    	void AddUniformBufferParameterMeta(String const& uniformBufferName, ShaderParameterMeta const& meta)
     	{
-    		PasseParameterMeta.emplace(name, metas);
+    		UniformParameterMeta[uniformBufferName].push_back(meta);
     	}
-    	void SetRenderState(const RenderStateMeta& meta) {renderState = meta;}
+    	void SetRenderState(const RenderStateMeta& meta) { RenderState = meta; }
 
 	    _NODISCARD_ NameHandle GetName() const { return Name; }
     	_NODISCARD_ String GetSourcePath() const { return SourcePath; }
@@ -164,6 +166,7 @@ namespace Thunder
     	void ParseVariants(ShaderCodeGenConfig const& config, shader_codegen_state& state) const;
     	uint64 VariantNameToMask(const TMap<NameHandle, bool>& variantMap) const;
     	void VariantMaskToName(uint64 variantMask, THashMap<NameHandle, bool>& variantMap) const;
+    	void BuildBindingsLayout();
 
     private:
     	friend class ShaderAST;
@@ -174,13 +177,13 @@ namespace Thunder
     	// all type parameters from ast
     	TArray<ShaderPropertyMeta> PropertyMeta; // visible
     	TArray<ShaderVariantMeta> VariantMeta; // partially visible
-    	TArray<ShaderParameterMeta> GlobalParameterMeta; // global parameters
-    	TArray<ShaderParameterMeta> ObjectParameterMeta; // object parameters
-    	THashMap<NameHandle, TArray<ShaderParameterMeta>> PasseParameterMeta; //Based on the usage within the subshader
+    	TMap<String, TArray<ShaderParameterMeta>> UniformParameterMeta;
 
-    	RenderStateMeta renderState {};
+    	RenderStateMeta RenderState {};
     	THashMap<NameHandle, ShaderPassRef> SubShaders;
     	THashMap<EMeshPass, ShaderPassRef> MeshDrawSubShaders;
+
+    	ShaderBindingsLayoutRef BindingsLayout{ nullptr };
     };
     
 }

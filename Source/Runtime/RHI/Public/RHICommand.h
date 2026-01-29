@@ -44,8 +44,8 @@ namespace Thunder
         RHI_API void Execute(RHICommandContext* cmdList) override;
 
         // Render resources.
-        RHIVertexBufferRef VBToSet;
-        RHIIndexBufferRef IBToSet;
+        RHIVertexBuffer* VBToSet = nullptr;
+        RHIIndexBuffer* IBToSet = nullptr;
         TRHIPipelineState* GraphicsPSO = nullptr;
 
         // TODO.

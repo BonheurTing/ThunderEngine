@@ -17,7 +17,8 @@ namespace Thunder
     	Pixel,
     	Compute,
 		Geometry,
-    	Mesh
+    	Mesh,
+		Num
     };
 
     struct StageMeta

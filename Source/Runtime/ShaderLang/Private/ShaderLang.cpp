@@ -15,6 +15,13 @@ namespace Thunder
 	};
 
 	TSet<String> key_id_list = {"Near", "Opaque", "Translucent"};
+	
+	SHADERLANG_API TMap<String, uniform_buffer_definition> GUniformBufferDefinitions =
+	{
+		{ "Global", { .index = 0 } },
+		{ "Pass", { .index = 1 } },
+		{ "Primitive", { .index = 2 } },
+	};
 
 	shader_lang_state::shader_lang_state()
 	{
@@ -165,30 +172,17 @@ namespace Thunder
 		}
 		else if (name.token_id == TOKEN_PARAMETERS)
 		{
-			if (text.text == "Object")
+			auto uniform_buffer_definition_it = GUniformBufferDefinitions.find(text.text);
+			if (uniform_buffer_definition_it != GUniformBufferDefinitions.end())
 			{
 				for (const auto& var : current_variables)
 				{
-					current_archive->add_object_parameter(var);
-				}
-			}
-			else if (text.text == "Pass")
-			{
-				for (const auto& var : current_variables)
-				{
-					current_archive->add_pass_parameter(var);
-				}
-			}
-			else if (text.text == "Global")
-			{
-				for (const auto& var : current_variables)
-				{
-					current_archive->add_global_parameter(var);
+					current_archive->add_uniform_buffer_parameter(text.text, var);
 				}
 			}
 			else
 			{
-				debug_log("Unknown parameter type: " + text.text);
+                TAssert(false, "Unknown uniform buffer type : \"%s\".", buffer_name.c_str());
 			}
 		}
 		else

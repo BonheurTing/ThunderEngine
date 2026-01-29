@@ -1,4 +1,4 @@
-Parameters "Object"
+Parameters "Primitive"
 {
     float3 LastPosition;
 }

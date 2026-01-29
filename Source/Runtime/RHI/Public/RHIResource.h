@@ -146,7 +146,7 @@ namespace Thunder
         virtual ~TRHIPipelineState() = default;
         _NODISCARD_ virtual void* GetPipelineState() const { return nullptr; }
         _NODISCARD_ ERHIPipelineStateType GetPipelineStateType() const { return PipelineStateType; }
-        
+
     private:
         ERHIPipelineStateType PipelineStateType;
     };

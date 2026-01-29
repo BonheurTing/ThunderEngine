@@ -163,11 +163,9 @@ namespace Thunder
     	outCount.ShaderResourceCount = 0;
     	outCount.UnorderedAccessCount = 0;
     	GenerateParameterResourceCount<ShaderPropertyMeta>(PropertyMeta, outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
-    	GenerateParameterResourceCount<ShaderParameterMeta>(GlobalParameterMeta,  outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
-    	GenerateParameterResourceCount<ShaderParameterMeta>(ObjectParameterMeta,  outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
-    	if (PasseParameterMeta.contains(passName))
+    	for (auto& uniformMetas : UniformParameterMeta | std::views::values)
     	{
-    		GenerateParameterResourceCount<ShaderParameterMeta>(PasseParameterMeta[passName], outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
+    		GenerateParameterResourceCount<ShaderParameterMeta>(uniformMetas, outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
     	}
     }
 
@@ -312,76 +310,72 @@ namespace Thunder
     	}
     }
 
-	void ShaderAST::ParseAllTypeParameters(ShaderArchive* archive) const
+	void ShaderAST::Reflect(ShaderArchive* archive) const
 	{
     	TAssert(ASTRoot->node_type == enum_ast_node_type::archive);
-    	if (ast_node_archive* node = static_cast<ast_node_archive*>(ASTRoot))
+    	ast_node_archive* node = static_cast<ast_node_archive*>(ASTRoot);
+
+    	// Reflect properties.
+    	for (ast_node_variable* var : node->properties)
     	{
-    		for (ast_node_variable* var : node->properties)
-    		{
-    			ShaderPropertyMeta meta{};
-    			meta.Name = var->name;
-    			meta.Type = var->type->get_type_text();
-    			meta.Format = var->type->get_type_format_text();
-    			meta.Default = var->default_value;
-    			archive->AddPropertyMeta(meta);
-    		}
-    		for (ast_node_variable* var : node->variants)
-    		{
-    			ShaderVariantMeta meta{};
-    			meta.Name = var->name;
-    			meta.Default = var->default_value.empty() ? false : (var->default_value == "true" ? true : false);
-    			archive->AddVariantMeta(meta);
-    		}
-    		for (ast_node_variable* var : node->global_parameters)
-    		{
-    			ShaderParameterMeta meta{};
-    			meta.Name = var->name;
-    			meta.Type = var->type->get_type_text();
-    			meta.Format = var->type->get_type_format_text();
-    			meta.Default = var->default_value;
-    			archive->AddGlobalParameterMeta(meta);
-    		}
-    		for (ast_node_variable* var : node->object_parameters)
-    		{
-    			ShaderParameterMeta meta{};
-    			meta.Name = var->name;
-    			meta.Type = var->type->get_type_text();
-    			meta.Format = var->type->get_type_format_text();
-    			meta.Default = var->default_value;
-    			archive->AddObjectParameterMeta(meta);
-    		}
-    		TArray<ShaderParameterMeta> dummyPassMeta{};
-    		for (ast_node_variable* var : node->pass_parameters)
+    		ShaderPropertyMeta meta{};
+    		meta.Name = var->name;
+    		meta.Type = var->type->get_type_text();
+    		meta.Format = var->type->get_type_format_text();
+    		meta.Default = var->default_value;
+    		archive->AddPropertyMeta(meta);
+    	}
+
+    	// Reflect variants.
+    	for (ast_node_variable* var : node->variants)
+    	{
+    		ShaderVariantMeta meta{};
+    		meta.Name = var->name;
+    		meta.Default = var->default_value.empty() ? false : (var->default_value == "true" ? true : false);
+    		archive->AddVariantMeta(meta);
+    	}
+
+    	// Reflect uniform buffers.
+    	for (auto const& uniformBufferParametersEntry : node->uniform_buffer_parameters)
+    	{
+    		String const& uniformBufferName = uniformBufferParametersEntry.first;
+    		TArray<ast_node_variable*> const& uniformBufferParameters = uniformBufferParametersEntry.second;
+    		auto& metaList = archive->EnsureAndGetUniformBufferMetaList(uniformBufferName);
+    		TAssertf(metaList.empty(), "Uniform buffer is not empty.");
+    		for (ast_node_variable* uniformBufferParameter : uniformBufferParameters)
     		{
     			ShaderParameterMeta meta{};
-    			meta.Name = var->name;
-    			meta.Type = var->type->get_type_text();
-    			meta.Format = var->type->get_type_format_text();
-    			meta.Default = var->default_value;
-    			dummyPassMeta.push_back(meta);
-    		}
-    		for (ast_node_pass* sub_shader_node : node->passes)
-    		{
-    			// Parse sub-shader.
-    			ShaderPass* subShader = new ShaderPass(archive, sub_shader_node);
-    			for (uint8 stage = 1; stage < static_cast<uint8>(enum_shader_stage::max); ++stage)
-    			{
-    				String entry = sub_shader_node->get_stage_entry(static_cast<enum_shader_stage>(stage));
-    				if (!entry.empty())
-    				{
-    					EShaderStageType engineStage = ShaderModule::GetShaderStage(static_cast<enum_shader_stage>(stage));
-    					subShader->AddStageMeta(engineStage, 
-    					{
-    						.EntryPoint = entry,
-    						.VariantMask = 0
-    					});
-    				}
-    			}
-    			archive->AddSubShader(subShader);
-    			archive->AddPassParameterMeta(sub_shader_node->name, dummyPassMeta);
+    			meta.Name = uniformBufferParameter->name;
+    			meta.Type = uniformBufferParameter->type->get_type_text();
+    			meta.Format = uniformBufferParameter->type->get_type_format_text();
+    			meta.Default = uniformBufferParameter->default_value;
+    			metaList.push_back(meta);
     		}
     	}
+
+    	// Reflect passes.
+    	for (ast_node_pass* subShaderNode : node->passes)
+    	{
+    		// Parse sub-shader.
+    		ShaderPass* subShader = new ShaderPass(archive, subShaderNode);
+    		for (uint8 stage = 1; stage < static_cast<uint8>(enum_shader_stage::max); ++stage)
+    		{
+    			String entry = subShaderNode->get_stage_entry(static_cast<enum_shader_stage>(stage));
+    			if (!entry.empty())
+    			{
+    				EShaderStageType engineStage = ShaderModule::GetShaderStage(static_cast<enum_shader_stage>(stage));
+    				subShader->AddStageMeta(engineStage, 
+    				{
+    					.EntryPoint = entry,
+    					.VariantMask = 0
+    				});
+    			}
+    		}
+    		archive->AddSubShader(subShader);
+    	}
+
+    	// Generate bindings layout.
+    	archive->BuildBindingsLayout();
 	}
 
 	String ShaderAST::GenerateShaderVariantSource(shader_codegen_state& state) const
@@ -420,7 +414,7 @@ namespace Thunder
 	    : SourcePath(std::move(sourceFilePath)), Name(shaderName)
     {
     	AST = new (TMemory::Malloc<ShaderAST>()) ShaderAST(astRoot);
-    	AST->ParseAllTypeParameters(this);
+    	AST->Reflect(this);
     }
 
     ShaderArchive::~ShaderArchive()
@@ -548,6 +542,80 @@ namespace Thunder
     	}
 	}
 
+	void ShaderArchive::BuildBindingsLayout()
+    {
+    	constexpr uint16 kMaxSRVBindings = 16;
+    	constexpr uint16 kMaxUAVBindings = 8;
+    	uint16 currentSRVIndex = 0;
+    	uint16 currentUAVIndex = 0;
+    	BindingsLayout = new ShaderBindingsLayout{ this };
+
+    	// Build uniform buffers.
+    	for (auto& uniformBufferNames : UniformParameterMeta | std::views::keys)
+    	{
+    		auto definitionIt = GUniformBufferDefinitions.find(uniformBufferNames);
+    		if (definitionIt != GUniformBufferDefinitions.end())
+    		{
+    			uint16 bufferIndex = definitionIt->second.index;
+    			BindingsLayout->AddBinding(
+				{
+					.Name = uniformBufferNames,
+					.Index = bufferIndex,
+					.Type = EShaderParameterType::UniformBuffer,
+				});
+    		}
+		    else
+		    {
+			    TAssertf(false, "Uniform buffer not defined : \"%s\".", uniformBufferNames.c_str());
+		    }
+    	}
+
+    	// Build UAVs and SRVs.
+    	for (auto& uniformMetas : UniformParameterMeta | std::views::values)
+    	{
+    		for (auto const& uniformBufferParameter : uniformMetas)
+    		{
+    			if (uniformBufferParameter.Type.find("Texture") != std::string::npos)
+    			{
+    				if (uniformBufferParameter.Type.starts_with("RW"))
+    				{
+    					if (currentUAVIndex < kMaxUAVBindings)
+    					{
+    						BindingsLayout->AddBinding(
+							{
+								.Name = uniformBufferParameter.Name,
+								.Index = currentUAVIndex,
+								.Type = EShaderParameterType::UAV,
+							});
+    						++currentUAVIndex;
+    					}
+					    else
+					    {
+						    TAssertf(false, "Can't bind more than %d UAVs.", static_cast<int>(kMaxUAVBindings));
+					    }
+    				}
+    				else
+    				{
+    					if (currentSRVIndex < kMaxSRVBindings)
+    					{
+    						BindingsLayout->AddBinding(
+							{
+								.Name = uniformBufferParameter.Name,
+								.Index = currentSRVIndex,
+								.Type = EShaderParameterType::SRV,
+							});
+    						++currentSRVIndex;
+    					}
+    					else
+    					{
+    						TAssertf(false, "Can't bind more than %d SRVs.", static_cast<int>(kMaxSRVBindings));
+    					}
+    				}
+    			}
+    		}
+    	}
+	}
+
 	String ShaderArchive::GenerateShaderSource(ShaderCodeGenConfig const& config) const
 	{
     	shader_codegen_state state
@@ -568,7 +636,7 @@ namespace Thunder
 
     void AddParameters(const TArray<ShaderParameterMeta>& parameterMeta, MaterialParameterCache& cache)
     {
-    	for (auto meta : parameterMeta)
+    	for (auto const& meta : parameterMeta)
     	{
     		if (meta.Type == "int")
     		{
@@ -586,6 +654,10 @@ namespace Thunder
     		{
     			cache.TextureParameters.emplace(meta.Name, TGuid());
     		}
+		    else
+		    {
+			    TAssertf(false, "Parameter type \"%s\" not supported yet, parameter name is \"%s\".", meta.Type.c_str(), meta.Name.c_str());
+		    }
     	}
     }
 	
@@ -618,16 +690,10 @@ namespace Thunder
     			newVisibleParameters.StaticParameters.emplace(meta.Name, meta.Default);
     		}
     	}
-    	AddParameters(GlobalParameterMeta, newVisibleParameters);
-    	AddParameters(ObjectParameterMeta, newVisibleParameters);
-    	for (auto val : PasseParameterMeta | std::views::values)
+    	for (auto& uniformMetas : UniformParameterMeta | std::views::values)
     	{
-    		AddParameters(val, newVisibleParameters);
+    		AddParameters(uniformMetas, newVisibleParameters);
     	}
     	return newVisibleParameters;
     }
-
-
-	
 }
-#pragma optimize("", on)

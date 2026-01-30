@@ -650,7 +650,7 @@ namespace Thunder
     		{
     			cache.VectorParameters.emplace(meta.Name, TVector4f());
     		}
-    		else if (meta.Type == "Texture2D")
+    		else if (meta.Type.starts_with("Texture2D"))
     		{
     			cache.TextureParameters.emplace(meta.Name, TGuid());
     		}

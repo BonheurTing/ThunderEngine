@@ -10,11 +10,12 @@ Shader "TestShader"
     }
     Parameters "Pass"
     {
-        float4x4 WorldToObject;
-        float4x4 ViewProjection;
+        float4 WorldToObject0;
+        float4 WorldToObject1;
+        float4 WorldToObject2;
         Texture2D _MainTex;
         Texture2D<float4> Albedo;
-        StructuredBuffer<float4> _StructuredBuffer;
+        // StructuredBuffer<float4> _StructuredBuffer;
     }
     #include "TestInclude1/TestInclude2/test_include.tsh"
     #define ENABLE_UV0 1

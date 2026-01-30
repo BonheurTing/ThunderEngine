@@ -1,6 +1,6 @@
 Parameters "Primitive"
 {
-    float3 LastPosition;
+    float4 LastPosition;
 }
 Parameters "Global"
 {

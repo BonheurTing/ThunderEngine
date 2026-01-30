@@ -25,7 +25,7 @@ namespace Thunder
          * 6.CopyTetxureRegion
          **/
 
-        RHIResourceDescriptor desc {};
+        RHIResourceDescriptor desc{};
         desc.Type = ERHIResourceType::Texture2D;
         desc.Alignment = 0;
         desc.Width = SizeX;
@@ -36,8 +36,15 @@ namespace Thunder
         desc.SampleDesc = {1, 0};
         desc.Layout = ERHITextureLayout::RowMajor;
         desc.Flags = {0, 0, 0, 0, 0};
-		
+
         TextureRHI = RHICreateTexture(desc, CreationFlags);
+        RHICreateShaderResourceView(*TextureRHI, {
+            .Format = desc.Format,
+            .Type = ERHIViewDimension::Texture2D,
+            .Width = desc.Width,
+            .Height = desc.Height,
+            .DepthOrArraySize = desc.DepthOrArraySize
+        });
 
         if (!TextureRHI.IsValid() || MipLevels > 1)
         {

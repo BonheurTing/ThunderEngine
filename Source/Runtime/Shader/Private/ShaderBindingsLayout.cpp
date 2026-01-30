@@ -36,4 +36,12 @@ namespace Thunder
             TAssertf(false, "Unknown binding type %u.", static_cast<uint32>(bindingInfo.Type));
         }
     }
+
+    size_t ShaderBindingsLayout::GetTotalSize() const
+    {
+        return (UniformBuffersByName.size() * sizeof(UniformBufferBindingHandle))
+            + (SRVsByName.size() * sizeof(ShaderBindingHandle))
+            + (UAVsByName.size() * sizeof(ShaderBindingHandle))
+            + (SamplersByName.size() * sizeof(ShaderBindingHandle));
+    }
 }

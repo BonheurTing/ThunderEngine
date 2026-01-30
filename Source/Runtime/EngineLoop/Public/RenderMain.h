@@ -42,6 +42,7 @@ namespace Thunder
         
     private:
         void RenderMain();
+        void Tick_RenderThread();
         void EndRenderer();
 
         void WaitForLastRHIFrameEnd();

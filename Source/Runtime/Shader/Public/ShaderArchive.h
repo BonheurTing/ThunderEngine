@@ -74,6 +74,7 @@ namespace Thunder
 			return false;
 		}
 
+		_NODISCARD_ ShaderArchive* GetArchive() const { return Archive; }
 		_NODISCARD_ NameHandle GetName() const { return Name; }
 		_NODISCARD_ EMeshPass GetMeshPass() const { return MeshPass; }
 		_NODISCARD_ bool IsMeshPass() const { return static_cast<uint32>(MeshPass) < static_cast<uint32>(EMeshPass::Num); }
@@ -167,6 +168,7 @@ namespace Thunder
     	uint64 VariantNameToMask(const TMap<NameHandle, bool>& variantMap) const;
     	void VariantMaskToName(uint64 variantMask, THashMap<NameHandle, bool>& variantMap) const;
     	void BuildBindingsLayout();
+    	ShaderBindingsLayout* GetBindingsLayout() const { return BindingsLayout; }
 
     private:
     	friend class ShaderAST;

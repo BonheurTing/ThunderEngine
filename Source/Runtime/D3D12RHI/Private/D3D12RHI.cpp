@@ -210,7 +210,7 @@ namespace Thunder
 
         if(SUCCEEDED(hr))
         {
-            D3D12RHIShaderResourceView* view = new D3D12RHIShaderResourceView(desc, CommonDescriptorHeap.Get(), srvOffset);
+            D3D12RHIShaderResourceView* view = new D3D12RHIShaderResourceView(desc, (uint64)(srvHandle.ptr));
             resource.SetSRV(view);
         }
         else

@@ -4,22 +4,12 @@
 #include "IRHIModule.h"
 #include "RHIContext.h"
 #include "RHIResource.h"
+#include "ShaderBindingsLayout.h"
 #include "ShaderDefinition.h"
 
 namespace Thunder
 {
     class ShaderBindingsLayout;
-
-    struct UniformBufferBindingHandle
-    {
-        uint64 Base = 0xFFFFFFFFFFFFFFFF;
-        uint64 Offset = 0xFFFFFFFFFFFFFFFF;
-    };
-
-    struct ShaderBindingHandle
-    {
-        uint64 Handle = 0xFFFFFFFFFFFFFFFF;
-    };
 
     class SingleShaderBindings
     {
@@ -50,6 +40,8 @@ namespace Thunder
         ShaderBindingHandle GetSampler(const ShaderBindingsLayout* layout, NameHandle name) const;
         ShaderBindingHandle GetSRV(const ShaderBindingsLayout* layout, NameHandle name) const;
         ShaderBindingHandle GetUAV(const ShaderBindingsLayout* layout, NameHandle name) const;
+
+        static size_t CalculateOffset(const ShaderBindingsLayout* layout, uint32 index, EShaderParameterType type);
 
     private:
         byte* Data = nullptr;

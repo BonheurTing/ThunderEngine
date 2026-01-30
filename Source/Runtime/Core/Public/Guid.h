@@ -55,3 +55,21 @@ namespace Thunder
 
 	};
 }
+
+// std::hash specialization for TGuid
+namespace std
+{
+	template<>
+	struct hash<Thunder::TGuid>
+	{
+		size_t operator()(const Thunder::TGuid& guid) const noexcept
+		{
+			// Combine the four 32-bit components into a hash
+			size_t hash = guid.A;
+			hash ^= guid.B + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+			hash ^= guid.C + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+			hash ^= guid.D + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+			return hash;
+		}
+	};
+}

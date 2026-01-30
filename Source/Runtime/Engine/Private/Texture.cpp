@@ -5,6 +5,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "Concurrent/TaskScheduler.h"
 #include "External/stb_image_write.h" // 定义 stb_image_write 实现
+#include "RenderModule.h"
 
 namespace Thunder
 {
@@ -37,9 +38,9 @@ namespace Thunder
 	{
 		ReleaseResource();
 
-		RenderTexture* newResource = CreateResource_GameThread(); //纯虚函数
+		RenderTexture* newResource = CreateResource_GameThread();
 		SetResource(newResource);
-		
+
 		InitResource();
 	}
 
@@ -47,20 +48,26 @@ namespace Thunder
 	{
 		if (TextureResource)
 		{
+			TGuid guid = GetGUID();
 			GRenderScheduler->PushTask([resource = this->TextureResource]()
 			{
 				resource->ReleaseResource();
 			});
+			RenderModule::UnregisterTexture_GameThread(guid);
 		}
 	}
 
 	void ITexture::InitResource()
 	{
-		GRenderScheduler->PushTask([this]()
+		TGuid guid = GetGUID();
+		RenderTexture* resource = TextureResource.Get();
+		RenderModule::RegisterTexture_GameThread(guid, resource);
+
+		GRenderScheduler->PushTask([resource]()
 		{
-			if (this->TextureResource)
+			if (resource)
 			{
-				this->TextureResource->InitResource();
+				resource->InitResource();
 			}
 		});
 	}

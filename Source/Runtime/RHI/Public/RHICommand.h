@@ -4,6 +4,7 @@
 #include "IRHIModule.h"
 #include "RHIContext.h"
 #include "RHIResource.h"
+#include "ShaderBindings.h"
 
 namespace Thunder
 {
@@ -47,6 +48,7 @@ namespace Thunder
         RHIVertexBuffer* VBToSet = nullptr;
         RHIIndexBuffer* IBToSet = nullptr;
         TRHIPipelineState* GraphicsPSO = nullptr;
+        ShaderBindings Bindings;
 
         // TODO.
         // RHIConstantBufferRef CB;

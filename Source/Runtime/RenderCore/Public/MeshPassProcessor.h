@@ -16,7 +16,9 @@ namespace Thunder
         RENDERCORE_API virtual bool Process(FRenderContext* context, const MeshBatch* batch, EMeshPass meshPassType, bool cacheMeshDrawCommand = false);
         RENDERCORE_API virtual void FinalizeCommand(FRenderContext* context, const MeshBatch* batch, class RHIDrawCommand* command, bool cacheMeshDrawCommand = false);
 
-        static class TRHIGraphicsPipelineState* GetPipelineState(const class FRenderContext* context, EMeshPass meshPassType, const class SubMesh* subMesh, class RenderMaterial* material);
+        static class ShaderCombination* GetShaderCombination(EMeshPass meshPassType, const class RenderMaterial* material);
+        static class TRHIGraphicsPipelineState* GetPipelineState(const class FRenderContext* context, ShaderCombination* shaderCombination, EMeshPass meshPassType, const class SubMesh* subMesh, class RenderMaterial* material);
+        static void ApplyShaderBindings(const FRenderContext* context, RHIDrawCommand* command, class ShaderCombination* shader, RenderMaterial* material, bool cacheMeshDrawCommand);
     };
 	using MeshPassProcessorRef = TRefCountPtr<MeshPassProcessor>;
 }

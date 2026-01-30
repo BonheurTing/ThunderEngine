@@ -359,4 +359,4 @@ namespace Thunder
 		*OverrideParameters = ShaderModule::ParseShaderParameters(ArchiveName);
 	}
 }
-#pragma optimize("", on)
+

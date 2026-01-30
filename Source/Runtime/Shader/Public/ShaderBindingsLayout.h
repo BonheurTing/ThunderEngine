@@ -21,6 +21,17 @@ namespace Thunder
         EShaderParameterType Type = EShaderParameterType::Num;
     };
 
+    struct UniformBufferBindingHandle
+    {
+        uint64 Base = 0xFFFFFFFFFFFFFFFF;
+        uint64 Offset = 0xFFFFFFFFFFFFFFFF;
+    };
+
+    struct ShaderBindingHandle
+    {
+        uint64 Handle = 0xFFFFFFFFFFFFFFFF;
+    };
+
     class ShaderBindingsLayout : public RefCountedObject
     {
     public:
@@ -30,6 +41,7 @@ namespace Thunder
         void AddBinding(ShaderResourceParameterInfo const& bindingInfo);
 
         class ShaderArchive* GetShader() const { return Shader; }
+        size_t GetTotalSize() const;
 
         TMap<uint16, ShaderResourceParameterInfo> const& GetUniformBuffersIndexMap() const { return UniformBuffersByIndex; }
         TMap<uint16, ShaderResourceParameterInfo> const& GetSamplersIndexMap() const { return SRVsByIndex; }

@@ -13,6 +13,7 @@ namespace Thunder
         virtual ~TestRenderer() = default;
 
         void Setup() override;
+        void Tick_RenderThread() override;
 
     private:
         void Print(const std::string& message);
@@ -24,6 +25,7 @@ namespace Thunder
     public:
         DeferredShadingRenderer();
         virtual ~DeferredShadingRenderer() = default;
+        void Tick_RenderThread() override;
         void Setup() override;
     private:
         void InitViews();

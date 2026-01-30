@@ -1,4 +1,4 @@
-#pragma optimize("", off) 
+#pragma optimize("", off)
 #include "FrameGraph.h"
 #include <algorithm>
 #include "RenderTexture.h"
@@ -7,6 +7,7 @@
 #include "IRHIModule.h"
 #include "PlatformProcess.h"
 #include "PrimitiveSceneInfo.h"
+#include "RenderModule.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskGraph.h"
 #include "Concurrent/TaskScheduler.h"

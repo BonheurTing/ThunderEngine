@@ -1,6 +1,8 @@
 ﻿#include "RenderMaterial.h"
 
 #include "RenderTranslator.h"
+#include "RenderTexture.h"
+#include "RenderModule.h"
 #include "ShaderArchive.h"
 #include "ShaderDefinition.h"
 #include "RHIResource.h"
@@ -26,10 +28,6 @@ namespace Thunder
     void RenderMaterial::SetShaderArchive(ShaderArchive* archive)
     {
         Archive = archive;
-        if (archive)
-        {
-            // 可以在这里进行一些初始化工作
-        }
     }
 
     ShaderCombination* RenderMaterial::GetShaderCombination(NameHandle passName, uint64 variantId) const
@@ -51,6 +49,7 @@ namespace Thunder
     void RenderMaterial::CacheParameters(MaterialParameterCache* gameMaterialCache)
     {
         ParameterCache = gameMaterialCache;
+        bTexturesDirty = true; // Mark textures as dirty when parameters change
     }
 
     void RenderMaterial::UpdateConstantBuffer()
@@ -68,25 +67,52 @@ namespace Thunder
         // }
     }
 
-    RHITexture* RenderMaterial::GetTextureResource(const NameHandle& name) const
+    RHITexture* RenderMaterial::GetTextureResource(const NameHandle& name)
     {
-        // TODO: 从TextureParameters的GUID查找已解析的纹理资源
-        // 需要维护一个GUID到RHITexture的映射表
+        if (bTexturesDirty) [[unlikely]]
+        {
+            CacheTextureResources();
+        }
+
+        auto it = TextureCaches.find(name);
+        if (it != TextureCaches.end()) [[likely]]
+        {
+            return it->second;
+        }
         return nullptr;
     }
 
-    void RenderMaterial::ResolveTextureResources()
+    void RenderMaterial::CacheTextureResources()
     {
-        // TODO: 将TextureParameters中的GUID解析为实际的RHI纹理资源
-        // 这需要通过资源管理器查找GUID对应的纹理资源
+        if (!bTexturesDirty || !ParameterCache)
+        {
+            return;
+        }
 
-        // 示例代码框架：
-        // for (const auto& pair : ParameterCache.TextureParameters)
-        // {
-        //     const TGuid& textureGuid = pair.second;
-        //     // RHITexture* texture = ResourceManager->LoadTexture(textureGuid);
-        //     // 将texture缓存到某个映射表中
-        // }
+        TextureCaches.clear();
+
+        for (auto const& [name, guid] : ParameterCache->TextureParameters)
+        {
+            RenderTexture* renderTexture = RenderModule::GetTextureResource_RenderThread(guid);
+            if (renderTexture) [[likely]]
+            {
+                RHITexture* rhiTexture = renderTexture->GetTextureRHI().Get();
+                if (rhiTexture) [[likely]]
+                {
+                    TextureCaches[name] = rhiTexture;
+                }
+                else
+                {
+                    TAssertf(false, "Texture \"%s\" (GUID: %s) has no RHI resource.", name.c_str(), guid.ToString().c_str());
+                }
+            }
+            else
+            {
+                TAssertf(false, "Texture \"%s\" (GUID: %s) not found in render texture registry.", name.c_str(), guid.ToString().c_str());
+            }
+        }
+
+        bTexturesDirty = false;
     }
 
     void RenderMaterial::FillGraphicsPipelineStateDesc(
@@ -125,11 +151,6 @@ namespace Thunder
         //     //     cmdList->SetShaderResourceView(slot, texture->GetSRV());
         //     // }
         // }
-    }
-
-    const TMap<NameHandle, bool>& RenderMaterial::GetStaticParameters() const
-    {
-        return ParameterCache->StaticParameters;
     }
 
     bool RenderMaterial::GetRenderState(EMeshPass meshPassType, RHIBlendState& outBlendState, RHIRasterizerState& outRasterizerState, RHIDepthStencilState& outDepthStencilState)

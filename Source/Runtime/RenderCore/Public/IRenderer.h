@@ -11,6 +11,7 @@ namespace Thunder
         IRenderer();
         virtual ~IRenderer();
 
+        virtual void Tick_RenderThread() = 0;
         virtual void Setup() = 0;
 
         virtual void Compile()

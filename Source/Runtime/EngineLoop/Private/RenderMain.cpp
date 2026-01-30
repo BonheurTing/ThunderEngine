@@ -3,6 +3,7 @@
 
 #include "IDynamicRHI.h"
 #include "IRHIModule.h"
+#include "RenderModule.h"
 #include "RHIMain.h"
 #include "Scene.h"
 #include "Concurrent/ConcurrentBase.h"
@@ -29,18 +30,29 @@ namespace Thunder
 
         LOG("Execute render thread in frame: %u with thread: %lu", GFrameState->FrameNumberRenderThread.load(), __threadid());
 
+        Tick_RenderThread();
+
         for (auto scene : RenderViewport->GetScenes())
         {
             auto renderer = scene->GetRenderer();
             TAssert(renderer != nullptr);
 
-            // Execute FrameGraph rendering pipeline
+            // Tick.
+            renderer->Tick_RenderThread();
+
+            // Execute FrameGraph rendering pipeline.
             renderer->Setup();
             renderer->Compile();
             renderer->Execute();
 
             SimulatingAddingMeshBatch();
         }
+    }
+
+    void RenderingTask::Tick_RenderThread()
+    {
+        // Update texture registry.
+        RenderModule::UpdateTextureRegistry_RenderThread();
     }
 
     void RenderingTask::EndRenderer()

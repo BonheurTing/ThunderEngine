@@ -6,6 +6,7 @@
 #include "Guid.h"
 #include "MeshPass.h"
 #include "RHI.h"
+#include "ShaderDefinition.h"
 #include "Templates/RefCounting.h"
 
 namespace Thunder
@@ -40,8 +41,8 @@ namespace Thunder
         // ========== GPU Resource (RenderThread) ==========
         void UpdateConstantBuffer();
         RHIConstantBuffer* GetConstantBuffer() const { return ConstantBuffer.Get(); }
-        RHITexture* GetTextureResource(const NameHandle& name) const;
-        void ResolveTextureResources();
+        RHITexture* GetTextureResource(const NameHandle& name);
+        void CacheTextureResources();
 
         // ========== PSO (RenderThread) ==========
         void FillGraphicsPipelineStateDesc(
@@ -50,8 +51,12 @@ namespace Thunder
             uint64 variantId = 0) const;
 
         void BindParametersToRHI(class RHICommandList* cmdList) const;
-        //const MaterialParameterCache& GetParameterCache() const { return ParameterCache; }
-        const TMap<NameHandle, bool>& GetStaticParameters() const;
+        const MaterialParameterCache* GetParameterCache() const { return ParameterCache; }
+        const TMap<NameHandle, bool>& GetStaticSwitchParameters() const { return ParameterCache->StaticParameters; }
+        const TMap<NameHandle, TVector4f>& GetVectorParameters() const { return ParameterCache->VectorParameters; }
+        const TMap<NameHandle, TGuid>& GetTextureParameters() const { return ParameterCache->TextureParameters; }
+        const TMap<NameHandle, float>& GetFloatParameters() const { return ParameterCache->FloatParameters; }
+        const TMap<NameHandle, int>& GetIntParameters() const { return ParameterCache->IntParameters; }
 
         bool GetRenderState(EMeshPass meshPassType, RHIBlendState& outBlendState, RHIRasterizerState& outRasterizerState, RHIDepthStencilState& outDepthStencilState);
 
@@ -61,6 +66,10 @@ namespace Thunder
         MaterialParameterCache* ParameterCache; //
 
         TRefCountPtr<RHIConstantBuffer> ConstantBuffer;
+
+        // Cached resolved textures (render thread only)
+        TMap<NameHandle, RHITexture*> TextureCaches;
+        bool bTexturesDirty = true;
     };
 
 }

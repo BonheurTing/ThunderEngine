@@ -255,11 +255,14 @@ namespace Thunder
 	class RHI_API RHIDescriptorView : public RefCountedObject
 	{
 	public:
-		RHIDescriptorView(RHIViewDescriptor const& desc) : Desc(desc) {}
+		RHIDescriptorView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF) : Desc(desc), Handle(handle) {}
 		virtual ~RHIDescriptorView() = default;
-        
+
+		uint64 GetHandle() const { return Handle; }
+
 	protected:
 		RHIViewDescriptor Desc = {};
+		uint64 Handle = 0xFFFFFFFFFFFFFFFF;
 	};
     
 	class RHIConstantBufferView : public RHIDescriptorView
@@ -270,7 +273,7 @@ namespace Thunder
 	class RHIShaderResourceView : public RHIDescriptorView
 	{
 	public:
-		RHIShaderResourceView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+		RHIShaderResourceView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF) : RHIDescriptorView(desc, handle) {}
 	};
 	class RHIUnorderedAccessView : public RHIDescriptorView
 	{

@@ -118,6 +118,10 @@ namespace Thunder
         mFrameGraph->SetPresentTarget(postProcessRT2);
     }
 
+    void TestRenderer::Tick_RenderThread()
+    {
+    }
+
     void TestRenderer::Print(const std::string& message)
     {
         std::cout << message << std::endl;
@@ -137,6 +141,10 @@ namespace Thunder
     void DeferredShadingRenderer::Print(const std::string& message)
     {
         std::cout << message << std::endl;
+    }
+
+    void DeferredShadingRenderer::Tick_RenderThread()
+    {
     }
 
     void DeferredShadingRenderer::Setup()

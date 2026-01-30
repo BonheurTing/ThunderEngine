@@ -13,6 +13,7 @@
 #include "RenderMesh.h"
 #include "RenderTranslator.h"
 #include "RHI.h"
+#include "ShaderArchive.h"
 
 namespace Thunder
 {
@@ -38,14 +39,25 @@ namespace Thunder
             RenderMaterial* material = meshBatchElement.Material;
             SubMesh* subMesh = meshBatchElement.SubMesh;
 
+            // Get shader variant first.
+            ShaderCombination* shaderVariant = GetShaderCombination(meshPassType, material);
+            if (!shaderVariant) [[unlikely]]
+            {
+                TAssertf(false, "Fail to prepare mesh draw command, Shader variant not found.");
+                return false;
+            }
+
             // Fetch PSO.
-            TRHIGraphicsPipelineState* pso = GetPipelineState(context, meshPassType, subMesh, material);
+            TRHIGraphicsPipelineState* pso = GetPipelineState(context, shaderVariant, meshPassType, subMesh, material);
             if (!pso) [[unlikely]]
             {
                 TAssertf(false, "Fail to prepare mesh draw command, pipeline state is invalid.");
                 return false;
             }
             newCommand->GraphicsPSO = pso;
+
+            // Apply shader bindings.
+            ApplyShaderBindings(context, newCommand, shaderVariant, material, cacheMeshDrawCommand);
 
             // Add mesh-draw command.
             FinalizeCommand(context, batch, newCommand, cacheMeshDrawCommand);
@@ -66,21 +78,27 @@ namespace Thunder
         }
     }
 
-    TRHIGraphicsPipelineState* MeshPassProcessor::GetPipelineState(const FRenderContext* context, EMeshPass meshPassType, const SubMesh* subMesh, RenderMaterial* material)
+    ShaderCombination* MeshPassProcessor::GetShaderCombination(EMeshPass meshPassType, const RenderMaterial* material)
     {
-        // Fetch shader.
-        TGraphicsPipelineStateDescriptor psoDesc;
         auto shaderAst = material->GetShaderArchive();
-        uint64 shaderVariantMask = ShaderModule::GetVariantMask(shaderAst, material->GetStaticParameters());
+        uint64 shaderVariantMask = ShaderModule::GetVariantMask(shaderAst, material->GetStaticSwitchParameters());
         ShaderCombination* shaderVariant = ShaderModule::GetShaderCombination(shaderAst, meshPassType, shaderVariantMask);
-        if (!shaderVariant) [[unlikely]]
+        return shaderVariant;
+    }
+
+    TRHIGraphicsPipelineState* MeshPassProcessor::GetPipelineState(const FRenderContext* context, ShaderCombination* shaderCombination, EMeshPass meshPassType, const SubMesh* subMesh, RenderMaterial* material)
+    {
+        // Set shader.
+        TGraphicsPipelineStateDescriptor psoDesc;
+        if (!shaderCombination) [[unlikely]]
         {
             // Shader is not ready yet.
             return nullptr;
         }
-        psoDesc.shaderVariant = shaderVariant;
+        psoDesc.shaderVariant = shaderCombination;
 
         // Get register counts.
+        auto shaderAst = material->GetShaderArchive();
         bool succeeded = ShaderModule::GetPassRegisterCounts(shaderAst, meshPassType, psoDesc.RegisterCounts);
         if (!succeeded) [[unlikely]]
         {
@@ -114,5 +132,54 @@ namespace Thunder
 
         auto pipelineStateObject = RHICreateGraphicsPipelineState(psoDesc);
         return pipelineStateObject;
+    }
+
+    void MeshPassProcessor::ApplyShaderBindings(const FRenderContext* context, RHIDrawCommand* command, ShaderCombination* shader, RenderMaterial* material, bool cacheMeshDrawCommand)
+    {
+        ShaderArchive* archive = shader->GetSubShader()->GetArchive();
+        ShaderBindingsLayout* bindingsLayout = archive->GetBindingsLayout();
+        for (const auto& stageType : shader->Shaders | std::views::keys)
+        {
+            // Allocate.
+            SingleShaderBindings* stageBindings = command->Bindings.GetSingleShaderBindings(stageType);
+            size_t const bindingSize = bindingsLayout->GetTotalSize();
+            byte* bindingData = (cacheMeshDrawCommand) ?
+                static_cast<byte*>(TMemory::Malloc(bindingSize, 8)) :
+                static_cast<byte*>(context->Allocate<byte>(bindingSize));
+            stageBindings->SetData(bindingData);
+
+            // Bind textures.
+            auto const& textureParameterMap = material->GetTextureParameters();
+            for (const auto& textureParameterEntry : textureParameterMap)
+            {
+                NameHandle textureName = textureParameterEntry.first;
+                TGuid textureGuid = textureParameterEntry.second;
+
+                // Skip empty texture.
+                if (!textureGuid.IsValid())
+                {
+                    continue;
+                }
+
+                // Get resource.
+                RHITexture* textureResource = material->GetTextureResource(textureName);
+                if (!textureResource) [[unlikely]]
+                {
+                    TAssertf(false, "Failed to get SRV binding : \"%s\", texture resource is invalid.", textureName.c_str());
+                    continue;
+                }
+
+                // Get SRV.
+                RHIShaderResourceView* srv = textureResource->GetSRV();
+                if (!srv) [[unlikely]]
+                {
+                    TAssertf(false, "Failed to get SRV binding : \"%s\", SRV is invalid.", textureName.c_str());
+                    continue;
+                }
+
+                // Bind.
+                stageBindings->SetSRV(bindingsLayout, textureName, { .Handle = srv->GetHandle() });
+            }
+        }
     }
 }

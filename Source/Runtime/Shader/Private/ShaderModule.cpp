@@ -422,5 +422,3 @@ namespace Thunder
 		return FCrc::StrCrc32(byteArray.data());
 	}
 }
-
-#pragma optimize("", on)

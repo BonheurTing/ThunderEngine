@@ -59,11 +59,11 @@ namespace Thunder
 		uint32 Index;
 	};
 	
-	class D3D12RHIShaderResourceView : public RHIShaderResourceView, public D3D12DescriptorViewEntry
+	class D3D12RHIShaderResourceView : public RHIShaderResourceView
 	{
 	public:
-		D3D12RHIShaderResourceView(RHIViewDescriptor const& desc, TD3D12DescriptorHeap* heap, uint32 index)
-			: RHIShaderResourceView(desc), D3D12DescriptorViewEntry(heap, index) {}
+		D3D12RHIShaderResourceView(RHIViewDescriptor const& desc, uint64 handle)
+			: RHIShaderResourceView(desc, handle) {}
 	};
 
 	class D3D12RHIUnorderedAccessView : public RHIUnorderedAccessView, public D3D12DescriptorViewEntry

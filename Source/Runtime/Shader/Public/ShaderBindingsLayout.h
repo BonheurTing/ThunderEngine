@@ -44,13 +44,13 @@ namespace Thunder
         size_t GetTotalSize() const;
 
         TMap<uint16, ShaderResourceParameterInfo> const& GetUniformBuffersIndexMap() const { return UniformBuffersByIndex; }
-        TMap<uint16, ShaderResourceParameterInfo> const& GetSamplersIndexMap() const { return SRVsByIndex; }
-        TMap<uint16, ShaderResourceParameterInfo> const& GetSRVsIndexMap() const { return UAVsByIndex; }
-        TMap<uint16, ShaderResourceParameterInfo> const& GetUAVsIndexMap() const { return SamplersByIndex; }
+        TMap<uint16, ShaderResourceParameterInfo> const& GetSamplersIndexMap() const { return SamplersByIndex; }
+        TMap<uint16, ShaderResourceParameterInfo> const& GetSRVsIndexMap() const { return SRVsByIndex; }
+        TMap<uint16, ShaderResourceParameterInfo> const& GetUAVsIndexMap() const { return UAVsByIndex; }
         TMap<NameHandle, ShaderResourceParameterInfo> const& GetUniformBuffersNameMap() const { return UniformBuffersByName; }
-        TMap<NameHandle, ShaderResourceParameterInfo> const& GetSamplersNameMap() const { return SRVsByName; }
-        TMap<NameHandle, ShaderResourceParameterInfo> const& GetSRVsNameMap() const { return UAVsByName; }
-        TMap<NameHandle, ShaderResourceParameterInfo> const& GetUAVsNameMap() const { return SamplersByName; }
+        TMap<NameHandle, ShaderResourceParameterInfo> const& GetSamplersNameMap() const { return SamplersByName; }
+        TMap<NameHandle, ShaderResourceParameterInfo> const& GetSRVsNameMap() const { return SRVsByName; }
+        TMap<NameHandle, ShaderResourceParameterInfo> const& GetUAVsNameMap() const { return UAVsByName; }
 
     protected:
         // Parent.

@@ -138,48 +138,48 @@ namespace Thunder
     {
         ShaderArchive* archive = shader->GetSubShader()->GetArchive();
         ShaderBindingsLayout* bindingsLayout = archive->GetBindingsLayout();
-        for (const auto& stageType : shader->Shaders | std::views::keys)
+        command->Bindings.SetTransientAllocated(!cacheMeshDrawCommand);
+
+        // Allocate.
+        SingleShaderBindings* bindings = command->Bindings.GetSingleShaderBindings();
+        size_t const bindingSize = bindingsLayout->GetTotalSize();
+        byte* bindingData = (cacheMeshDrawCommand) ?
+            static_cast<byte*>(TMemory::Malloc(bindingSize, 8)) :
+            static_cast<byte*>(context->Allocate<byte>(bindingSize));
+        memset(bindingData, 0, bindingSize);
+        bindings->SetData(bindingData);
+
+        // Bind textures.
+        auto const& textureParameterMap = material->GetTextureParameters();
+        for (const auto& textureParameterEntry : textureParameterMap)
         {
-            // Allocate.
-            SingleShaderBindings* stageBindings = command->Bindings.GetSingleShaderBindings(stageType);
-            size_t const bindingSize = bindingsLayout->GetTotalSize();
-            byte* bindingData = (cacheMeshDrawCommand) ?
-                static_cast<byte*>(TMemory::Malloc(bindingSize, 8)) :
-                static_cast<byte*>(context->Allocate<byte>(bindingSize));
-            stageBindings->SetData(bindingData);
+            NameHandle textureName = textureParameterEntry.first;
+            TGuid textureGuid = textureParameterEntry.second;
 
-            // Bind textures.
-            auto const& textureParameterMap = material->GetTextureParameters();
-            for (const auto& textureParameterEntry : textureParameterMap)
+            // Skip empty texture.
+            if (!textureGuid.IsValid())
             {
-                NameHandle textureName = textureParameterEntry.first;
-                TGuid textureGuid = textureParameterEntry.second;
-
-                // Skip empty texture.
-                if (!textureGuid.IsValid())
-                {
-                    continue;
-                }
-
-                // Get resource.
-                RHITexture* textureResource = material->GetTextureResource(textureName);
-                if (!textureResource) [[unlikely]]
-                {
-                    TAssertf(false, "Failed to get SRV binding : \"%s\", texture resource is invalid.", textureName.c_str());
-                    continue;
-                }
-
-                // Get SRV.
-                RHIShaderResourceView* srv = textureResource->GetSRV();
-                if (!srv) [[unlikely]]
-                {
-                    TAssertf(false, "Failed to get SRV binding : \"%s\", SRV is invalid.", textureName.c_str());
-                    continue;
-                }
-
-                // Bind.
-                stageBindings->SetSRV(bindingsLayout, textureName, { .Handle = srv->GetHandle() });
+                continue;
             }
+
+            // Get resource.
+            RHITexture* textureResource = material->GetTextureResource(textureName);
+            if (!textureResource) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get SRV binding : \"%s\", texture resource is invalid.", textureName.c_str());
+                continue;
+            }
+
+            // Get SRV.
+            RHIShaderResourceView* srv = textureResource->GetSRV();
+            if (!srv) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get SRV binding : \"%s\", SRV is invalid.", textureName.c_str());
+                continue;
+            }
+
+            // Bind.
+            bindings->SetSRV(bindingsLayout, textureName, { .Handle = srv->GetHandle() });
         }
     }
 }

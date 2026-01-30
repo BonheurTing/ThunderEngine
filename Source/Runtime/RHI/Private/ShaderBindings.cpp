@@ -1,3 +1,4 @@
+#pragma optimize("", off)
 #include "ShaderBindings.h"
 
 #include "ShaderArchive.h"
@@ -57,9 +58,10 @@ namespace Thunder
 
     void SingleShaderBindings::ClearData()
     {
+        // Make sure that "Data" is allocated by TMemory.
         if (Data != nullptr)
         {
-            delete[] Data;
+            TMemory::Free(Data);
             Data = nullptr;
         }
     }
@@ -297,9 +299,12 @@ namespace Thunder
 
     ShaderBindings::~ShaderBindings()
     {
-        for (uint32 stageIndex = 0; stageIndex < static_cast<uint32>(EShaderStageType::Num); ++stageIndex)
+        if (!IsTransientAllocated)
         {
-            Bindings[stageIndex].ClearData();
+            for (uint32 stageIndex = 0; stageIndex < static_cast<uint32>(EShaderStageType::Num); ++stageIndex)
+            {
+                StageBindings[stageIndex].ClearData();
+            }
         }
     }
 }

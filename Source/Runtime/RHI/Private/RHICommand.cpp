@@ -1,3 +1,5 @@
+
+#pragma optimize("", off)
 #include "RHICommand.h"
 
 namespace Thunder
@@ -9,12 +11,17 @@ namespace Thunder
 
     void RHIDrawCommand::Execute(RHICommandContext* cmdList)
     {
-        LOG("execute draw command");
-        // Set pipeline state first
+        LOG("Execute draw command.");
+
+        // Set pipeline state.
         if (GraphicsPSO)
         {
             cmdList->SetPipelineState(GraphicsPSO);
         }
+
+        // Set bindings.
+        SingleShaderBindings* bindings = Bindings.GetSingleShaderBindings();
+
         return;
 
         // Set vertex buffer
@@ -28,9 +35,6 @@ namespace Thunder
         {
             cmdList->SetIndexBuffer(IBToSet);
         }
-
-        // TODO: Add constant buffer, resource bindings, draw type etc.
-        // These will be implemented later as requested
 
         // Execute the draw call
         // This will be expanded based on DrawType

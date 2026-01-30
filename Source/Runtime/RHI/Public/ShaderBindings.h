@@ -46,6 +46,7 @@ namespace Thunder
     private:
         byte* Data = nullptr;
     };
+    static_assert(sizeof(SingleShaderBindings) == 8);
 
     class ShaderBindings
     {
@@ -53,10 +54,18 @@ namespace Thunder
         ShaderBindings() = default;
         ~ShaderBindings();
 
-        SingleShaderBindings* GetSingleShaderBindings(EShaderStageType stage) { return &(Bindings[static_cast<uint32>(stage)]); }
-        void SetBindingsData(EShaderStageType stage, byte* inData) { Bindings[static_cast<uint32>(stage)].SetData(inData); }
+        void SetTransientAllocated(bool isTransientAllocated) { IsTransientAllocated = isTransientAllocated; }
+
+        SingleShaderBindings* GetSingleShaderBindings() { return &(Bindings); }
+        void SetBindingsData(byte* inData) { Bindings.SetData(inData); }
+
+        SingleShaderBindings* GetStageSingleShaderBindings(EShaderStageType stage) { return &(StageBindings[static_cast<uint32>(stage)]); }
+        void SetStageBindingsData(EShaderStageType stage, byte* inData) { StageBindings[static_cast<uint32>(stage)].SetData(inData); }
 
     private:
-        SingleShaderBindings Bindings[static_cast<uint8>(EShaderStageType::Num)];
+        SingleShaderBindings StageBindings[static_cast<uint8>(EShaderStageType::Num)];
+        SingleShaderBindings Bindings;
+        bool IsTransientAllocated = false;
     };
+    static_assert(sizeof(ShaderBindings) == 80);
 }

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "IDynamicRHI.h"
 #include "IRHIModule.h"
 #include "RHIContext.h"
@@ -22,10 +21,15 @@ namespace Thunder
         FORCEINLINE void ExecuteAndDestruct(RHICommandContext* cmdList)
         {
             Execute(cmdList);
-            this->~IRHICommand();
+            if (!IsCached)
+            {
+                this->~IRHICommand();
+            }
         }
         /** Execute the command on the given command context */
         RHI_API virtual void Execute(RHICommandContext* cmdList) = 0;
+
+        bool IsCached = false;
     };
 
     /**
@@ -67,7 +71,7 @@ namespace Thunder
 
     struct RHICachedDrawCommand : public RHIDrawCommand
     {
-        RHICachedDrawCommand() : CachedCommandIndex(RHIAllocateCachedMeshDrawCommandIndex()) {}
+        RHICachedDrawCommand() : CachedCommandIndex(RHIAllocateCachedMeshDrawCommandIndex()) { IsCached = true; }
         uint64 CachedCommandIndex = 0;
     };
 }

@@ -106,6 +106,7 @@ namespace Thunder
                         consolidatedCommands.resize(currentSize * 2);
                         consolidatedCommands.resize(currentSize);
                         // consolidatedCommands[index]->TestMember;
+
                         consolidatedCommands[index]->ExecuteAndDestruct(commandList);
                         dispatcher->Notify();
                     }

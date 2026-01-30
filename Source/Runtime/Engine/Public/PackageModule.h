@@ -23,6 +23,10 @@ namespace Thunder
 		TWeakObjectPtr<Package> Package { nullptr };
 		TMap<TGuid, TArray<TGuid>> Dependencies; //GameResource - GameResourceDependencies
 
+		TArray<TFunction<void()>> Callbacks;
+		uint32 PendingDependencyCount { 0 };
+		bool IsLoadCompletedAndWaitingForDependencies { false };  // LoadSync completed, but may be waiting for dependencies
+
 		PackageEntry(const TGuid& inGuid, NameHandle inSoftPath) : Guid(inGuid), SoftPath(inSoftPath) {}
 
 		bool IsAcquiring() const
@@ -63,13 +67,6 @@ namespace Thunder
 			}
 			return result;
 		}
-	};
-
-	struct ResourceCompletion
-	{
-		// TWeakObjectPtr<GameResource> Resource;
-		TGuid PackageGuid;
-		TFunction<void()> Callback;
 	};
 
 	class ENGINE_API PackageModule : public IModule, public ITickable
@@ -152,7 +149,7 @@ namespace Thunder
 		uint32 FrameMaxDelivering = 3;
 		TMap<TGuid, PackageEntry*> PackageMap {}; // 启动时扫描content目录建立guid到路径虚拟路径映射, 创建PackageEntry，Package为null
 		TDeque<PackageEntry*> AcquireRequests;
-		TArray<ResourceCompletion*> CompletionList;
+		TDeque<PackageEntry*> CompletionList;
 
 		// query
 		//TMap<TGuid, GameObject*> LoadedResources {}; // 已加载的资源(Package/GameResource)，使用 TGuid 作为键

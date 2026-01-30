@@ -89,9 +89,6 @@ namespace Thunder
 	{
 		LOG("Material loaded: %s", GetResourceName().c_str());
 
-		//12.21 SimulateTest
-		ResetDefaultParameters();
-
 		UpdateRenderResource();
 	}
 
@@ -156,11 +153,12 @@ namespace Thunder
 		String archiveName;
 		archive >> archiveName;
 		ArchiveName = NameHandle(archiveName);
+		ResetDefaultParameters();
 
 		// Deserialize int parameters
 		uint32 intParamCount = 0;
 		archive >> intParamCount;
-		OverrideParameters->IntParameters.clear();
+		// OverrideParameters->IntParameters.clear();
 		for (uint32 i = 0; i < intParamCount; ++i)
 		{
 			String paramName;
@@ -173,7 +171,7 @@ namespace Thunder
 		// Deserialize float parameters
 		uint32 floatParamCount = 0;
 		archive >> floatParamCount;
-		OverrideParameters->FloatParameters.clear();
+		// OverrideParameters->FloatParameters.clear();
 		for (uint32 i = 0; i < floatParamCount; ++i)
 		{
 			String paramName;
@@ -186,7 +184,7 @@ namespace Thunder
 		// Deserialize vector parameters
 		uint32 vectorParamCount = 0;
 		archive >> vectorParamCount;
-		OverrideParameters->VectorParameters.clear();
+		// OverrideParameters->VectorParameters.clear();
 		for (uint32 i = 0; i < vectorParamCount; ++i)
 		{
 			String paramName;
@@ -199,7 +197,7 @@ namespace Thunder
 		// Deserialize texture parameters
 		uint32 textureParamCount = 0;
 		archive >> textureParamCount;
-		OverrideParameters->TextureParameters.clear();
+		// OverrideParameters->TextureParameters.clear();
 		for (uint32 i = 0; i < textureParamCount; ++i)
 		{
 			String paramName;
@@ -212,7 +210,7 @@ namespace Thunder
 		// Deserialize float parameters
 		uint32 boolParamCount = 0;
 		archive >> boolParamCount;
-		OverrideParameters->StaticParameters.clear();
+		// OverrideParameters->StaticParameters.clear();
 		for (uint32 i = 0; i < boolParamCount; ++i)
 		{
 			String paramName;

@@ -93,6 +93,11 @@ namespace Thunder
 
         for (auto const& [name, guid] : ParameterCache->TextureParameters)
         {
+            if (!guid.IsValid())
+            {
+                // Empty GUIDs are allowed, just skip them.
+                continue;
+            }
             RenderTexture* renderTexture = RenderModule::GetTextureResource_RenderThread(guid);
             if (renderTexture) [[likely]]
             {

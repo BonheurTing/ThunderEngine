@@ -38,8 +38,7 @@ namespace Thunder
 	{
 		ReleaseResource();
 
-		RenderTexture* newResource = CreateResource_GameThread();
-		SetResource(newResource);
+		TextureResource = CreateResource_GameThread();
 
 		InitResource();
 	}

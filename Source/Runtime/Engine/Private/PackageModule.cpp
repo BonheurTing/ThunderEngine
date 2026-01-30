@@ -198,24 +198,27 @@ namespace Thunder
 			{
 				PackageEntry* entry = AcquireRequests.front();
 				AcquireRequests.pop_front();
-				
+
 				entry->SetAcquiring(false);
 				entry->Status |= static_cast<uint32>(EPackageStatus::Loading);
+
 				GAsyncWorkers->PushTask([entry]{
 					if (LoadSync(entry->Guid, false))
 					{
 						GGameScheduler->PushTask([entry]{
-							// trigger obj on resource load
-							for (auto res : entry->Package->GetPackageObjects())
+							// Mark as load completed
+							entry->IsLoadCompletedAndWaitingForDependencies = true;
+
+							// Check if we can enter CompletionList (all dependencies ready)
+							if (entry->PendingDependencyCount == 0)
 							{
-								res->OnResourceLoaded();
+								GetModule()->CompletionList.push_back(entry);
 							}
-							entry->SetLoaded(true);
 						});
 					}
 					else
 					{
-						LOG("Failed to package with guid: %s", entry->Guid.ToString().c_str());
+						LOG("Failed to load package with guid: %s", entry->Guid.ToString().c_str());
 					}
 				});
 			}
@@ -223,13 +226,33 @@ namespace Thunder
 
 		if (!CompletionList.empty())
 		{
-			for (auto item : CompletionList)
+			uint32 count = 0;
+			while (!CompletionList.empty() && count++ < FrameMaxDelivering)
 			{
-				auto entry = PackageMap[item->PackageGuid];
-				if (entry->IsLoaded() && entry->Package.IsValid())
+				PackageEntry* entry = CompletionList.front();
+				CompletionList.pop_front();
+
+				if (!entry->Package.IsValid()) [[unlikely]]
 				{
-					item->Callback();
+					TAssertf(false, "Package is invalid for guid: %s", entry->Guid.ToString().c_str());
+					continue;
 				}
+
+				// Call resource callbacks.
+				for (auto res : entry->Package->GetPackageObjects())
+				{
+					res->OnResourceLoaded();
+				}
+
+				// Set loaded after callback is called.
+				entry->SetLoaded(true);
+
+				// Call user callbacks.
+				for (auto& callback : entry->Callbacks)
+				{
+					callback();
+				}
+				entry->Callbacks.clear();
 			}
 		}
 	}
@@ -255,33 +278,57 @@ namespace Thunder
 		TAssert(GetModule()->PackageMap.contains(pakGuid));
 		PackageEntry* entry = GetModule()->PackageMap[pakGuid];
 
+		// If already loading or loaded.
 		if (entry->Package)
 		{
+			if (entry->IsLoaded())
+			{
+				if (inFunction)
+				{
+					inFunction();
+				}
+				return;
+			}
+
+			// Add callback only.
 			if (inFunction)
 			{
-				auto newCompletion = new ResourceCompletion();
-				newCompletion->PackageGuid = pakGuid;
-				newCompletion->Callback = inFunction;
-				GetModule()->CompletionList.push_back(newCompletion);
+				entry->Callbacks.push_back(std::move(inFunction));
 			}
+
+			// To make sure we're acquiring this package.
 			GetModule()->PackageAcquire(entry);
+			return;
 		}
 
 		auto pakSoftPath = GetModule()->PackageMap[pakGuid]->SoftPath;
 		Package* newPak = new Package(pakSoftPath, pakGuid);
 		entry->Package = TWeakObjectPtr(newPak);
-		for (const auto& guid : GetModule()->GetPackageDependencies(pakGuid))
-		{
-			LoadAsync(guid, nullptr);
-		}
 
 		if (inFunction)
 		{
-			auto newCompletion = new ResourceCompletion();
-			newCompletion->PackageGuid = pakGuid;
-			newCompletion->Callback = inFunction;
- 			GetModule()->CompletionList.push_back(newCompletion);
+			entry->Callbacks.push_back(std::move(inFunction));
 		}
+
+		// Get dependencies.
+		TSet<TGuid> resourceDependencies = GetModule()->GetPackageDependencies(pakGuid);
+		entry->PendingDependencyCount = static_cast<uint32>(resourceDependencies.size());
+
+		// Load dependencies with callback to decrement counter
+		for (const auto& depPakGuid : resourceDependencies)
+		{
+			LoadAsync(depPakGuid, [entry]() {
+				entry->PendingDependencyCount--;
+				// Check if we can enter CompletionList (load completed && all dependencies ready)
+				if (entry->PendingDependencyCount == 0 && entry->IsLoadCompletedAndWaitingForDependencies)
+				{
+					entry->IsLoadCompletedAndWaitingForDependencies = false;
+					GetModule()->CompletionList.push_back(entry);
+				}
+			});
+		}
+
+		// Start loading this package immediately (parallel with dependencies)
 		GetModule()->PackageAcquire(entry);
 	}
 

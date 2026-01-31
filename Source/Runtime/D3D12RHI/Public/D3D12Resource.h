@@ -5,7 +5,7 @@
 
 namespace Thunder
 {
-    class TD3D12DescriptorHeap;
+    class D3D12DescriptorHeap;
     class D3D12Device : public RHIDevice
     {
     public:

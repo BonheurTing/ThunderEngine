@@ -9,9 +9,14 @@ namespace Thunder
 	public:
 		D3D12CommandContext() = delete;
 		D3D12CommandContext(const ComPtr<ID3D12CommandAllocator>* inCommandAllocator, ID3D12GraphicsCommandList* inCommandList);
+		~D3D12CommandContext();
 
 		//Get
 		ComPtr<ID3D12GraphicsCommandList> GetCommandList() { return CommandList; }
+		ComPtr<ID3D12Device> GetDevice() const;
+
+		// Descriptor cache
+		class D3D12DescriptorCache* GetDescriptorCache() const { return DescriptorCache; }
 
 		// Clear
 		void ClearDepthStencilView(RHIDepthStencilView* dsv, ERHIClearFlags clearFlags, float depthValue, uint8 stencilValue) override;
@@ -49,5 +54,8 @@ namespace Thunder
 	private:
 		ComPtr<ID3D12CommandAllocator> CommandAllocator[MAX_FRAME_LAG];
 		ComPtr<ID3D12GraphicsCommandList> CommandList;
+
+		// Descriptor cache for online heap management
+		class D3D12DescriptorCache* DescriptorCache = nullptr;
 	};
 }

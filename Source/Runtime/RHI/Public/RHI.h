@@ -1,4 +1,6 @@
 #pragma once
+#include <d3d12.h>
+
 #include "RHIDefinition.h"
 #include "Templates/RefCountObject.h"
 
@@ -255,40 +257,56 @@ namespace Thunder
 	class RHI_API RHIDescriptorView : public RefCountedObject
 	{
 	public:
-		RHIDescriptorView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF) : Desc(desc), Handle(handle) {}
+		RHIDescriptorView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF, uint32 offlineHeapIndex = 0xFFFFFFFF)
+			: Desc(desc), CPUHandle(D3D12_CPU_DESCRIPTOR_HANDLE{ handle }), OfflineHeapIndex(offlineHeapIndex) {}
 		virtual ~RHIDescriptorView() = default;
 
-		uint64 GetHandle() const { return Handle; }
+		void SetOfflineHandle(uint64 handle) { CPUHandle = D3D12_CPU_DESCRIPTOR_HANDLE{ handle }; }
+		uint64 GetOfflineHandle() const { return static_cast<uint64>(CPUHandle.ptr); }
+		void SetOnlineHandle(uint64 handle) { GPUHandle = D3D12_GPU_DESCRIPTOR_HANDLE{ handle }; }
+		uint64 GetOnlineHandle() const { return static_cast<uint64>(GPUHandle.ptr); }
+
+		void SetCPUHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle) { CPUHandle = handle; }
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle() const { return CPUHandle; }
+		void SetGPUHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle) { GPUHandle = handle; }
+		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle() const { return GPUHandle; }
 
 	protected:
 		RHIViewDescriptor Desc = {};
-		uint64 Handle = 0xFFFFFFFFFFFFFFFF;
+		D3D12_CPU_DESCRIPTOR_HANDLE CPUHandle{ 0xFFFFFFFFFFFFFFFF };
+		D3D12_GPU_DESCRIPTOR_HANDLE GPUHandle{ 0xFFFFFFFFFFFFFFFF };
+		uint32 OfflineHeapIndex = 0xFFFFFFFF; // Used for freeing this descriptor and return it back to descriptor pool.
 	};
     
 	class RHIConstantBufferView : public RHIDescriptorView
 	{
 	public:
-		RHIConstantBufferView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+		RHIConstantBufferView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF, uint32 offlineHeapIndex = 0xFFFFFFFF)
+			: RHIDescriptorView(desc, handle, offlineHeapIndex) {}
 	};
 	class RHIShaderResourceView : public RHIDescriptorView
 	{
 	public:
-		RHIShaderResourceView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF) : RHIDescriptorView(desc, handle) {}
+		RHIShaderResourceView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF, uint32 offlineHeapIndex = 0xFFFFFFFF)
+			: RHIDescriptorView(desc, handle, offlineHeapIndex) {}
 	};
 	class RHIUnorderedAccessView : public RHIDescriptorView
 	{
 	public:
-		RHIUnorderedAccessView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+		RHIUnorderedAccessView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF, uint32 offlineHeapIndex = 0xFFFFFFFF)
+			: RHIDescriptorView(desc, handle, offlineHeapIndex) {}
 	};
 	class RHIRenderTargetView : public RHIDescriptorView
 	{
 	public:
-		RHIRenderTargetView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+		RHIRenderTargetView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF, uint32 offlineHeapIndex = 0xFFFFFFFF)
+			: RHIDescriptorView(desc, handle, offlineHeapIndex) {}
 	};
 	class RHIDepthStencilView : public RHIDescriptorView
 	{
 	public:
-		RHIDepthStencilView(RHIViewDescriptor const& desc) : RHIDescriptorView(desc) {}
+		RHIDepthStencilView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF, uint32 offlineHeapIndex = 0xFFFFFFFF)
+			: RHIDescriptorView(desc, handle, offlineHeapIndex) {}
 	};
 
 	class RHI_API RHISampler : public RefCountedObject

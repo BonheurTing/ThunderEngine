@@ -7,8 +7,6 @@
 
 namespace Thunder
 {
-    //class TD3D12DescriptorHeap;
-    
     class D3D12RHI_API D3D12DynamicRHI : public IDynamicRHI
     {
     public:
@@ -64,6 +62,20 @@ namespace Thunder
         void RHISignalFence(uint32 frameIndex) override;
         void RHIWaitForFrame(uint32 frameIndex) override;
 
+        // Online descriptor manager for global heap (GPU-visible, transient)
+        class D3D12OnlineDescriptorManager* GetOnlineDescriptorManager() const { return OnlineDescriptorManager; }
+
+        // Offline descriptor managers (CPU-side, persistent)
+        class D3D12OfflineDescriptorManager* GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
+
+        // Fence utilities
+        uint64 GetCurrentFenceValue() const { return CurrentFenceValue; }
+        bool IsFenceComplete(uint64 fenceValue) const;
+
+    private:
+        void InitializeOnlineDescriptorManager();
+        void InitializeOfflineDescriptorManagers();
+
     private:
         ComPtr<ID3D12Device> Device;
 
@@ -76,11 +88,11 @@ namespace Thunder
         uint64 ExpectedFenceValues[MAX_FRAME_LAG] = {0};
         uint64 CurrentFenceValue = 0;
 
-        // descriptor heap
-        TRefCountPtr<TD3D12DescriptorHeap> CommonDescriptorHeap; //cbv srv uav
-        TRefCountPtr<TD3D12DescriptorHeap> RTVDescriptorHeap;
-        TRefCountPtr<TD3D12DescriptorHeap> DSVDescriptorHeap;
-        TRefCountPtr<TD3D12DescriptorHeap> SamplerDescriptorHeap;
+        // Offline descriptor managers (CPU-side, for creating descriptors)
+        class D3D12OfflineDescriptorManager* OfflineDescriptorManagers[4] = { nullptr };
+
+        // Online descriptor manager for global heap (GPU-visible, for runtime binding)
+        class D3D12OnlineDescriptorManager* OnlineDescriptorManager = nullptr;
 
         //
         TArray<ComPtr<ID3D12Object>> GReleaseQueue[MAX_FRAME_LAG] {};

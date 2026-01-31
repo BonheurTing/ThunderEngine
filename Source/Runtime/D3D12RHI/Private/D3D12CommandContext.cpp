@@ -8,8 +8,7 @@
 
 namespace Thunder
 {
-	D3D12CommandContext::D3D12CommandContext(const ComPtr<ID3D12CommandAllocator>* inCommandAllocator,
-	ID3D12GraphicsCommandList* inCommandList) :CommandList(inCommandList)
+	D3D12CommandContext::D3D12CommandContext(const ComPtr<ID3D12CommandAllocator>* inCommandAllocator, ID3D12GraphicsCommandList* inCommandList) :CommandList(inCommandList)
 	{
 		for (int i = 0; i < MAX_FRAME_LAG; i++)
 		{
@@ -18,6 +17,27 @@ namespace Thunder
 
 		const HRESULT hr = CommandList->Close();
 		TAssertf(SUCCEEDED(hr), "Failed to close command list");
+
+		// Initialize descriptor cache.
+		constexpr uint32 kLocalViewHeapSize = 4096; // 4K descriptors.
+		DescriptorCache = new (TMemory::Malloc<D3D12DescriptorCache>())
+			D3D12DescriptorCache(GetDevice().Get(), *this);
+		DescriptorCache->Init(kLocalViewHeapSize);
+	}
+
+	D3D12CommandContext::~D3D12CommandContext()
+	{
+		if (DescriptorCache)
+		{
+			TMemory::Destroy(DescriptorCache);
+			DescriptorCache = nullptr;
+		}
+	}
+
+	ComPtr<ID3D12Device> D3D12CommandContext::GetDevice() const
+	{
+		auto* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
+		return dx12RHI->GetDevice();
 	}
 
 	void D3D12CommandContext::ClearDepthStencilView(RHIDepthStencilView* dsv, ERHIClearFlags clearFlags, float depthValue, uint8 stencilValue)

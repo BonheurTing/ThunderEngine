@@ -180,7 +180,7 @@ namespace Thunder
             }
 
             // Bind.
-            bindings->SetSRV(bindingsLayout, textureName, { .Handle = srv->GetHandle() });
+            bindings->SetSRV(bindingsLayout, textureName, { .Handle = srv->GetOfflineHandle() });
         }
     }
 }

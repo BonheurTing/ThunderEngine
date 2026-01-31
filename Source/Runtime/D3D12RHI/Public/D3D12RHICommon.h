@@ -6,11 +6,6 @@ struct ID3D12Device;
 
 namespace Thunder
 {
-	constexpr uint32 CommonDescriptorHeapSize = 2048;
-	constexpr uint32 RTVDescriptorHeapSize = 2048;
-	constexpr uint32 DSVDescriptorHeapSize = 2048;
-	constexpr uint32 SamplerDescriptorHeapSize = 32;
-	
 	class TD3D12DeviceChild : public RefCountedObject
 	{
 	public:

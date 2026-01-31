@@ -35,6 +35,23 @@ namespace Thunder
 
     D3D12DynamicRHI::~D3D12DynamicRHI()
     {
+        // Cleanup offline descriptor managers
+        for (int i = 0; i < 4; ++i)
+        {
+            if (OfflineDescriptorManagers[i] != nullptr)
+            {
+                TMemory::Destroy(OfflineDescriptorManagers[i]);
+                OfflineDescriptorManagers[i] = nullptr;
+            }
+        }
+
+        // Cleanup online descriptor manager
+        if (OnlineDescriptorManager != nullptr)
+        {
+            TMemory::Destroy(OnlineDescriptorManager);
+            OnlineDescriptorManager = nullptr;
+        }
+
         if (FenceEvent != nullptr)
         {
             FPlatformProcess::ReturnSyncEventToPool(FenceEvent);
@@ -71,10 +88,11 @@ namespace Thunder
             IID_PPV_ARGS(&Device)
             );
         
-        CommonDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, CommonDescriptorHeapSize);
-        RTVDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, RTVDescriptorHeapSize);
-        DSVDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, DSVDescriptorHeapSize);
-        SamplerDescriptorHeap = MakeRefCount<TD3D12DescriptorHeap>(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, SamplerDescriptorHeapSize);
+        // Initialize offline descriptor managers (CPU-side, for creating descriptors)
+        InitializeOfflineDescriptorManagers();
+
+        // Initialize online descriptor manager (GPU-visible, for runtime binding)
+        InitializeOnlineDescriptorManager();
 
         TD3D12RHIModule::GetModule()->InitD3D12Context(Device.Get());
 
@@ -146,19 +164,21 @@ namespace Thunder
     void D3D12DynamicRHI::RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize)
     {
         TAssert(Device != nullptr);
-        uint32 cbvOffset = 0;
-        const D3D12_CPU_DESCRIPTOR_HANDLE cbvHandle{ CommonDescriptorHeap->AllocateDescriptorHeap(cbvOffset) };
+
+        // Allocate from offline descriptor manager (CPU-side, persistent)
+        auto* offlineManager = GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        D3D12OfflineDescriptor cbvDescriptor = offlineManager->AllocateHeapSlot();
 
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
         D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
         cbvDesc.BufferLocation = inst->GetGPUVirtualAddress();
         cbvDesc.SizeInBytes = 256;//bufferSize + 256 - bufferSize % 256;
-        Device->CreateConstantBufferView(&cbvDesc, cbvHandle);
+        Device->CreateConstantBufferView(&cbvDesc, cbvDescriptor.Handle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
         {
-            D3D12RHIConstantBufferView* view = new D3D12RHIConstantBufferView(CommonDescriptorHeap.Get(), cbvOffset);
+            D3D12RHIConstantBufferView* view = new D3D12RHIConstantBufferView(cbvDescriptor);
             resource.SetCBV(view);
         }
         else
@@ -170,8 +190,10 @@ namespace Thunder
     void D3D12DynamicRHI::RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc)
     {
         TAssert(Device != nullptr);
-        uint32 srvOffset;
-        const D3D12_CPU_DESCRIPTOR_HANDLE srvHandle{ CommonDescriptorHeap->AllocateDescriptorHeap(srvOffset) };
+
+        // Allocate from offline descriptor manager (CPU-side, persistent)
+        auto* offlineManager = GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        D3D12OfflineDescriptor srvDescriptor = offlineManager->AllocateHeapSlot();
 
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -203,14 +225,15 @@ namespace Thunder
             break;
         case ERHIResourceType::Unknown: break;
         }
-        
+
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        Device->CreateShaderResourceView(inst, &srvDesc, srvHandle);
+        Device->CreateShaderResourceView(inst, &srvDesc, srvDescriptor.Handle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
         {
-            D3D12RHIShaderResourceView* view = new D3D12RHIShaderResourceView(desc, (uint64)(srvHandle.ptr));
+            // Store the CPU handle ptr (will be used for copying to online heap during draw)
+            D3D12RHIShaderResourceView* view = new D3D12RHIShaderResourceView(desc, srvDescriptor);
             resource.SetSRV(view);
         }
         else
@@ -222,8 +245,10 @@ namespace Thunder
     void D3D12DynamicRHI::RHICreateUnorderedAccessView(RHIResource& resource, const RHIViewDescriptor& desc)
     {
         TAssert(Device != nullptr);
-        uint32 uavOffset;
-        const D3D12_CPU_DESCRIPTOR_HANDLE uavHandle{ CommonDescriptorHeap->AllocateDescriptorHeap(uavOffset) };
+
+        // Allocate from offline descriptor manager (CPU-side, persistent)
+        auto* offlineManager = GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        D3D12OfflineDescriptor uavDescriptor = offlineManager->AllocateHeapSlot();
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
         const auto resourceDesc = resource.GetResourceDescriptor();
@@ -251,16 +276,16 @@ namespace Thunder
             break;
         case ERHIResourceType::Unknown: break;
         }
-        
+
         uavDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
         uavDesc.ViewDimension = static_cast<D3D12_UAV_DIMENSION>(desc.Type);
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        Device->CreateUnorderedAccessView(inst, nullptr, &uavDesc, uavHandle);
+        Device->CreateUnorderedAccessView(inst, nullptr, &uavDesc, uavDescriptor.Handle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
         {
-            D3D12RHIUnorderedAccessView* view = new D3D12RHIUnorderedAccessView(desc, CommonDescriptorHeap.Get(), uavOffset);
+            D3D12RHIUnorderedAccessView* view = new D3D12RHIUnorderedAccessView(desc, uavDescriptor);
             resource.SetUAV(view);
         }
         else
@@ -272,8 +297,10 @@ namespace Thunder
     void D3D12DynamicRHI::RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc)
     {
         TAssert(Device != nullptr);
-        uint32 rtvOffset;
-        const D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle{ RTVDescriptorHeap->AllocateDescriptorHeap(rtvOffset) };
+
+        // Allocate from offline descriptor manager (CPU-side, persistent)
+        auto* offlineManager = GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        D3D12OfflineDescriptor rtvDescriptor = offlineManager->AllocateHeapSlot();
 
         D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
         rtvDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
@@ -302,14 +329,14 @@ namespace Thunder
             break;
         case ERHIResourceType::Unknown: break;
         }
-        
+
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        Device->CreateRenderTargetView(inst, &rtvDesc, rtvHandle);
+        Device->CreateRenderTargetView(inst, &rtvDesc, rtvDescriptor.Handle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
         {
-            D3D12RHIRenderTargetView* view = new D3D12RHIRenderTargetView(desc, RTVDescriptorHeap.Get(), rtvOffset);
+            D3D12RHIRenderTargetView* view = new D3D12RHIRenderTargetView(desc, rtvDescriptor);
             resource.SetRTV(view);
         }
         else
@@ -321,8 +348,10 @@ namespace Thunder
     void D3D12DynamicRHI::RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc)
     {
         TAssert(Device != nullptr);
-        uint32 dsvOffset;
-        const D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle{ DSVDescriptorHeap->AllocateDescriptorHeap(dsvOffset) };
+
+        // Allocate from offline descriptor manager (CPU-side, persistent)
+        auto* offlineManager = GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+        D3D12OfflineDescriptor dsvDescriptor = offlineManager->AllocateHeapSlot();
 
         D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
         dsvDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
@@ -346,14 +375,14 @@ namespace Thunder
         case ERHIResourceType::Texture3D:
         case ERHIResourceType::Unknown: break;
         }
-        
+
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
-        Device->CreateDepthStencilView(inst, &dsvDesc, dsvHandle);
+        Device->CreateDepthStencilView(inst, &dsvDesc, dsvDescriptor.Handle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
         {
-            D3D12RHIDepthStencilView* view = new D3D12RHIDepthStencilView(desc, DSVDescriptorHeap.Get(), dsvOffset);
+            D3D12RHIDepthStencilView* view = new D3D12RHIDepthStencilView(desc, dsvDescriptor);
             resource.SetDSV(view);
         }
         else
@@ -365,8 +394,10 @@ namespace Thunder
     RHISamplerRef D3D12DynamicRHI::RHICreateSampler(const RHISamplerDescriptor& desc)
     {
         TAssert(Device != nullptr);
-        uint32 samplerOffset;
-        const D3D12_CPU_DESCRIPTOR_HANDLE samplerHandle{ SamplerDescriptorHeap->AllocateDescriptorHeap(samplerOffset) };
+
+        // Allocate from offline descriptor manager (CPU-side, persistent)
+        auto* offlineManager = GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+        D3D12OfflineDescriptor samplerDescriptor = offlineManager->AllocateHeapSlot();
 
         D3D12_SAMPLER_DESC samplerDesc;
         samplerDesc.Filter = static_cast<D3D12_FILTER>(desc.Filter);
@@ -381,14 +412,14 @@ namespace Thunder
         samplerDesc.BorderColor[2] = desc.BorderColor[2];
         samplerDesc.BorderColor[3] = desc.BorderColor[3];
         samplerDesc.MinLOD = desc.MinLOD;
-        samplerDesc.MaxLOD = desc.MaxLOD;        
+        samplerDesc.MaxLOD = desc.MaxLOD;
 
-        Device->CreateSampler(&samplerDesc, samplerHandle);
+        Device->CreateSampler(&samplerDesc, samplerDescriptor.Handle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
         if(SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHISampler>(desc, samplerOffset);
+            return MakeRefCount<D3D12RHISampler>(desc, samplerDescriptor);
         }
         else
         {
@@ -676,5 +707,54 @@ namespace Thunder
             TAssertf(SUCCEEDED(hr), "Failed to set fence event");
             FenceEvent->Wait();
         }
+    }
+
+    void D3D12DynamicRHI::InitializeOnlineDescriptorManager()
+    {
+        // Configuration: 512K total, 2K block
+        constexpr uint32 kGlobalHeapSize = 524288; // 512K descriptors
+        constexpr uint32 kBlockSize = 2048;        // 2K descriptors per block
+
+        OnlineDescriptorManager = new (TMemory::Malloc<D3D12OnlineDescriptorManager>())
+            D3D12OnlineDescriptorManager(Device.Get());
+
+        OnlineDescriptorManager->Init(kGlobalHeapSize, kBlockSize);
+    }
+
+    void D3D12DynamicRHI::InitializeOfflineDescriptorManagers()
+    {
+        // Heap sizes.
+        constexpr uint32 kStandardHeapSize = 4096;  // CBV_SRV_UAV
+        constexpr uint32 kRTVHeapSize = 256;
+        constexpr uint32 kDSVHeapSize = 256;
+        constexpr uint32 kSamplerHeapSize = 128;
+
+        // Create offline descriptor managers for each type
+        OfflineDescriptorManagers[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] =
+            new (TMemory::Malloc<D3D12OfflineDescriptorManager>())
+                D3D12OfflineDescriptorManager(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, kStandardHeapSize);
+
+        OfflineDescriptorManagers[D3D12_DESCRIPTOR_HEAP_TYPE_RTV] =
+            new (TMemory::Malloc<D3D12OfflineDescriptorManager>())
+                D3D12OfflineDescriptorManager(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, kRTVHeapSize);
+
+        OfflineDescriptorManagers[D3D12_DESCRIPTOR_HEAP_TYPE_DSV] =
+            new (TMemory::Malloc<D3D12OfflineDescriptorManager>())
+                D3D12OfflineDescriptorManager(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, kDSVHeapSize);
+
+        OfflineDescriptorManagers[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] =
+            new (TMemory::Malloc<D3D12OfflineDescriptorManager>())
+                D3D12OfflineDescriptorManager(Device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, kSamplerHeapSize);
+    }
+
+    D3D12OfflineDescriptorManager* D3D12DynamicRHI::GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE type) const
+    {
+        TAssert(type >= 0 && type < 4);
+        return OfflineDescriptorManagers[type];
+    }
+
+    bool D3D12DynamicRHI::IsFenceComplete(uint64 fenceValue) const
+    {
+        return Fence->GetCompletedValue() >= fenceValue;
     }
 }

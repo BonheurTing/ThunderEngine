@@ -121,7 +121,7 @@ namespace Thunder
     	}
 
     	template<typename InElementType>
-		void GenerateParameterResourceCount(const TArray<InElementType>& param, uint8& outSRVNum, uint8& outUAVNum)
+		void  GenerateParameterResourceCount(const TArray<InElementType>& param, uint8& outSRVNum, uint8& outUAVNum)
     	{
     		for (auto& meta : param)
     		{
@@ -159,7 +159,7 @@ namespace Thunder
 	void ShaderArchive::CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount)
     {
     	outCount.SamplerCount = 6;
-    	outCount.ConstantBufferCount = 1;
+    	outCount.ConstantBufferCount = static_cast<uint8>(GUniformBufferDefinitions.size());
     	outCount.ShaderResourceCount = 0;
     	outCount.UnorderedAccessCount = 0;
     	GenerateParameterResourceCount<ShaderPropertyMeta>(PropertyMeta, outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
@@ -167,6 +167,16 @@ namespace Thunder
     	{
     		GenerateParameterResourceCount<ShaderParameterMeta>(uniformMetas, outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
     	}
+    	QuantizeRegisterCounts(outCount);
+    }
+
+	void ShaderArchive::QuantizeRegisterCounts(TShaderRegisterCounts& outCount)
+    {
+    	// Root signatures are fixed for now, maybe deal with this later.
+    	TAssert(outCount.ConstantBufferCount <= MAX_CBS, "Too many constant buffers are used, max allowed count is 16.");
+		outCount.SamplerCount = MAX_SAMPLERS; // outCount.SamplerCount > 0 ? MAX_SAMPLERS : 0;
+		outCount.ShaderResourceCount = MAX_SRVS; // outCount.ShaderResourceCount > 0 ? MAX_SRVS : 0;
+		outCount.UnorderedAccessCount = MAX_UAVS; // (outCount.UnorderedAccessCount > 0) ? MAX_UAVS : 0;
     }
 
 	ShaderCombination* ShaderPass::GetOrCompileShaderCombination(uint64 variantId)
@@ -427,9 +437,9 @@ namespace Thunder
 
     void ShaderArchive::AddSubShader(ShaderPass* inSubShader)
     {
-    	TShaderRegisterCounts counts{};
-    	CalcRegisterCounts(inSubShader->GetName(), counts);
-    	inSubShader->SetShaderRegisterCounts(counts);
+    	TShaderRegisterCounts quantizedRegisterCounts{};
+    	CalcRegisterCounts(inSubShader->GetName(), quantizedRegisterCounts);
+    	inSubShader->SetShaderRegisterCounts(quantizedRegisterCounts);
     	SubShaders.emplace(inSubShader->GetName(), ShaderPassRef(inSubShader));
     	if (inSubShader->IsMeshPass())
     	{

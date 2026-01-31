@@ -1,11 +1,21 @@
 ﻿#pragma once
 #include "IRHIModule.h"
+#include "d3d12.h"
 
 struct ID3D12Device;
 namespace Thunder
 {
 	class TD3D12PipelineStateCache;
 	class TD3D12RootSignatureManager;
+
+	struct D3D12DescriptorSettings
+	{
+		D3D12_DESCRIPTOR_RANGE_FLAGS SRVDescriptorRangeFlags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+		D3D12_DESCRIPTOR_RANGE_FLAGS CBVDescriptorRangeFlags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+		D3D12_DESCRIPTOR_RANGE_FLAGS UAVDescriptorRangeFlags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+		D3D12_DESCRIPTOR_RANGE_FLAGS SamplerDescriptorRangeFlags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+		D3D12_ROOT_DESCRIPTOR_FLAGS CBVRootDescriptorFlags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+	};
 	
 	class D3D12RHI_API TD3D12RHIModule : public IRHIModule
 	{
@@ -17,8 +27,12 @@ namespace Thunder
 		void InitD3D12Context(ID3D12Device* InDevice);
 		_NODISCARD_ TD3D12PipelineStateCache* GetPipelineStateTable() const { return PipelineStateTable; }
 		_NODISCARD_ TD3D12RootSignatureManager* GetRootSignatureManager() const { return RootSignatureManager; }
+		void InitResourceBindingTier(ID3D12Device* InDevice);
+		void InitDescriptorSettings(D3D12_RESOURCE_BINDING_TIER const& resourceBindingTier);
+		D3D12DescriptorSettings const& GetDescriptorSettings() const { return DescriptorSettings; }
 	private:
 		TD3D12PipelineStateCache* PipelineStateTable;
 		TD3D12RootSignatureManager* RootSignatureManager;
+		D3D12DescriptorSettings DescriptorSettings{};
 	};
 }

@@ -2,6 +2,10 @@
 #pragma optimize("", off)
 #include "RHICommand.h"
 
+#include <d3d12.h>
+
+#include "ShaderArchive.h"
+
 namespace Thunder
 {
     void RHIDummyCommand::Execute(RHICommandContext* cmdList)
@@ -20,7 +24,21 @@ namespace Thunder
         }
 
         // Set bindings.
+        constexpr uint32 kMaxSRVCount = MAX_SRVS;
         SingleShaderBindings* bindings = Bindings.GetSingleShaderBindings();
+        ShaderBindingsLayout* bindingsLayout = Shader->GetSubShader()->GetArchive()->GetBindingsLayout();
+        auto const& srvMap = bindingsLayout->GetSRVsIndexMap();
+        D3D12_CPU_DESCRIPTOR_HANDLE srvTable[kMaxSRVCount] = {}; // Zero initialized.
+        for (const auto& srvSlot : srvMap | std::views::keys)
+        {
+            if (srvSlot >= kMaxSRVCount)
+            {
+                TAssertf(false, "Max SRV count(%u) is exceeded, binding skipped.", kMaxSRVCount);
+                continue;
+            }
+            uint64 srvHandle = bindings->GetSRV(bindingsLayout, srvSlot).Handle;
+            srvTable[srvSlot] = { .ptr = srvHandle };
+        }
 
         return;
 

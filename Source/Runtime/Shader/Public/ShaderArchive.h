@@ -158,6 +158,7 @@ namespace Thunder
     	ShaderPass* GetSubShader(EMeshPass meshPassType);
     	String GetShaderSourceDir() const;
 		void CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount);
+	    static void QuantizeRegisterCounts(TShaderRegisterCounts& outCount);
     	ShaderCombination* CompileShaderVariant(NameHandle subShaderName, uint64 variantId);
     	ShaderAST* GetAST() const { return AST; }
 

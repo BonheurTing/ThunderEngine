@@ -46,6 +46,7 @@ namespace Thunder
                 TAssertf(false, "Fail to prepare mesh draw command, Shader variant not found.");
                 return false;
             }
+            newCommand->Shader = shaderVariant;
 
             // Fetch PSO.
             TRHIGraphicsPipelineState* pso = GetPipelineState(context, shaderVariant, meshPassType, subMesh, material);

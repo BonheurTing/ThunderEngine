@@ -4,7 +4,7 @@
 namespace Thunder
 {
     #define MAX_FRAME_LAG 3
-    
+
     enum class ERHIIndexBufferType : uint8
     {
         Uint16 = 0,

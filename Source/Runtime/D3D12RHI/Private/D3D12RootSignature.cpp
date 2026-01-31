@@ -1,7 +1,9 @@
 ﻿#include "D3D12RootSignature.h"
 #include "d3dx12.h"
 #include "CommonUtilities.h"
+#include "D3D12RHIModule.h"
 #include "D3D12RHIPrivate.h"
+#include "ShaderDefinition.h"
 
 namespace Thunder
 {
@@ -39,43 +41,14 @@ namespace Thunder
 	
 	TD3D12RootSignature::TD3D12RootSignature(ID3D12Device* InParent, const TShaderRegisterCounts& shaderRC) : TD3D12DeviceChild(InParent)
 	{
-		const D3D12_ROOT_PARAMETER_TYPE rootParameterTypePriorityOrder[2] = { D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE, D3D12_ROOT_PARAMETER_TYPE_CBV };
-		// Determine if our descriptors or their data is static based on the resource binding tier.
-
-		//todo: move to FD3D12Adapter to check device surpport 
-		D3D12_RESOURCE_HEAP_TIER resourceHeapTier;
-		D3D12_RESOURCE_BINDING_TIER resourceBindingTier;
-		D3D12_FEATURE_DATA_D3D12_OPTIONS d3d12Caps;
-		memset(&d3d12Caps, 0, sizeof(d3d12Caps));
-		TAssertf(SUCCEEDED(ParentDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &d3d12Caps, sizeof(d3d12Caps))), "Failed to check D3D12 feature support.");
-		resourceHeapTier = d3d12Caps.ResourceHeapTier;
-		resourceBindingTier = d3d12Caps.ResourceBindingTier;
-
-		const D3D12_DESCRIPTOR_RANGE_FLAGS SRVDescriptorRangeFlags = (resourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1) ?
-			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE :
-			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE | D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-
-		const D3D12_DESCRIPTOR_RANGE_FLAGS CBVDescriptorRangeFlags = (resourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2) ?
-			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE :
-			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC_WHILE_SET_AT_EXECUTE | D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-
-		const D3D12_DESCRIPTOR_RANGE_FLAGS UAVDescriptorRangeFlags = (resourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_2) ?
-			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE :
-			D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE | D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-
-		const D3D12_DESCRIPTOR_RANGE_FLAGS SamplerDescriptorRangeFlags = (resourceBindingTier <= D3D12_RESOURCE_BINDING_TIER_1) ?
-			D3D12_DESCRIPTOR_RANGE_FLAG_NONE :
-			D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE;
-
-		const D3D12_ROOT_DESCRIPTOR_FLAGS CBVRootDescriptorFlags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC;	// We always set the data in an upload heap before calling Set*RootConstantBufferView.
-
-		
+		D3D12DescriptorSettings const& descriptorSettings = TD3D12RHIModule::GetModule()->GetDescriptorSettings();
+		constexpr D3D12_ROOT_PARAMETER_TYPE rootParameterTypePriorityOrder[2] = { D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE, D3D12_ROOT_PARAMETER_TYPE_CBV };
 		uint32 rootParameterCount = 0;
 		D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 		CD3DX12_ROOT_PARAMETER1 tableSlots[MaxRootParameters];
 		CD3DX12_DESCRIPTOR_RANGE1 descriptorRanges[MaxRootParameters];
-		
-		// For each root parameter type...
+
+		// For each root parameter type.
 		for (uint32 rootParameterTypeIndex = 0; rootParameterTypeIndex < 2; rootParameterTypeIndex++)
 		{
 			const D3D12_ROOT_PARAMETER_TYPE& rootParameterType = rootParameterTypePriorityOrder[rootParameterTypeIndex];
@@ -86,16 +59,7 @@ namespace Thunder
 				if (shaderRC.ShaderResourceCount > 0)
 				{
 					TAssert(rootParameterCount < MaxRootParameters);
-					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, shaderRC.ShaderResourceCount, 0u, 0, SRVDescriptorRangeFlags);
-					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
-					rootParameterCount++;
-				}
-
-				if (shaderRC.ConstantBufferCount > MAX_ROOT_CBVS)
-				{
-					// Use a descriptor table for the 'excess' CBVs
-					TAssert(rootParameterCount < MaxRootParameters);
-					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, shaderRC.ConstantBufferCount - MAX_ROOT_CBVS, MAX_ROOT_CBVS, 0, CBVDescriptorRangeFlags);
+					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, shaderRC.ShaderResourceCount, 0u, 0, descriptorSettings.SRVDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
 					rootParameterCount++;
 				}
@@ -103,7 +67,7 @@ namespace Thunder
 				if (shaderRC.SamplerCount > 0)
 				{
 					TAssert(rootParameterCount < MaxRootParameters);
-					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, shaderRC.SamplerCount, 0u, 0, SamplerDescriptorRangeFlags);
+					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, shaderRC.SamplerCount, 0u, 0, descriptorSettings.SamplerDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
 					rootParameterCount++;
 				}
@@ -111,18 +75,20 @@ namespace Thunder
 				if (shaderRC.UnorderedAccessCount > 0)
 				{
 					TAssert(rootParameterCount < MaxRootParameters);
-					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, shaderRC.UnorderedAccessCount, 0u, 0, UAVDescriptorRangeFlags);
+					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, shaderRC.UnorderedAccessCount, 0u, 0, descriptorSettings.UAVDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
 					rootParameterCount++;
 				}
+
 				break;
 			}
 			case D3D12_ROOT_PARAMETER_TYPE_CBV:
 			{
-				for (uint32 ShaderRegister = 0; (ShaderRegister < shaderRC.ConstantBufferCount) && (ShaderRegister < MAX_ROOT_CBVS); ShaderRegister++)
+				TAssertf(shaderRC.ConstantBufferCount < MAX_CBS, "Too many constant buffers are used, max allowed count is 16.");
+				for (uint32 ShaderRegister = 0; (ShaderRegister < shaderRC.ConstantBufferCount) && (ShaderRegister < MAX_CBS); ShaderRegister++)
 				{
 					TAssert(rootParameterCount < MaxRootParameters);
-					tableSlots[rootParameterCount].InitAsConstantBufferView(ShaderRegister, 0, CBVRootDescriptorFlags, D3D12_SHADER_VISIBILITY_ALL);
+					tableSlots[rootParameterCount].InitAsConstantBufferView(ShaderRegister, 0, descriptorSettings.CBVRootDescriptorFlags, D3D12_SHADER_VISIBILITY_ALL);
 					rootParameterCount++;
 				}
 				break;
@@ -132,7 +98,6 @@ namespace Thunder
 				break;
 			}
 		}
-		
 
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootDesc;
 		rootDesc.Init_1_1(rootParameterCount, tableSlots, 6, StaticSamplerDescs, flags);

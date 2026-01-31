@@ -13,7 +13,7 @@ namespace Thunder
 {
     RenderMaterial::RenderMaterial()
         : Archive(nullptr)
-        , RegisterCounts{}
+        , QuantizedRegisterCounts{}
         , ParameterCache{}
         , ConstantBuffer(nullptr)
     {
@@ -126,7 +126,7 @@ namespace Thunder
         uint64 variantId) const
     {
         // 填充Shader相关信息
-        outDesc.RegisterCounts = RegisterCounts;
+        outDesc.RegisterCounts = QuantizedRegisterCounts;
 
         // TODO: 从ShaderArchive获取RenderState并填充到PSO
         // if (CompiledShaderMap)

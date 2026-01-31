@@ -35,8 +35,8 @@ namespace Thunder
 	
 	void GetD3D12GraphicsPipelineStateDesc(const TGraphicsPipelineStateDescriptor& rhiDesc, TD3D12GraphicsPipelineStateDesc& outD3D12Desc)
 	{
-		memset(&outD3D12Desc, 0, sizeof(TD3D12GraphicsPipelineStateDesc));
-		
+		memset(&(outD3D12Desc.Desc), 0, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+
 		const TD3D12RootSignature* rootSignature = TD3D12RHIModule::GetModule()->GetRootSignatureManager()->GetRootSignature(rhiDesc.RegisterCounts);
 		outD3D12Desc.Desc.pRootSignature = rootSignature->GetRootSignature();
 		outD3D12Desc.Desc.StreamOutput = {nullptr, 0, nullptr , 0, 0};
@@ -76,7 +76,7 @@ namespace Thunder
 		CopyShader(outD3D12Desc.Desc.DS, EShaderStageType::Domain);
 		CopyShader(outD3D12Desc.Desc.HS, EShaderStageType::Hull);
 		CopyShader(outD3D12Desc.Desc.GS, EShaderStageType::Geometry);
-		
+
 		outD3D12Desc.Desc.Flags = DEBUG_DX12_PSO_CACHE ? D3D12_PIPELINE_STATE_FLAG_TOOL_DEBUG : D3D12_PIPELINE_STATE_FLAG_NONE;
 
 		TArray<uint8> stateIdentifier;

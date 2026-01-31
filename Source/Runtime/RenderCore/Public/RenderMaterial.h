@@ -32,8 +32,8 @@ namespace Thunder
         void SetShaderArchive(ShaderArchive* archive);
         ShaderCombination* GetShaderCombination(NameHandle passName, uint64 variantId = 0) const;
 
-        const TShaderRegisterCounts* GetShaderRegisterCounts() const { return &RegisterCounts; }
-        void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
+        const TShaderRegisterCounts* GetShaderRegisterCounts() const { return &QuantizedRegisterCounts; }
+        void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { QuantizedRegisterCounts = counts; }
 
         // ========== GameThread -> RenderThread ==========
         void CacheParameters(MaterialParameterCache* gameMaterialCache);
@@ -62,7 +62,7 @@ namespace Thunder
 
     private:
         ShaderArchive* Archive { nullptr }; // shader module manages lifetime
-        TShaderRegisterCounts RegisterCounts {};
+        TShaderRegisterCounts QuantizedRegisterCounts {};
         MaterialParameterCache* ParameterCache; //
 
         TRefCountPtr<RHIConstantBuffer> ConstantBuffer;

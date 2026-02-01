@@ -52,6 +52,8 @@ namespace Thunder
 		// Misc
 		void Reset(uint32 index) override;
 
+		class TD3D12RootSignature* BindRootSignature(TShaderRegisterCounts const& shaderRC) const;
+
 	private:
 		ComPtr<ID3D12CommandAllocator> CommandAllocator[MAX_FRAME_LAG];
 		ComPtr<ID3D12GraphicsCommandList> CommandList;

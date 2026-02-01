@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "CoreMinimal.h"
 #include "D3D12RHICommon.h"
+#include "D3D12RootSignature.h"
 #include "d3dx12.h"
 #include "RHI.h"
 #include "Templates/RefCounting.h"
@@ -10,7 +11,7 @@ namespace Thunder
 	class D3D12DescriptorHeap : public TD3D12DeviceChild
 	{
 	public:
-		D3D12DescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 numDescriptorsPerHeap);
+		D3D12DescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 numDescriptorsPerHeap, bool bShaderVisible = true);
 
 		FORCEINLINE D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 slot) const { return{ CPUBase.ptr + static_cast<SIZE_T>(slot) * DescriptorSize }; }
 		FORCEINLINE D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 slot) const { return{ GPUBase.ptr + static_cast<SIZE_T>(slot) * DescriptorSize }; }
@@ -213,7 +214,7 @@ namespace Thunder
 		// Get the underlying heap
 		D3D12DescriptorHeap* GetHeap() const { return Heap.Get(); }
 
-		virtual uint32 GetTotalSize() const { return Heap->GetDesc().NumDescriptors(); }
+		virtual uint32 GetTotalSize() const { return Heap->GetDesc().NumDescriptors; }
 
 		// Called when the heap is full and needs to roll over
 		virtual bool RollOver() = 0;
@@ -306,6 +307,9 @@ namespace Thunder
 		// Initialize with local heap size
 		void Init(uint32 numLocalViewDescriptors);
 
+		// Reset state after command list reset.
+		void Reset();
+
 		// Open/Close command list
 		void OpenCommandList();
 		void CloseCommandList();
@@ -322,16 +326,23 @@ namespace Thunder
 		// Set descriptor heaps on command list
 		bool SetDescriptorHeaps();
 
+		void SetLastShaderRC(TShaderRegisterCounts const& shaderRC) { LastShaderRC = shaderRC; }
+		TShaderRegisterCounts const& GetLastShaderRC() const { return LastShaderRC; }
+		void SetLastRootSignature(TD3D12RootSignature* rootSignature) { CachedRootSignature = rootSignature; }
+		TD3D12RootSignature* GetLastRootSignature() const { return CachedRootSignature; }
+
 	private:
 		D3D12CommandContext& Context;
 
-		D3D12OnlineHeap* CurrentViewHeap = nullptr;
+		// Root signature.
+		TShaderRegisterCounts LastShaderRC{};
+		TD3D12RootSignature* CachedRootSignature = nullptr;
 
+		// Descriptor heap.
+		D3D12OnlineHeap* CurrentViewHeap = nullptr;
 		D3D12SubAllocatedOnlineHeap SubAllocatedViewHeap;
 		D3D12LocalOnlineHeap* LocalViewHeap = nullptr;
-
 		ID3D12DescriptorHeap* LastSetViewHeap = nullptr;
-
 		uint32 NumLocalViewDescriptors = 0;
 	};
 }

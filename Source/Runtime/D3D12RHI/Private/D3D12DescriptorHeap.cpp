@@ -5,14 +5,22 @@
 
 namespace Thunder
 {
-	D3D12DescriptorHeap::D3D12DescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 numDescriptorsPerHeap) : TD3D12DeviceChild(device)
+	D3D12DescriptorHeap::D3D12DescriptorHeap(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 numDescriptorsPerHeap, bool bShaderVisible) : TD3D12DeviceChild(device)
 	{
 		// Initialize heap descriptor.
 		Desc = {};
 		Desc.Type = type;
 		Desc.NumDescriptors = numDescriptorsPerHeap;
-		Desc.Flags = (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV) ?
-			D3D12_DESCRIPTOR_HEAP_FLAG_NONE : D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+		// Determine flags: RTV/DSV are always CPU-only, others depend on bShaderVisible parameter
+		if (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+		{
+			Desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		}
+		else
+		{
+			Desc.Flags = bShaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		}
 
 		// Create heap.
 		const auto hr = ParentDevice->CreateDescriptorHeap(&Desc, IID_PPV_ARGS(&RootHeap));
@@ -21,7 +29,9 @@ namespace Thunder
 		// Cache descriptor size and cpu/gpu address.
 		DescriptorSize = ParentDevice->GetDescriptorHandleIncrementSize(Desc.Type);
 		CPUBase = RootHeap->GetCPUDescriptorHandleForHeapStart();
-		if (type != D3D12_DESCRIPTOR_HEAP_TYPE_RTV && type != D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+
+		// Only shader-visible heaps have GPU handles
+		if (bShaderVisible && type != D3D12_DESCRIPTOR_HEAP_TYPE_RTV && type != D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
 		{
 			GPUBase = RootHeap->GetGPUDescriptorHandleForHeapStart();
 		}
@@ -43,7 +53,7 @@ namespace Thunder
 	void D3D12OfflineDescriptorManager::AllocateHeap()
 	{
 		// Create a new non-GPU-visible heap for CPU-side descriptor creation
-		auto* newHeap = new D3D12DescriptorHeap(ParentDevice, HeapType, NumDescriptorsPerHeap);
+		auto* newHeap = new D3D12DescriptorHeap(ParentDevice, HeapType, NumDescriptorsPerHeap, false /* CPU-only */);
 
 		const SIZE_T heapBase = newHeap->GetCPUSlotHandle(0).ptr;
 		const SIZE_T heapSize = static_cast<SIZE_T>(NumDescriptorsPerHeap) * DescriptorSize;
@@ -647,6 +657,18 @@ namespace Thunder
 		}
 
 		return heapChanged;
+	}
+
+	void D3D12DescriptorCache::Reset()
+	{
+		// Clear LastSetViewHeap to force re-binding.
+		LastSetViewHeap = nullptr;
+
+		OpenCommandList();
+
+		// Reset root signature.
+		LastShaderRC = {};
+		CachedRootSignature = nullptr;
 	}
 }
 

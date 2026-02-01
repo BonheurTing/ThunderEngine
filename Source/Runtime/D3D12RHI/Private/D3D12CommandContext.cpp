@@ -185,6 +185,9 @@ namespace Thunder
 		}
 		TAssertf(DescriptorCache != nullptr, "DescriptorCache is not initialized");
 
+		// Get root signature.
+		TD3D12RootSignature* rootSignature = BindRootSignature(shaderRC);
+
 		// Get the current view heap
 		D3D12OnlineHeap* currentViewHeap = DescriptorCache->GetCurrentViewHeap();
 		TAssertf(currentViewHeap != nullptr, "Current view heap is null");
@@ -239,8 +242,6 @@ namespace Thunder
 		}
 
 		// Bind the descriptor table to the root signature
-		auto rootSignatureManager = TD3D12RHIModule::GetModule()->GetRootSignatureManager();
-		TD3D12RootSignature* rootSignature = rootSignatureManager->GetRootSignature(shaderRC); // Could be cached
 		CommandList->SetGraphicsRootDescriptorTable(rootSignature->GetSRVRootParameterIndex(), onlineGpuHandleStart);
 	}
 
@@ -405,11 +406,28 @@ namespace Thunder
 		hr = CommandList->Reset(CommandAllocator[index].Get(), nullptr);
 		TAssertf(SUCCEEDED(hr), "Failed to reset command list");
 
-		// Open command list for descriptor cache
-		// This allocates the first descriptor block and binds descriptor heaps
 		if (DescriptorCache)
 		{
-			DescriptorCache->OpenCommandList();
+			DescriptorCache->Reset();
 		}
+	}
+
+	TD3D12RootSignature* D3D12CommandContext::BindRootSignature(TShaderRegisterCounts const& shaderRC) const
+	{
+		TD3D12RootSignature* rootSignature;
+		if (DescriptorCache->GetLastShaderRC() != shaderRC)
+		{
+			DescriptorCache->SetLastShaderRC(shaderRC);
+			auto rootSignatureManager = TD3D12RHIModule::GetModule()->GetRootSignatureManager();
+			TD3D12RootSignature* newRootSignature = rootSignatureManager->GetRootSignature(shaderRC);
+			DescriptorCache->SetLastRootSignature(newRootSignature);
+			rootSignature = newRootSignature;
+			CommandList->SetGraphicsRootSignature(rootSignature->GetRootSignature());
+		}
+		else
+		{
+			rootSignature = DescriptorCache->GetLastRootSignature();
+		}
+		return rootSignature;
 	}
 }

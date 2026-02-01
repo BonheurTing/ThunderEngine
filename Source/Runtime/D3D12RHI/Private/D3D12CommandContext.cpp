@@ -20,19 +20,16 @@ namespace Thunder
 		const HRESULT hr = CommandList->Close();
 		TAssertf(SUCCEEDED(hr), "Failed to close command list");
 
-		// Initialize descriptor cache.
-		constexpr uint32 kLocalViewHeapSize = 4096; // 4K descriptors.
-		DescriptorCache = new (TMemory::Malloc<D3D12DescriptorCache>())
-			D3D12DescriptorCache(GetDevice().Get(), *this);
-		DescriptorCache->Init(kLocalViewHeapSize);
+		// Initialize state cache.
+		StateCache = new (TMemory::Malloc<D3D12StateCache>()) D3D12StateCache(GetDevice().Get(), this);
 	}
 
 	D3D12CommandContext::~D3D12CommandContext()
 	{
-		if (DescriptorCache)
+		if (StateCache)
 		{
-			TMemory::Destroy(DescriptorCache);
-			DescriptorCache = nullptr;
+			TMemory::Destroy(StateCache);
+			StateCache = nullptr;
 		}
 	}
 
@@ -183,13 +180,13 @@ namespace Thunder
 		{
 			return;
 		}
-		TAssertf(DescriptorCache != nullptr, "DescriptorCache is not initialized");
+		TAssertf(StateCache != nullptr, "State cache is not initialized");
 
 		// Get root signature.
 		TD3D12RootSignature* rootSignature = BindRootSignature(shaderRC);
 
 		// Get the current view heap
-		D3D12OnlineHeap* currentViewHeap = DescriptorCache->GetCurrentViewHeap();
+		D3D12OnlineHeap* currentViewHeap = StateCache->GetCurrentViewHeap();
 		TAssertf(currentViewHeap != nullptr, "Current view heap is null");
 
 		// Reserve slots in the online heap.
@@ -197,7 +194,7 @@ namespace Thunder
 		uint32 firstSlotIndex = currentViewHeap->ReserveSlots(count);
 
 		// Re-acquire current view heap in case it switched during ReserveSlots.
-		currentViewHeap = DescriptorCache->GetCurrentViewHeap();
+		currentViewHeap = StateCache->GetCurrentViewHeap();
 
 		// Get CPU and GPU handles for the reserved range.
 		D3D12_CPU_DESCRIPTOR_HANDLE onlineCpuHandleStart = currentViewHeap->GetCPUSlotHandle(firstSlotIndex);
@@ -406,27 +403,27 @@ namespace Thunder
 		hr = CommandList->Reset(CommandAllocator[index].Get(), nullptr);
 		TAssertf(SUCCEEDED(hr), "Failed to reset command list");
 
-		if (DescriptorCache)
+		if (StateCache)
 		{
-			DescriptorCache->Reset();
+			StateCache->Reset();
 		}
 	}
 
 	TD3D12RootSignature* D3D12CommandContext::BindRootSignature(TShaderRegisterCounts const& shaderRC) const
 	{
 		TD3D12RootSignature* rootSignature;
-		if (DescriptorCache->GetLastShaderRC() != shaderRC)
+		if (StateCache->GetLastShaderRC() != shaderRC)
 		{
-			DescriptorCache->SetLastShaderRC(shaderRC);
+			StateCache->SetLastShaderRC(shaderRC);
 			auto rootSignatureManager = TD3D12RHIModule::GetModule()->GetRootSignatureManager();
 			TD3D12RootSignature* newRootSignature = rootSignatureManager->GetRootSignature(shaderRC);
-			DescriptorCache->SetLastRootSignature(newRootSignature);
+			StateCache->SetLastRootSignature(newRootSignature);
 			rootSignature = newRootSignature;
 			CommandList->SetGraphicsRootSignature(rootSignature->GetRootSignature());
 		}
 		else
 		{
-			rootSignature = DescriptorCache->GetLastRootSignature();
+			rootSignature = StateCache->GetLastRootSignature();
 		}
 		return rootSignature;
 	}

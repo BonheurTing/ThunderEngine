@@ -15,8 +15,8 @@ namespace Thunder
 		ComPtr<ID3D12GraphicsCommandList> GetCommandList() { return CommandList; }
 		ComPtr<ID3D12Device> GetDevice() const;
 
-		// Descriptor cache
-		class D3D12DescriptorCache* GetDescriptorCache() const { return DescriptorCache; }
+		// State cache
+		class D3D12StateCache* GetStateCache() const { return StateCache; }
 
 		// Clear
 		void ClearDepthStencilView(RHIDepthStencilView* dsv, ERHIClearFlags clearFlags, float depthValue, uint8 stencilValue) override;
@@ -58,7 +58,7 @@ namespace Thunder
 		ComPtr<ID3D12CommandAllocator> CommandAllocator[MAX_FRAME_LAG];
 		ComPtr<ID3D12GraphicsCommandList> CommandList;
 
-		// Descriptor cache for online heap management
-		class D3D12DescriptorCache* DescriptorCache = nullptr;
+		// State cache for online heap management
+		class D3D12StateCache* StateCache = nullptr;
 	};
 }

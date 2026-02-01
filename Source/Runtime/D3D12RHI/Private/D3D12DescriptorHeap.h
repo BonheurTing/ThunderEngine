@@ -68,7 +68,7 @@ namespace Thunder
 	{
 	public:
 		D3D12OfflineDescriptorManager(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 numDescriptorsPerHeap);
-		~D3D12OfflineDescriptorManager();
+		~D3D12OfflineDescriptorManager() override;
 
 		// Allocate a CPU descriptor handle
 		D3D12OfflineDescriptor AllocateHeapSlot();
@@ -137,7 +137,7 @@ namespace Thunder
 
 	// Online heaps.
 	class D3D12CommandContext;
-	class D3D12DescriptorCache;
+	class D3D12StateCache;
 	class D3D12OnlineDescriptorManager;
 
 	// Represents a sub-allocated block from the global descriptor heap.
@@ -157,7 +157,7 @@ namespace Thunder
 	{
 	public:
 		D3D12OnlineDescriptorManager(ID3D12Device* device);
-		~D3D12OnlineDescriptorManager();
+		~D3D12OnlineDescriptorManager() override;
 
 		// Initialize the global heap with total size and block size
 		void Init(uint32 inTotalSize, uint32 inBlockSize);
@@ -199,7 +199,7 @@ namespace Thunder
 	{
 	public:
 		D3D12OnlineHeap(ID3D12Device* device, bool bInCanLoopAround);
-		virtual ~D3D12OnlineHeap() = default;
+		virtual ~D3D12OnlineHeap() override = default;
 
 		// Check if we can reserve the requested number of slots
 		bool CanReserveSlots(uint32 numSlots) const;
@@ -237,7 +237,7 @@ namespace Thunder
 	class D3D12SubAllocatedOnlineHeap : public D3D12OnlineHeap
 	{
 	public:
-		D3D12SubAllocatedOnlineHeap(D3D12DescriptorCache& descriptorCache, D3D12CommandContext& context);
+		D3D12SubAllocatedOnlineHeap(D3D12StateCache* stateCache, ID3D12Device* device);
 		~D3D12SubAllocatedOnlineHeap() override;
 
 		bool RollOver() override;
@@ -255,8 +255,7 @@ namespace Thunder
 	private:
 		bool AllocateBlock();
 
-		D3D12DescriptorCache& DescriptorCache;
-		D3D12CommandContext& Context;
+		D3D12StateCache* StateCache = nullptr;
 		D3D12OnlineDescriptorBlock* CurrentBlock = nullptr;
 	};
 
@@ -264,7 +263,7 @@ namespace Thunder
 	class D3D12LocalOnlineHeap : public D3D12OnlineHeap
 	{
 	public:
-		D3D12LocalOnlineHeap(D3D12DescriptorCache& descriptorCache, D3D12CommandContext& context);
+		D3D12LocalOnlineHeap(D3D12StateCache* stateCache, ID3D12Device* device);
 		~D3D12LocalOnlineHeap() override;
 
 		void Init(uint32 numDescriptors);
@@ -276,8 +275,7 @@ namespace Thunder
 	private:
 		void RecycleSlots();
 
-		D3D12DescriptorCache& DescriptorCache;
-		D3D12CommandContext& Context;
+		D3D12StateCache* StateCache = nullptr;
 
 		// Sync points for tracking GPU progress
 		struct FSyncPointEntry
@@ -297,15 +295,12 @@ namespace Thunder
 		TQueue<FPoolEntry> ReclaimPool;
 	};
 
-	// Per-context descriptor cache managing online heaps.
-	class D3D12DescriptorCache : public TD3D12DeviceChild
+	// Per-context state cache.
+	class D3D12StateCache : public TD3D12DeviceChild
 	{
 	public:
-		D3D12DescriptorCache(ID3D12Device* device, D3D12CommandContext& context);
-		~D3D12DescriptorCache();
-
-		// Initialize with local heap size
-		void Init(uint32 numLocalViewDescriptors);
+		D3D12StateCache(ID3D12Device* device, D3D12CommandContext* context);
+		~D3D12StateCache() override;
 
 		// Reset state after command list reset.
 		void Reset();
@@ -332,7 +327,7 @@ namespace Thunder
 		TD3D12RootSignature* GetLastRootSignature() const { return CachedRootSignature; }
 
 	private:
-		D3D12CommandContext& Context;
+		D3D12CommandContext* Context = nullptr; // Parent.
 
 		// Root signature.
 		TShaderRegisterCounts LastShaderRC{};

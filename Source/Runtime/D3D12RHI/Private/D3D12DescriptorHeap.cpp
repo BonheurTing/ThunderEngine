@@ -374,11 +374,10 @@ namespace Thunder
 	}
 
 	D3D12SubAllocatedOnlineHeap::D3D12SubAllocatedOnlineHeap(
-		D3D12DescriptorCache& descriptorCache,
-		D3D12CommandContext& context)
-		: D3D12OnlineHeap(context.GetDevice().Get(), false) // Cannot loop around
-		, DescriptorCache(descriptorCache)
-		, Context(context)
+		D3D12StateCache* stateCache,
+		ID3D12Device* device)
+		: D3D12OnlineHeap(device, false) // Cannot loop around
+		, StateCache(stateCache)
 	{
 	}
 
@@ -424,7 +423,7 @@ namespace Thunder
 			// Global heap exhausted, switch to local heap
 			Heap.SafeRelease();
 			LOG("Global descriptor heap exhausted, switching to local heap.");
-			DescriptorCache.SwitchToContextLocalViewHeap();
+			StateCache->SwitchToContextLocalViewHeap();
 			return false;
 		}
 	}
@@ -465,18 +464,13 @@ namespace Thunder
 		return Heap->GetGPUSlotHandle(CurrentBlock->BaseSlot + slot);
 	}
 
-	D3D12LocalOnlineHeap::D3D12LocalOnlineHeap(
-		D3D12DescriptorCache& descriptorCache,
-		D3D12CommandContext& context)
-		: D3D12OnlineHeap(context.GetDevice().Get(), true) // Can loop around
-		, DescriptorCache(descriptorCache)
-		, Context(context)
+	D3D12LocalOnlineHeap::D3D12LocalOnlineHeap(D3D12StateCache* stateCache, ID3D12Device* device)
+		: D3D12OnlineHeap(device, true) // Can loop around
+		, StateCache(stateCache)
 	{
 	}
 
-	D3D12LocalOnlineHeap::~D3D12LocalOnlineHeap()
-	{
-	}
+	D3D12LocalOnlineHeap::~D3D12LocalOnlineHeap() = default;
 
 	void D3D12LocalOnlineHeap::Init(uint32 numDescriptors)
 	{
@@ -533,7 +527,7 @@ namespace Thunder
 		NextSlotIndex = 0;
 		FirstUsedSlot = 0;
 
-		return DescriptorCache.HeapRolledOver();
+		return StateCache->HeapRolledOver();
 	}
 
 	void D3D12LocalOnlineHeap::OpenCommandList()
@@ -577,14 +571,19 @@ namespace Thunder
 		}
 	}
 
-	D3D12DescriptorCache::D3D12DescriptorCache(ID3D12Device* device, D3D12CommandContext& context)
+	D3D12StateCache::D3D12StateCache(ID3D12Device* device, D3D12CommandContext* context)
 		: TD3D12DeviceChild(device)
 		, Context(context)
-		, SubAllocatedViewHeap(*this, context)
+		, SubAllocatedViewHeap(this, device)
 	{
+		constexpr uint32 kLocalViewHeapSize = 4096; // 4K descriptors.
+		NumLocalViewDescriptors = kLocalViewHeapSize;
+
+		// Start with sub-allocated heap
+		CurrentViewHeap = &SubAllocatedViewHeap;
 	}
 
-	D3D12DescriptorCache::~D3D12DescriptorCache()
+	D3D12StateCache::~D3D12StateCache()
 	{
 		if (LocalViewHeap)
 		{
@@ -593,15 +592,7 @@ namespace Thunder
 		}
 	}
 
-	void D3D12DescriptorCache::Init(uint32 numLocalViewDescriptors)
-	{
-		NumLocalViewDescriptors = numLocalViewDescriptors;
-
-		// Start with sub-allocated heap
-		CurrentViewHeap = &SubAllocatedViewHeap;
-	}
-
-	void D3D12DescriptorCache::OpenCommandList()
+	void D3D12StateCache::OpenCommandList()
 	{
 		CurrentViewHeap->OpenCommandList();
 
@@ -610,18 +601,18 @@ namespace Thunder
 		SetDescriptorHeaps();
 	}
 
-	void D3D12DescriptorCache::CloseCommandList()
+	void D3D12StateCache::CloseCommandList()
 	{
 		CurrentViewHeap->CloseCommandList();
 	}
 
-	bool D3D12DescriptorCache::SwitchToContextLocalViewHeap()
+	bool D3D12StateCache::SwitchToContextLocalViewHeap()
 	{
 		// Lazy initialize local view heap
 		if (LocalViewHeap == nullptr)
 		{
 			LOG("Allocating local view heap - global heap exhausted!");
-			LocalViewHeap = new (TMemory::Malloc<D3D12LocalOnlineHeap>()) D3D12LocalOnlineHeap(*this, Context);
+			LocalViewHeap = new (TMemory::Malloc<D3D12LocalOnlineHeap>()) D3D12LocalOnlineHeap(this, ParentDevice);
 			LocalViewHeap->Init(NumLocalViewDescriptors);
 		}
 
@@ -637,14 +628,14 @@ namespace Thunder
 		return heapChanged;
 	}
 
-	bool D3D12DescriptorCache::HeapRolledOver()
+	bool D3D12StateCache::HeapRolledOver()
 	{
 		return SetDescriptorHeaps();
 	}
 
-	bool D3D12DescriptorCache::SetDescriptorHeaps()
+	bool D3D12StateCache::SetDescriptorHeaps()
 	{
-		auto* commandList = Context.GetCommandList().Get();
+		auto* commandList = Context->GetCommandList().Get();
 		auto* currentHeap = CurrentViewHeap->GetHeap()->GetHeap();
 
 		bool heapChanged = (LastSetViewHeap != currentHeap);
@@ -659,7 +650,7 @@ namespace Thunder
 		return heapChanged;
 	}
 
-	void D3D12DescriptorCache::Reset()
+	void D3D12StateCache::Reset()
 	{
 		// Clear LastSetViewHeap to force re-binding.
 		LastSetViewHeap = nullptr;

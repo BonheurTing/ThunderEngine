@@ -73,9 +73,15 @@ namespace Thunder
         uint64 GetCurrentFenceValue() const { return CurrentFenceValue; }
         bool IsFenceComplete(uint64 fenceValue) const;
 
+        // Null descriptors for binding empty slots
+        D3D12_CPU_DESCRIPTOR_HANDLE GetNullSRV() const { return NullSRV; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetNullUAV() const { return NullUAV; }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetNullCBV() const { return NullCBV; }
+
     private:
         void InitializeOnlineDescriptorManager();
         void InitializeOfflineDescriptorManagers();
+        void InitializeNullDescriptors();
 
     private:
         ComPtr<ID3D12Device> Device;
@@ -94,6 +100,11 @@ namespace Thunder
 
         // Online descriptor manager for global heap (GPU-visible, for runtime binding)
         class D3D12OnlineDescriptorManager* OnlineDescriptorManager = nullptr;
+
+        // Null descriptors for binding empty slots
+        D3D12_CPU_DESCRIPTOR_HANDLE NullSRV = {};
+        D3D12_CPU_DESCRIPTOR_HANDLE NullUAV = {};
+        D3D12_CPU_DESCRIPTOR_HANDLE NullCBV = {};
 
         //
         TArray<ComPtr<ID3D12Object>> GReleaseQueue[MAX_FRAME_LAG] {};

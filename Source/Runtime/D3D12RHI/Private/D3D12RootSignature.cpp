@@ -61,6 +61,7 @@ namespace Thunder
 					TAssert(rootParameterCount < MaxRootParameters);
 					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, shaderRC.ShaderResourceCount, 0u, 0, descriptorSettings.SRVDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
+					SRVRootParameterIndex = rootParameterCount;
 					rootParameterCount++;
 				}
 
@@ -69,6 +70,7 @@ namespace Thunder
 					TAssert(rootParameterCount < MaxRootParameters);
 					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, shaderRC.SamplerCount, 0u, 0, descriptorSettings.SamplerDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
+					SamplerRootParameterIndex = rootParameterCount;
 					rootParameterCount++;
 				}
 
@@ -77,6 +79,7 @@ namespace Thunder
 					TAssert(rootParameterCount < MaxRootParameters);
 					descriptorRanges[rootParameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, shaderRC.UnorderedAccessCount, 0u, 0, descriptorSettings.UAVDescriptorRangeFlags);
 					tableSlots[rootParameterCount].InitAsDescriptorTable(1, &descriptorRanges[rootParameterCount], D3D12_SHADER_VISIBILITY_ALL);
+					UAVRootParameterIndex = rootParameterCount;
 					rootParameterCount++;
 				}
 
@@ -85,6 +88,10 @@ namespace Thunder
 			case D3D12_ROOT_PARAMETER_TYPE_CBV:
 			{
 				TAssertf(shaderRC.ConstantBufferCount < MAX_CBS, "Too many constant buffers are used, max allowed count is 16.");
+				if (shaderRC.ConstantBufferCount > 0)
+				{
+					CBVRootParameterIndexBegin = rootParameterCount;
+				}
 				for (uint32 ShaderRegister = 0; (ShaderRegister < shaderRC.ConstantBufferCount) && (ShaderRegister < MAX_CBS); ShaderRegister++)
 				{
 					TAssert(rootParameterCount < MaxRootParameters);

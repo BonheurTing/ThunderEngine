@@ -594,6 +594,10 @@ namespace Thunder
 	void D3D12DescriptorCache::OpenCommandList()
 	{
 		CurrentViewHeap->OpenCommandList();
+
+		// Always set descriptor heaps at the beginning of command list
+		// Command list was reset, so we need to bind heaps again
+		SetDescriptorHeaps();
 	}
 
 	void D3D12DescriptorCache::CloseCommandList()

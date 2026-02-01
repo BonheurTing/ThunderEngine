@@ -47,6 +47,8 @@ namespace Thunder
     struct RHIDrawCommand : public IRHICommand
     {
         RHI_API void Execute(RHICommandContext* cmdList) override;
+        void BindPSO(RHICommandContext* cmdList) const;
+        void BindSRVTable(RHICommandContext* cmdList);
 
         // Render resources.
         RHIVertexBuffer* VBToSet = nullptr;

@@ -34,7 +34,8 @@ namespace Thunder
 		void SetScissorRects(TArray<RHIRect*> rects) override;
 		void SetViewports(TArray<RHIViewport*> viewports) override;
 		void SetPipelineState(TRHIPipelineState* pso) override;
-		
+		void BindSRVTable(TShaderRegisterCounts const& shaderRC, const uint64* srvHandles, uint32 count) override;
+
 		// Copy
 		void CopyBufferRegion(RHIResource* dst, uint64 dstOffset, RHIResource* src, uint64 srcOffset, uint64 numBytes) override;
 		void CopyTextureRegion(RHIResource* dst, uint32 dstMip, RHIResource* src, uint32 srcMip, const RHITextureRegion* copyRegion) override;

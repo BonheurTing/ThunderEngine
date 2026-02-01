@@ -13,7 +13,6 @@ namespace Thunder
 {
     RenderMaterial::RenderMaterial()
         : Archive(nullptr)
-        , QuantizedRegisterCounts{}
         , ParameterCache{}
         , ConstantBuffer(nullptr)
     {
@@ -125,15 +124,6 @@ namespace Thunder
         NameHandle passName,
         uint64 variantId) const
     {
-        // 填充Shader相关信息
-        outDesc.RegisterCounts = QuantizedRegisterCounts;
-
-        // TODO: 从ShaderArchive获取RenderState并填充到PSO
-        // if (CompiledShaderMap)
-        // {
-        //     const RenderStateMeta& renderState = CompiledShaderMap->GetRenderState();
-        //     // 根据renderState填充BlendState, RasterizerState, DepthStencilState等
-        // }
     }
 
     void RenderMaterial::BindParametersToRHI(class RHICommandList* cmdList) const

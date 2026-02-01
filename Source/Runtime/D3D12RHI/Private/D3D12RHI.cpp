@@ -94,6 +94,9 @@ namespace Thunder
         // Initialize online descriptor manager (GPU-visible, for runtime binding)
         InitializeOnlineDescriptorManager();
 
+        // Initialize null descriptors for binding empty slots
+        InitializeNullDescriptors();
+
         TD3D12RHIModule::GetModule()->InitD3D12Context(Device.Get());
 
         // Create fence for CPU-GPU synchronization
@@ -759,6 +762,44 @@ namespace Thunder
     {
         TAssert(type >= 0 && type < 4);
         return OfflineDescriptorManagers[type];
+    }
+
+    void D3D12DynamicRHI::InitializeNullDescriptors()
+    {
+        // Create null descriptors for SRV, UAV, and CBV
+        // These are used when binding empty slots in descriptor tables
+
+        D3D12OfflineDescriptorManager* manager = GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+        // Allocate slots from offline heap
+        D3D12OfflineDescriptor nullSrvDesc = manager->AllocateHeapSlot();
+        D3D12OfflineDescriptor nullUavDesc = manager->AllocateHeapSlot();
+        D3D12OfflineDescriptor nullCbvDesc = manager->AllocateHeapSlot();
+
+        // Create null SRV (Texture2D)
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srvDesc.Texture2D.MipLevels = 1;
+        Device->CreateShaderResourceView(nullptr, &srvDesc, nullSrvDesc);
+
+        // Create null UAV (Texture2D)
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+        uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+        Device->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, nullUavDesc);
+
+        // Create null CBV
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+        cbvDesc.BufferLocation = 0;
+        cbvDesc.SizeInBytes = 256; // Minimum size
+        Device->CreateConstantBufferView(&cbvDesc, nullCbvDesc);
+
+        // Store the handles
+        NullSRV = nullSrvDesc;
+        NullUAV = nullUavDesc;
+        NullCBV = nullCbvDesc;
     }
 
     bool D3D12DynamicRHI::IsFenceComplete(uint64 fenceValue) const

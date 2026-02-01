@@ -4,6 +4,8 @@
 #include "D3D12PipelineState.h"
 #include "D3D12Resource.h"
 #include "D3D12RHI.h"
+#include "D3D12RHIModule.h"
+#include "D3D12RootSignature.h"
 #include "IDynamicRHI.h"
 
 namespace Thunder
@@ -173,6 +175,73 @@ namespace Thunder
 	void D3D12CommandContext::SetPipelineState(TRHIPipelineState* pso)
 	{
 		CommandList->SetPipelineState(static_cast<ID3D12PipelineState*>(pso->GetPipelineState()));
+	}
+
+	void D3D12CommandContext::BindSRVTable(TShaderRegisterCounts const& shaderRC, const uint64* srvHandles, uint32 count)
+	{
+		if (count == 0) [[unlikely]]
+		{
+			return;
+		}
+		TAssertf(DescriptorCache != nullptr, "DescriptorCache is not initialized");
+
+		// Get the current view heap
+		D3D12OnlineHeap* currentViewHeap = DescriptorCache->GetCurrentViewHeap();
+		TAssertf(currentViewHeap != nullptr, "Current view heap is null");
+
+		// Reserve slots in the online heap.
+		// ReserveSlots may trigger heap switch.
+		uint32 firstSlotIndex = currentViewHeap->ReserveSlots(count);
+
+		// Re-acquire current view heap in case it switched during ReserveSlots.
+		currentViewHeap = DescriptorCache->GetCurrentViewHeap();
+
+		// Get CPU and GPU handles for the reserved range.
+		D3D12_CPU_DESCRIPTOR_HANDLE onlineCpuHandleStart = currentViewHeap->GetCPUSlotHandle(firstSlotIndex);
+		D3D12_GPU_DESCRIPTOR_HANDLE onlineGpuHandleStart = currentViewHeap->GetGPUSlotHandle(firstSlotIndex);
+
+		// Get descriptor heap for copying.
+		D3D12DescriptorHeap* heap = currentViewHeap->GetHeap();
+		uint32 descriptorSize = heap->GetDescriptorSize();
+
+		// Copy offline descriptors to online heap
+		// We need to call CopyDescriptorsSimple for each descriptor since they may not be contiguous
+		ID3D12Device* device = GetDevice().Get();
+		auto* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
+
+		for (size_t slotIndex = 0; slotIndex < count; ++slotIndex)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE srcCpuHandle;
+
+			// Check if this is a valid descriptor handle
+			if (srvHandles[slotIndex] != 0 && srvHandles[slotIndex] != 0xFFFFFFFFFFFFFFFF)
+			{
+				// Use the provided offline descriptor
+				srcCpuHandle.ptr = srvHandles[slotIndex];
+			}
+			else
+			{
+				// Use null descriptor for empty slots
+				srcCpuHandle = dx12RHI->GetNullSRV();
+			}
+
+			// Calculate destination handle for this descriptor
+			D3D12_CPU_DESCRIPTOR_HANDLE dstCpuHandle;
+			dstCpuHandle.ptr = onlineCpuHandleStart.ptr + slotIndex * descriptorSize;
+
+			// Copy descriptor (either valid or null) to online heap
+			device->CopyDescriptorsSimple(
+				1,
+				dstCpuHandle,
+				srcCpuHandle,
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+			);
+		}
+
+		// Bind the descriptor table to the root signature
+		auto rootSignatureManager = TD3D12RHIModule::GetModule()->GetRootSignatureManager();
+		TD3D12RootSignature* rootSignature = rootSignatureManager->GetRootSignature(shaderRC); // Could be cached
+		CommandList->SetGraphicsRootDescriptorTable(rootSignature->GetSRVRootParameterIndex(), onlineGpuHandleStart);
 	}
 
 	void D3D12CommandContext::CopyBufferRegion(RHIResource* dst, uint64 dstOffset, RHIResource* src, uint64 srcOffset, uint64 numBytes)

@@ -295,7 +295,7 @@ namespace Thunder
 			return false;
 		}
 
-		uint32 heapSize = Heap->GetDesc().NumDescriptors;
+		uint32 heapSize = GetTotalSize();
 
 		if (bCanLoopAround)
 		{
@@ -324,7 +324,7 @@ namespace Thunder
 	{
 		TAssert(Heap != nullptr);
 
-		uint32 heapSize = Heap->GetDesc().NumDescriptors;
+		uint32 heapSize = GetTotalSize();
 
 		// Check if we need to roll over
 		if (!CanReserveSlots(numSlotsRequested))

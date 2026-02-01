@@ -213,6 +213,8 @@ namespace Thunder
 		// Get the underlying heap
 		D3D12DescriptorHeap* GetHeap() const { return Heap.Get(); }
 
+		virtual uint32 GetTotalSize() const { return Heap->GetDesc().NumDescriptors(); }
+
 		// Called when the heap is full and needs to roll over
 		virtual bool RollOver() = 0;
 
@@ -240,6 +242,10 @@ namespace Thunder
 		bool RollOver() override;
 		void OpenCommandList() override;
 		void CloseCommandList() override;
+		uint32 GetTotalSize() const final override
+		{
+			return CurrentBlock ? CurrentBlock->Size : 0;
+		}
 
 		// Override to add block offset
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 slot) const override;

@@ -404,5 +404,12 @@ namespace Thunder
 		TAssertf(SUCCEEDED(hr), "Failed to reset command allocator");
 		hr = CommandList->Reset(CommandAllocator[index].Get(), nullptr);
 		TAssertf(SUCCEEDED(hr), "Failed to reset command list");
+
+		// Open command list for descriptor cache
+		// This allocates the first descriptor block and binds descriptor heaps
+		if (DescriptorCache)
+		{
+			DescriptorCache->OpenCommandList();
+		}
 	}
 }

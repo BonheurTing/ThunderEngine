@@ -782,24 +782,24 @@ namespace Thunder
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         srvDesc.Texture2D.MipLevels = 1;
-        Device->CreateShaderResourceView(nullptr, &srvDesc, nullSrvDesc);
+        Device->CreateShaderResourceView(nullptr, &srvDesc, nullSrvDesc.Handle);
 
         // Create null UAV (Texture2D)
         D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
         uavDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-        Device->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, nullUavDesc);
+        Device->CreateUnorderedAccessView(nullptr, nullptr, &uavDesc, nullUavDesc.Handle);
 
         // Create null CBV
         D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
         cbvDesc.BufferLocation = 0;
         cbvDesc.SizeInBytes = 256; // Minimum size
-        Device->CreateConstantBufferView(&cbvDesc, nullCbvDesc);
+        Device->CreateConstantBufferView(&cbvDesc, nullCbvDesc.Handle);
 
         // Store the handles
-        NullSRV = nullSrvDesc;
-        NullUAV = nullUavDesc;
-        NullCBV = nullCbvDesc;
+        NullSRV = nullSrvDesc.Handle;
+        NullUAV = nullUavDesc.Handle;
+        NullCBV = nullCbvDesc.Handle;
     }
 
     bool D3D12DynamicRHI::IsFenceComplete(uint64 fenceValue) const

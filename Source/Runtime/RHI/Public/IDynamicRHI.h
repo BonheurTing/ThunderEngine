@@ -49,7 +49,8 @@ namespace Thunder
 
         virtual void RHIReleaseResource() = 0;
 
-        // CPU-GPU synchronization
+        // CPU-GPU synchronization and frame lifecycle
+        virtual void RHIBeginFrame(uint32 frameIndex) = 0;
         virtual void RHISignalFence(uint32 frameIndex) = 0;
         virtual void RHIWaitForFrame(uint32 frameIndex) = 0;
     };
@@ -149,6 +150,11 @@ namespace Thunder
     FORCEINLINE void RHIReleaseResource()
     {
         return GDynamicRHI->RHIReleaseResource();
+    }
+
+    FORCEINLINE void RHIBeginFrame(uint32 frameIndex)
+    {
+        return GDynamicRHI->RHIBeginFrame(frameIndex);
     }
 
     FORCEINLINE void RHISignalFence(uint32 frameIndex)

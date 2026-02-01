@@ -691,6 +691,10 @@ namespace Thunder
         TAssertf(SUCCEEDED(hr), "Failed to signal fence");
     }
 
+    void D3D12DynamicRHI::RHIBeginFrame(uint32 frameIndex)
+    {
+    }
+
     void D3D12DynamicRHI::RHIWaitForFrame(uint32 frameIndex)
     {
         uint64 fenceValue = ExpectedFenceValues[frameIndex];

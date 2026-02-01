@@ -40,6 +40,8 @@ namespace Thunder
         uint32 currentFrameIndex = frameNum % MAX_FRAME_LAG;
         LOG("Execute rhi thread in frame: %u with thread: %lu", frameNum, __threadid());
 
+        RHIBeginFrame(currentFrameIndex);
+
         std::cout << "!!!D3D12CommandContext::Reset Copy_RHI with frame index : " << frameNum << std::endl << std::flush;
         IRHIModule::GetModule()->ResetCopyCommandContext_RHI(currentFrameIndex);
         for (auto res : GRHIUpdateAsyncQueue)

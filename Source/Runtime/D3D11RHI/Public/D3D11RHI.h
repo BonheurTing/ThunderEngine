@@ -49,6 +49,8 @@ namespace Thunder
 
 		void RHIReleaseResource() override {}
 
+		void RHIBeginFrame(uint32 frameIndex) override {}
+
 		void RHISignalFence(uint32 frameIndex) override {}
 
 		void RHIWaitForFrame(uint32 frameIndex) override {}

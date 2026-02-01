@@ -94,7 +94,7 @@ namespace Thunder
         RenderViewport->GetRenderers(renderers);
         auto* RHIThreadTask = new (TMemory::Malloc<TTask<RHITask>>()) TTask<RHITask>();
         (*RHIThreadTask)->SetRenderers(renderers);
-        GRHIScheduler->PushTask(RHIThreadTask);
+        GRHIScheduler->PushTask(RHIThreadTask); // Fire RHI thread main.
 
         // render next viewport
         if (RenderViewport->GetNext())

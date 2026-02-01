@@ -59,6 +59,7 @@ namespace Thunder
 
         void AddReleaseObject(ComPtr<ID3D12Object> object);
 
+        void RHIBeginFrame(uint32 frameIndex) override;
         void RHISignalFence(uint32 frameIndex) override;
         void RHIWaitForFrame(uint32 frameIndex) override;
 

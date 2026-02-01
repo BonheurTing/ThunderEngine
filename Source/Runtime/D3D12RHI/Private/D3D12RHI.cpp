@@ -693,6 +693,10 @@ namespace Thunder
 
     void D3D12DynamicRHI::RHIBeginFrame(uint32 frameIndex)
     {
+        if (OnlineDescriptorManager != nullptr)
+        {
+            OnlineDescriptorManager->ProcessDeferredDeletions();
+        }
     }
 
     void D3D12DynamicRHI::RHIWaitForFrame(uint32 frameIndex)

@@ -88,10 +88,7 @@ namespace Thunder
 		Mutex CriticalSection;
 	};
 
-	//////////////////////////////////////////////////////////////////////////
-	// D3D12 RHI View Classes (using offline descriptors)
-	//////////////////////////////////////////////////////////////////////////
-
+	// RHI descriptors.
 	class D3D12RHIShaderResourceView : public RHIShaderResourceView
 	{
 	public:
@@ -137,6 +134,7 @@ namespace Thunder
 		D3D12OfflineDescriptor OfflineDescriptor;
 	};
 
+	// Online heaps.
 	class D3D12CommandContext;
 	class D3D12DescriptorCache;
 	class D3D12OnlineDescriptorManager;
@@ -169,15 +167,26 @@ namespace Thunder
 		// Free a block back to the free list (delayed recycle)
 		void FreeHeapBlock(D3D12OnlineDescriptorBlock* block);
 
-		// Actually recycle the block (called after GPU finishes)
-		void Recycle(D3D12OnlineDescriptorBlock* block);
+		// Process deferred deletions - call this every frame
+		void ProcessDeferredDeletions();
 
 		// Get the global heap
 		D3D12DescriptorHeap* GetDescriptorHeap() const { return GlobalHeap.Get(); }
 
 	private:
+		// Actually recycle the block (called after GPU finishes)
+		void Recycle(D3D12OnlineDescriptorBlock* block);
+
+		// Deferred deletion entry
+		struct DeferredBlock
+		{
+			D3D12OnlineDescriptorBlock* Block;
+			uint64 FenceValue;
+		};
+
 		TRefCountPtr<D3D12DescriptorHeap> GlobalHeap;
 		TQueue<D3D12OnlineDescriptorBlock*> FreeBlocks;
+		TQueue<DeferredBlock> DeferredDeletionQueue;
 		Mutex CriticalSection;
 
 		uint32 TotalSize = 0;
@@ -198,8 +207,8 @@ namespace Thunder
 		uint32 ReserveSlots(uint32 numSlotsRequested);
 
 		// Get CPU/GPU descriptor handles for a slot
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 slot) const;
-		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 slot) const;
+		virtual D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 slot) const;
+		virtual D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 slot) const;
 
 		// Get the underlying heap
 		D3D12DescriptorHeap* GetHeap() const { return Heap.Get(); }
@@ -233,8 +242,8 @@ namespace Thunder
 		void CloseCommandList() override;
 
 		// Override to add block offset
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 slot) const;
-		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 slot) const;
+		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUSlotHandle(uint32 slot) const override;
+		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUSlotHandle(uint32 slot) const override;
 
 	private:
 		bool AllocateBlock();

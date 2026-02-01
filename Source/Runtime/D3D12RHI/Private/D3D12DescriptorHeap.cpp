@@ -172,12 +172,20 @@ namespace Thunder
 
 	D3D12OnlineDescriptorManager::~D3D12OnlineDescriptorManager()
 	{
-		// Free all blocks
+		// Free all free blocks
 		while (!FreeBlocks.empty())
 		{
 			D3D12OnlineDescriptorBlock* block = FreeBlocks.front();
 			FreeBlocks.pop();
 			TMemory::Destroy(block);
+		}
+
+		// Free all deferred blocks (should not happen if cleanup is correct)
+		while (!DeferredDeletionQueue.empty())
+		{
+			DeferredBlock deferred = DeferredDeletionQueue.front();
+			DeferredDeletionQueue.pop();
+			TMemory::Destroy(deferred.Block);
 		}
 	}
 
@@ -206,9 +214,6 @@ namespace Thunder
 
 			currentBaseSlot += actualBlockSize;
 		}
-
-		LOG("D3D12OnlineDescriptorManager initialized: TotalSize=%u, BlockSize=%u, BlockCount=%u",
-			TotalSize, BlockSize, blockCount);
 	}
 
 	D3D12OnlineDescriptorBlock* D3D12OnlineDescriptorManager::AllocateHeapBlock()
@@ -233,22 +238,49 @@ namespace Thunder
 	void D3D12OnlineDescriptorManager::FreeHeapBlock(D3D12OnlineDescriptorBlock* block)
 	{
 		TAssert(block != nullptr);
-		// In a real implementation, this would be deferred until GPU finishes
-		// For now, we immediately recycle
-		Recycle(block);
+
+		// Get the current fence value - GPU is still using this block
+		auto* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
+		uint64 fenceValue = dx12RHI->GetCurrentFenceValue();
+
+		// Add to deferred deletion queue
+		ScopeLock lock(CriticalSection);
+		DeferredDeletionQueue.push({ block, fenceValue });
+	}
+
+	void D3D12OnlineDescriptorManager::ProcessDeferredDeletions()
+	{
+		auto* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
+
+		ScopeLock lock(CriticalSection);
+
+		// Process all completed blocks
+		while (!DeferredDeletionQueue.empty())
+		{
+			DeferredBlock& deferred = DeferredDeletionQueue.front();
+
+			// Check if GPU has finished with this block
+			if (dx12RHI->IsFenceComplete(deferred.FenceValue))
+			{
+				// GPU is done, recycle the block
+				Recycle(deferred.Block);
+				DeferredDeletionQueue.pop();
+			}
+			else
+			{
+				// This block is still in use, stop processing
+				// (Queue is in fence order, so all subsequent blocks are also in use)
+				break;
+			}
+		}
 	}
 
 	void D3D12OnlineDescriptorManager::Recycle(D3D12OnlineDescriptorBlock* block)
 	{
-		ScopeLock lock(CriticalSection);
-
+		// Note: CriticalSection should already be locked by caller
 		block->SizeUsed = 0;
 		FreeBlocks.push(block);
 	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// D3D12OnlineHeap Implementation
-	//////////////////////////////////////////////////////////////////////////
 
 	D3D12OnlineHeap::D3D12OnlineHeap(ID3D12Device* device, bool bInCanLoopAround)
 		: TD3D12DeviceChild(device)
@@ -330,10 +362,6 @@ namespace Thunder
 		TAssert(Heap != nullptr);
 		return Heap->GetGPUSlotHandle(slot);
 	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// D3D12SubAllocatedOnlineHeap Implementation
-	//////////////////////////////////////////////////////////////////////////
 
 	D3D12SubAllocatedOnlineHeap::D3D12SubAllocatedOnlineHeap(
 		D3D12DescriptorCache& descriptorCache,
@@ -427,10 +455,6 @@ namespace Thunder
 		return Heap->GetGPUSlotHandle(CurrentBlock->BaseSlot + slot);
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	// D3D12LocalOnlineHeap Implementation
-	//////////////////////////////////////////////////////////////////////////
-
 	D3D12LocalOnlineHeap::D3D12LocalOnlineHeap(
 		D3D12DescriptorCache& descriptorCache,
 		D3D12CommandContext& context)
@@ -456,8 +480,6 @@ namespace Thunder
 
 			Entry.Heap = Heap;
 			Entry.FenceValue = 0;
-
-			LOG("D3D12LocalOnlineHeap initialized with %u descriptors", numDescriptors);
 		}
 	}
 
@@ -544,10 +566,6 @@ namespace Thunder
 			}
 		}
 	}
-
-	//////////////////////////////////////////////////////////////////////////
-	// D3D12DescriptorCache Implementation
-	//////////////////////////////////////////////////////////////////////////
 
 	D3D12DescriptorCache::D3D12DescriptorCache(ID3D12Device* device, D3D12CommandContext& context)
 		: TD3D12DeviceChild(device)

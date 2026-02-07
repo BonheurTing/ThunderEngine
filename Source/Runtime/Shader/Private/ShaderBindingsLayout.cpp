@@ -44,4 +44,9 @@ namespace Thunder
             + (UAVsByName.size() * sizeof(ShaderBindingHandle))
             + (SamplersByName.size() * sizeof(ShaderBindingHandle));
     }
+
+    UniformBufferLayout::UniformBufferLayout(class ShaderArchive* inShader)
+        : Shader(inShader), TotalSize(0)
+    {
+    }
 }

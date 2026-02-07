@@ -69,4 +69,59 @@ namespace Thunder
         TMap<NameHandle, ShaderResourceParameterInfo> SamplersByName;
     };
     using ShaderBindingsLayoutRef = TRefCountPtr<ShaderBindingsLayout>;
+
+    enum class EUniformBufferMemberType : uint8
+    {
+        Int = 0,
+        Float,
+        Float4,
+        Num
+    };
+    
+    struct UniformBufferMemberEntry
+    {
+        uint32 Offset = 0xFFFFFFFF;
+        uint32 Size = 0xFFFFFFFF;
+        EUniformBufferMemberType Type = EUniformBufferMemberType::Num;
+    };
+    
+    class UniformBufferLayout : public RefCountedObject
+    {
+    public:
+        UniformBufferLayout(class ShaderArchive* inShader);
+        ~UniformBufferLayout() override = default;
+
+        _NODISCARD_ class ShaderArchive* GetShader() const { return Shader; }
+        _NODISCARD_ TMap<NameHandle, UniformBufferMemberEntry> const& GetMemberMap() const { return MemberMap; }
+        _NODISCARD_ uint32 GetTotalSize() const { return TotalSize; }
+
+        bool GetMemberEntry(NameHandle name, UniformBufferMemberEntry& outEntry) const
+        {
+            auto it = MemberMap.find(name);
+            if (it != MemberMap.end())
+            {
+                outEntry = it->second;
+                return true;
+            }
+            return false;
+        }
+
+        void AddMember(NameHandle name, UniformBufferMemberEntry const& entry)
+        {
+            MemberMap[name] = entry;
+            TotalSize = std::max(TotalSize, entry.Offset + entry.Size);
+        }
+
+        void SetTotalSize(uint32 size)
+        {
+            TotalSize = size;
+        }
+
+    protected:
+        // Parent.
+        ShaderArchive* Shader = nullptr;
+        TMap<NameHandle, UniformBufferMemberEntry> MemberMap;
+        uint32 TotalSize = 0;
+    };
+    using UniformBufferLayoutRef = TRefCountPtr<UniformBufferLayout>;
 }

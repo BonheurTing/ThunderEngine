@@ -1,9 +1,10 @@
 Parameters "Primitive"
 {
-    float4 LastPosition;
+    float4 LocalToWorld0;
+    float4 LocalToWorld1;
+    float4 LocalToWorld2;
 }
 Parameters "Global"
 {
-    float4 _Color2;
     int RenderQuality = 1;
 }

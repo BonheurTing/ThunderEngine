@@ -305,6 +305,7 @@ namespace Thunder
             {
                 StageBindings[stageIndex].ClearData();
             }
+            Bindings.ClearData();
         }
     }
 }

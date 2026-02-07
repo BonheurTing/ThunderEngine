@@ -4,18 +4,21 @@ Shader "TestShader"
     {
     }
     Variants
-    {  
+    {
         bool _Variant0 = false;
         bool _Variant1;
     }
+    Parameters "Material"
+    {
+        Texture2D _MainTex;
+        Texture2D<float4> AlbedoMap;
+        Texture2D<float4> NormalMap;
+        float4 Color; // { Visible = True; SlideBar(0, 1); }
+    }
     Parameters "Pass"
     {
-        float4 WorldToObject0;
-        float4 WorldToObject1;
-        float4 WorldToObject2;
-        Texture2D _MainTex;
-        Texture2D<float4> Albedo;
-        // StructuredBuffer<float4> _StructuredBuffer;
+        float4 PassParameters0;
+        float4 PassParameters1;
     }
     #include "TestInclude1/TestInclude2/test_include.tsh"
     #define ENABLE_UV0 1

@@ -168,8 +168,10 @@ namespace Thunder
     	void ParseVariants(ShaderCodeGenConfig const& config, shader_codegen_state& state) const;
     	uint64 VariantNameToMask(const TMap<NameHandle, bool>& variantMap) const;
     	void VariantMaskToName(uint64 variantMask, THashMap<NameHandle, bool>& variantMap) const;
+    	void BuildUniformBufferLayout();
     	void BuildBindingsLayout();
     	ShaderBindingsLayout* GetBindingsLayout() const { return BindingsLayout; }
+    	UniformBufferLayout* GetUniformBufferLayout(String const& cbName) { return UniformBufferLayoutMap[cbName]; }
 
     private:
     	friend class ShaderAST;
@@ -187,6 +189,7 @@ namespace Thunder
     	THashMap<EMeshPass, ShaderPassRef> MeshDrawSubShaders;
 
     	ShaderBindingsLayoutRef BindingsLayout{ nullptr };
+    	TMap<String, UniformBufferLayoutRef> UniformBufferLayoutMap;
     };
     
 }

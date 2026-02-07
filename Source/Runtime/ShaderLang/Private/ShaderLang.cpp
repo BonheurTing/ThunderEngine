@@ -21,6 +21,7 @@ namespace Thunder
 		{ "Global", { .index = 0 } },
 		{ "Pass", { .index = 1 } },
 		{ "Primitive", { .index = 2 } },
+		{ "Material", { .index = 3 } }
 	};
 
 	shader_lang_state::shader_lang_state()

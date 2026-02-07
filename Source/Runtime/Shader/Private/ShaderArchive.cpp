@@ -384,6 +384,9 @@ namespace Thunder
     		archive->AddSubShader(subShader);
     	}
 
+    	// Generate constant buffer layout
+    	archive->BuildUniformBufferLayout();
+
     	// Generate bindings layout.
     	archive->BuildBindingsLayout();
 	}
@@ -552,6 +555,78 @@ namespace Thunder
     	}
 	}
 
+	void ShaderArchive::BuildUniformBufferLayout()
+	{
+    	for (auto const& [uniformBufferName, parameterMetas] : UniformParameterMeta)
+    	{
+    		UniformBufferLayoutRef layout = new UniformBufferLayout{ this };
+    		uint32 currentOffset = 0;
+
+    		for (auto const& paramMeta : parameterMetas)
+    		{
+    			// Skip texture types as they are not part of uniform buffer.
+    			if (paramMeta.Type.find("Texture") != std::string::npos)
+    			{
+    				continue;
+    			}
+
+    			UniformBufferMemberEntry entry;
+
+    			// Determine type, size, and natural alignment.
+    			EUniformBufferMemberType memberType = EUniformBufferMemberType::Num;
+    			uint32 memberSize = 0;
+    			uint32 memberAlignment = 4;
+
+    			if (paramMeta.Type == "int")
+    			{
+    				memberType = EUniformBufferMemberType::Int;
+    				memberSize = 4;
+    				memberAlignment = 4;
+    			}
+    			else if (paramMeta.Type == "float")
+    			{
+    				memberType = EUniformBufferMemberType::Float;
+    				memberSize = 4;
+    				memberAlignment = 4;
+    			}
+    			else if (paramMeta.Type == "float4")
+    			{
+    				memberType = EUniformBufferMemberType::Float4;
+    				memberSize = 16;
+    				memberAlignment = 16;
+    			}
+    			else
+    			{
+    				TAssertf(false, "Unsupported uniform buffer member type \"%s\" for parameter \"%s\" in uniform buffer \"%s\".",
+    					paramMeta.Type.c_str(), paramMeta.Name.c_str(), uniformBufferName.c_str());
+    				continue;
+    			}
+
+    			// Align current offset to member's natural alignment.
+    			currentOffset = (currentOffset + memberAlignment - 1) & ~(memberAlignment - 1);
+
+    			// Set entry properties.
+    			entry.Type = memberType;
+    			entry.Size = memberSize;
+    			entry.Offset = currentOffset;
+
+    			// Add member to layout.
+    			layout->AddMember(paramMeta.Name, entry);
+
+    			// Advance offset.
+    			currentOffset += memberSize;
+    		}
+
+    		// Align total size to 16 bytes.
+    		constexpr uint32 kTotalAlignment = 16;
+    		currentOffset = (currentOffset + kTotalAlignment - 1) & ~(kTotalAlignment - 1);
+    		layout->SetTotalSize(currentOffset);
+
+    		// Store layout.
+    		UniformBufferLayoutMap[uniformBufferName] = layout;
+    	}
+	}
+
 	void ShaderArchive::BuildBindingsLayout()
     {
     	constexpr uint16 kMaxSRVBindings = 16;
@@ -650,11 +725,11 @@ namespace Thunder
     	{
     		if (meta.Type == "int")
     		{
-    			cache.FloatParameters.emplace(meta.Name, 0);
+    			cache.IntParameters.emplace(meta.Name, 0);
     		}
     		else if (meta.Type == "float")
     		{
-    			cache.VectorParameters.emplace(meta.Name, 0.f);
+    			cache.FloatParameters.emplace(meta.Name, 0.f);
     		}
     		else if (meta.Type == "float4")
     		{
@@ -678,11 +753,11 @@ namespace Thunder
     	{
     		if (meta.Type == "int")
     		{
-    			newVisibleParameters.FloatParameters.emplace(meta.Name, 0);
+    			newVisibleParameters.IntParameters.emplace(meta.Name, 0);
     		}
     		else if (meta.Type == "float")
     		{
-    			newVisibleParameters.VectorParameters.emplace(meta.Name, 0.f);
+    			newVisibleParameters.FloatParameters.emplace(meta.Name, 0.f);
     		}
     		else if (meta.Type == "float4")
     		{

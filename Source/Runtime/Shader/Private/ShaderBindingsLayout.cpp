@@ -39,7 +39,7 @@ namespace Thunder
 
     size_t ShaderBindingsLayout::GetTotalSize() const
     {
-        return (UniformBuffersByName.size() * sizeof(UniformBufferBindingHandle))
+        return (UniformBuffersByName.size() * sizeof(ShaderBindingHandle))
             + (SRVsByName.size() * sizeof(ShaderBindingHandle))
             + (UAVsByName.size() * sizeof(ShaderBindingHandle))
             + (SamplersByName.size() * sizeof(ShaderBindingHandle));

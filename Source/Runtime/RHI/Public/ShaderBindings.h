@@ -22,21 +22,21 @@ namespace Thunder
         void ClearData();
 
         // By index.
-        void SetUniformBuffer(const ShaderBindingsLayout* layout, uint32 index, const UniformBufferBindingHandle& handle) const;
+        void SetUniformBuffer(const ShaderBindingsLayout* layout, uint32 index, const ShaderBindingHandle& handle) const;
         void SetSampler(const ShaderBindingsLayout* layout, uint32 index, const ShaderBindingHandle& handle) const;
         void SetSRV(const ShaderBindingsLayout* layout, uint32 index, const ShaderBindingHandle& handle) const;
         void SetUAV(const ShaderBindingsLayout* layout, uint32 index, const ShaderBindingHandle& handle) const;
-        UniformBufferBindingHandle GetUniformBuffer(const ShaderBindingsLayout* layout, uint32 index) const;
+        ShaderBindingHandle GetUniformBuffer(const ShaderBindingsLayout* layout, uint32 index) const;
         ShaderBindingHandle GetSampler(const ShaderBindingsLayout* layout, uint32 index) const;
         ShaderBindingHandle GetSRV(const ShaderBindingsLayout* layout, uint32 index) const;
         ShaderBindingHandle GetUAV(const ShaderBindingsLayout* layout, uint32 index) const;
 
         // By name.
-        void SetUniformBuffer(const ShaderBindingsLayout* layout, NameHandle name, const UniformBufferBindingHandle& handle) const;
+        void SetUniformBuffer(const ShaderBindingsLayout* layout, NameHandle name, const ShaderBindingHandle& handle) const;
         void SetSampler(const ShaderBindingsLayout* layout, NameHandle name, const ShaderBindingHandle& handle) const;
         void SetSRV(const ShaderBindingsLayout* layout, NameHandle name, const ShaderBindingHandle& handle) const;
         void SetUAV(const ShaderBindingsLayout* layout, NameHandle name, const ShaderBindingHandle& handle) const;
-        UniformBufferBindingHandle GetUniformBuffer(const ShaderBindingsLayout* layout, NameHandle name) const;
+        ShaderBindingHandle GetUniformBuffer(const ShaderBindingsLayout* layout, NameHandle name) const;
         ShaderBindingHandle GetSampler(const ShaderBindingsLayout* layout, NameHandle name) const;
         ShaderBindingHandle GetSRV(const ShaderBindingsLayout* layout, NameHandle name) const;
         ShaderBindingHandle GetUAV(const ShaderBindingsLayout* layout, NameHandle name) const;

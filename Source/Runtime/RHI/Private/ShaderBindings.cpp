@@ -6,41 +6,6 @@
 
 namespace Thunder
 {
-    namespace
-    {
-        // Helper function to calculate offset in Data array
-        size_t CalculateOffset(const ShaderBindingsLayout* layout, uint32 index, EShaderParameterType type)
-        {
-            size_t offset = 0;
-
-            // Layout order: UniformBuffer(16 bytes each) → SRV(8 bytes) → UAV(8 bytes) → Sampler(8 bytes)
-            if (type == EShaderParameterType::UniformBuffer)
-            {
-                offset = index * sizeof(UniformBufferBindingHandle);
-            }
-            else if (type == EShaderParameterType::SRV)
-            {
-                offset = layout->GetUniformBuffersIndexMap().size() * sizeof(UniformBufferBindingHandle)
-                       + index * sizeof(ShaderBindingHandle);
-            }
-            else if (type == EShaderParameterType::UAV)
-            {
-                offset = layout->GetUniformBuffersIndexMap().size() * sizeof(UniformBufferBindingHandle)
-                       + layout->GetSRVsIndexMap().size() * sizeof(ShaderBindingHandle)
-                       + index * sizeof(ShaderBindingHandle);
-            }
-            else if (type == EShaderParameterType::Sampler)
-            {
-                offset = layout->GetUniformBuffersIndexMap().size() * sizeof(UniformBufferBindingHandle)
-                       + layout->GetSRVsIndexMap().size() * sizeof(ShaderBindingHandle)
-                       + layout->GetUAVsIndexMap().size() * sizeof(ShaderBindingHandle)
-                       + index * sizeof(ShaderBindingHandle);
-            }
-
-            return offset;
-        }
-    }
-
     ShaderBindingsLayout::ShaderBindingsLayout(class ShaderArchive* inShader)
         : Shader(inShader)
     {
@@ -66,13 +31,13 @@ namespace Thunder
         }
     }
 
-    void SingleShaderBindings::SetUniformBuffer(const ShaderBindingsLayout* layout, uint32 index, const UniformBufferBindingHandle& handle) const
+    void SingleShaderBindings::SetUniformBuffer(const ShaderBindingsLayout* layout, uint32 index, const ShaderBindingHandle& handle) const
     {
         TAssert(Data != nullptr);
         TAssert(layout != nullptr);
 
         size_t offset = CalculateOffset(layout, index, EShaderParameterType::UniformBuffer);
-        memcpy(Data + offset, &handle, sizeof(UniformBufferBindingHandle));
+        memcpy(Data + offset, &handle, sizeof(ShaderBindingHandle));
     }
 
     void SingleShaderBindings::SetSampler(const ShaderBindingsLayout* layout, uint32 index, const ShaderBindingHandle& handle) const
@@ -102,14 +67,14 @@ namespace Thunder
         memcpy(Data + offset, &handle, sizeof(ShaderBindingHandle));
     }
 
-    UniformBufferBindingHandle SingleShaderBindings::GetUniformBuffer(const ShaderBindingsLayout* layout, uint32 index) const
+    ShaderBindingHandle SingleShaderBindings::GetUniformBuffer(const ShaderBindingsLayout* layout, uint32 index) const
     {
         TAssert(Data != nullptr);
         TAssert(layout != nullptr);
 
         size_t offset = CalculateOffset(layout, index, EShaderParameterType::UniformBuffer);
-        UniformBufferBindingHandle handle;
-        memcpy(&handle, Data + offset, sizeof(UniformBufferBindingHandle));
+        ShaderBindingHandle handle;
+        memcpy(&handle, Data + offset, sizeof(ShaderBindingHandle));
         return handle;
     }
 
@@ -146,7 +111,7 @@ namespace Thunder
         return handle;
     }
 
-    void SingleShaderBindings::SetUniformBuffer(const ShaderBindingsLayout* layout, NameHandle name, const UniformBufferBindingHandle& handle) const
+    void SingleShaderBindings::SetUniformBuffer(const ShaderBindingsLayout* layout, NameHandle name, const ShaderBindingHandle& handle) const
     {
         TAssert(layout != nullptr);
 
@@ -206,7 +171,7 @@ namespace Thunder
         SetUAV(layout, it->second.Index, handle);
     }
 
-    UniformBufferBindingHandle SingleShaderBindings::GetUniformBuffer(const ShaderBindingsLayout* layout, NameHandle name) const
+    ShaderBindingHandle SingleShaderBindings::GetUniformBuffer(const ShaderBindingsLayout* layout, NameHandle name) const
     {
         TAssert(layout != nullptr);
 
@@ -215,7 +180,7 @@ namespace Thunder
         if (it == nameMap.end()) [[unlikely]]
         {
             TAssertf(false, "UniformBuffer \"%s\" not found in shader archive \"%s\".", name.c_str(), layout->GetShader()->GetName().c_str());
-            return UniformBufferBindingHandle{};
+            return ShaderBindingHandle{};
         }
 
         return GetUniformBuffer(layout, it->second.Index);
@@ -268,32 +233,31 @@ namespace Thunder
 
     size_t SingleShaderBindings::CalculateOffset(const ShaderBindingsLayout* layout, uint32 index, EShaderParameterType type)
     {
-        size_t offset = 0;
-
         // Layout order: UniformBuffer(16 bytes each) → SRV(8 bytes) → UAV(8 bytes) → Sampler(8 bytes).
+        size_t viewIndex = 0;
         if (type == EShaderParameterType::UniformBuffer)
         {
-            offset = index * sizeof(UniformBufferBindingHandle);
+            viewIndex = index;
         }
         else if (type == EShaderParameterType::SRV)
         {
-            offset = layout->GetUniformBuffersIndexMap().size() * sizeof(UniformBufferBindingHandle)
-                   + index * sizeof(ShaderBindingHandle);
+            viewIndex = layout->GetUniformBuffersIndexMap().size()
+                + index;
         }
         else if (type == EShaderParameterType::UAV)
         {
-            offset = layout->GetUniformBuffersIndexMap().size() * sizeof(UniformBufferBindingHandle)
-                   + layout->GetSRVsIndexMap().size() * sizeof(ShaderBindingHandle)
-                   + index * sizeof(ShaderBindingHandle);
+            viewIndex = layout->GetUniformBuffersIndexMap().size()
+               + layout->GetSRVsIndexMap().size()
+               + index;
         }
         else if (type == EShaderParameterType::Sampler)
         {
-            offset = layout->GetUniformBuffersIndexMap().size() * sizeof(UniformBufferBindingHandle)
-                   + layout->GetSRVsIndexMap().size() * sizeof(ShaderBindingHandle)
-                   + layout->GetUAVsIndexMap().size() * sizeof(ShaderBindingHandle)
-                   + index * sizeof(ShaderBindingHandle);
+            viewIndex = layout->GetUniformBuffersIndexMap().size()
+               + layout->GetSRVsIndexMap().size()
+               + layout->GetUAVsIndexMap().size()
+               + index;
         }
-
+        size_t offset = viewIndex * sizeof(ShaderBindingHandle);
         return offset;
     }
 

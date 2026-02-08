@@ -21,12 +21,6 @@ namespace Thunder
         EShaderParameterType Type = EShaderParameterType::Num;
     };
 
-    struct UniformBufferBindingHandle
-    {
-        uint64 Base = 0xFFFFFFFFFFFFFFFF;
-        uint64 Offset = 0xFFFFFFFFFFFFFFFF;
-    };
-
     struct ShaderBindingHandle
     {
         uint64 Handle = 0xFFFFFFFFFFFFFFFF;

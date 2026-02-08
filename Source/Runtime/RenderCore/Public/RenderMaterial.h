@@ -36,7 +36,7 @@ namespace Thunder
         void CacheParameters(MaterialParameterCache* gameMaterialCache);
 
         // ========== GPU Resource (RenderThread) ==========
-        void UpdateUniformBuffer(const struct FRenderContext* context, bool cacheMeshDrawCommand) const;
+        void UpdateUniformBuffer(const struct FRenderContext* context, bool cacheMeshDrawCommand);
         RHIConstantBuffer* GetUniformBuffer() const { return UniformBuffer.Get(); }
         RHITexture* GetTextureResource(const NameHandle& name);
         void CacheTextureResources();

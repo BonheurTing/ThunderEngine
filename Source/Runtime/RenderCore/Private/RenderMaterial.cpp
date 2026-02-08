@@ -1,5 +1,6 @@
 ﻿#include "RenderMaterial.h"
 
+#include "IDynamicRHI.h"
 #include "RenderTranslator.h"
 #include "RenderTexture.h"
 #include "RenderModule.h"
@@ -53,7 +54,7 @@ namespace Thunder
         bTexturesDirty = true; // Mark textures as dirty when parameters change
     }
 
-    void RenderMaterial::UpdateUniformBuffer(const FRenderContext* context, bool cacheMeshDrawCommand) const
+    void RenderMaterial::UpdateUniformBuffer(const FRenderContext* context, bool cacheMeshDrawCommand)
     {
         if (!Archive || !ParameterCache) [[unlikely]]
         {
@@ -148,12 +149,12 @@ namespace Thunder
             }
         }
 
-        /*
         // Create or update RHI constant buffer.
+        // Todo : dynamic draw commands should use a transient allocator.
         if (!UniformBuffer)
         {
             // Create new constant buffer.
-            UniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic);
+            UniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic); // Maybe on default heap?
             if (!UniformBuffer) [[unlikely]]
             {
                 TAssertf(false, "Failed to create constant buffer for material \"%s\".", Archive->GetName().c_str());
@@ -169,6 +170,7 @@ namespace Thunder
         }
 
         // Update buffer data.
+        /*
         bool succeeded = RHIUpdateSharedMemoryResource(UniformBuffer.Get(), packedData, bufferSize, 0);
         if (!succeeded) [[unlikely]]
         {

@@ -743,6 +743,303 @@ namespace Thunder
 
 #pragma endregion // HLSL
 
+#pragma region TO_STRING
+
+    String ast_node_expression::to_string() const
+    {
+        return "";
+    }
+
+    String binary_expression::to_string() const
+    {
+        String result = "(";
+        if (left)
+        {
+            result += left->to_string();
+        }
+        switch (op)
+        {
+        case enum_binary_op::add: result += " + "; break;
+        case enum_binary_op::sub: result += " - "; break;
+        case enum_binary_op::mul: result += " * "; break;
+        case enum_binary_op::div: result += " / "; break;
+        case enum_binary_op::mod: result += " % "; break;
+        case enum_binary_op::bit_and: result += " & "; break;
+        case enum_binary_op::bit_or: result += " | "; break;
+        case enum_binary_op::bit_xor: result += " ^ "; break;
+        case enum_binary_op::left_shift: result += " << "; break;
+        case enum_binary_op::right_shift: result += " >> "; break;
+        case enum_binary_op::logical_and: result += " && "; break;
+        case enum_binary_op::logical_or: result += " || "; break;
+        case enum_binary_op::equal: result += " == "; break;
+        case enum_binary_op::not_equal: result += " != "; break;
+        case enum_binary_op::less: result += " < "; break;
+        case enum_binary_op::less_equal: result += " <= "; break;
+        case enum_binary_op::greater: result += " > "; break;
+        case enum_binary_op::greater_equal: result += " >= "; break;
+        case enum_binary_op::undefined: break;
+        }
+        if (right)
+        {
+            result += right->to_string();
+        }
+        result += ")";
+        return result;
+    }
+
+    String shuffle_expression::to_string() const
+    {
+        String result;
+        if (prefix)
+        {
+            result += prefix->to_string();
+        }
+        result += ".";
+        for (const char i : order)
+        {
+            if (i != 0)
+            {
+                result += i;
+            }
+            else
+            {
+                break;
+            }
+        }
+        return result;
+    }
+
+    String component_expression::to_string() const
+    {
+        String result;
+        if (component_name)
+        {
+            result += component_name->to_string();
+        }
+        result += ".";
+        result += identifier;
+        return result;
+    }
+
+    String index_expression::to_string() const
+    {
+        String result;
+        if (target)
+        {
+            result += target->to_string();
+        }
+        result += "[";
+        if (index)
+        {
+            result += index->to_string();
+        }
+        result += "]";
+        return result;
+    }
+
+    String reference_expression::to_string() const
+    {
+        return identifier;
+    }
+
+    String constant_int_expression::to_string() const
+    {
+        return std::to_string(value);
+    }
+
+    String constant_float_expression::to_string() const
+    {
+        return std::to_string(value) + "f";
+    }
+
+    String constant_bool_expression::to_string() const
+    {
+        return value ? "true" : "false";
+    }
+
+    String function_call_expression::to_string() const
+    {
+        String result = function_name + "(";
+        for (size_t i = 0; i < arguments.size(); ++i)
+        {
+            if (i > 0)
+            {
+                result += ", ";
+            }
+            if (arguments[i])
+            {
+                result += arguments[i]->to_string();
+            }
+        }
+        result += ")";
+        return result;
+    }
+
+    String constructor_expression::to_string() const
+    {
+        String result;
+        if (constructor_type)
+        {
+            result += constructor_type->get_type_text();
+        }
+        result += "(";
+        for (size_t i = 0; i < arguments.size(); ++i)
+        {
+            if (i > 0)
+            {
+                result += ", ";
+            }
+            if (arguments[i])
+            {
+                result += arguments[i]->to_string();
+            }
+        }
+        result += ")";
+        return result;
+    }
+
+    String assignment_expression::to_string() const
+    {
+        String result;
+        if (left_expr)
+        {
+            result += left_expr->to_string();
+        }
+        result += " = ";
+        if (right_expr)
+        {
+            result += right_expr->to_string();
+        }
+        return result;
+    }
+
+    String conditional_expression::to_string() const
+    {
+        String result;
+        if (condition)
+        {
+            result += condition->to_string();
+        }
+        result += " ? ";
+        if (true_expression)
+        {
+            result += true_expression->to_string();
+        }
+        result += " : ";
+        if (false_expression)
+        {
+            result += false_expression->to_string();
+        }
+        return result;
+    }
+
+    String unary_expression::to_string() const
+    {
+        String result;
+        switch (op)
+        {
+        case enum_unary_op::pre_inc:
+            result += "++";
+            if (operand) result += operand->to_string();
+            break;
+        case enum_unary_op::pre_dec:
+            result += "--";
+            if (operand) result += operand->to_string();
+            break;
+        case enum_unary_op::post_inc:
+            if (operand) result += operand->to_string();
+            result += "++";
+            break;
+        case enum_unary_op::post_dec:
+            if (operand) result += operand->to_string();
+            result += "--";
+            break;
+        case enum_unary_op::positive:
+            result += "+";
+            if (operand) result += operand->to_string();
+            break;
+        case enum_unary_op::negative:
+            result += "-";
+            if (operand) result += operand->to_string();
+            break;
+        case enum_unary_op::logical_not:
+            result += "!";
+            if (operand) result += operand->to_string();
+            break;
+        case enum_unary_op::bit_not:
+            result += "~";
+            if (operand) result += operand->to_string();
+            break;
+        case enum_unary_op::undefined:
+            break;
+        }
+        return result;
+    }
+
+    String compound_assignment_expression::to_string() const
+    {
+        String result;
+        if (left_expr)
+        {
+            result += left_expr->to_string();
+        }
+        switch (op)
+        {
+        case enum_assignment_op::assign: result += " = "; break;
+        case enum_assignment_op::add_assign: result += " += "; break;
+        case enum_assignment_op::sub_assign: result += " -= "; break;
+        case enum_assignment_op::mul_assign: result += " *= "; break;
+        case enum_assignment_op::div_assign: result += " /= "; break;
+        case enum_assignment_op::mod_assign: result += " %= "; break;
+        case enum_assignment_op::lshift_assign: result += " <<= "; break;
+        case enum_assignment_op::rshift_assign: result += " >>= "; break;
+        case enum_assignment_op::and_assign: result += " &= "; break;
+        case enum_assignment_op::or_assign: result += " |= "; break;
+        case enum_assignment_op::xor_assign: result += " ^= "; break;
+        case enum_assignment_op::undefined: break;
+        }
+        if (right_expr)
+        {
+            result += right_expr->to_string();
+        }
+        return result;
+    }
+
+    String chain_expression::to_string() const
+    {
+        String result = "{";
+        for (size_t i = 0; i < expressions.size(); ++i)
+        {
+            if (i > 0)
+            {
+                result += ", ";
+            }
+            if (expressions[i])
+            {
+                result += expressions[i]->to_string();
+            }
+        }
+        result += "}";
+        return result;
+    }
+
+    String cast_expression::to_string() const
+    {
+        String result = "(";
+        if (cast_type)
+        {
+            result += cast_type->get_type_text();
+        }
+        result += ")";
+        if (operand)
+        {
+            result += operand->to_string();
+        }
+        return result;
+    }
+
+#pragma endregion // TO_STRING
+
 #pragma region PRINT_AST
     void ast_node_type_format::print_ast(int indent)
     {

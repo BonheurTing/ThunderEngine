@@ -143,8 +143,23 @@ namespace Thunder
 		
 		if (default_value != nullptr)
 		{
+			/*
+			// Todo : Maybe evaluate first?
 			shader_codegen_state temp_state{};
-			variable->set_default_value(default_value->evaluate(temp_state).to_string());
+			auto evaluate_result = default_value->evaluate(temp_state);
+			bool const evaluate_success = (evaluate_result.result_type != enum_eval_result_type::undetermined)
+				// && evaluate_result.type // Type may or may not be empty.
+				&& (evaluate_result.type->row <= 1); // Vector evaluation is not supported yet.
+			if (evaluate_success)
+			{
+				variable->set_default_value(evaluate_result.to_string());
+			}
+			else
+			{
+				variable->set_default_value(default_value->to_string());
+			}
+			*/
+			variable->set_default_value(default_value->to_string());
 		}
 
 		current_variables.push_back(variable);

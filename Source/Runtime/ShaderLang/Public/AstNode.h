@@ -763,10 +763,12 @@ namespace Thunder
     public:
         ast_node_expression(enum_expr_type exprType)
             : ast_node(enum_ast_node_type::expression), expr_type(exprType) {}
-        
+
         // 表达式评估函数
         virtual evaluate_expr_result evaluate(shader_codegen_state& state);
-        
+
+        virtual String to_string() const;
+
     public:
         enum_expr_type expr_type;
         ast_node* expr_data_type = nullptr; // 用于存储表达式的数据类型
@@ -781,6 +783,7 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     public:
         enum_binary_op op = enum_binary_op::undefined;
         ast_node_expression* left = nullptr;
@@ -801,6 +804,7 @@ namespace Thunder
 
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
+        String to_string() const override;
     public:
         ast_node_expression* prefix = nullptr;
         char order[4]{ 0, 0, 0, 0 };
@@ -815,6 +819,7 @@ namespace Thunder
 
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
+        String to_string() const override;
     private:
         ast_node_expression* component_name = nullptr;
         String identifier;
@@ -828,6 +833,7 @@ namespace Thunder
 
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
+        String to_string() const override;
     private:
         ast_node_expression* target = nullptr; // 被索引的表达式
         ast_node_expression* index = nullptr; // 索引表达式
@@ -840,10 +846,11 @@ namespace Thunder
         reference_expression(String id, ast_node* ref) noexcept
             : ast_node_expression(enum_expr_type::reference)
             , identifier(std::move(id)), target(ref) {}
-        
+
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     private:
         String identifier;
         ast_node* target = nullptr; // 指向符号表中的节点
@@ -855,10 +862,11 @@ namespace Thunder
     public:
         constant_int_expression(int value) noexcept
             : ast_node_expression(enum_expr_type::integer), value(value) {}
-        
+
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     private:
         int value;
     };
@@ -869,10 +877,11 @@ namespace Thunder
     public:
         constant_float_expression(float value) noexcept
             : ast_node_expression(enum_expr_type::constant_float), value(value) {}
-        
+
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     private:
         float value;
     };
@@ -883,10 +892,11 @@ namespace Thunder
     public:
         constant_bool_expression(bool value) noexcept
             : ast_node_expression(enum_expr_type::constant_bool), value(value) {}
-        
+
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     private:
         bool value;
     };
@@ -905,6 +915,7 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     private:
         String function_name;
         TArray<ast_node_expression*> arguments = {};
@@ -924,6 +935,7 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     private:
         ast_node_type_format* constructor_type = nullptr;
         TArray<ast_node_expression*> arguments = {};
@@ -938,6 +950,7 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     private:
         ast_node_expression* left_expr = nullptr;
         ast_node_expression* right_expr = nullptr;
@@ -952,6 +965,7 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     private:
         ast_node_expression* condition = nullptr;
         ast_node_expression* true_expression = nullptr;
@@ -967,6 +981,7 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     public:
         enum_unary_op op = enum_unary_op::undefined;
         ast_node_expression* operand = nullptr;
@@ -981,6 +996,7 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
     public:
         enum_assignment_op op = enum_assignment_op::undefined;
         ast_node_expression* left_expr = nullptr;
@@ -1005,6 +1021,7 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
 
     private:
         TArray<ast_node_expression*> expressions;
@@ -1020,6 +1037,7 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
         evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
 
     private:
         ast_node_type_format* cast_type = nullptr;

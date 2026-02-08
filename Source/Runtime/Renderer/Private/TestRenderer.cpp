@@ -1,5 +1,7 @@
 #pragma optimize("", off)
 #include "TestRenderer.h"
+
+#include "CoreModule.h"
 #include "FrameGraph.h"
 #include "MeshDrawCommand.h"
 #include "MeshPass.h"
@@ -9,6 +11,8 @@
 #include "Memory/TransientAllocator.h"
 #include "PrimitiveSceneInfo.h"
 #include "RenderModule.h"
+#include "ShaderParameterMap.h"
+#include "UniformBuffer.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
 #include "HAL/Event.h"
@@ -157,6 +161,11 @@ namespace Thunder
         mFrameGraph->Reset();
         mFrameGraph->UpdateSceneInfo_RenderThread();
 
+        // Set global parameters.
+        auto globalParameters = mFrameGraph->GetGlobalParameters();
+        globalParameters->SetIntParameter("RenderQuality", 2);
+        mFrameGraph->UpdateGlobalUniformBuffer();
+
         // GBuffer pass.
         static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
         static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
@@ -238,6 +247,9 @@ namespace Thunder
                 // Add cached mesh batches.
                 TArray<RHICachedDrawCommand*> const& cachedDrawList = mFrameGraph->GetVisibleCachedDrawList(EMeshPass::BasePass);
                 mainContext->AddCommandList(cachedDrawList);
+
+                // Set parameters.
+                //GetPass()->SetParameterFloat("MyVar", 1.0f);
 
                 // Add dynamic mesh batches.
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);

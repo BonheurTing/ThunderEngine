@@ -4,6 +4,8 @@
 #include "RenderMaterial.h"
 #include "ShaderArchive.h"
 #include "ShaderModule.h"
+#include "ShaderParameterMap.h"
+#include "Concurrent/TaskScheduler.h"
 
 namespace Thunder
 {
@@ -72,17 +74,12 @@ namespace Thunder
 
 	GameMaterial::GameMaterial(GameObject* inOuter)
 		: IMaterial(inOuter)
-		, OverrideParameters(new MaterialParameterCache())
+		, OverrideParameters(new ShaderParameterMap())
 	{
 	}
 
 	GameMaterial::~GameMaterial()
 	{
-		if (OverrideParameters)
-		{
-			delete OverrideParameters;
-			OverrideParameters = nullptr;
-		}
 	}
 
 	void GameMaterial::OnResourceLoaded()
@@ -136,9 +133,9 @@ namespace Thunder
 		}
 
 		// Serialize virant parameters
-		uint32 boolParamCount = static_cast<uint32>(OverrideParameters->StaticParameters.size());
+		uint32 boolParamCount = static_cast<uint32>(OverrideParameters->StaticSwitchParameters.size());
 		archive << boolParamCount;
-		for (const auto& pair : OverrideParameters->StaticParameters)
+		for (const auto& pair : OverrideParameters->StaticSwitchParameters)
 		{
 			archive << pair.first.ToString();
 			archive << pair.second;
@@ -217,7 +214,7 @@ namespace Thunder
 			bool value;
 			archive >> paramName;
 			archive >> value;
-			OverrideParameters->StaticParameters[NameHandle(paramName)] = value;
+			OverrideParameters->StaticSwitchParameters[NameHandle(paramName)] = value;
 		}
 	}
 
@@ -250,7 +247,7 @@ namespace Thunder
 
 	void GameMaterial::SetStaticParameter(const NameHandle& paramName, bool value)
 	{
-		OverrideParameters->StaticParameters[paramName] = value;
+		OverrideParameters->StaticSwitchParameters[paramName] = value;
 		MarkRenderStateDirty();
 	}
 
@@ -302,8 +299,8 @@ namespace Thunder
 
 	bool GameMaterial::GetStaticParameter(const NameHandle& paramName, bool& outValue) const
 	{
-		auto it = OverrideParameters->StaticParameters.find(paramName);
-		if (it != OverrideParameters->StaticParameters.end())
+		auto it = OverrideParameters->StaticSwitchParameters.find(paramName);
+		if (it != OverrideParameters->StaticSwitchParameters.end())
 		{
 			outValue = it->second;
 			return true;
@@ -346,16 +343,17 @@ namespace Thunder
 
 		if (DefaultRenderResource && bRenderStateDirty)
 		{
-			// 将GameThread的参数同步到RenderThread
-			// todo : Push render task.
-			DefaultRenderResource->CacheParameters(OverrideParameters);
-			bRenderStateDirty = false;
+			GRenderScheduler->PushTask([this]()
+			{
+				DefaultRenderResource->CacheParameters(OverrideParameters);
+				bRenderStateDirty = false;
+			});
 		}
 	}
 
 	void GameMaterial::ResetDefaultParameters() const
 	{
-		*OverrideParameters = ShaderModule::ParseShaderParameters(ArchiveName);
+		ShaderModule::GenerateDefaultParameters(ArchiveName, OverrideParameters);
 	}
 }
 

@@ -1,7 +1,6 @@
 #pragma once
 #include "Container.h"
 #include "MeshPass.h"
-#include "Platform.h"
 #include "Module/ModuleManager.h"
 #include <array>
 #include "MeshPassProcessor.h"
@@ -29,6 +28,9 @@ namespace Thunder
     	static void UnregisterTexture_GameThread(const TGuid& guid);
     	static void UpdateTextureRegistry_RenderThread();
     	static RenderTexture* GetTextureResource_RenderThread(const TGuid& guid);
+
+    	// Uniform buffer.
+    	static void PackUniformBuffer(const FRenderContext* context, const class UniformBufferLayout* layout, const class ShaderParameterMap* parameterMap, TRefCountPtr<class RHIConstantBuffer>& uniformBuffer, bool cacheMeshDrawCommand);
 
     private:
     	std::array<MeshPassProcessorRef, static_cast<size_t>(EMeshPass::Num)> MeshPassProcessors;

@@ -8,6 +8,7 @@
 #include "PlatformProcess.h"
 #include "PrimitiveSceneInfo.h"
 #include "RenderModule.h"
+#include "ShaderParameterMap.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskGraph.h"
 #include "Concurrent/TaskScheduler.h"
@@ -57,6 +58,7 @@ namespace Thunder
         {
             TMemory::Destroy(view);
         }
+        delete GlobalParameters;
     }
 
     void FrameGraph::Reset()
@@ -335,6 +337,20 @@ namespace Thunder
         outFormat = desc.Format;
         outIsDepthStencil = desc.bIsDepthStencil;
         return true;
+    }
+
+    ShaderParameterMap* FrameGraph::GetGlobalParameters()
+    {
+        if (GlobalParameters == nullptr)
+        {
+            GlobalParameters = new ShaderParameterMap;
+        }
+        return GlobalParameters;
+    }
+
+    void FrameGraph::UpdateGlobalUniformBuffer()
+    {
+        
     }
 
     void FrameGraph::InitializeRenderContexts(uint32 threadCount)

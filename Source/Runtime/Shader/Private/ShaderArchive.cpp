@@ -8,6 +8,7 @@
 #include "MeshPass.h"
 #include "ShaderLang.h"
 #include "ShaderModule.h"
+#include "ShaderParameterMap.h"
 #include "FileSystem/FileModule.h"
 #include "Templates/RefCounting.h"
 
@@ -387,6 +388,10 @@ namespace Thunder
     	// Generate constant buffer layout
     	archive->BuildUniformBufferLayout();
 
+    	// Generate global uniform buffer layout
+    	static String globalUB = "Global";
+    	ShaderModule::GetModule()->SetGlobalUniformBufferLayout(archive->GetUniformBufferLayout(globalUB));
+
     	// Generate bindings layout.
     	archive->BuildBindingsLayout();
 	}
@@ -701,26 +706,8 @@ namespace Thunder
     	}
 	}
 
-	String ShaderArchive::GenerateShaderSource(ShaderCodeGenConfig const& config) const
+	void ShaderArchive::GenerateDefaultParameters(const TArray<ShaderParameterMeta>& parameterMeta, ShaderParameterMap* shaderParameterMap)
 	{
-    	shader_codegen_state state
-    	{
-    		.sub_shader_name = config.SubShaderName,
-    		.variant_mask = config.VariantMask,
-    		.stage = ShaderModule::GetShaderASTStage(config.Stage),
-    		.variants = {}
-    	};
-    	ParseVariants(config, state);
-    	return AST->GenerateShaderVariantSource(state);
-    }
-
-    String ShaderArchive::GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const
-    {
-    	return AST->GetSubShaderEntry(subShaderName, stageType);
-    }
-
-    void AddParameters(const TArray<ShaderParameterMeta>& parameterMeta, MaterialParameterCache& cache)
-    {
     	for (auto const& meta : parameterMeta)
     	{
     		if (meta.Type == "int")
@@ -736,7 +723,7 @@ namespace Thunder
     					value = 0;
     				}
     			}
-    			cache.IntParameters.emplace(meta.Name, value);
+    			shaderParameterMap->IntParameters.emplace(meta.Name, value);
     		}
     		else if (meta.Type == "float")
     		{
@@ -751,7 +738,7 @@ namespace Thunder
     					value = 0.0f;
     				}
     			}
-    			cache.FloatParameters.emplace(meta.Name, value);
+    			shaderParameterMap->FloatParameters.emplace(meta.Name, value);
     		}
     		else if (meta.Type == "float4")
     		{
@@ -834,52 +821,68 @@ namespace Thunder
     					value = TVector4f(0.0f, 0.0f, 0.0f, 0.0f);
     				}
     			}
-    			cache.VectorParameters.emplace(meta.Name, value);
+    			shaderParameterMap->VectorParameters.emplace(meta.Name, value);
     		}
     		else if (meta.Type.starts_with("Texture2D"))
     		{
-    			cache.TextureParameters.emplace(meta.Name, TGuid());
+    			shaderParameterMap->TextureParameters.emplace(meta.Name, TGuid());
     		}
 		    else
 		    {
 			    TAssertf(false, "Parameter type \"%s\" not supported yet, parameter name is \"%s\".", meta.Type.c_str(), meta.Name.c_str());
 		    }
     	}
+	}
+
+	String ShaderArchive::GenerateShaderSource(ShaderCodeGenConfig const& config) const
+	{
+    	shader_codegen_state state
+    	{
+    		.sub_shader_name = config.SubShaderName,
+    		.variant_mask = config.VariantMask,
+    		.stage = ShaderModule::GetShaderASTStage(config.Stage),
+    		.variants = {}
+    	};
+    	ParseVariants(config, state);
+    	return AST->GenerateShaderVariantSource(state);
+    }
+
+    String ShaderArchive::GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const
+    {
+    	return AST->GetSubShaderEntry(subShaderName, stageType);
     }
 	
-    MaterialParameterCache ShaderArchive::GenerateParameterCache()
+    void ShaderArchive::GenerateDefaultParameters(ShaderParameterMap* shaderParameterMap)
     {
-    	MaterialParameterCache newVisibleParameters;
     	for (auto meta : PropertyMeta)
     	{
     		if (meta.Type == "int")
     		{
-    			newVisibleParameters.IntParameters.emplace(meta.Name, 0);
+    			shaderParameterMap->IntParameters.emplace(meta.Name, 0);
     		}
     		else if (meta.Type == "float")
     		{
-    			newVisibleParameters.FloatParameters.emplace(meta.Name, 0.f);
+    			shaderParameterMap->FloatParameters.emplace(meta.Name, 0.f);
     		}
     		else if (meta.Type == "float4")
     		{
-    			newVisibleParameters.VectorParameters.emplace(meta.Name, TVector4f());
+    			shaderParameterMap->VectorParameters.emplace(meta.Name, TVector4f());
     		}
     		else if (meta.Type == "Texture2D")
     		{
-    			newVisibleParameters.TextureParameters.emplace(meta.Name, TGuid());
+    			shaderParameterMap->TextureParameters.emplace(meta.Name, TGuid());
     		}
     	}
     	for (auto const& meta : VariantMeta)
     	{
     		if (meta.Visible)
     		{
-    			newVisibleParameters.StaticParameters.emplace(meta.Name, meta.Default);
+    			shaderParameterMap->StaticSwitchParameters.emplace(meta.Name, meta.Default);
     		}
     	}
     	for (auto& uniformMetas : UniformParameterMeta | std::views::values)
     	{
-    		AddParameters(uniformMetas, newVisibleParameters);
+    		GenerateDefaultParameters(uniformMetas, shaderParameterMap);
     	}
-    	return newVisibleParameters;
     }
 }

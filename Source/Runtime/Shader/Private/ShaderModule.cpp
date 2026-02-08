@@ -13,6 +13,7 @@
 #include "ShaderCompiler.h"
 #include "rapidjson/document.h"
 #include "ShaderArchive.h"
+#include "ShaderParameterMap.h"
 #include "Concurrent/TaskScheduler.h"
 #include "FileSystem/FileModule.h"
 #include "Memory/MemoryBase.h"
@@ -130,13 +131,12 @@ namespace Thunder
 		return GetModule()->PSOMap[psoKey];
 	}
 
-	MaterialParameterCache ShaderModule::ParseShaderParameters(NameHandle archiveName)
+	void ShaderModule::GenerateDefaultParameters(NameHandle archiveName, ShaderParameterMap* shaderParameterMap)
 	{
 		if (ShaderArchive* archive = GetShaderArchive(archiveName))
 		{
-			return archive->GenerateParameterCache();
+			archive->GenerateDefaultParameters(shaderParameterMap);
 		}
-		return {};
 	}
 
 	ShaderArchive* ShaderModule::GetShaderArchive(NameHandle name)
@@ -388,6 +388,19 @@ namespace Thunder
 			return EShaderDepthState::Always;
 		default:
 			return EShaderDepthState::Unknown;
+		}
+    }
+
+    void ShaderModule::SetGlobalUniformBufferLayout(UniformBufferLayout* layout)
+    {
+		auto lock = GlobalUniformBufferLayoutLock.Read();
+		if (!GlobalUniformBufferLayout.IsValid()) [[unlikely]]
+		{
+			lock.ReleaseReadOnlyLockAndAcquireWriteLock();
+			if (!GlobalUniformBufferLayout.IsValid())
+			{
+				GlobalUniformBufferLayout = layout;
+			}
 		}
     }
 

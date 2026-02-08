@@ -102,6 +102,9 @@ namespace Thunder
         bool GetRenderTargetFormat(uint32 renderTargetIndex, RHIFormat& outFormat, bool& outIsDepthStencil) const;
 
         TArray<RHICachedDrawCommand*> const& GetVisibleCachedDrawList(EMeshPass passType) { return VisibleCachedDrawLists[passType]; }
+
+        struct ShaderParameterMap* GetGlobalParameters();
+        void UpdateGlobalUniformBuffer();
         
     private:
         // Initialize render contexts for multi-threading
@@ -142,6 +145,10 @@ namespace Thunder
         // Mesh-draw.
         TMap<EMeshPass, CachedPassMeshDrawList> CachedDrawLists;
         TMap<EMeshPass, TArray<RHICachedDrawCommand*>> VisibleCachedDrawLists;
+
+        // Uniform buffer.
+        ShaderParameterMap* GlobalParameters = nullptr;
+        RHIConstantBufferRef GlobalUniformBuffer;
     };
 
     #define EVENT_NAME(Name) Name

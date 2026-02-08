@@ -11,20 +11,23 @@
 #include "ShaderModule.h"
 #include "ShaderBindingsLayout.h"
 #include "RenderContext.h"
+#include "ShaderParameterMap.h"
 
 namespace Thunder
 {
     RenderMaterial::RenderMaterial()
-        : Archive(nullptr)
-        , ParameterCache{}
-        , UniformBuffer(nullptr)
+        : UniformBuffer(nullptr)
     {
+        ParameterCache = new ShaderParameterMap();
     }
 
     RenderMaterial::~RenderMaterial()
     {
         // RHI资源会通过RefCount自动释放
-        
+        if (ParameterCache)
+        {
+            delete ParameterCache;
+        }
     }
 
     void RenderMaterial::SetShaderArchive(ShaderArchive* archive)
@@ -48,9 +51,13 @@ namespace Thunder
         return pass->GetShaderCombination(variantId);
     }
 
-    void RenderMaterial::CacheParameters(MaterialParameterCache* gameMaterialCache)
+    void RenderMaterial::CacheParameters(const ShaderParameterMap* gameMaterialCache)
     {
-        ParameterCache = gameMaterialCache; // todo : double buffer.
+        if (!ParameterCache)
+        {
+            ParameterCache = new ShaderParameterMap();
+        }
+        *ParameterCache = *gameMaterialCache; // Copy assignment
         bTexturesDirty = true; // Mark textures as dirty when parameters change
     }
 
@@ -63,12 +70,15 @@ namespace Thunder
         }
 
         // Get the uniform buffer layout for "material" CB.
-        UniformBufferLayout* ubLayout = Archive->GetUniformBufferLayout("Material");
+        static String materialUBName = "Material";
+        UniformBufferLayout* ubLayout = Archive->GetUniformBufferLayout(materialUBName);
         if (!ubLayout) [[unlikely]]
         {
             TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"material\" not found in archive \"%s\".", Archive->GetName().c_str());
             return;
         }
+
+        //RenderModule::PackUniformBuffer();
 
         uint32 const bufferSize = ubLayout->GetTotalSize();
         if (bufferSize == 0) [[unlikely]]

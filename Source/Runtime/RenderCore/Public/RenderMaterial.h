@@ -6,8 +6,8 @@
 #include "Guid.h"
 #include "MeshPass.h"
 #include "RHI.h"
-#include "ShaderDefinition.h"
 #include "Templates/RefCounting.h"
+#include "ShaderParameterMap.h"
 
 namespace Thunder
 {
@@ -18,7 +18,7 @@ namespace Thunder
     struct TShaderRegisterCounts;
     struct TGraphicsPipelineStateDescriptor;
     class GameMaterial;
-    struct MaterialParameterCache;
+    struct ShaderParameterMap;
 
     // FMaterialResource + FMaterialRenderProxy
     class RenderMaterial
@@ -33,7 +33,7 @@ namespace Thunder
         ShaderCombination* GetShaderCombination(NameHandle passName, uint64 variantId = 0) const;
 
         // ========== GameThread -> RenderThread ==========
-        void CacheParameters(MaterialParameterCache* gameMaterialCache);
+        void CacheParameters(const ShaderParameterMap* gameMaterialCache);
 
         // ========== GPU Resource (RenderThread) ==========
         void UpdateUniformBuffer(const struct FRenderContext* context, bool cacheMeshDrawCommand);
@@ -48,8 +48,8 @@ namespace Thunder
             uint64 variantId = 0) const;
 
         void BindParametersToRHI(class RHICommandList* cmdList) const;
-        const MaterialParameterCache* GetParameterCache() const { return ParameterCache; }
-        const TMap<NameHandle, bool>& GetStaticSwitchParameters() const { return ParameterCache->StaticParameters; }
+        const ShaderParameterMap* GetParameterCache() const { return ParameterCache; }
+        const TMap<NameHandle, bool>& GetStaticSwitchParameters() const { return ParameterCache->StaticSwitchParameters; }
         const TMap<NameHandle, TVector4f>& GetVectorParameters() const { return ParameterCache->VectorParameters; }
         const TMap<NameHandle, TGuid>& GetTextureParameters() const { return ParameterCache->TextureParameters; }
         const TMap<NameHandle, float>& GetFloatParameters() const { return ParameterCache->FloatParameters; }
@@ -59,7 +59,7 @@ namespace Thunder
 
     private:
         ShaderArchive* Archive { nullptr }; // shader module manages lifetime
-        MaterialParameterCache* ParameterCache; //
+        ShaderParameterMap* ParameterCache; //
 
         TRefCountPtr<RHIConstantBuffer> UniformBuffer;
 

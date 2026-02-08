@@ -126,4 +126,9 @@ namespace Thunder
 		}
 		return nullptr;
 	}
+
+	void RenderModule::PackUniformBuffer(const FRenderContext* context, const UniformBufferLayout* layout, const ShaderParameterMap* parameterMap, TRefCountPtr<RHIConstantBuffer>& uniformBuffer, bool cacheMeshDrawCommand)
+	{
+		
+	}
 }

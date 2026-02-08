@@ -24,7 +24,7 @@ void TestLock()
 {
 	SpinLock GTestSpintLock;
 	SharedLock GTestSharedLock;
-	RecursiveLock GTestRecursiveLock;
+	ExclusiveLock GTestRecursiveLock;
 	{
 		auto guard = GTestSpintLock.Guard();
 		// Do something

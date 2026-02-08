@@ -90,6 +90,16 @@ namespace Thunder
 				LockObject.WriteUnlock();
 			}
 		}
+
+		void ReleaseReadOnlyLockAndAcquireWriteLock()
+		{
+			if(LockType == ERWLockType::ReadOnly)
+			{
+				LockObject.ReadUnlock();
+				LockObject.WriteLock();
+				LockType = ERWLockType::ReadWrite;
+			}
+		}
 	
 	private:
 		TRWLockGuard(TRWLockGuard&&) = delete;
@@ -143,7 +153,7 @@ namespace Thunder
 		std::atomic<bool> bFlag{ false };
 	};
 
-	class RecursiveLock
+	class ExclusiveLock
 	{
 	public:
 		void Lock()
@@ -161,9 +171,9 @@ namespace Thunder
 			Mutex.unlock();
 		}
 
-		TLockGuard<RecursiveLock> Guard()
+		TLockGuard<ExclusiveLock> Guard()
 		{
-			return TLockGuard<RecursiveLock>(*this);
+			return TLockGuard<ExclusiveLock>(*this);
 		}
 
 	private:

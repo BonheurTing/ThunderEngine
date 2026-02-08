@@ -4,6 +4,8 @@
 #include "ShaderCompiler.h"
 #include "ShaderLang.h"
 #include "RenderStates.h"
+#include "ShaderBindingsLayout.h"
+#include "Concurrent/Lock.h"
 
 namespace Thunder
 {
@@ -40,7 +42,7 @@ namespace Thunder
     	ShaderCombination* GetShaderCombination(const String& combinationHandle);
     	ShaderCombination* GetShaderCombination(NameHandle shaderName, NameHandle passName, uint64 variantId);
 
-    	static MaterialParameterCache ParseShaderParameters(NameHandle archiveName);
+    	static void GenerateDefaultParameters(NameHandle archiveName, struct ShaderParameterMap* shaderParameterMap);
 		void Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode);
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, const THashMap<NameHandle, bool>& variantParameters, bool force = false);
     	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 variantId, bool force = false);
@@ -57,10 +59,18 @@ namespace Thunder
     	static enum_depth_test GetShaderASTDepthState(EShaderDepthState depthTest);
     	static EShaderDepthState GetDepthState(enum_depth_test depthTest);
 
+    	// Uniform Buffer Layout
+    	void SetGlobalUniformBufferLayout(UniformBufferLayout* layout);
+    	static const UniformBufferLayout* GetGlobalUniformBufferLayout() { return GetModule()->GlobalUniformBufferLayout.Get(); }
+
     private:
     	THashMap<NameHandle, ShaderArchive*> ShaderMap;
     	TRefCountPtr<ICompiler> ShaderCompiler;
     	THashMap<uint64, TRHIPipelineState*> PSOMap;
+
+    	// uniform buffer manager
+    	UniformBufferLayoutRef GlobalUniformBufferLayout;
+    	SharedLock GlobalUniformBufferLayoutLock;
     };
     
     extern SHADER_API THashMap<EShaderStageType, String> GShaderModuleTarget;

@@ -164,7 +164,7 @@ namespace Thunder
 
     	String GenerateShaderSource(ShaderCodeGenConfig const& config) const;
     	String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
-    	MaterialParameterCache GenerateParameterCache();
+    	void GenerateDefaultParameters(struct ShaderParameterMap* shaderParameterMap);
     	void ParseVariants(ShaderCodeGenConfig const& config, shader_codegen_state& state) const;
     	uint64 VariantNameToMask(const TMap<NameHandle, bool>& variantMap) const;
     	void VariantMaskToName(uint64 variantMask, THashMap<NameHandle, bool>& variantMap) const;
@@ -172,6 +172,9 @@ namespace Thunder
     	void BuildBindingsLayout();
     	ShaderBindingsLayout* GetBindingsLayout() const { return BindingsLayout; }
     	UniformBufferLayout* GetUniformBufferLayout(String const& cbName) { return UniformBufferLayoutMap[cbName]; }
+
+    private:
+    	static void GenerateDefaultParameters(const TArray<ShaderParameterMeta>& parameterMeta, ShaderParameterMap* shaderParameterMap);
 
     private:
     	friend class ShaderAST;

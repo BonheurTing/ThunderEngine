@@ -8,7 +8,7 @@ namespace Thunder
 {
 	class RenderMaterial;
 	class ShaderArchive;
-	class MaterialParameterCache;
+	struct ShaderParameterMap;
 
 	class IMaterial : public GameResource
 	{
@@ -75,6 +75,6 @@ namespace Thunder
 		void ResetDefaultParameters() const;
 
 	private:
-		MaterialParameterCache* OverrideParameters;
+		ShaderParameterMap* OverrideParameters;
 	};
 }

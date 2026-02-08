@@ -12,13 +12,13 @@
 namespace Thunder
 {
     class ShaderArchive;
-    class ShaderCombination;
+    struct ShaderCombination;
     class RHITexture;
     class RHIConstantBuffer;
     struct TShaderRegisterCounts;
     struct TGraphicsPipelineStateDescriptor;
     class GameMaterial;
-    class MaterialParameterCache;
+    struct MaterialParameterCache;
 
     // FMaterialResource + FMaterialRenderProxy
     class RenderMaterial
@@ -36,8 +36,8 @@ namespace Thunder
         void CacheParameters(MaterialParameterCache* gameMaterialCache);
 
         // ========== GPU Resource (RenderThread) ==========
-        void UpdateConstantBuffer();
-        RHIConstantBuffer* GetConstantBuffer() const { return ConstantBuffer.Get(); }
+        void UpdateUniformBuffer(const struct FRenderContext* context, bool cacheMeshDrawCommand) const;
+        RHIConstantBuffer* GetUniformBuffer() const { return UniformBuffer.Get(); }
         RHITexture* GetTextureResource(const NameHandle& name);
         void CacheTextureResources();
 
@@ -61,7 +61,7 @@ namespace Thunder
         ShaderArchive* Archive { nullptr }; // shader module manages lifetime
         MaterialParameterCache* ParameterCache; //
 
-        TRefCountPtr<RHIConstantBuffer> ConstantBuffer;
+        TRefCountPtr<RHIConstantBuffer> UniformBuffer;
 
         // Cached resolved textures (render thread only)
         TMap<NameHandle, RHITexture*> TextureCaches;

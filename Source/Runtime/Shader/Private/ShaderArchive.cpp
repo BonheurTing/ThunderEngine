@@ -725,7 +725,7 @@ namespace Thunder
     	{
     		if (meta.Type == "int")
     		{
-    			cache.IntParameters.emplace(meta.Name, 0);
+    			cache.IntParameters.emplace(meta.Name, 1); //todo
     		}
     		else if (meta.Type == "float")
     		{

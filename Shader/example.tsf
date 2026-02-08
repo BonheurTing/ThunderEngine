@@ -13,6 +13,7 @@ Shader "TestShader"
         Texture2D _MainTex;
         Texture2D<float4> AlbedoMap;
         Texture2D<float4> NormalMap;
+        int MaterialParameters0 = 1;
         float4 Color; // { Visible = True; SlideBar(0, 1); }
     }
     Parameters "Pass"
@@ -20,7 +21,8 @@ Shader "TestShader"
         float4 PassParameters0;
         float4 PassParameters1;
     }
-    #include "TestInclude1/TestInclude2/test_include.tsh"
+    #include "test_include_primitive.tsh"
+    #include "TestInclude1/TestInclude2/test_include_common.tsh"
     #define ENABLE_UV0 1
     #define ENABLE_UV1 0
     SubShader "MySubShaderName"

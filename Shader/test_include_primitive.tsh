@@ -4,7 +4,3 @@ Parameters "Primitive"
     float4 LocalToWorld1;
     float4 LocalToWorld2;
 }
-Parameters "Global"
-{
-    int RenderQuality = 1;
-}

@@ -8,13 +8,15 @@
 #include "RHIResource.h"
 #include "RHI.h"
 #include "ShaderModule.h"
+#include "ShaderBindingsLayout.h"
+#include "RenderContext.h"
 
 namespace Thunder
 {
     RenderMaterial::RenderMaterial()
         : Archive(nullptr)
         , ParameterCache{}
-        , ConstantBuffer(nullptr)
+        , UniformBuffer(nullptr)
     {
     }
 
@@ -47,23 +49,138 @@ namespace Thunder
 
     void RenderMaterial::CacheParameters(MaterialParameterCache* gameMaterialCache)
     {
-        ParameterCache = gameMaterialCache;
+        ParameterCache = gameMaterialCache; // todo : double buffer.
         bTexturesDirty = true; // Mark textures as dirty when parameters change
     }
 
-    void RenderMaterial::UpdateConstantBuffer()
+    void RenderMaterial::UpdateUniformBuffer(const FRenderContext* context, bool cacheMeshDrawCommand) const
     {
-        // TODO: 根据ShaderArchive的参数元数据，将参数打包到ConstantBufferData
-        // 这需要从ShaderArchive获取参数布局信息，然后按照布局打包数据
+        if (!Archive || !ParameterCache) [[unlikely]]
+        {
+            TAssertf(false, "Cannot update uniform buffer: Archive or ParameterCache is null.");
+            return;
+        }
 
-        // 示例代码框架：
-        // if (CompiledShaderMap)
-        // {
-        //     // 1. 获取参数元数据
-        //     // 2. 计算CB大小
-        //     // 3. 按照offset打包数据到ConstantBufferData
-        //     // 4. 创建或更新RHI ConstantBuffer
-        // }
+        // Get the uniform buffer layout for "material" CB.
+        UniformBufferLayout* ubLayout = Archive->GetUniformBufferLayout("Material");
+        if (!ubLayout) [[unlikely]]
+        {
+            TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"material\" not found in archive \"%s\".", Archive->GetName().c_str());
+            return;
+        }
+
+        uint32 const bufferSize = ubLayout->GetTotalSize();
+        if (bufferSize == 0) [[unlikely]]
+        {
+            // No uniform buffer needed.
+            return;
+        }
+
+        // Allocate temporary buffer for packing.
+        byte* packedData = (cacheMeshDrawCommand) ?
+            static_cast<byte*>(TMemory::Malloc(bufferSize, 16)) :
+            static_cast<byte*>(context->Allocate<byte>(bufferSize));
+        memset(packedData, 0, bufferSize);
+
+        // Pack parameters into the buffer according to layout.
+        auto const& memberMap = ubLayout->GetMemberMap();
+        for (auto const& [paramName, memberEntry] : memberMap)
+        {
+            void const* valuePtr = nullptr;
+            uint32 valueSize = 0;
+
+            // Find parameter value based on type.
+            switch (memberEntry.Type)
+            {
+            case EUniformBufferMemberType::Int:
+            {
+                auto it = ParameterCache->IntParameters.find(paramName);
+                if (it != ParameterCache->IntParameters.end()) [[likely]]
+                {
+                    valuePtr = &it->second;
+                    valueSize = sizeof(int32);
+                }
+                else
+                {
+                    TAssertf(false, "Parameter \"%s\" not found in IntParameters for material \"%s\".", paramName.c_str(), Archive->GetName().c_str());
+                }
+                break;
+            }
+            case EUniformBufferMemberType::Float:
+            {
+                auto it = ParameterCache->FloatParameters.find(paramName);
+                if (it != ParameterCache->FloatParameters.end()) [[likely]]
+                {
+                    valuePtr = &it->second;
+                    valueSize = sizeof(float);
+                }
+                else
+                {
+                    TAssertf(false, "Parameter \"%s\" not found in FloatParameters for material \"%s\".", paramName.c_str(), Archive->GetName().c_str());
+                }
+                break;
+            }
+            case EUniformBufferMemberType::Float4:
+            {
+                auto it = ParameterCache->VectorParameters.find(paramName);
+                if (it != ParameterCache->VectorParameters.end()) [[likely]]
+                {
+                    valuePtr = &it->second;
+                    valueSize = sizeof(TVector4f);
+                }
+                else
+                {
+                    TAssertf(false, "Parameter \"%s\" not found in VectorParameters for material \"%s\".", paramName.c_str(), Archive->GetName().c_str());
+                }
+                break;
+            }
+            default:
+                TAssertf(false, "Unsupported uniform buffer member type for parameter \"%s\".", paramName.c_str());
+                break;
+            }
+
+            // Copy value to buffer.
+            if (valuePtr && valueSize > 0) [[likely]]
+            {
+                TAssertf(valueSize == memberEntry.Size, "Parameter \"%s\" size mismatch: expected %u, got %u.",
+                    paramName.c_str(), memberEntry.Size, valueSize);
+                memcpy(packedData + memberEntry.Offset, valuePtr, valueSize);
+            }
+        }
+
+        /*
+        // Create or update RHI constant buffer.
+        if (!UniformBuffer)
+        {
+            // Create new constant buffer.
+            UniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic);
+            if (!UniformBuffer) [[unlikely]]
+            {
+                TAssertf(false, "Failed to create constant buffer for material \"%s\".", Archive->GetName().c_str());
+                if (cacheMeshDrawCommand)
+                {
+                    TMemory::Free(packedData);
+                }
+                return;
+            }
+
+            // Create constant buffer view.
+            RHICreateConstantBufferView(*UniformBuffer.Get(), bufferSize);
+        }
+
+        // Update buffer data.
+        bool succeeded = RHIUpdateSharedMemoryResource(UniformBuffer.Get(), packedData, bufferSize, 0);
+        if (!succeeded) [[unlikely]]
+        {
+            TAssertf(false, "Failed to update constant buffer for material \"%s\".", Archive->GetName().c_str());
+        }
+
+        // Free temporary buffer if needed.
+        if (cacheMeshDrawCommand)
+        {
+            TMemory::Free(packedData);
+        }
+        */
     }
 
     RHITexture* RenderMaterial::GetTextureResource(const NameHandle& name)

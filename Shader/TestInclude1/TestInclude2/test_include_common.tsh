@@ -1,0 +1,4 @@
+Parameters "Global"
+{
+    int RenderQuality = 1;
+}

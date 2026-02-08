@@ -347,6 +347,7 @@ namespace Thunder
 		if (DefaultRenderResource && bRenderStateDirty)
 		{
 			// 将GameThread的参数同步到RenderThread
+			// todo : Push render task.
 			DefaultRenderResource->CacheParameters(OverrideParameters);
 			bRenderStateDirty = false;
 		}

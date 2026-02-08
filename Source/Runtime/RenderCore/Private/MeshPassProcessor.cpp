@@ -150,6 +150,30 @@ namespace Thunder
         memset(bindingData, 0, bindingSize);
         bindings->SetData(bindingData);
 
+        // Update material uniform buffer.
+        material->UpdateUniformBuffer(context, cacheMeshDrawCommand);
+
+        // Bind Constant Buffer
+        /*
+        {
+            // Get resource.
+            RHIConstantBuffer* cbResource = material->GetUniformBuffer();
+            if (!cbResource) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get CBV binding : buffer resource is invalid.");
+            }
+
+            // Get CBV.
+            RHIConstantBufferView* cbv = cbResource->GetCBV();
+            if (!cbv) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get CBV binding : CBV is invalid.");
+            }
+
+            // Bind.
+            bindings->SetUniformBuffer(bindingsLayout, "material", { .Handle = cbv->GetOfflineHandle() });
+        }*/
+
         // Bind textures.
         auto const& textureParameterMap = material->GetTextureParameters();
         for (const auto& textureParameterEntry : textureParameterMap)

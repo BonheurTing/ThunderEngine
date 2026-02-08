@@ -1,7 +1,7 @@
 ﻿#pragma optimize("", off)
 #include "ShaderArchive.h"
 #include <algorithm>
-#include <sstream>
+#include <charconv>
 #include "Assertion.h"
 #include "AstNode.h"
 #include "CoreModule.h"
@@ -725,15 +725,116 @@ namespace Thunder
     	{
     		if (meta.Type == "int")
     		{
-    			cache.IntParameters.emplace(meta.Name, 1); //todo
+    			int32 value = 0;
+    			if (!meta.Default.empty())
+    			{
+    				auto const result = std::from_chars(meta.Default.data(), meta.Default.data() + meta.Default.size(), value);
+    				if (result.ec != std::errc()) [[unlikely]]
+    				{
+    					TAssertf(false, "Failed to parse int parameter \"%s\" with default value \"%s\". Using default value 0.",
+    						meta.Name.c_str(), meta.Default.c_str());
+    					value = 0;
+    				}
+    			}
+    			cache.IntParameters.emplace(meta.Name, value);
     		}
     		else if (meta.Type == "float")
     		{
-    			cache.FloatParameters.emplace(meta.Name, 0.f);
+    			float value = 0.0f;
+    			if (!meta.Default.empty())
+    			{
+    				auto const result = std::from_chars(meta.Default.data(), meta.Default.data() + meta.Default.size(), value);
+    				if (result.ec != std::errc()) [[unlikely]]
+    				{
+    					TAssertf(false, "Failed to parse float parameter \"%s\" with default value \"%s\". Using default value 0.0.",
+    						meta.Name.c_str(), meta.Default.c_str());
+    					value = 0.0f;
+    				}
+    			}
+    			cache.FloatParameters.emplace(meta.Name, value);
     		}
     		else if (meta.Type == "float4")
     		{
-    			cache.VectorParameters.emplace(meta.Name, TVector4f());
+    			TVector4f value(0.0f, 0.0f, 0.0f, 0.0f);
+    			if (!meta.Default.empty())
+    			{
+    				// Support two formats:
+    				// 1. float4(1, 2, 3, 4)
+    				// 2. { 1.0, 2.0, 3.0, 4.0 }
+    				String defaultStr = meta.Default;
+
+    				// Find the content between delimiters
+    				size_t startPos = defaultStr.find_first_of("({");
+    				size_t endPos = defaultStr.find_last_of(")}");
+
+    				if (startPos == String::npos || endPos == String::npos || startPos >= endPos) [[unlikely]]
+					{
+						TAssertf(false, "Failed to parse float4 parameter \"%s\" with default value \"%s\". Expected format: \"float4(x, y, z, w)\" or \"{ x, y, z, w }\". Using default value (0, 0, 0, 0).",
+							meta.Name.c_str(), meta.Default.c_str());
+						value = TVector4f(0.0f, 0.0f, 0.0f, 0.0f);
+						continue;
+    				}
+
+    				// Extract the content between delimiters
+    				String content = defaultStr.substr(startPos + 1, endPos - startPos - 1);
+
+    				// Parse four floats separated by commas
+    				float components[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    				size_t componentIndex = 0;
+    				size_t parseStart = 0;
+
+    				for (size_t i = 0; i <= content.size() && componentIndex < 4; ++i)
+    				{
+    					// Find comma or end of string
+    					if (i == content.size() || content[i] == ',')
+    					{
+    						// Skip leading whitespace
+    						while (parseStart < i && std::isspace(static_cast<unsigned char>(content[parseStart])))
+    						{
+    							++parseStart;
+    						}
+
+    						// Find end of number (skip trailing whitespace)
+    						size_t parseEnd = i;
+    						while (parseEnd > parseStart && std::isspace(static_cast<unsigned char>(content[parseEnd - 1])))
+    						{
+    							--parseEnd;
+    						}
+
+    						// Parse the float
+    						if (parseStart < parseEnd)
+    						{
+    							auto const result = std::from_chars(
+    								content.data() + parseStart,
+    								content.data() + parseEnd,
+    								components[componentIndex]);
+
+    							if (result.ec != std::errc())
+    							{
+    								TAssertf(false, "Failed to parse float4 parameter \"%s\" component %zu with default value \"%s\". Using default value (0, 0, 0, 0).",
+    									meta.Name.c_str(), componentIndex, meta.Default.c_str());
+    								value = TVector4f(0.0f, 0.0f, 0.0f, 0.0f);
+    								break;
+    							}
+    							++componentIndex;
+    						}
+
+    						parseStart = i + 1;
+    					}
+    				}
+
+    				if (componentIndex == 4) [[likely]]
+    				{
+    					value = TVector4f(components[0], components[1], components[2], components[3]);
+    				}
+    				else
+    				{
+    					TAssertf(false, "Failed to parse float4 parameter \"%s\" with default value \"%s\". Expected 4 components, got %zu. Using default value (0, 0, 0, 0).",
+    						meta.Name.c_str(), meta.Default.c_str(), componentIndex);
+    					value = TVector4f(0.0f, 0.0f, 0.0f, 0.0f);
+    				}
+    			}
+    			cache.VectorParameters.emplace(meta.Name, value);
     		}
     		else if (meta.Type.starts_with("Texture2D"))
     		{
@@ -768,7 +869,7 @@ namespace Thunder
     			newVisibleParameters.TextureParameters.emplace(meta.Name, TGuid());
     		}
     	}
-    	for (auto meta : VariantMeta)
+    	for (auto const& meta : VariantMeta)
     	{
     		if (meta.Visible)
     		{

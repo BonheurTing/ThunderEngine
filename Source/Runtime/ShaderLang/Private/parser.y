@@ -227,8 +227,11 @@ variable:
     type new_identifier SEMICOLON {
         sl_state->add_variable_to_list($1, $2, nullptr);
     }
-    | type new_identifier ASSIGN constant_expr SEMICOLON {
+    | type new_identifier ASSIGN assignment_expr SEMICOLON {
         sl_state->add_variable_to_list($1, $2, $4);
+    }
+    | type new_identifier ASSIGN LBRACE expression RBRACE SEMICOLON {
+        sl_state->add_variable_to_list($1, $2, $5);
     }
     ;
 

@@ -434,6 +434,7 @@ namespace Thunder
         ast_node_variable(ast_node_type_format* var_type, String name)
             : ast_node(enum_ast_node_type::variable), type(var_type), name(std::move(name)) {}
         void set_default_value(const String& in_value) { default_value = in_value; }
+        const String& get_default_value() const { return default_value; }
 
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;

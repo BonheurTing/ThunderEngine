@@ -49,6 +49,7 @@ namespace Thunder
         {
             Views[i] = new (TMemory::Malloc<SceneView>()) SceneView(this, static_cast<EViewType>(i));
         }
+        GlobalParameters = new ShaderParameterMap;
     }
 
     FrameGraph::~FrameGraph()
@@ -58,7 +59,21 @@ namespace Thunder
         {
             TMemory::Destroy(view);
         }
-        delete GlobalParameters;
+
+        if (GlobalParameters)
+        {
+            delete GlobalParameters;
+            GlobalParameters = nullptr;
+        }
+
+        for (auto& passParam : PassParameters | std::views::values)
+        {
+            if (passParam)
+            {
+                delete passParam;
+                passParam = nullptr;
+            }
+        }
     }
 
     void FrameGraph::Reset()
@@ -339,15 +354,6 @@ namespace Thunder
         return true;
     }
 
-    ShaderParameterMap* FrameGraph::GetGlobalParameters()
-    {
-        if (GlobalParameters == nullptr)
-        {
-            GlobalParameters = new ShaderParameterMap;
-        }
-        return GlobalParameters;
-    }
-
     void FrameGraph::UpdateGlobalUniformBuffer()
     {
         const auto layout = ShaderModule::GetGlobalUniformBufferLayout();
@@ -357,6 +363,32 @@ namespace Thunder
             return;
         }
         RenderModule::PackUniformBuffer(MainContext, layout, GlobalParameters, GlobalUniformBuffer, false, "Global");
+    }
+
+    ShaderParameterMap* FrameGraph::GetPassParameters(EMeshPass pass)
+    {
+        auto it = PassParameters.find(pass);
+        if (it == PassParameters.end())
+        {
+            ShaderParameterMap* defaultParam = ShaderModule::GetPassDefaultParameters(pass);
+            auto [newIt, success] = PassParameters.emplace(pass, defaultParam);
+            TAssert(success, "Pass parameter already exists." );
+            PassUniformBufferMap.emplace(pass, nullptr);
+            return newIt->second;
+        }
+        return it->second;
+    }
+
+    void FrameGraph::UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName) const
+    {
+        const auto layout = ShaderModule::GetPassUniformBufferLayout(pass);
+        if (!layout) [[unlikely]]
+        {
+            TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"%s\" not found.", ubName);
+            return;
+        }
+        RHIConstantBufferRef ub = PassUniformBufferMap.at(pass);
+        RenderModule::PackUniformBuffer(MainContext, layout, parameters, ub, false, ubName);
     }
 
     void FrameGraph::InitializeRenderContexts(uint32 threadCount)

@@ -103,8 +103,10 @@ namespace Thunder
 
         TArray<RHICachedDrawCommand*> const& GetVisibleCachedDrawList(EMeshPass passType) { return VisibleCachedDrawLists[passType]; }
 
-        struct ShaderParameterMap* GetGlobalParameters();
+        struct ShaderParameterMap* GetGlobalParameters() const { return GlobalParameters; }
         void UpdateGlobalUniformBuffer();
+        ShaderParameterMap* GetPassParameters(EMeshPass pass);
+        void UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName) const;
         
     private:
         // Initialize render contexts for multi-threading
@@ -149,6 +151,8 @@ namespace Thunder
         // Uniform buffer.
         ShaderParameterMap* GlobalParameters = nullptr;
         RHIConstantBufferRef GlobalUniformBuffer;
+        TMap<EMeshPass, ShaderParameterMap*> PassParameters;
+        TMap<EMeshPass, RHIConstantBufferRef> PassUniformBufferMap;
     };
 
     #define EVENT_NAME(Name) Name

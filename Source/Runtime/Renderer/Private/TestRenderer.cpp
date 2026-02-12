@@ -185,6 +185,11 @@ namespace Thunder
             operations.Write(GBufferSceneDepth);
             mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this]()
             {
+                // Set pass parameters and update uniform buffer.
+                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::PrePass);
+                passParameters->SetVectorParameter("PassParameters0", TVector4f(1,2,3,1));
+                mFrameGraph->UpdatePassParameters(EMeshPass::PrePass, passParameters, "PrePass");
+
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::PrePass);
                 auto mainContext = mFrameGraph->GetMainContext();
                 mFrameGraph->ResolveVisibility(EViewType::MainView, EMeshPass::PrePass);
@@ -217,8 +222,13 @@ namespace Thunder
             PassOperations operations;
             operations.Write(DummyRT);
             operations.Write(ShadowDepth);
-            mFrameGraph->AddPass(EVENT_NAME("ShaderDepth"), std::move(operations), [this]()
+            mFrameGraph->AddPass(EVENT_NAME("ShadowDepth"), std::move(operations), [this]()
             {
+                // Set pass parameters and update uniform buffer.
+                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::PrePass);
+                passParameters->SetVectorParameter("PassParameters0", TVector4f(1,2,3,1));
+                mFrameGraph->UpdatePassParameters(EMeshPass::PrePass, passParameters, "ShadowDepth");
+
                 auto context = mFrameGraph->GetMainContext();
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::ShadowPass);
                 auto shadowView = mFrameGraph->GetSceneView(EViewType::ShadowView);
@@ -241,15 +251,17 @@ namespace Thunder
             operations.Write(GBufferSceneDepth);
             mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
             {
+                // Set pass parameters and update uniform buffer.
+                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::PrePass);
+                passParameters->SetVectorParameter("PassParameters0", TVector4f(1,2,3,1));
+                mFrameGraph->UpdatePassParameters(EMeshPass::PrePass, passParameters, "PrePass");
+
                 auto mainContext = mFrameGraph->GetMainContext();
                 mFrameGraph->ResolveVisibility(EViewType::MainView, EMeshPass::BasePass);
 
                 // Add cached mesh batches.
                 TArray<RHICachedDrawCommand*> const& cachedDrawList = mFrameGraph->GetVisibleCachedDrawList(EMeshPass::BasePass);
                 mainContext->AddCommandList(cachedDrawList);
-
-                // Set parameters.
-                //GetPass()->SetParameterFloat("MyVar", 1.0f);
 
                 // Add dynamic mesh batches.
                 auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);

@@ -9,7 +9,6 @@
 #include "ShaderParameterMap.h"
 #include "RenderContext.h"
 #include "RHIResource.h"
-#include "RenderContext.h"
 
 namespace Thunder
 {
@@ -50,6 +49,7 @@ namespace Thunder
 
 	RenderPass* RenderModule::GetRenderPass(RenderPassKey const& key)
 	{
+		// Todo : to be locked.
 		auto& renderPassMap = GetModule()->RenderPasses;
 		auto passIt = renderPassMap.find(key);
 		if (passIt != renderPassMap.end()) [[likely]]
@@ -62,7 +62,7 @@ namespace Thunder
 		return pass;
 	}
 
-	class MeshPassProcessor* RenderModule::GetMeshPassProcessor(EMeshPass passType)
+	MeshPassProcessor* RenderModule::GetMeshPassProcessor(EMeshPass passType)
 	{
 		size_t index = static_cast<size_t>(passType);
 		if (index >= static_cast<size_t>(EMeshPass::Num))

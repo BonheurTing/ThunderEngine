@@ -391,6 +391,10 @@ namespace Thunder
     	// Generate global uniform buffer layout
     	static String globalUB = "Global";
     	ShaderModule::GetModule()->SetGlobalUniformBufferLayout(archive->GetUniformBufferLayout(globalUB));
+    	for (uint8 passIndex = 0; passIndex < static_cast<uint8>(EMeshPass::Num); ++passIndex)
+    	{
+    		ShaderModule::GetModule()->SetPassUniformBufferLayout(static_cast<EMeshPass>(passIndex), archive);
+    	}
 
     	// Generate bindings layout.
     	archive->BuildBindingsLayout();
@@ -851,7 +855,18 @@ namespace Thunder
     {
     	return AST->GetSubShaderEntry(subShaderName, stageType);
     }
-	
+
+    bool ShaderArchive::GenerateDefaultUBParameters(String const& ubName, ShaderParameterMap* shaderParameterMap)
+    {
+    	auto metaIt = UniformParameterMeta.find(ubName);
+    	if (metaIt == UniformParameterMeta.end())
+    	{
+    		return false;
+    	}
+    	GenerateDefaultParameters(metaIt->second, shaderParameterMap);
+    	return true;
+    }
+
     void ShaderArchive::GenerateDefaultParameters(ShaderParameterMap* shaderParameterMap)
     {
     	for (auto meta : PropertyMeta)

@@ -31,11 +31,18 @@ namespace Thunder
 
 	void ShaderModule::ShutDown()
 	{
-		for (auto value : ShaderMap | std::views::values)
+		for (auto archive : ShaderMap | std::views::values)
 		{
-			if (value)
+			if (archive)
 			{
-				TMemory::Destroy(value);
+				TMemory::Destroy(archive);
+			}
+		}
+		for (auto param : PassDefaultParameterMap | std::views::values)
+		{
+			if (param)
+			{
+				delete param;
 			}
 		}
 	}
@@ -393,15 +400,46 @@ namespace Thunder
 
     void ShaderModule::SetGlobalUniformBufferLayout(UniformBufferLayout* layout)
     {
-		auto lock = GlobalUniformBufferLayoutLock.Read();
 		if (!GlobalUniformBufferLayout.IsValid()) [[unlikely]]
 		{
-			lock.ReleaseReadOnlyLockAndAcquireWriteLock();
-			if (!GlobalUniformBufferLayout.IsValid())
-			{
-				GlobalUniformBufferLayout = layout;
-			}
+			GlobalUniformBufferLayout = layout;
 		}
+    }
+
+    void ShaderModule::SetPassUniformBufferLayout(EMeshPass pass, ShaderArchive* archive)
+    {
+		if (!PassUniformBufferLayoutMap.contains(pass)) [[unlikely]]
+		{
+			static String passUB = "Pass";
+			ShaderParameterMap* param = new ShaderParameterMap();
+			if (!archive->GenerateDefaultUBParameters(passUB, param))
+			{
+				delete param;
+				return;
+			}
+			PassUniformBufferLayoutMap[pass] = archive->GetUniformBufferLayout(passUB);
+			PassDefaultParameterMap.emplace(pass, param);
+		}
+    }
+
+    const UniformBufferLayout* ShaderModule::GetPassUniformBufferLayout(EMeshPass pass)
+    {
+		auto it = GetModule()->PassUniformBufferLayoutMap.find(pass);
+		if (it == GetModule()->PassUniformBufferLayoutMap.end()) [[unlikely]]
+		{
+			return nullptr;
+		}
+		return it->second;
+    }
+
+    ShaderParameterMap* ShaderModule::GetPassDefaultParameters(EMeshPass pass)
+    {
+		auto it = GetModule()->PassDefaultParameterMap.find(pass);
+		if (it == GetModule()->PassDefaultParameterMap.end()) [[unlikely]]
+		{
+			return nullptr;
+		}
+		return it->second;
     }
 
     ShaderBytecodeHash ShaderStage::GetBytecodeHash() const

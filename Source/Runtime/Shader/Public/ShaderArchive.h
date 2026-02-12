@@ -164,6 +164,7 @@ namespace Thunder
 
     	String GenerateShaderSource(ShaderCodeGenConfig const& config) const;
     	String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
+    	bool GenerateDefaultUBParameters(String const& ubName, struct ShaderParameterMap* shaderParameterMap);
     	void GenerateDefaultParameters(struct ShaderParameterMap* shaderParameterMap);
     	void ParseVariants(ShaderCodeGenConfig const& config, shader_codegen_state& state) const;
     	uint64 VariantNameToMask(const TMap<NameHandle, bool>& variantMap) const;

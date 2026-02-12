@@ -1,9 +1,11 @@
 ﻿#pragma once
+#include "Matrix.h"
 #include "MeshBatch.h"
 #include "RenderContext.h"
 #include "SceneView.h"
 #include "MeshPass.h"
 #include "MeshDrawCommand.h"
+#include "ShaderParameterMap.h"
 
 
 namespace Thunder
@@ -15,6 +17,8 @@ namespace Thunder
     public:
         RENDERCORE_API PrimitiveSceneInfo(bool meshDrawCacheSupported = false) : MeshDrawCacheSupported(meshDrawCacheSupported) {}
         virtual ~PrimitiveSceneInfo() = default;
+
+        void SetTransform(const TMatrix44f& matrix) { Transform = matrix; }
 
         virtual bool NeedRenderView(EViewType type) { return true; }
         TMap<MeshBatchKey, StaticMeshBatch*> const& GetStaticMeshes() { return StaticMeshes; }
@@ -29,6 +33,7 @@ namespace Thunder
             StaticMeshCommandInfos[passType][meshBatchKey] = MeshDrawCommandInfo{ commandIndex };
         }
 
+        RENDERCORE_API void UpdatePrimitiveUniformBuffer();
         RENDERCORE_API bool CacheMeshDrawCommand(RenderContext* context, EMeshPass meshPassType);
         RENDERCORE_API bool IsMeshDrawCacheSupported() const  { return MeshDrawCacheSupported; }
 
@@ -37,17 +42,25 @@ namespace Thunder
         void DestroyStaticMesh(MeshBatchKey key);
         void AddStaticMesh(MeshBatchKey const& key, SubMesh* const& subMesh, RenderMaterial* const& material);
 
+        static void SetPrimitiveParameter(const class UniformBufferLayout* layout, NameHandle parameterName, TVector4f const& value, byte* packedData);
+        static void SetPrimitiveParameter(const UniformBufferLayout* layout, NameHandle parameterName, float value, byte* packedData);
+        static void SetPrimitiveParameter(const UniformBufferLayout* layout, NameHandle parameterName, int value, byte* packedData);
+
     protected:
+        TMatrix44f Transform;
+
         TMap<EMeshPass, TMap<MeshBatchKey, MeshDrawCommandInfo>> StaticMeshCommandInfos; // Pass, batch.
         TMap<MeshBatchKey, StaticMeshBatch*> StaticMeshes;
         TMap<MeshBatchKey, StaticMeshBatchRelevance*> StaticMeshRelevances;
         bool MeshDrawCacheSupported = false;
+
+        TRefCountPtr<class RHIConstantBuffer> PrimitiveUniformBuffer;
     };
 
     class StaticMeshSceneInfo : public PrimitiveSceneInfo
     {
     public:
-        RENDERCORE_API StaticMeshSceneInfo(TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& materials);
+        RENDERCORE_API StaticMeshSceneInfo(TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& materials, const TMatrix44f& inTransform);
         ~StaticMeshSceneInfo() override;
     };
 }

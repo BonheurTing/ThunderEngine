@@ -1,4 +1,5 @@
 #pragma once
+#include "Matrix.h"
 #include "PrimitiveSceneInfo.h"
 #include "SceneView.h"
 
@@ -17,6 +18,7 @@ namespace Thunder
 
         bool NeedRenderView(EViewType type) { return true; }
         PrimitiveSceneInfo* GetSceneInfo() const { return SceneInfo; }
+        void UpdateTransform(const TMatrix44f& transform) const;
 
     protected:
         PrimitiveComponent* Component = nullptr;
@@ -26,7 +28,7 @@ namespace Thunder
     class StaticMeshSceneProxy : public PrimitiveSceneProxy
     {
     public:
-        ENGINE_API StaticMeshSceneProxy(class StaticMeshComponent* inComponent);
+        ENGINE_API StaticMeshSceneProxy(class StaticMeshComponent* inComponent, const TMatrix44f& inTransform);
 
     };
 }

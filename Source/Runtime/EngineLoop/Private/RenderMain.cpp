@@ -37,6 +37,9 @@ namespace Thunder
             auto renderer = scene->GetRenderer();
             TAssert(renderer != nullptr);
 
+            // Reset.
+            renderer->Reset();
+
             // Tick.
             renderer->Tick_RenderThread();
 

@@ -25,14 +25,6 @@ namespace Thunder
 
     void TestRenderer::Setup()
     {
-        if (!mFrameGraph)
-        {
-            return;
-        }
-
-        mFrameGraph->Reset();
-        mFrameGraph->UpdateSceneInfo_RenderThread();
-
         // GBuffer pass.
         static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
         static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
@@ -124,6 +116,7 @@ namespace Thunder
 
     void TestRenderer::Tick_RenderThread()
     {
+        mFrameGraph->UpdateSceneInfo_RenderThread();
     }
 
     void TestRenderer::Print(const std::string& message)
@@ -149,16 +142,7 @@ namespace Thunder
 
     void DeferredShadingRenderer::Tick_RenderThread()
     {
-    }
-
-    void DeferredShadingRenderer::Setup()
-    {
-        if (!mFrameGraph)
-        {
-            return;
-        }
-
-        mFrameGraph->Reset();
+        // Update scene info.
         mFrameGraph->UpdateSceneInfo_RenderThread();
 
         // Set global parameters and update uniform buffer.
@@ -166,6 +150,12 @@ namespace Thunder
         globalParameters->SetIntParameter("RenderQuality", 2);
         mFrameGraph->UpdateGlobalUniformBuffer();
 
+        // Update primitive uniform buffer.
+        UpdatePrimitiveUniformBuffer_RenderThread();
+    }
+
+    void DeferredShadingRenderer::Setup()
+    {
         // GBuffer pass.
         static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
         static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };

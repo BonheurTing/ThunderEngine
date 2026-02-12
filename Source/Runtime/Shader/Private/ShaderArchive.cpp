@@ -389,12 +389,12 @@ namespace Thunder
     	archive->BuildUniformBufferLayout();
 
     	// Generate global uniform buffer layout
-    	static String globalUB = "Global";
-    	ShaderModule::GetModule()->SetGlobalUniformBufferLayout(archive->GetUniformBufferLayout(globalUB));
+    	ShaderModule::GetModule()->SetGlobalUniformBufferLayout(archive->GetUniformBufferLayout("Global"));
     	for (uint8 passIndex = 0; passIndex < static_cast<uint8>(EMeshPass::Num); ++passIndex)
     	{
     		ShaderModule::GetModule()->SetPassUniformBufferLayout(static_cast<EMeshPass>(passIndex), archive);
     	}
+    	ShaderModule::GetModule()->SetPrimitiveUniformBufferLayout(archive->GetUniformBufferLayout("Primitive"));
 
     	// Generate bindings layout.
     	archive->BuildBindingsLayout();

@@ -4,6 +4,7 @@
 #include "NameHandle.h"
 #include "Guid.h"
 #include "Vector.h"
+#include "Matrix.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/document.h"
@@ -104,6 +105,7 @@ namespace Thunder
 		StaticMesh* GetMesh() const { return Mesh; }
 
 		const TMap<NameHandle, IMaterial*>& GetMaterials() const override { return OverrideMaterials; }
+		class StaticMeshSceneProxy* GetSceneProxy() const { return SceneProxy; }
 
 	private:
 		StaticMesh* Mesh { nullptr };
@@ -114,7 +116,7 @@ namespace Thunder
 		TMap<NameHandle, TGuid> MaterialGuids {};
 
 		// render
-		class StaticMeshSceneProxy* SceneProxy { nullptr };
+		StaticMeshSceneProxy* SceneProxy { nullptr };
 	};
 
 	// Transform component for entity positioning
@@ -131,18 +133,24 @@ namespace Thunder
 		void DeserializeJson(const rapidjson::Value& jsonValue) override;
 
 		// Transform accessors
-		void SetPosition(const TVector3f& inPosition) { Position = inPosition; }
+		void SetPosition(const TVector3f& inPosition);
+		void SetRotation(const TVector3f& inRotation);
+		void SetScale(const TVector3f& inScale);
 		const TVector3f& GetPosition() const { return Position; }
-
-		void SetRotation(const TVector3f& inRotation) { Rotation = inRotation; }
 		const TVector3f& GetRotation() const { return Rotation; }
-
-		void SetScale(const TVector3f& inScale) { Scale = inScale; }
 		const TVector3f& GetScale() const { return Scale; }
+		const TMatrix44f& GetTransform() const { return Transform; }
+
+		// Redner
+		void MarkPrimitiveUniformBufferDirty();
+	private:
+		void UpdateTransform();
 
 	private:
 		TVector3f Position { 0.0f, 0.0f, 0.0f };
 		TVector3f Rotation { 0.0f, 0.0f, 0.0f };
 		TVector3f Scale { 1.0f, 1.0f, 1.0f };
+
+		TMatrix44f Transform { TMatrix44f::Identity() };
 	};
 }

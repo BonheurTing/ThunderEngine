@@ -12,6 +12,7 @@ namespace Thunder
         virtual ~IRenderer();
 
         virtual void Tick_RenderThread() = 0;
+        virtual void Reset() { mFrameGraph->Reset(); }
         virtual void Setup() = 0;
 
         virtual void Compile()
@@ -43,9 +44,15 @@ namespace Thunder
         void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->RegisterSceneInfo_GameThread(sceneInfo); }
         void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->UnregisterSceneInfo_GameThread(sceneInfo); }
 
+        void UpdatePrimitiveUniformBuffer_GameThread(PrimitiveSceneInfo* sceneInfo);
+        void UpdatePrimitiveUniformBuffer_RenderThread();
+
         FrameGraph* GetFrameGraph() const { return mFrameGraph; }
 
     protected:
         TRefCountPtr<FrameGraph> mFrameGraph;
+
+        // Primitive uniform buffer update list
+        TSet<PrimitiveSceneInfo*> PrimitiveUniformBufferUpdateSet[2]; // Game thread and render thread double buffer.
     };
 }

@@ -24,7 +24,17 @@ namespace Thunder
         TMemory::Destroy(SceneInfo);
     }
 
-    StaticMeshSceneProxy::StaticMeshSceneProxy(StaticMeshComponent* inComponent)
+    void PrimitiveSceneProxy::UpdateTransform(const TMatrix44f& transform) const
+    {
+        // Check in render thread
+        if (SceneInfo == nullptr) [[unlikely]]
+        {
+            return;
+        }
+        SceneInfo->SetTransform(transform);
+    }
+
+    StaticMeshSceneProxy::StaticMeshSceneProxy(StaticMeshComponent* inComponent, const TMatrix44f& inTransform)
         : PrimitiveSceneProxy(inComponent)
     {
         const TMap<NameHandle, IMaterial*>& gameMaterials = inComponent->GetMaterials();
@@ -35,6 +45,6 @@ namespace Thunder
             renderMaterials.push_back(val->GetMaterialResource());
         }
         TArray<SubMesh*> subMeshes = inComponent->GetMesh()->GetSubMeshes();
-        SceneInfo = new (TMemory::Malloc<StaticMeshSceneInfo>()) StaticMeshSceneInfo{ std::move(subMeshes), std::move(renderMaterials) };
+        SceneInfo = new (TMemory::Malloc<StaticMeshSceneInfo>()) StaticMeshSceneInfo{ std::move(subMeshes), std::move(renderMaterials), inTransform };
     }
 }

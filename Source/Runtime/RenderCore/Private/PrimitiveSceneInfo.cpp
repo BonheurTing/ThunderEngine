@@ -10,6 +10,55 @@
 
 namespace Thunder
 {
+    void PrimitiveSceneInfo::UpdatePrimitiveUniformBuffer()
+    {
+        const auto layout = ShaderModule::GetPrimitiveUniformBufferLayout();
+        if (!layout) [[unlikely]]
+        {
+            TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"primitive\" not found.");
+            return;
+        }
+
+        uint32 const bufferSize = layout->GetTotalSize();
+        if (bufferSize == 0) [[unlikely]]
+        {
+            return;
+        }
+
+        // Create or update RHI constant buffer.
+        // Todo : dynamic draw commands should use a transient allocator.
+        if (!PrimitiveUniformBuffer)
+        {
+            // Create new constant buffer.
+            PrimitiveUniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic); // Maybe on default heap?
+            if (!PrimitiveUniformBuffer) [[unlikely]]
+            {
+                TAssertf(false, "Failed to create constant buffer.");
+                return;
+            }
+
+            // Create constant buffer view.
+            RHICreateConstantBufferView(*PrimitiveUniformBuffer.Get(), bufferSize);
+        }
+
+        // Allocate temporary buffer for packing.
+        byte* packedData = static_cast<byte*>(TMemory::Malloc(bufferSize, 16));
+        memset(packedData, 0, bufferSize);
+
+        SetPrimitiveParameter(layout, "LocalToWorld0", Transform.GetRow(0), packedData);
+        SetPrimitiveParameter(layout, "LocalToWorld1", Transform.GetRow(1), packedData);
+        SetPrimitiveParameter(layout, "LocalToWorld2", Transform.GetRow(2), packedData);
+
+        // Update constant buffer data.
+        /*bool succeeded = RHIUpdateSharedMemoryResource(PrimitiveUniformBuffer.Get(), packedData, bufferSize, 0);
+        if (!succeeded) [[unlikely]]
+        {
+            TAssertf(false, "Failed to update primitive uniform buffer.");
+        }
+
+        TMemory::Free(packedData);*/
+    }
+
     bool PrimitiveSceneInfo::CacheMeshDrawCommand(RenderContext* context, EMeshPass meshPassType)
     {
         // Add all static mesh batches.
@@ -75,9 +124,10 @@ namespace Thunder
             StaticMeshBatchRelevance{ MeshPassMask{ 0xFFffFFffFFffFFffULL } };
     }
 
-    StaticMeshSceneInfo::StaticMeshSceneInfo(TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& materials)
+    StaticMeshSceneInfo::StaticMeshSceneInfo(TArray<SubMesh*> const& subMeshes, TArray<RenderMaterial*> const& materials, const TMatrix44f& inTransform)
         : PrimitiveSceneInfo(true)
     {
+        Transform = inTransform;
         TAssertf(subMeshes.size() == materials.size(), "SubMeshes size mismatch.");
         for (uint32 subMeshIndex = 0; subMeshIndex < subMeshes.size(); ++subMeshIndex)
         {
@@ -90,5 +140,71 @@ namespace Thunder
     StaticMeshSceneInfo::~StaticMeshSceneInfo()
     {
         DestroyStaticMeshes();
+    }
+    
+    void PrimitiveSceneInfo::SetPrimitiveParameter(const UniformBufferLayout* layout, NameHandle parameterName, TVector4f const& value, byte* packedData)
+    {
+        // Find member.
+        auto const& memberMap = layout->GetMemberMap();
+        auto memberIt = memberMap.find(parameterName);
+        if (memberIt == memberMap.end()) [[unlikely]]
+        {
+            TAssertf(false, "Failed to set primitive parameter \"%s\", member not found.", parameterName.c_str());
+            return;
+        }
+
+        // Check type.
+        auto const& memberEntry = memberIt->second;
+        if (memberEntry.Type != EUniformBufferMemberType::Float4) [[unlikely]]
+        {
+            TAssertf(false, "Failed to set primitive parameter \"%s\", type error.", parameterName.c_str());
+            return;
+        }
+
+        memcpy(packedData + memberEntry.Offset, &value, sizeof(TVector4f));
+    }
+
+    void PrimitiveSceneInfo::SetPrimitiveParameter(const UniformBufferLayout* layout, NameHandle parameterName, float value, byte* packedData)
+    {
+        // Find member.
+        auto const& memberMap = layout->GetMemberMap();
+        auto memberIt = memberMap.find(parameterName);
+        if (memberIt == memberMap.end()) [[unlikely]]
+        {
+            TAssertf(false, "Failed to set primitive parameter \"%s\", member not found.", parameterName.c_str());
+            return;
+        }
+
+        // Check type.
+        auto const& memberEntry = memberIt->second;
+        if (memberEntry.Type != EUniformBufferMemberType::Float) [[unlikely]]
+        {
+            TAssertf(false, "Failed to set primitive parameter \"%s\", type error.", parameterName.c_str());
+            return;
+        }
+
+        memcpy(packedData + memberEntry.Offset, &value, sizeof(float));
+    }
+
+    void PrimitiveSceneInfo::SetPrimitiveParameter(const UniformBufferLayout* layout, NameHandle parameterName, int value, byte* packedData)
+    {
+        // Find member.
+        auto const& memberMap = layout->GetMemberMap();
+        auto memberIt = memberMap.find(parameterName);
+        if (memberIt == memberMap.end()) [[unlikely]]
+        {
+            TAssertf(false, "Failed to set primitive parameter \"%s\", member not found.", parameterName.c_str());
+            return;
+        }
+
+        // Check type.
+        auto const& memberEntry = memberIt->second;
+        if (memberEntry.Type != EUniformBufferMemberType::Int) [[unlikely]]
+        {
+            TAssertf(false, "Failed to set primitive parameter \"%s\", type error.", parameterName.c_str());
+            return;
+        }
+
+        memcpy(packedData + memberEntry.Offset, &value, sizeof(int));
     }
 }

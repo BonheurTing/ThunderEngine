@@ -61,9 +61,11 @@ namespace Thunder
 
     	// Uniform Buffer Layout
     	void SetGlobalUniformBufferLayout(UniformBufferLayout* layout);
-    	static const UniformBufferLayout* GetGlobalUniformBufferLayout() { return GetModule()->GlobalUniformBufferLayout.Get(); }
     	void SetPassUniformBufferLayout(EMeshPass pass, ShaderArchive* archive);
+    	void SetPrimitiveUniformBufferLayout(UniformBufferLayout* layout);
+    	static const UniformBufferLayout* GetGlobalUniformBufferLayout() { return GetModule()->GlobalUniformBufferLayout.Get(); }
     	static const UniformBufferLayout* GetPassUniformBufferLayout(EMeshPass pass);
+    	static const UniformBufferLayout* GetPrimitiveUniformBufferLayout() { return GetModule()->PrimitiveUniformBufferLayout.Get(); }
     	static ShaderParameterMap* GetPassDefaultParameters(EMeshPass pass);
 
     private:
@@ -75,6 +77,7 @@ namespace Thunder
     	UniformBufferLayoutRef GlobalUniformBufferLayout;
     	TMap<EMeshPass, UniformBufferLayoutRef> PassUniformBufferLayoutMap;
     	TMap<EMeshPass, ShaderParameterMap*> PassDefaultParameterMap;
+    	UniformBufferLayoutRef PrimitiveUniformBufferLayout;
     };
     
     extern SHADER_API THashMap<EShaderStageType, String> GShaderModuleTarget;

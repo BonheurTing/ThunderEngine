@@ -442,6 +442,14 @@ namespace Thunder
 		return it->second;
     }
 
+    void ShaderModule::SetPrimitiveUniformBufferLayout(UniformBufferLayout* layout)
+	{
+		if (!PrimitiveUniformBufferLayout.IsValid()) [[unlikely]]
+		{
+			PrimitiveUniformBufferLayout = layout;
+		}
+    }
+
     ShaderBytecodeHash ShaderStage::GetBytecodeHash() const
 	{
 		ShaderBytecodeHash Hash;

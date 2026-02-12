@@ -193,8 +193,14 @@ namespace Thunder
 		IComponent::OnLoaded();
 		LOG("------------ StaticMeshComponent loaded successfully");
 
-		SceneProxy = new (TMemory::Malloc<StaticMeshSceneProxy>()) StaticMeshSceneProxy(this);
+		TMatrix44f transform = TMatrix44f::Identity();
+		if (Owner && Owner->GetTransform())
+		{
+			transform = Owner->GetTransform()->GetTransform();
+		}
+		SceneProxy = new (TMemory::Malloc<StaticMeshSceneProxy>()) StaticMeshSceneProxy(this, transform);
 		Owner->GetScene()->GetRenderer()->RegisterSceneInfo(SceneProxy->GetSceneInfo());
+		Owner->GetScene()->GetRenderer()->UpdatePrimitiveUniformBuffer_GameThread(SceneProxy->GetSceneInfo());
 	}
 
 	// TransformComponent implementation
@@ -268,5 +274,105 @@ namespace Thunder
 				Scale.Z = static_cast<float>(scaleArray[2].GetDouble());
 			}
 		}
+
+		UpdateTransform();
+		MarkPrimitiveUniformBufferDirty();
+	}
+
+	void TransformComponent::SetPosition(const TVector3f& inPosition)
+	{
+		Position = inPosition;
+		UpdateTransform();
+		MarkPrimitiveUniformBufferDirty();
+	}
+
+	void TransformComponent::SetRotation(const TVector3f& inRotation)
+	{
+		Rotation = inRotation;
+		UpdateTransform();
+		MarkPrimitiveUniformBufferDirty();
+	}
+
+	void TransformComponent::SetScale(const TVector3f& inScale)
+	{
+		Scale = inScale;
+		UpdateTransform();
+		MarkPrimitiveUniformBufferDirty();
+	}
+
+	void TransformComponent::MarkPrimitiveUniformBufferDirty()
+	{
+		// todo : deduplicate
+		TList<IComponent*> compList;
+		Owner->GetAllHierarchyComponents(compList);
+		for (auto& comp : compList)
+		{
+			// todo : reflect
+			if (auto stMeshComp = dynamic_cast<StaticMeshComponent*>(comp))
+			{
+				StaticMeshSceneProxy* sceneProxy = stMeshComp->GetSceneProxy();
+				if (!sceneProxy) [[unlikely]]
+				{
+					TAssertf(false, "Lack of valid scene proxy for component \"%s\" in entity  \"%s\".", stMeshComp->GetComponentName(), Owner->GetEntityName());
+					continue;
+				}
+
+				GRenderScheduler->PushTask([transform = Transform, sceneProxy]()
+				{
+					sceneProxy->UpdateTransform(transform);
+				});
+				Owner->GetScene()->GetRenderer()->UpdatePrimitiveUniformBuffer_GameThread(sceneProxy->GetSceneInfo());
+			}
+		}
+	}
+
+	void TransformComponent::UpdateTransform()
+	{
+		// Left-handed coordinate system (UE convention): X=Forward, Y=Right, Z=Up
+		// Rotation stored as degrees: X=Pitch(around Y), Y=Yaw(around Z), Z=Roll(around X)
+		// Application order: Yaw(Z) -> Pitch(Y) -> Roll(X)
+		// R = RotZ * RotY * RotX (row-vector convention: p' = p * R)
+
+		constexpr float DegToRad = 3.14159265358979323846f / 180.0f;
+		const float pitchRad = Rotation.X * DegToRad;
+		const float yawRad   = Rotation.Y * DegToRad;
+		const float rollRad  = Rotation.Z * DegToRad;
+
+		const float cp = std::cos(pitchRad);
+		const float sp = std::sin(pitchRad);
+		const float cy = std::cos(yawRad);
+		const float sy = std::sin(yawRad);
+		const float cr = std::cos(rollRad);
+		const float sr = std::sin(rollRad);
+
+		// Left-handed rotation matrices:
+		//   RotZ(yaw):  [ cy  sy  0 ]    RotY(pitch): [ cp  0 -sp ]    RotX(roll): [ 1   0   0 ]
+		//               [-sy  cy  0 ]                  [  0  1   0 ]                [ 0  cr  sr ]
+		//               [  0   0  1 ]                  [ sp  0  cp ]                [ 0 -sr  cr ]
+		//
+		// R = RotZ * RotY * RotX:
+		//   [ cy*cp,               sy*cr + cy*sp*sr,    sy*sr - cy*sp*cr ]
+		//   [-sy*cp,               cy*cr - sy*sp*sr,    cy*sr + sy*sp*cr ]
+		//   [ sp,                 -cp*sr,               cp*cr            ]
+
+		const float r00 =  cy * cp;
+		const float r01 =  sy * cr + cy * sp * sr;
+		const float r02 =  sy * sr - cy * sp * cr;
+
+		const float r10 = -sy * cp;
+		const float r11 =  cy * cr - sy * sp * sr;
+		const float r12 =  cy * sr + sy * sp * cr;
+
+		const float r20 =  sp;
+		const float r21 = -cp * sr;
+		const float r22 =  cp * cr;
+
+		// Combined Transform = S * R * T (row-vector convention: p' = p * S * R * T)
+		// Row i of rotation is scaled by Scale[i], translation in row 3.
+		Transform = TMatrix44f(
+			r00 * Scale.X, r01 * Scale.X, r02 * Scale.X, 0.0f,
+			r10 * Scale.Y, r11 * Scale.Y, r12 * Scale.Y, 0.0f,
+			r20 * Scale.Z, r21 * Scale.Z, r22 * Scale.Z, 0.0f,
+			Position.X,    Position.Y,     Position.Z,     1.0f);
 	}
 }

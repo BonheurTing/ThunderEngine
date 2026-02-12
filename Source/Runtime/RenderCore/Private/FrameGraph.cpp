@@ -4,10 +4,10 @@
 #include "RenderTexture.h"
 #include "RenderContext.h"
 #include "RHICommand.h"
-#include "IRHIModule.h"
 #include "PlatformProcess.h"
 #include "PrimitiveSceneInfo.h"
 #include "RenderModule.h"
+#include "ShaderModule.h"
 #include "ShaderParameterMap.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskGraph.h"
@@ -350,14 +350,20 @@ namespace Thunder
 
     void FrameGraph::UpdateGlobalUniformBuffer()
     {
-        
+        const auto layout = ShaderModule::GetGlobalUniformBufferLayout();
+        if (!layout) [[unlikely]]
+        {
+            TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"global\" not found.");
+            return;
+        }
+        RenderModule::PackUniformBuffer(MainContext, layout, GlobalParameters, GlobalUniformBuffer, false, "Global");
     }
 
     void FrameGraph::InitializeRenderContexts(uint32 threadCount)
     {
         if (!MainContext)
         {
-            MainContext = new FRenderContext(this);
+            MainContext = new RenderContext(this);
         }
 
         // Clear existing contexts
@@ -371,7 +377,7 @@ namespace Thunder
         RenderContexts.reserve(threadCount);
         for (uint32 i = 0; i < threadCount; ++i)
         {
-            RenderContexts.push_back(new FRenderContext(this));
+            RenderContexts.push_back(new RenderContext(this));
         }
     }
 

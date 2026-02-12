@@ -13,7 +13,7 @@
 
 namespace Thunder
 {
-    class FRenderContext;
+    struct RenderContext;
     class IRHICommand;
 
     class RENDERCORE_API PassOperations
@@ -78,8 +78,8 @@ namespace Thunder
         void ClearRenderTargetPool();
 
         // Command execution support
-        FRenderContext* GetMainContext() const { return MainContext; }
-        const TArray<FRenderContext*>& GetRenderContexts() const { return RenderContexts; }
+        RenderContext* GetMainContext() const { return MainContext; }
+        const TArray<RenderContext*>& GetRenderContexts() const { return RenderContexts; }
         TArray<IRHICommand*>& GetCurrentAllCommands(int frontIndex) { return AllCommands[frontIndex]; }
 
         FORCEINLINE void SetCurrentPass(FrameGraphPass* pass) const
@@ -138,8 +138,8 @@ namespace Thunder
         TSet<PrimitiveSceneInfo*> SceneInfoCurrentUpdateSet;
 
         // Command execution contexts.
-        FRenderContext* MainContext = nullptr;  // Main render thread context
-        TArray<FRenderContext*> RenderContexts; // Worker thread contexts
+        RenderContext* MainContext = nullptr;  // Main render thread context
+        TArray<RenderContext*> RenderContexts; // Worker thread contexts
         TArray<IRHICommand*> AllCommands[2];       // Consolidated commands for execution
 
         // Mesh-draw.

@@ -23,12 +23,12 @@ namespace Thunder
     {
     }
 
-    bool MeshPassProcessor::AddMeshBatch(FRenderContext* context, const MeshBatch* batch, EMeshPass meshPassType, bool cacheMeshDrawCommand)
+    bool MeshPassProcessor::AddMeshBatch(RenderContext* context, const MeshBatch* batch, EMeshPass meshPassType, bool cacheMeshDrawCommand)
     {
         return Process(context, batch, meshPassType, cacheMeshDrawCommand);
     }
 
-    bool MeshPassProcessor::Process(FRenderContext* context, const MeshBatch* batch, EMeshPass meshPassType, bool cacheMeshDrawCommand)
+    bool MeshPassProcessor::Process(RenderContext* context, const MeshBatch* batch, EMeshPass meshPassType, bool cacheMeshDrawCommand)
     {
         auto const& elements = batch->GetElements();
         for (auto const& meshBatchElement : elements)
@@ -67,7 +67,7 @@ namespace Thunder
         return true;
     }
 
-    void MeshPassProcessor::FinalizeCommand(FRenderContext* context, const MeshBatch* batch, RHIDrawCommand* command, bool cacheMeshDrawCommand)
+    void MeshPassProcessor::FinalizeCommand(RenderContext* context, const MeshBatch* batch, RHIDrawCommand* command, bool cacheMeshDrawCommand)
     {
         if (cacheMeshDrawCommand)
         {
@@ -87,7 +87,7 @@ namespace Thunder
         return shaderVariant;
     }
 
-    TRHIGraphicsPipelineState* MeshPassProcessor::GetPipelineState(const FRenderContext* context, ShaderCombination* shaderCombination, EMeshPass meshPassType, const SubMesh* subMesh, RenderMaterial* material)
+    TRHIGraphicsPipelineState* MeshPassProcessor::GetPipelineState(const RenderContext* context, ShaderCombination* shaderCombination, EMeshPass meshPassType, const SubMesh* subMesh, RenderMaterial* material)
     {
         // Set shader.
         TGraphicsPipelineStateDescriptor psoDesc;
@@ -135,7 +135,7 @@ namespace Thunder
         return pipelineStateObject;
     }
 
-    void MeshPassProcessor::ApplyShaderBindings(const FRenderContext* context, RHIDrawCommand* command, ShaderCombination* shader, RenderMaterial* material, bool cacheMeshDrawCommand)
+    void MeshPassProcessor::ApplyShaderBindings(const RenderContext* context, RHIDrawCommand* command, ShaderCombination* shader, RenderMaterial* material, bool cacheMeshDrawCommand)
     {
         ShaderArchive* archive = shader->GetSubShader()->GetArchive();
         ShaderBindingsLayout* bindingsLayout = archive->GetBindingsLayout();

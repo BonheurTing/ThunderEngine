@@ -3,7 +3,6 @@
 #include "Templates/RefCounting.h"
 #include "Templates/RefCountObject.h"
 
-
 namespace Thunder
 {
     struct RenderPassKey

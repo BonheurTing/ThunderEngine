@@ -2,11 +2,10 @@
 #include "CoreMinimal.h"
 #include "Guid.h"
 #include "Vector.h"
-#include "Templates/RefCountObject.h"
 
 namespace Thunder
 {
-	struct ShaderParameterMap
+	struct SHADER_API ShaderParameterMap
 	{
 		TMap<NameHandle, int32> IntParameters;
 		TMap<NameHandle, float> FloatParameters;

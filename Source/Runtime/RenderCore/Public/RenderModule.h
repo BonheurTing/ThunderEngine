@@ -30,7 +30,8 @@ namespace Thunder
     	static RenderTexture* GetTextureResource_RenderThread(const TGuid& guid);
 
     	// Uniform buffer.
-    	static void PackUniformBuffer(const FRenderContext* context, const class UniformBufferLayout* layout, const class ShaderParameterMap* parameterMap, TRefCountPtr<class RHIConstantBuffer>& uniformBuffer, bool cacheMeshDrawCommand);
+    	static void PackUniformBuffer(const RenderContext* context, const class UniformBufferLayout* layout
+    		, const struct ShaderParameterMap* parameterMap, TRefCountPtr<class RHIConstantBuffer>& uniformBuffer, bool cacheMeshDrawCommand, const String& ubName);
 
     private:
     	std::array<MeshPassProcessorRef, static_cast<size_t>(EMeshPass::Num)> MeshPassProcessors;

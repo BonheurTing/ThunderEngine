@@ -75,6 +75,6 @@ namespace Thunder
 		void ResetDefaultParameters() const;
 
 	private:
-		ShaderParameterMap* OverrideParameters;
+		ShaderParameterMap* ShaderParameters;
 	};
 }

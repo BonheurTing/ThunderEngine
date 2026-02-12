@@ -8,7 +8,7 @@
 
 namespace Thunder
 {
-    FRenderContext::FRenderContext(class FrameGraph* owner)
+    RenderContext::RenderContext(class FrameGraph* owner)
     {
         // Reserve some initial capacity to avoid early reallocations
         Commands.reserve(1024);
@@ -17,18 +17,18 @@ namespace Thunder
         FrameGraph = owner;
     }
 
-    FRenderContext::~FRenderContext()
+    RenderContext::~RenderContext()
     {
         ClearCommands();
         delete TransientAllocatorPtr;
     }
 
-    void FRenderContext::FreeAllocator() const
+    void RenderContext::FreeAllocator() const
     {
         GetTransientAllocator_RenderThread()->FreeAll();
     }
 
-    void FRenderContext::AddCommand(IRHICommand* Command)
+    void RenderContext::AddCommand(IRHICommand* Command)
     {
         if (Command)
         {
@@ -36,12 +36,12 @@ namespace Thunder
         }
     }
 
-    void FRenderContext::AddCommandList(TArray<RHICachedDrawCommand*> commandList)
+    void RenderContext::AddCommandList(TArray<RHICachedDrawCommand*> commandList)
     {
         Commands.insert(Commands.end(), commandList.begin(), commandList.end());
     }
 
-    void FRenderContext::AddCachedCommand(const MeshBatch* batch, RHICachedDrawCommand* command)
+    void RenderContext::AddCachedCommand(const MeshBatch* batch, RHICachedDrawCommand* command)
     {
         if (batch && command)
         {
@@ -53,17 +53,17 @@ namespace Thunder
         }
     }
 
-    void FRenderContext::ClearCachedCommands()
+    void RenderContext::ClearCachedCommands()
     {
         CachedDrawCommands.clear();
     }
 
-    void FRenderContext::ClearCommands()
+    void RenderContext::ClearCommands()
     {
         Commands.clear();
     }
 
-    TransientAllocator* FRenderContext::GetTransientAllocator_RenderThread() const
+    TransientAllocator* RenderContext::GetTransientAllocator_RenderThread() const
     {
         uint32 index = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
         return TransientAllocatorPtr[index];
@@ -75,7 +75,7 @@ namespace Thunder
     //     return TransientAllocatorPtr[index];
     // }
 
-    RenderPass* FRenderContext::GetRenderPass() const
+    RenderPass* RenderContext::GetRenderPass() const
     {
         RenderPassKey key;
         auto const& renderTargetIndices = CurrentPass->GetOperations().GetWriteTargets();

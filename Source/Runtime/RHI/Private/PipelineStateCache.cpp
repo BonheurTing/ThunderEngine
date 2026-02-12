@@ -3,7 +3,7 @@
 
 namespace Thunder
 {
-    void SetGraphicsPipelineState(FRenderContext* context, TGraphicsPipelineStateDescriptor& Initializer)
+    void SetGraphicsPipelineState(RenderContext* context, TGraphicsPipelineStateDescriptor& Initializer)
     {
         auto pipelineStateObject = RHICreateGraphicsPipelineState(Initializer);
     }

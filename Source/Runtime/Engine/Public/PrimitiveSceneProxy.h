@@ -4,7 +4,7 @@
 
 namespace Thunder
 {
-    struct FRenderContext;
+    struct RenderContext;
     class PrimitiveComponent;
     class RenderMaterial;
     enum class EMeshPass : uint8;

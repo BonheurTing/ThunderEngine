@@ -161,7 +161,7 @@ namespace Thunder
         mFrameGraph->Reset();
         mFrameGraph->UpdateSceneInfo_RenderThread();
 
-        // Set global parameters.
+        // Set global parameters and update uniform buffer.
         auto globalParameters = mFrameGraph->GetGlobalParameters();
         globalParameters->SetIntParameter("RenderQuality", 2);
         mFrameGraph->UpdateGlobalUniformBuffer();

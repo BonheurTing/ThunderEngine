@@ -10,7 +10,7 @@
 
 namespace Thunder
 {
-    bool PrimitiveSceneInfo::CacheMeshDrawCommand(FRenderContext* context, EMeshPass meshPassType)
+    bool PrimitiveSceneInfo::CacheMeshDrawCommand(RenderContext* context, EMeshPass meshPassType)
     {
         // Add all static mesh batches.
         auto meshProcessor = RenderModule::GetMeshPassProcessor(meshPassType);

@@ -2,5 +2,5 @@
 
 namespace Thunder
 {
-    void SetGraphicsPipelineState(class FRenderContext* context, class TGraphicsPipelineStateDescriptor& Initializer);
+    void SetGraphicsPipelineState(struct RenderContext* context, class TGraphicsPipelineStateDescriptor& Initializer);
 }

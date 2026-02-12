@@ -29,7 +29,7 @@ namespace Thunder
             StaticMeshCommandInfos[passType][meshBatchKey] = MeshDrawCommandInfo{ commandIndex };
         }
 
-        RENDERCORE_API bool CacheMeshDrawCommand(FRenderContext* context, EMeshPass meshPassType);
+        RENDERCORE_API bool CacheMeshDrawCommand(RenderContext* context, EMeshPass meshPassType);
         RENDERCORE_API bool IsMeshDrawCacheSupported() const  { return MeshDrawCacheSupported; }
 
     protected:

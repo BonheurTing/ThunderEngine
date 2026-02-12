@@ -74,7 +74,7 @@ namespace Thunder
 
 	GameMaterial::GameMaterial(GameObject* inOuter)
 		: IMaterial(inOuter)
-		, OverrideParameters(new ShaderParameterMap())
+		, ShaderParameters(new ShaderParameterMap())
 	{
 	}
 
@@ -97,45 +97,45 @@ namespace Thunder
 		archive << ArchiveName.ToString();
 
 		// Serialize int parameters
-		uint32 intParamCount = static_cast<uint32>(OverrideParameters->IntParameters.size());
+		uint32 intParamCount = static_cast<uint32>(ShaderParameters->IntParameters.size());
 		archive << intParamCount;
-		for (const auto& pair : OverrideParameters->IntParameters)
+		for (const auto& pair : ShaderParameters->IntParameters)
 		{
 			archive << pair.first.ToString();
 			archive << pair.second;
 		}
 
 		// Serialize float parameters
-		uint32 floatParamCount = static_cast<uint32>(OverrideParameters->FloatParameters.size());
+		uint32 floatParamCount = static_cast<uint32>(ShaderParameters->FloatParameters.size());
 		archive << floatParamCount;
-		for (const auto& pair : OverrideParameters->FloatParameters)
+		for (const auto& pair : ShaderParameters->FloatParameters)
 		{
 			archive << pair.first.ToString();
 			archive << pair.second;
 		}
 
 		// Serialize vector parameters
-		uint32 vectorParamCount = static_cast<uint32>(OverrideParameters->VectorParameters.size());
+		uint32 vectorParamCount = static_cast<uint32>(ShaderParameters->VectorParameters.size());
 		archive << vectorParamCount;
-		for (const auto& pair : OverrideParameters->VectorParameters)
+		for (const auto& pair : ShaderParameters->VectorParameters)
 		{
 			archive << pair.first.ToString();
 			archive << pair.second.X << pair.second.Y << pair.second.Z << pair.second.W;
 		}
 
 		// Serialize texture parameters (as GUIDs)
-		uint32 textureParamCount = static_cast<uint32>(OverrideParameters->TextureParameters.size());
+		uint32 textureParamCount = static_cast<uint32>(ShaderParameters->TextureParameters.size());
 		archive << textureParamCount;
-		for (const auto& pair : OverrideParameters->TextureParameters)
+		for (const auto& pair : ShaderParameters->TextureParameters)
 		{
 			archive << pair.first.ToString();
 			archive << pair.second;
 		}
 
 		// Serialize virant parameters
-		uint32 boolParamCount = static_cast<uint32>(OverrideParameters->StaticSwitchParameters.size());
+		uint32 boolParamCount = static_cast<uint32>(ShaderParameters->StaticSwitchParameters.size());
 		archive << boolParamCount;
-		for (const auto& pair : OverrideParameters->StaticSwitchParameters)
+		for (const auto& pair : ShaderParameters->StaticSwitchParameters)
 		{
 			archive << pair.first.ToString();
 			archive << pair.second;
@@ -162,7 +162,7 @@ namespace Thunder
 			int32 value;
 			archive >> paramName;
 			archive >> value;
-			OverrideParameters->IntParameters[NameHandle(paramName)] = value;
+			ShaderParameters->IntParameters[NameHandle(paramName)] = value;
 		}
 
 		// Deserialize float parameters
@@ -175,7 +175,7 @@ namespace Thunder
 			float value;
 			archive >> paramName;
 			archive >> value;
-			OverrideParameters->FloatParameters[NameHandle(paramName)] = value;
+			ShaderParameters->FloatParameters[NameHandle(paramName)] = value;
 		}
 
 		// Deserialize vector parameters
@@ -188,7 +188,7 @@ namespace Thunder
 			TVector4f value;
 			archive >> paramName;
 			archive >> value.X >> value.Y >> value.Z >> value.W;
-			OverrideParameters->VectorParameters[NameHandle(paramName)] = value;
+			ShaderParameters->VectorParameters[NameHandle(paramName)] = value;
 		}
 
 		// Deserialize texture parameters
@@ -201,7 +201,7 @@ namespace Thunder
 			TGuid value;
 			archive >> paramName;
 			archive >> value;
-			OverrideParameters->TextureParameters[NameHandle(paramName)] = value;
+			ShaderParameters->TextureParameters[NameHandle(paramName)] = value;
 		}
 
 		// Deserialize float parameters
@@ -214,7 +214,7 @@ namespace Thunder
 			bool value;
 			archive >> paramName;
 			archive >> value;
-			OverrideParameters->StaticSwitchParameters[NameHandle(paramName)] = value;
+			ShaderParameters->StaticSwitchParameters[NameHandle(paramName)] = value;
 		}
 	}
 
@@ -222,32 +222,32 @@ namespace Thunder
 
 	void GameMaterial::SetIntParameter(const NameHandle& paramName, int32 value)
 	{
-		OverrideParameters->IntParameters[paramName] = value;
+		ShaderParameters->IntParameters[paramName] = value;
 		MarkRenderStateDirty();
 	}
 
 	void GameMaterial::SetFloatParameter(const NameHandle& paramName, float value)
 	{
-		OverrideParameters->FloatParameters[paramName] = value;
+		ShaderParameters->FloatParameters[paramName] = value;
 		MarkRenderStateDirty();
 	}
 
 	void GameMaterial::SetVectorParameter(const NameHandle& paramName, const TVector4f& value)
 	{
-		OverrideParameters->VectorParameters[paramName] = value;
+		ShaderParameters->VectorParameters[paramName] = value;
 		MarkRenderStateDirty();
 	}
 
 	void GameMaterial::SetTextureParameter(const NameHandle& paramName, const TGuid& textureGuid)
 	{
-		OverrideParameters->TextureParameters[paramName] = textureGuid;
+		ShaderParameters->TextureParameters[paramName] = textureGuid;
 		AddDependency(textureGuid);
 		MarkRenderStateDirty();
 	}
 
 	void GameMaterial::SetStaticParameter(const NameHandle& paramName, bool value)
 	{
-		OverrideParameters->StaticSwitchParameters[paramName] = value;
+		ShaderParameters->StaticSwitchParameters[paramName] = value;
 		MarkRenderStateDirty();
 	}
 
@@ -255,8 +255,8 @@ namespace Thunder
 
 	bool GameMaterial::GetIntParameter(const NameHandle& paramName, int32& outValue) const
 	{
-		auto it = OverrideParameters->IntParameters.find(paramName);
-		if (it != OverrideParameters->IntParameters.end())
+		auto it = ShaderParameters->IntParameters.find(paramName);
+		if (it != ShaderParameters->IntParameters.end())
 		{
 			outValue = it->second;
 			return true;
@@ -266,8 +266,8 @@ namespace Thunder
 
 	bool GameMaterial::GetFloatParameter(const NameHandle& paramName, float& outValue) const
 	{
-		auto it = OverrideParameters->FloatParameters.find(paramName);
-		if (it != OverrideParameters->FloatParameters.end())
+		auto it = ShaderParameters->FloatParameters.find(paramName);
+		if (it != ShaderParameters->FloatParameters.end())
 		{
 			outValue = it->second;
 			return true;
@@ -277,8 +277,8 @@ namespace Thunder
 
 	bool GameMaterial::GetVectorParameter(const NameHandle& paramName, TVector4f& outValue) const
 	{
-		auto it = OverrideParameters->VectorParameters.find(paramName);
-		if (it != OverrideParameters->VectorParameters.end())
+		auto it = ShaderParameters->VectorParameters.find(paramName);
+		if (it != ShaderParameters->VectorParameters.end())
 		{
 			outValue = it->second;
 			return true;
@@ -288,8 +288,8 @@ namespace Thunder
 
 	bool GameMaterial::GetTextureParameter(const NameHandle& paramName, TGuid& outTextureGuid) const
 	{
-		auto it = OverrideParameters->TextureParameters.find(paramName);
-		if (it != OverrideParameters->TextureParameters.end())
+		auto it = ShaderParameters->TextureParameters.find(paramName);
+		if (it != ShaderParameters->TextureParameters.end())
 		{
 			outTextureGuid = it->second;
 			return true;
@@ -299,8 +299,8 @@ namespace Thunder
 
 	bool GameMaterial::GetStaticParameter(const NameHandle& paramName, bool& outValue) const
 	{
-		auto it = OverrideParameters->StaticSwitchParameters.find(paramName);
-		if (it != OverrideParameters->StaticSwitchParameters.end())
+		auto it = ShaderParameters->StaticSwitchParameters.find(paramName);
+		if (it != ShaderParameters->StaticSwitchParameters.end())
 		{
 			outValue = it->second;
 			return true;
@@ -312,28 +312,29 @@ namespace Thunder
 
 	void GameMaterial::RemoveIntParameter(const NameHandle& paramName)
 	{
-		OverrideParameters->IntParameters.erase(paramName);
+		ShaderParameters->IntParameters.erase(paramName);
 		MarkRenderStateDirty();
 	}
 
 	void GameMaterial::RemoveFloatParameter(const NameHandle& paramName)
 	{
-		OverrideParameters->FloatParameters.erase(paramName);
+		ShaderParameters->FloatParameters.erase(paramName);
 		MarkRenderStateDirty();
 	}
 
 	void GameMaterial::RemoveVectorParameter(const NameHandle& paramName)
 	{
-		OverrideParameters->VectorParameters.erase(paramName);
+		ShaderParameters->VectorParameters.erase(paramName);
 		MarkRenderStateDirty();
 	}
 
 	void GameMaterial::RemoveTextureParameter(const NameHandle& paramName)
 	{
-		OverrideParameters->TextureParameters.erase(paramName);
+		ShaderParameters->TextureParameters.erase(paramName);
 		MarkRenderStateDirty();
 	}
 
+	// Todo : a update list is needed.
 	void GameMaterial::UpdateRenderResource()
 	{
 		if (!DefaultRenderResource)
@@ -345,7 +346,7 @@ namespace Thunder
 		{
 			GRenderScheduler->PushTask([this]()
 			{
-				DefaultRenderResource->CacheParameters(OverrideParameters);
+				DefaultRenderResource->CacheParameters(ShaderParameters);
 				bRenderStateDirty = false;
 			});
 		}
@@ -353,7 +354,7 @@ namespace Thunder
 
 	void GameMaterial::ResetDefaultParameters() const
 	{
-		ShaderModule::GenerateDefaultParameters(ArchiveName, OverrideParameters);
+		ShaderModule::GenerateDefaultParameters(ArchiveName, ShaderParameters);
 	}
 }
 

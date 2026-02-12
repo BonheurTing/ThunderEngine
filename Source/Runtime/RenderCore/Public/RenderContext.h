@@ -14,12 +14,12 @@ namespace Thunder
      * Thread-specific render context that holds recorded commands
      * Each thread has its own context to record commands into
      */
-    struct RENDERCORE_API FRenderContext
+    struct RENDERCORE_API RenderContext
     {
     public:
-        FRenderContext() = delete;
-        FRenderContext(class FrameGraph* owner);
-        ~FRenderContext();
+        RenderContext() = delete;
+        RenderContext(class FrameGraph* owner);
+        ~RenderContext();
 
         // Clear all commands and free allocator
         void FreeAllocator() const;

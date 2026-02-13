@@ -143,21 +143,20 @@ namespace Thunder
 			return;
 		}
 
-		// Create or update RHI constant buffer.
-		// Todo : dynamic draw commands should use a transient allocator.
-		if (!uniformBuffer)
+		// Defer-delete the old buffer so the GPU can finish using it.
+		if (uniformBuffer)
 		{
-			// Create new constant buffer.
-			uniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic); // Maybe on default heap?
-			if (!uniformBuffer) [[unlikely]]
-			{
-				TAssertf(false, "Failed to create constant buffer.");
-				return;
-			}
-
-			// Create constant buffer view.
-			RHICreateConstantBufferView(*uniformBuffer.Get(), bufferSize);
+			RHIDeferredDeleteResource(std::move(uniformBuffer));
 		}
+
+		// Create new constant buffer.
+		uniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic).Get(); // Todo : dynamic draw commands should use a transient allocator.
+		if (!uniformBuffer) [[unlikely]]
+		{
+			TAssertf(false, "Failed to create primitive uniform buffer.");
+			return;
+		}
+		RHICreateConstantBufferView(*uniformBuffer.Get(), bufferSize);
 
         // Allocate temporary buffer for packing.
         byte* packedData = (cacheMeshDrawCommand) ?
@@ -232,11 +231,10 @@ namespace Thunder
         }
 
 		// Update buffer data.
-		/*
-		bool succeeded = RHIUpdateSharedMemoryResource(UniformBuffer.Get(), packedData, bufferSize, 0);
+		bool succeeded = RHIUpdateSharedMemoryResource(uniformBuffer.Get(), packedData, bufferSize, 0);
 		if (!succeeded) [[unlikely]]
 		{
-			TAssertf(false, "Failed to update constant buffer for material \"%s\".", Archive->GetName().c_str());
+			TAssertf(false, "Failed to update constant buffer for \"%s\".", ubName);
 		}
 
 		// Free temporary buffer if needed.
@@ -244,6 +242,5 @@ namespace Thunder
 		{
 			TMemory::Free(packedData);
 		}
-		*/
 	}
 }

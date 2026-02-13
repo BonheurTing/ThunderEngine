@@ -25,23 +25,22 @@ namespace Thunder
             return;
         }
 
-        // Create or update RHI constant buffer.
-        // Todo : dynamic draw commands should use a transient allocator.
-        if (!PrimitiveUniformBuffer)
+        // Defer-delete the old buffer so the GPU can finish using it.
+        if (PrimitiveUniformBuffer)
         {
-            // Create new constant buffer.
-            PrimitiveUniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic); // Maybe on default heap?
-            if (!PrimitiveUniformBuffer) [[unlikely]]
-            {
-                TAssertf(false, "Failed to create constant buffer.");
-                return;
-            }
-
-            // Create constant buffer view.
-            RHICreateConstantBufferView(*PrimitiveUniformBuffer.Get(), bufferSize);
+            RHIDeferredDeleteResource(std::move(PrimitiveUniformBuffer));
         }
 
-        // Allocate temporary buffer for packing.
+        // Create new constant buffer.
+        PrimitiveUniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic).Get(); // Todo : dynamic draw commands should use a transient allocator.
+        if (!PrimitiveUniformBuffer) [[unlikely]]
+        {
+            TAssertf(false, "Failed to create primitive uniform buffer.");
+            return;
+        }
+        RHICreateConstantBufferView(*PrimitiveUniformBuffer.Get(), bufferSize);
+
+        // Pack and upload CPU data.
         byte* packedData = static_cast<byte*>(TMemory::Malloc(bufferSize, 16));
         memset(packedData, 0, bufferSize);
 
@@ -49,14 +48,13 @@ namespace Thunder
         SetPrimitiveParameter(layout, "LocalToWorld1", Transform.GetRow(1), packedData);
         SetPrimitiveParameter(layout, "LocalToWorld2", Transform.GetRow(2), packedData);
 
-        // Update constant buffer data.
-        /*bool succeeded = RHIUpdateSharedMemoryResource(PrimitiveUniformBuffer.Get(), packedData, bufferSize, 0);
+        bool succeeded = RHIUpdateSharedMemoryResource(PrimitiveUniformBuffer.Get(), packedData, bufferSize, 0);
         if (!succeeded) [[unlikely]]
         {
             TAssertf(false, "Failed to update primitive uniform buffer.");
         }
 
-        TMemory::Free(packedData);*/
+        TMemory::Free(packedData);
     }
 
     bool PrimitiveSceneInfo::CacheMeshDrawCommand(RenderContext* context, EMeshPass meshPassType)

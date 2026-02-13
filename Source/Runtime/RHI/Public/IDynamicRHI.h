@@ -10,6 +10,10 @@ namespace Thunder
     public:
         virtual ~IDynamicRHI() = default;
 
+        // Deferred resource deletion. Keeps the resource alive for MAX_FRAME_LAG frames.
+        void DeferredDeleteResource(TRefCountPtr<RHIResource> resource);
+        void FlushDeferredDeleteQueue();
+
         /////// RHI Methods
         virtual RHIDeviceRef RHICreateDevice() = 0;
 
@@ -53,6 +57,9 @@ namespace Thunder
         virtual void RHIBeginFrame(uint32 frameIndex) = 0;
         virtual void RHISignalFence(uint32 frameIndex) = 0;
         virtual void RHIWaitForFrame(uint32 frameIndex) = 0;
+
+    protected:
+        TArray<TRefCountPtr<RHIResource>> DeferredDeleteQueue[MAX_FRAME_LAG] {};
     };
     
     extern RHI_API IDynamicRHI* GDynamicRHI;
@@ -147,9 +154,15 @@ namespace Thunder
         return GDynamicRHI->RHIUpdateSharedMemoryResource(resource, resourceData, size, subresourceId);
     }
 
+    FORCEINLINE void RHIDeferredDeleteResource(TRefCountPtr<RHIResource> resource)
+    {
+        GDynamicRHI->DeferredDeleteResource(std::move(resource));
+    }
+
     FORCEINLINE void RHIReleaseResource()
     {
-        return GDynamicRHI->RHIReleaseResource();
+        GDynamicRHI->RHIReleaseResource();
+        GDynamicRHI->FlushDeferredDeleteQueue();
     }
 
     FORCEINLINE void RHIBeginFrame(uint32 frameIndex)

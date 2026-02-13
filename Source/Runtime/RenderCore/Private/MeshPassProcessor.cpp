@@ -1,19 +1,18 @@
 
 #include "MeshPassProcessor.h"
-
-#include "IDynamicRHI.h"
+#include "Memory/TransientAllocator.h"
 #include "MeshPass.h"
 #include "PrimitiveSceneInfo.h"
 #include "RenderMaterial.h"
-#include "RHICommand.h"
-#include "ShaderModule.h"
-#include "Memory/TransientAllocator.h"
-#include "Container/ReflectiveContainer.h"
-#include "BasicDefinition.h"
 #include "RenderMesh.h"
-#include "RenderTranslator.h"
+//#include "UniformBuffer.h"
+#include "FrameGraph.h"
+#include "IDynamicRHI.h"
+#include "RHICommand.h"
 #include "RHI.h"
+#include "ShaderModule.h"
 #include "ShaderArchive.h"
+#include "UniformBuffer.h"
 
 namespace Thunder
 {
@@ -58,7 +57,7 @@ namespace Thunder
             newCommand->GraphicsPSO = pso;
 
             // Apply shader bindings.
-            ApplyShaderBindings(context, newCommand, shaderVariant, material, cacheMeshDrawCommand);
+            ApplyShaderBindings(context, newCommand, shaderVariant, material, batch->GetSceneInfo(), meshPassType, cacheMeshDrawCommand);
 
             // Add mesh-draw command.
             FinalizeCommand(context, batch, newCommand, cacheMeshDrawCommand);
@@ -135,7 +134,7 @@ namespace Thunder
         return pipelineStateObject;
     }
 
-    void MeshPassProcessor::ApplyShaderBindings(const RenderContext* context, RHIDrawCommand* command, ShaderCombination* shader, RenderMaterial* material, bool cacheMeshDrawCommand)
+    void MeshPassProcessor::ApplyShaderBindings(const RenderContext* context, RHIDrawCommand* command, ShaderCombination* shader, RenderMaterial* material, PrimitiveSceneInfo* sceneInfo, EMeshPass meshPassType, bool cacheMeshDrawCommand)
     {
         ShaderArchive* archive = shader->GetSubShader()->GetArchive();
         ShaderBindingsLayout* bindingsLayout = archive->GetBindingsLayout();
@@ -154,25 +153,48 @@ namespace Thunder
         material->UpdateUniformBuffer(context, cacheMeshDrawCommand);
 
         // Bind Constant Buffer
-        /*{
-            // Get resource.
-            RHIConstantBuffer* cbResource = material->GetUniformBuffer();
-            if (!cbResource) [[unlikely]]
+        {
+            // Global uniform buffer.
+            auto frameGraph = context->GetFrameGraph();
+            auto globalUB = frameGraph->GetGlobalUniformBuffer();
+            if (globalUB == nullptr || globalUB->GetConstantBuffer() == nullptr) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get global CBV binding : buffer resource is invalid.");
+            }
+
+            static NameHandle globalUBName = "Global";
+            bindings->SetUniformBuffer(bindingsLayout, globalUBName, { .Handle = reinterpret_cast<uint64>(globalUB) });
+
+            // Pass uniform buffer.
+            auto passUB = frameGraph->GetPassUniformBuffer(meshPassType);
+            if (passUB == nullptr || passUB->GetConstantBuffer() == nullptr) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get pass \"%s\" CBV binding : buffer resource is invalid.", meshPassType);
+            }
+
+            static NameHandle passUBName = "Pass";
+            bindings->SetUniformBuffer(bindingsLayout, passUBName, { .Handle = reinterpret_cast<uint64>(passUB) });
+ 
+            // Material uniform buffer.
+            const UniformBuffer* materialUB = material->GetUniformBuffer();
+            if (materialUB == nullptr || materialUB->GetConstantBuffer() == nullptr) [[unlikely]]
             {
                 TAssertf(false, "Failed to get CBV binding : buffer resource is invalid.");
             }
 
-            // Get CBV.
-            RHIConstantBufferView* cbv = cbResource->GetCBV();
-            if (!cbv) [[unlikely]]
+            static NameHandle materialUBName = "Material";
+            bindings->SetUniformBuffer(bindingsLayout, materialUBName, { .Handle = reinterpret_cast<uint64>(materialUB) });
+
+            // Primitive uniform buffer
+            auto primitiveUB = sceneInfo->GetPrimitiveUniformBuffer();
+            if (primitiveUB == nullptr || primitiveUB->GetConstantBuffer() == nullptr) [[unlikely]]
             {
-                TAssertf(false, "Failed to get CBV binding : CBV is invalid.");
+                TAssertf(false, "Failed to get global CBV binding : buffer resource is invalid.");
             }
 
-            // Bind.
-            static NameHandle materialUBName = "Material";
-            bindings->SetUniformBuffer(bindingsLayout, materialUBName, { .Handle = cbv->GetOfflineHandle() });
-        }*/
+            static NameHandle primitiveUBName = "Primitive";
+            bindings->SetUniformBuffer(bindingsLayout, primitiveUBName, { .Handle = reinterpret_cast<uint64>(primitiveUB) });
+        }
 
         // Bind textures.
         auto const& textureParameterMap = material->GetTextureParameters();

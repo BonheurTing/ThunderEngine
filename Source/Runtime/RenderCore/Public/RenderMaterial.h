@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "CoreMinimal.h"
 #include "NameHandle.h"
 #include "Container.h"
 #include "Vector.h"
@@ -11,13 +10,13 @@
 namespace Thunder
 {
     class ShaderArchive;
-    struct ShaderCombination;
     class RHITexture;
     class RHIConstantBuffer;
     struct TShaderRegisterCounts;
     struct TGraphicsPipelineStateDescriptor;
     class GameMaterial;
     struct ShaderParameterMap;
+    class UniformBuffer;
 
     // FMaterialResource + FMaterialRenderProxy
     class RenderMaterial
@@ -36,7 +35,7 @@ namespace Thunder
 
         // ========== GPU Resource (RenderThread) ==========
         void UpdateUniformBuffer(const struct RenderContext* context, bool cacheMeshDrawCommand);
-        //RHIConstantBuffer* GetUniformBuffer() const { return UniformBuffer.GetConstantBuffer(); }
+        const UniformBuffer* GetUniformBuffer() const { return MaterialUniformBuffer; }
         RHITexture* GetTextureResource(const NameHandle& name);
         void CacheTextureResources();
 
@@ -60,7 +59,7 @@ namespace Thunder
         ShaderArchive* Archive { nullptr }; // shader module manages lifetime
         ShaderParameterMap* ParameterCache; //
 
-        class UniformBuffer* MaterialUniformBuffer;
+        UniformBuffer* MaterialUniformBuffer;
 
         // Cached resolved textures (render thread only)
         TMap<NameHandle, RHITexture*> TextureCaches;

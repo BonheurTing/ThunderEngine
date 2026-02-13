@@ -391,7 +391,7 @@ namespace Thunder
         {
             ShaderParameterMap* defaultParam = ShaderModule::GetPassDefaultParameters(pass);
             auto [newIt, success] = PassParameters.emplace(pass, defaultParam);
-            TAssert(success, "Pass parameter already exists." );
+            TAssertf(success, "Pass parameter already exists." );
             PassUniformBufferMap.emplace(pass, new UniformBuffer());
             return newIt->second;
         }
@@ -413,6 +413,17 @@ namespace Thunder
             return;
         }
         RenderModule::PackUniformBuffer(MainContext, layout, parameters, ub, false, ubName);
+    }
+
+    const UniformBuffer* FrameGraph::GetPassUniformBuffer(EMeshPass pass) const
+    {
+        auto it = PassUniformBufferMap.find(pass);
+        if (it == PassUniformBufferMap.end()) [[unlikely]]
+        {
+            TAssertf(false, "Pass \"%s\" unform buffer is not exists.", pass);
+            return nullptr;
+        }
+        return it->second;
     }
 
     void FrameGraph::InitializeRenderContexts(uint32 threadCount)

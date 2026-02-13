@@ -1,16 +1,15 @@
 ﻿#pragma once
 #include "Matrix.h"
 #include "MeshBatch.h"
-#include "RenderContext.h"
 #include "SceneView.h"
 #include "MeshPass.h"
 #include "MeshDrawCommand.h"
-#include "ShaderParameterMap.h"
-#include "UniformBuffer.h"
+#include "NameHandle.h"
 
 namespace Thunder
 {
     class RenderMaterial;
+    class UniformBuffer;
 
     class PrimitiveSceneInfo
     {
@@ -34,8 +33,9 @@ namespace Thunder
             StaticMeshCommandInfos[passType][meshBatchKey] = MeshDrawCommandInfo{ commandIndex };
         }
 
-        RENDERCORE_API void UpdatePrimitiveUniformBuffer();
-        RENDERCORE_API bool CacheMeshDrawCommand(RenderContext* context, EMeshPass meshPassType);
+        void UpdatePrimitiveUniformBuffer();
+        const UniformBuffer* GetPrimitiveUniformBuffer() const { return PrimitiveUniformBuffer; }
+        RENDERCORE_API bool CacheMeshDrawCommand(struct RenderContext* context, EMeshPass meshPassType);
         RENDERCORE_API bool IsMeshDrawCacheSupported() const  { return MeshDrawCacheSupported; }
 
     protected:
@@ -55,7 +55,7 @@ namespace Thunder
         TMap<MeshBatchKey, StaticMeshBatchRelevance*> StaticMeshRelevances;
         bool MeshDrawCacheSupported = false;
 
-        class UniformBuffer* PrimitiveUniformBuffer;
+        UniformBuffer* PrimitiveUniformBuffer;
     };
 
     class StaticMeshSceneInfo : public PrimitiveSceneInfo

@@ -4,7 +4,6 @@
 #include "RenderMaterial.h"
 #include "RenderMesh.h"
 #include "RenderModule.h"
-#include "RHICommand.h"
 #include "ShaderModule.h"
 #include "UniformBuffer.h"
 #include "Memory/TransientAllocator.h"

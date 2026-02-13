@@ -176,7 +176,7 @@ namespace Thunder
             bindings->SetUniformBuffer(bindingsLayout, passUBName, { .Handle = reinterpret_cast<uint64>(passUB) });
  
             // Material uniform buffer.
-            const UniformBuffer* materialUB = material->GetUniformBuffer();
+            const RHIUniformBuffer* materialUB = material->GetUniformBuffer();
             if (materialUB == nullptr || materialUB->GetConstantBuffer() == nullptr) [[unlikely]]
             {
                 TAssertf(false, "Failed to get CBV binding : buffer resource is invalid.");

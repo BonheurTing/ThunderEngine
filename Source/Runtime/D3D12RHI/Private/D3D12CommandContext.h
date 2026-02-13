@@ -35,6 +35,7 @@ namespace Thunder
 		void SetViewports(TArray<RHIViewport*> viewports) override;
 		void SetPipelineState(TRHIPipelineState* pso) override;
 		void BindSRVTable(TShaderRegisterCounts const& shaderRC, const uint64* srvHandles, uint32 count) override;
+		void BindCBVs(TShaderRegisterCounts const& shaderRC, const uint64* cbvHandles, uint32 count) override;
 
 		// Copy
 		void CopyBufferRegion(RHIResource* dst, uint64 dstOffset, RHIResource* src, uint64 srcOffset, uint64 numBytes) override;

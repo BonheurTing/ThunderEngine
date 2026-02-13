@@ -52,7 +52,7 @@ namespace Thunder
             Views[i] = new (TMemory::Malloc<SceneView>()) SceneView(this, static_cast<EViewType>(i));
         }
         GlobalParameters = new ShaderParameterMap;
-        GlobalUniformBuffer = new UniformBuffer();
+        GlobalUniformBuffer = new RHIUniformBuffer();
     }
 
     FrameGraph::~FrameGraph()
@@ -392,7 +392,7 @@ namespace Thunder
             ShaderParameterMap* defaultParam = ShaderModule::GetPassDefaultParameters(pass);
             auto [newIt, success] = PassParameters.emplace(pass, defaultParam);
             TAssertf(success, "Pass parameter already exists." );
-            PassUniformBufferMap.emplace(pass, new UniformBuffer());
+            PassUniformBufferMap.emplace(pass, new RHIUniformBuffer());
             return newIt->second;
         }
         return it->second;
@@ -406,7 +406,7 @@ namespace Thunder
             TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"%s\" not found.", ubName);
             return;
         }
-        UniformBuffer* ub = PassUniformBufferMap.at(pass);
+        RHIUniformBuffer* ub = PassUniformBufferMap.at(pass);
         if (ub == nullptr) [[unlikely]]
         {
             TAssertf(false, "Cannot update uniform buffer: PassUniformBufferMap \"%s\" not found.", pass);
@@ -415,7 +415,7 @@ namespace Thunder
         RenderModule::PackUniformBuffer(MainContext, layout, parameters, ub, false, ubName);
     }
 
-    const UniformBuffer* FrameGraph::GetPassUniformBuffer(EMeshPass pass) const
+    const RHIUniformBuffer* FrameGraph::GetPassUniformBuffer(EMeshPass pass) const
     {
         auto it = PassUniformBufferMap.find(pass);
         if (it == PassUniformBufferMap.end()) [[unlikely]]

@@ -215,9 +215,9 @@ namespace Thunder
             mFrameGraph->AddPass(EVENT_NAME("ShadowDepth"), std::move(operations), [this]()
             {
                 // Set pass parameters and update uniform buffer.
-                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::PrePass);
+                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::ShadowPass);
                 passParameters->SetVectorParameter("PassParameters0", TVector4f(1,2,3,1));
-                mFrameGraph->UpdatePassParameters(EMeshPass::PrePass, passParameters, "ShadowDepth");
+                mFrameGraph->UpdatePassParameters(EMeshPass::ShadowPass, passParameters, "ShadowDepth");
 
                 auto context = mFrameGraph->GetMainContext();
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::ShadowPass);
@@ -242,9 +242,9 @@ namespace Thunder
             mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
             {
                 // Set pass parameters and update uniform buffer.
-                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::PrePass);
+                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::BasePass);
                 passParameters->SetVectorParameter("PassParameters0", TVector4f(1,2,3,1));
-                mFrameGraph->UpdatePassParameters(EMeshPass::PrePass, passParameters, "PrePass");
+                mFrameGraph->UpdatePassParameters(EMeshPass::BasePass, passParameters, "BasePass");
 
                 auto mainContext = mFrameGraph->GetMainContext();
                 mFrameGraph->ResolveVisibility(EViewType::MainView, EMeshPass::BasePass);

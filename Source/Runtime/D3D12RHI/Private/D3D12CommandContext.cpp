@@ -242,6 +242,27 @@ namespace Thunder
 		CommandList->SetGraphicsRootDescriptorTable(rootSignature->GetSRVRootParameterIndex(), onlineGpuHandleStart);
 	}
 
+	void D3D12CommandContext::BindCBVs(TShaderRegisterCounts const& shaderRC, const uint64* cbvGpuAddresses, uint32 count)
+	{
+		if (count == 0) [[unlikely]]
+		{
+			return;
+		}
+		TAssertf(StateCache != nullptr, "State cache is not initialized");
+
+		// Get root signature.
+		TD3D12RootSignature* rootSignature = BindRootSignature(shaderRC);
+		uint32 cbvRootParamBegin = rootSignature->GetCBVRootParameterIndexBegin();
+
+		// CBVs are declared as individual root descriptors in the root signature,
+		// so we bind each one with SetGraphicsRootConstantBufferView.
+		for (uint32 slotIndex = 0; slotIndex < count; ++slotIndex)
+		{
+			D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(cbvGpuAddresses[slotIndex]);
+			CommandList->SetGraphicsRootConstantBufferView(cbvRootParamBegin + slotIndex, gpuAddress);
+		}
+	}
+
 	void D3D12CommandContext::CopyBufferRegion(RHIResource* dst, uint64 dstOffset, RHIResource* src, uint64 srcOffset, uint64 numBytes)
 	{
 		const auto d3d12Dst = static_cast<ID3D12Resource*>(dst->GetResource());

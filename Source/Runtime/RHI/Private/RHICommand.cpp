@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "ShaderArchive.h"
+#include "UniformBuffer.h"
 
 namespace Thunder
 {
@@ -22,6 +23,8 @@ namespace Thunder
 
         // Build and set SRV table.
         BindSRVTable(cmdList);
+
+        BindCBV(cmdList);
 
         return;
 
@@ -87,6 +90,51 @@ namespace Thunder
             uint32 srvCount = maxSlotUsedCount;
             TShaderRegisterCounts const& shaderRC = Shader->GetSubShader()->GetShaderRegisterCounts();
             cmdList->BindSRVTable(shaderRC, srvHandles, srvCount);
+        }
+    }
+
+    void RHIDrawCommand::BindCBV(RHICommandContext* cmdList)
+    {
+        // Get bindings.
+        constexpr uint32 kMaxCBVCount = MAX_CBS;
+        SingleShaderBindings* bindings = Bindings.GetSingleShaderBindings();
+        ShaderBindingsLayout* bindingsLayout = Shader->GetSubShader()->GetArchive()->GetBindingsLayout();
+        auto const& cbvMap = bindingsLayout->GetUniformBuffersIndexMap();
+
+        // Prepare GPU virtual address array for root descriptor binding.
+        uint64 cbvGpuAddresses[kMaxCBVCount] = {}; // Zero initialized.
+        uint32 maxSlotUsedCount = 0;
+        for (const auto& cbvSlot : cbvMap | std::views::keys)
+        {
+            if (cbvSlot >= kMaxCBVCount)
+            {
+                TAssertf(false, "CBV slot %u exceeds max count %u, binding skipped.", cbvSlot, kMaxCBVCount);
+                continue;
+            }
+
+            // Get the uniform buffer from bindings.
+            uint64 ubRawPtr = bindings->GetUniformBuffer(bindingsLayout, cbvSlot).Handle;
+            RHIUniformBuffer* uniformBuffer = reinterpret_cast<RHIUniformBuffer*>(ubRawPtr);
+            RHIConstantBuffer* constantBuffer = uniformBuffer->GetConstantBuffer();
+            if (constantBuffer == nullptr) [[unlikely]]
+            {
+                TAssertf(false, "CBV slot %u: uniform buffer has no constant buffer.", cbvSlot);
+                cbvGpuAddresses[cbvSlot] = 0;
+                continue;
+            }
+
+            // Get the GPU virtual address of the underlying D3D12 resource.
+            auto* d3d12Resource = static_cast<ID3D12Resource*>(constantBuffer->GetResource());
+            cbvGpuAddresses[cbvSlot] = d3d12Resource->GetGPUVirtualAddress();
+            maxSlotUsedCount = std::max<uint32>(cbvSlot + 1, maxSlotUsedCount);
+        }
+
+        // Bind CBVs as root descriptors.
+        if (maxSlotUsedCount > 0)
+        {
+            uint32 cbvCount = maxSlotUsedCount;
+            TShaderRegisterCounts const& shaderRC = Shader->GetSubShader()->GetShaderRegisterCounts();
+            cmdList->BindCBVs(shaderRC, cbvGpuAddresses, cbvCount);
         }
     }
 }

@@ -14,7 +14,7 @@ namespace Thunder
 {
     struct RenderContext;
     class IRHICommand;
-    class UniformBuffer;
+    class RHIUniformBuffer;
 
     class RENDERCORE_API PassOperations
     {
@@ -107,8 +107,8 @@ namespace Thunder
         void UpdateGlobalUniformBuffer();
         ShaderParameterMap* GetPassParameters(EMeshPass pass);
         void UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName);
-        const UniformBuffer* GetGlobalUniformBuffer() const { return GlobalUniformBuffer; }
-        const UniformBuffer* GetPassUniformBuffer(EMeshPass pass) const;
+        const RHIUniformBuffer* GetGlobalUniformBuffer() const { return GlobalUniformBuffer; }
+        const RHIUniformBuffer* GetPassUniformBuffer(EMeshPass pass) const;
          
     private:
         // Initialize render contexts for multi-threading
@@ -152,9 +152,9 @@ namespace Thunder
 
         // Uniform buffer.
         ShaderParameterMap* GlobalParameters = nullptr;
-        UniformBuffer* GlobalUniformBuffer;
+        RHIUniformBuffer* GlobalUniformBuffer;
         TMap<EMeshPass, ShaderParameterMap*> PassParameters;
-        TMap<EMeshPass, UniformBuffer*> PassUniformBufferMap;
+        TMap<EMeshPass, RHIUniformBuffer*> PassUniformBufferMap;
     };
 
     #define EVENT_NAME(Name) Name

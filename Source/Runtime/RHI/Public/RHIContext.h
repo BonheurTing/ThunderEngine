@@ -31,6 +31,7 @@ namespace Thunder
     	virtual void SetViewports(TArray<RHIViewport*> viewports) = 0;
     	virtual void SetPipelineState(TRHIPipelineState* pso) = 0;
     	virtual void BindSRVTable(TShaderRegisterCounts const& shaderRC, const uint64* srvHandles, uint32 count) = 0;
+    	virtual void BindCBVs(TShaderRegisterCounts const& shaderRC, const uint64* cbvHandles, uint32 count) = 0;
 
     	// Copy
     	virtual void CopyBufferRegion(RHIResource* dst, uint64 dstOffset, RHIResource* src, uint64 srcOffset, uint64 numBytes) = 0;

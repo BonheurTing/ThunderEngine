@@ -18,7 +18,7 @@ namespace Thunder
     RenderMaterial::RenderMaterial()
     {
         ParameterCache = new ShaderParameterMap();
-        MaterialUniformBuffer = new UniformBuffer();
+        MaterialUniformBuffer = new RHIUniformBuffer();
     }
 
     RenderMaterial::~RenderMaterial()

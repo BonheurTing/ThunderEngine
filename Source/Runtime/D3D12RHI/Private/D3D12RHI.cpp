@@ -164,6 +164,11 @@ namespace Thunder
         
     }
 
+    static inline uint32 Align256(uint32 size)
+    {
+        return (size + 255u) & ~255u;
+    }
+
     void D3D12DynamicRHI::RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize)
     {
         TAssert(Device != nullptr);
@@ -175,7 +180,7 @@ namespace Thunder
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
         D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
         cbvDesc.BufferLocation = inst->GetGPUVirtualAddress();
-        cbvDesc.SizeInBytes = 256;//bufferSize + 256 - bufferSize % 256;
+        cbvDesc.SizeInBytes = Align256(bufferSize);
         Device->CreateConstantBufferView(&cbvDesc, cbvDescriptor.Handle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
 
@@ -542,7 +547,9 @@ namespace Thunder
         ID3D12Resource* constantBuffer;
         constexpr D3D12_HEAP_PROPERTIES heapType = {D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1};
 
-        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(size);
+        const uint32 alignedSize = Align256(size);
+        
+        const auto desc = CD3DX12_RESOURCE_DESC::Buffer(alignedSize);
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                             D3D12_HEAP_FLAG_NONE,
                                                             &desc, //todo: D3D12_HEAP_FLAG_NONE
@@ -552,7 +559,7 @@ namespace Thunder
     
         if (SUCCEEDED(hr))
         {
-            return MakeRefCount<D3D12RHIConstantBuffer>(RHIResourceDescriptor::Buffer(size), constantBuffer);
+            return MakeRefCount<D3D12RHIConstantBuffer>(RHIResourceDescriptor::Buffer(alignedSize), constantBuffer);
         }
         else
         {

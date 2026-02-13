@@ -13,7 +13,7 @@ namespace Thunder
     PrimitiveSceneInfo::PrimitiveSceneInfo(bool meshDrawCacheSupported) :
             MeshDrawCacheSupported(meshDrawCacheSupported)
     {
-        PrimitiveUniformBuffer = new UniformBuffer();
+        PrimitiveUniformBuffer = new RHIUniformBuffer();
     }
 
     PrimitiveSceneInfo::~PrimitiveSceneInfo()
@@ -25,7 +25,7 @@ namespace Thunder
         }
     }
 
-    void PrimitiveSceneInfo::UpdatePrimitiveUniformBuffer()
+    void PrimitiveSceneInfo::UpdatePrimitiveUniformBuffer() const
     {
         const auto layout = ShaderModule::GetPrimitiveUniformBufferLayout();
         if (!layout) [[unlikely]]

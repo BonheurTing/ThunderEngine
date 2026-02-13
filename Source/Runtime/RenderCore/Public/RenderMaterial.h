@@ -16,7 +16,7 @@ namespace Thunder
     struct TGraphicsPipelineStateDescriptor;
     class GameMaterial;
     struct ShaderParameterMap;
-    class UniformBuffer;
+    class RHIUniformBuffer;
 
     // FMaterialResource + FMaterialRenderProxy
     class RenderMaterial
@@ -35,7 +35,7 @@ namespace Thunder
 
         // ========== GPU Resource (RenderThread) ==========
         void UpdateUniformBuffer(const struct RenderContext* context, bool cacheMeshDrawCommand);
-        const UniformBuffer* GetUniformBuffer() const { return MaterialUniformBuffer; }
+        const RHIUniformBuffer* GetUniformBuffer() const { return MaterialUniformBuffer; }
         RHITexture* GetTextureResource(const NameHandle& name);
         void CacheTextureResources();
 
@@ -59,7 +59,7 @@ namespace Thunder
         ShaderArchive* Archive { nullptr }; // shader module manages lifetime
         ShaderParameterMap* ParameterCache; //
 
-        UniformBuffer* MaterialUniformBuffer;
+        RHIUniformBuffer* MaterialUniformBuffer;
 
         // Cached resolved textures (render thread only)
         TMap<NameHandle, RHITexture*> TextureCaches;

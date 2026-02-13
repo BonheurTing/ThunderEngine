@@ -3,7 +3,7 @@
 
 namespace Thunder
 {
-    bool UniformBuffer::Create(uint32 bufferSize)
+    bool RHIUniformBuffer::Create(uint32 bufferSize)
     {
         ConstantBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic);
         if (!ConstantBuffer) [[unlikely]]
@@ -11,11 +11,11 @@ namespace Thunder
             TAssertf(false, "Failed to create constant buffer (size: %u).", bufferSize);
             return false;
         }
-        RHICreateConstantBufferView(*ConstantBuffer.Get(), bufferSize);
+        RHICreateConstantBufferView(*(ConstantBuffer.Get()), bufferSize);
         return true;
     }
 
-    bool UniformBuffer::Update(uint32 bufferSize)
+    bool RHIUniformBuffer::Update(uint32 bufferSize)
     {
         // Defer-delete the old buffer so the GPU can finish using it.
         if (ConstantBuffer.IsValid())

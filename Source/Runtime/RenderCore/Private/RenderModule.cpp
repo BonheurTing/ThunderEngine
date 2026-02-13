@@ -136,7 +136,7 @@ namespace Thunder
 	}
 
 	void RenderModule::PackUniformBuffer(const RenderContext* context, const UniformBufferLayout* layout,
-		const ShaderParameterMap* parameterMap, UniformBuffer* uniformBuffer, bool cacheMeshDrawCommand, const String& ubName)
+		const ShaderParameterMap* parameterMap, RHIUniformBuffer* uniformBuffer, bool cacheMeshDrawCommand, const String& ubName)
 	{
 		uint32 const bufferSize = layout->GetTotalSize();
 		if (bufferSize == 0) [[unlikely]]

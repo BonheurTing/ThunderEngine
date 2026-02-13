@@ -1,6 +1,8 @@
 #pragma optimize("", off)
 #include "FrameGraph.h"
 #include <algorithm>
+#include <UniformBuffer.h>
+
 #include "RenderTexture.h"
 #include "RenderContext.h"
 #include "RHICommand.h"
@@ -50,6 +52,7 @@ namespace Thunder
             Views[i] = new (TMemory::Malloc<SceneView>()) SceneView(this, static_cast<EViewType>(i));
         }
         GlobalParameters = new ShaderParameterMap;
+        GlobalUniformBuffer = new UniformBuffer();
     }
 
     FrameGraph::~FrameGraph()
@@ -65,6 +68,11 @@ namespace Thunder
             delete GlobalParameters;
             GlobalParameters = nullptr;
         }
+        if (GlobalUniformBuffer)
+        {
+            delete GlobalUniformBuffer;
+            GlobalUniformBuffer = nullptr;
+        }
 
         for (auto& passParam : PassParameters | std::views::values)
         {
@@ -74,6 +82,17 @@ namespace Thunder
                 passParam = nullptr;
             }
         }
+        PassParameters.clear();
+
+        for (auto& ub : PassUniformBufferMap | std::views::values)
+        {
+            if (ub)
+            {
+                delete ub;
+                ub = nullptr;
+            }
+        }
+        PassUniformBufferMap.clear();
     }
 
     void FrameGraph::Reset()
@@ -373,13 +392,13 @@ namespace Thunder
             ShaderParameterMap* defaultParam = ShaderModule::GetPassDefaultParameters(pass);
             auto [newIt, success] = PassParameters.emplace(pass, defaultParam);
             TAssert(success, "Pass parameter already exists." );
-            PassUniformBufferMap.emplace(pass, nullptr);
+            PassUniformBufferMap.emplace(pass, new UniformBuffer());
             return newIt->second;
         }
         return it->second;
     }
 
-    void FrameGraph::UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName) const
+    void FrameGraph::UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName)
     {
         const auto layout = ShaderModule::GetPassUniformBufferLayout(pass);
         if (!layout) [[unlikely]]
@@ -387,7 +406,12 @@ namespace Thunder
             TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"%s\" not found.", ubName);
             return;
         }
-        RHIConstantBufferRef ub = PassUniformBufferMap.at(pass);
+        UniformBuffer* ub = PassUniformBufferMap.at(pass);
+        if (ub == nullptr) [[unlikely]]
+        {
+            TAssertf(false, "Cannot update uniform buffer: PassUniformBufferMap \"%s\" not found.", pass);
+            return;
+        }
         RenderModule::PackUniformBuffer(MainContext, layout, parameters, ub, false, ubName);
     }
 

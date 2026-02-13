@@ -154,7 +154,7 @@ namespace Thunder
         material->UpdateUniformBuffer(context, cacheMeshDrawCommand);
 
         // Bind Constant Buffer
-        {
+        /*{
             // Get resource.
             RHIConstantBuffer* cbResource = material->GetUniformBuffer();
             if (!cbResource) [[unlikely]]
@@ -172,7 +172,7 @@ namespace Thunder
             // Bind.
             static NameHandle materialUBName = "Material";
             bindings->SetUniformBuffer(bindingsLayout, materialUBName, { .Handle = cbv->GetOfflineHandle() });
-        }
+        }*/
 
         // Bind textures.
         auto const& textureParameterMap = material->GetTextureParameters();

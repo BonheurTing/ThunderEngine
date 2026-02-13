@@ -31,7 +31,7 @@ namespace Thunder
 
     	// Uniform buffer.
     	static void PackUniformBuffer(const RenderContext* context, const class UniformBufferLayout* layout
-    		, const struct ShaderParameterMap* parameterMap, TRefCountPtr<class RHIConstantBuffer>& uniformBuffer, bool cacheMeshDrawCommand, const String& ubName);
+    		, const struct ShaderParameterMap* parameterMap, class UniformBuffer* uniformBuffer, bool cacheMeshDrawCommand, const String& ubName);
 
     private:
     	std::array<MeshPassProcessorRef, static_cast<size_t>(EMeshPass::Num)> MeshPassProcessors;

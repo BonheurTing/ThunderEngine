@@ -6,7 +6,7 @@
 #include "MeshPass.h"
 #include "MeshDrawCommand.h"
 #include "ShaderParameterMap.h"
-
+#include "UniformBuffer.h"
 
 namespace Thunder
 {
@@ -15,8 +15,9 @@ namespace Thunder
     class PrimitiveSceneInfo
     {
     public:
-        RENDERCORE_API PrimitiveSceneInfo(bool meshDrawCacheSupported = false) : MeshDrawCacheSupported(meshDrawCacheSupported) {}
-        virtual ~PrimitiveSceneInfo() = default;
+        RENDERCORE_API PrimitiveSceneInfo(bool meshDrawCacheSupported = false);
+
+        virtual ~PrimitiveSceneInfo();
 
         void SetTransform(const TMatrix44f& matrix) { Transform = matrix; }
 
@@ -54,7 +55,7 @@ namespace Thunder
         TMap<MeshBatchKey, StaticMeshBatchRelevance*> StaticMeshRelevances;
         bool MeshDrawCacheSupported = false;
 
-        TRefCountPtr<class RHIConstantBuffer> PrimitiveUniformBuffer;
+        class UniformBuffer* PrimitiveUniformBuffer;
     };
 
     class StaticMeshSceneInfo : public PrimitiveSceneInfo

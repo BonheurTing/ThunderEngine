@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-//#include "IRenderer.h"
 #include "MeshDrawCommand.h"
 #include "MeshPass.h"
 #include "RenderResource.h"
@@ -106,7 +105,7 @@ namespace Thunder
         struct ShaderParameterMap* GetGlobalParameters() const { return GlobalParameters; }
         void UpdateGlobalUniformBuffer();
         ShaderParameterMap* GetPassParameters(EMeshPass pass);
-        void UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName) const;
+        void UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName);
         
     private:
         // Initialize render contexts for multi-threading
@@ -150,9 +149,9 @@ namespace Thunder
 
         // Uniform buffer.
         ShaderParameterMap* GlobalParameters = nullptr;
-        RHIConstantBufferRef GlobalUniformBuffer;
+        class UniformBuffer* GlobalUniformBuffer;
         TMap<EMeshPass, ShaderParameterMap*> PassParameters;
-        TMap<EMeshPass, RHIConstantBufferRef> PassUniformBufferMap;
+        TMap<EMeshPass, UniformBuffer*> PassUniformBufferMap;
     };
 
     #define EVENT_NAME(Name) Name

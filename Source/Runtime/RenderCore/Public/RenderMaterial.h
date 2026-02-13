@@ -6,7 +6,6 @@
 #include "Guid.h"
 #include "MeshPass.h"
 #include "RHI.h"
-#include "Templates/RefCounting.h"
 #include "ShaderParameterMap.h"
 
 namespace Thunder
@@ -37,7 +36,7 @@ namespace Thunder
 
         // ========== GPU Resource (RenderThread) ==========
         void UpdateUniformBuffer(const struct RenderContext* context, bool cacheMeshDrawCommand);
-        RHIConstantBuffer* GetUniformBuffer() const { return UniformBuffer.Get(); }
+        //RHIConstantBuffer* GetUniformBuffer() const { return UniformBuffer.GetConstantBuffer(); }
         RHITexture* GetTextureResource(const NameHandle& name);
         void CacheTextureResources();
 
@@ -61,7 +60,7 @@ namespace Thunder
         ShaderArchive* Archive { nullptr }; // shader module manages lifetime
         ShaderParameterMap* ParameterCache; //
 
-        TRefCountPtr<RHIConstantBuffer> UniformBuffer;
+        class UniformBuffer* MaterialUniformBuffer;
 
         // Cached resolved textures (render thread only)
         TMap<NameHandle, RHITexture*> TextureCaches;

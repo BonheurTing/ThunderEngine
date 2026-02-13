@@ -9,6 +9,7 @@
 #include "ShaderParameterMap.h"
 #include "RenderContext.h"
 #include "RHIResource.h"
+#include "UniformBuffer.h"
 
 namespace Thunder
 {
@@ -135,7 +136,7 @@ namespace Thunder
 	}
 
 	void RenderModule::PackUniformBuffer(const RenderContext* context, const UniformBufferLayout* layout,
-		const ShaderParameterMap* parameterMap, RHIConstantBufferRef& uniformBuffer, bool cacheMeshDrawCommand, const String& ubName)
+		const ShaderParameterMap* parameterMap, UniformBuffer* uniformBuffer, bool cacheMeshDrawCommand, const String& ubName)
 	{
 		uint32 const bufferSize = layout->GetTotalSize();
 		if (bufferSize == 0) [[unlikely]]
@@ -143,20 +144,12 @@ namespace Thunder
 			return;
 		}
 
-		// Defer-delete the old buffer so the GPU can finish using it.
-		if (uniformBuffer)
+		// Deferred-delete the old buffer and create a new one.
+		if (!uniformBuffer->Update(bufferSize)) [[unlikely]]
 		{
-			RHIDeferredDeleteResource(std::move(uniformBuffer));
-		}
-
-		// Create new constant buffer.
-		uniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic).Get(); // Todo : dynamic draw commands should use a transient allocator.
-		if (!uniformBuffer) [[unlikely]]
-		{
-			TAssertf(false, "Failed to create primitive uniform buffer.");
+			TAssertf(false, "Failed to create uniform buffer for \"%s\".", ubName.c_str());
 			return;
 		}
-		RHICreateConstantBufferView(*uniformBuffer.Get(), bufferSize);
 
         // Allocate temporary buffer for packing.
         byte* packedData = (cacheMeshDrawCommand) ?
@@ -231,7 +224,7 @@ namespace Thunder
         }
 
 		// Update buffer data.
-		bool succeeded = RHIUpdateSharedMemoryResource(uniformBuffer.Get(), packedData, bufferSize, 0);
+		bool succeeded = RHIUpdateSharedMemoryResource(uniformBuffer->GetConstantBuffer(), packedData, bufferSize, 0);
 		if (!succeeded) [[unlikely]]
 		{
 			TAssertf(false, "Failed to update constant buffer for \"%s\".", ubName);

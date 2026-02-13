@@ -6,10 +6,26 @@
 #include "RenderModule.h"
 #include "RHICommand.h"
 #include "ShaderModule.h"
+#include "UniformBuffer.h"
 #include "Memory/TransientAllocator.h"
 
 namespace Thunder
 {
+    PrimitiveSceneInfo::PrimitiveSceneInfo(bool meshDrawCacheSupported) :
+            MeshDrawCacheSupported(meshDrawCacheSupported)
+    {
+        PrimitiveUniformBuffer = new UniformBuffer();
+    }
+
+    PrimitiveSceneInfo::~PrimitiveSceneInfo()
+    {
+        if (PrimitiveUniformBuffer)
+        {
+            delete PrimitiveUniformBuffer;
+            PrimitiveUniformBuffer = nullptr;
+        }
+    }
+
     void PrimitiveSceneInfo::UpdatePrimitiveUniformBuffer()
     {
         const auto layout = ShaderModule::GetPrimitiveUniformBufferLayout();
@@ -25,20 +41,12 @@ namespace Thunder
             return;
         }
 
-        // Defer-delete the old buffer so the GPU can finish using it.
-        if (PrimitiveUniformBuffer)
-        {
-            RHIDeferredDeleteResource(std::move(PrimitiveUniformBuffer));
-        }
-
-        // Create new constant buffer.
-        PrimitiveUniformBuffer = RHICreateConstantBuffer(bufferSize, EBufferCreateFlags::Dynamic).Get(); // Todo : dynamic draw commands should use a transient allocator.
-        if (!PrimitiveUniformBuffer) [[unlikely]]
+        // Deferred-delete the old buffer and create a new one.
+        if (!PrimitiveUniformBuffer->Update(bufferSize)) [[unlikely]]
         {
             TAssertf(false, "Failed to create primitive uniform buffer.");
             return;
         }
-        RHICreateConstantBufferView(*PrimitiveUniformBuffer.Get(), bufferSize);
 
         // Pack and upload CPU data.
         byte* packedData = static_cast<byte*>(TMemory::Malloc(bufferSize, 16));
@@ -48,7 +56,7 @@ namespace Thunder
         SetPrimitiveParameter(layout, "LocalToWorld1", Transform.GetRow(1), packedData);
         SetPrimitiveParameter(layout, "LocalToWorld2", Transform.GetRow(2), packedData);
 
-        bool succeeded = RHIUpdateSharedMemoryResource(PrimitiveUniformBuffer.Get(), packedData, bufferSize, 0);
+        bool succeeded = RHIUpdateSharedMemoryResource(PrimitiveUniformBuffer->GetConstantBuffer(), packedData, bufferSize, 0);
         if (!succeeded) [[unlikely]]
         {
             TAssertf(false, "Failed to update primitive uniform buffer.");

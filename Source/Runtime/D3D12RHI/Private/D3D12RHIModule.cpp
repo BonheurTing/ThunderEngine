@@ -2,7 +2,6 @@
 #include "D3D12RHI.h"
 #include "D3D12PipelineState.h"
 #include "D3D12RootSignature.h"
-#include "UniformBuffer.h"
 
 namespace Thunder
 {
@@ -14,8 +13,6 @@ namespace Thunder
 		
 		DynamicRHI = new D3D12DynamicRHI();
 		GDynamicRHI = DynamicRHI;
-
-		GUniformBufferManager = new UniformBufferManager();
 	}
 
 	void TD3D12RHIModule::ShutDown()

@@ -11,21 +11,27 @@
 #include "ShaderModule.h"
 #include "RenderModule.h"
 #include "ShaderBindingsLayout.h"
+#include "UniformBuffer.h"
 
 namespace Thunder
 {
     RenderMaterial::RenderMaterial()
-        : UniformBuffer(nullptr)
     {
         ParameterCache = new ShaderParameterMap();
+        MaterialUniformBuffer = new UniformBuffer();
     }
 
     RenderMaterial::~RenderMaterial()
     {
-        // RHI资源会通过RefCount自动释放
         if (ParameterCache)
         {
             delete ParameterCache;
+            ParameterCache = nullptr;
+        }
+        if (MaterialUniformBuffer)
+        {
+            delete MaterialUniformBuffer;
+            MaterialUniformBuffer = nullptr;
         }
     }
 
@@ -77,7 +83,7 @@ namespace Thunder
             return;
         }
 
-        RenderModule::PackUniformBuffer(context, ubLayout, ParameterCache, UniformBuffer, cacheMeshDrawCommand, Archive->GetName().ToString());
+        RenderModule::PackUniformBuffer(context, ubLayout, ParameterCache, MaterialUniformBuffer, cacheMeshDrawCommand, Archive->GetName().ToString());
     }
 
     RHITexture* RenderMaterial::GetTextureResource(const NameHandle& name)

@@ -1,6 +1,8 @@
-#include "D3D12UploadHeapAllocator.h"
+#include "D3D12Allocator.h"
 
 #include <bit>
+
+#include "D3D12CommandContext.h"
 
 namespace Thunder
 {
@@ -129,7 +131,7 @@ namespace Thunder
         }
     }
 
-    D3D12ResourceLocation D3D12SmallBlockAllocator::Allocate(uint32 size)
+    void* D3D12SmallBlockAllocator::Allocate(uint32 size, D3D12ResourceLocation& outLocation)
     {
         TAssert(size > 0 && size <= UPLOAD_HEAP_SMALL_BLOCK_THRESHOLD);
 
@@ -158,15 +160,14 @@ namespace Thunder
 
             uint32 offset = blockIndex * bucket.BlockSize;
 
-            D3D12ResourceLocation location;
-            location.Resource = page->Resource.Get();
-            location.GPUVirtualAddress = page->GPUBaseAddress + offset;
-            location.CPUAddress = static_cast<uint8*>(page->CPUBaseAddress) + offset;
-            location.OffsetInResource = offset;
-            location.AllocatedSize = bucket.BlockSize;
-            location.BucketIndex = bucketIndex;
-            location.PageIndex = pageIndex;
-            return location;
+            outLocation.Resource = page->Resource.Get();
+            outLocation.GPUVirtualAddress = page->GPUBaseAddress + offset;
+            outLocation.CPUAddress = static_cast<uint8*>(page->CPUBaseAddress) + offset;
+            outLocation.OffsetInResource = offset;
+            outLocation.AllocatedSize = bucket.BlockSize;
+            outLocation.BucketIndex = bucketIndex;
+            outLocation.PageIndex = pageIndex;
+            return outLocation.CPUAddress;
         }
 
         // No free blocks available. Try to allocate from existing pages with fresh capacity.
@@ -181,15 +182,14 @@ namespace Thunder
 
                 uint32 offset = blockIndex * bucket.BlockSize;
 
-                D3D12ResourceLocation location;
-                location.Resource = page->Resource.Get();
-                location.GPUVirtualAddress = page->GPUBaseAddress + offset;
-                location.CPUAddress = static_cast<uint8*>(page->CPUBaseAddress) + offset;
-                location.OffsetInResource = offset;
-                location.AllocatedSize = bucket.BlockSize;
-                location.BucketIndex = bucketIndex;
-                location.PageIndex = pageIndex;
-                return location;
+                outLocation.Resource = page->Resource.Get();
+                outLocation.GPUVirtualAddress = page->GPUBaseAddress + offset;
+                outLocation.CPUAddress = static_cast<uint8*>(page->CPUBaseAddress) + offset;
+                outLocation.OffsetInResource = offset;
+                outLocation.AllocatedSize = bucket.BlockSize;
+                outLocation.BucketIndex = bucketIndex;
+                outLocation.PageIndex = pageIndex;
+                return outLocation.CPUAddress;
             }
         }
 
@@ -197,8 +197,8 @@ namespace Thunder
         UploadHeapPage* newPage = AllocateNewPage(bucketIndex);
         if (!newPage) [[unlikely]]
         {
-            D3D12ResourceLocation invalid;
-            return invalid;
+            outLocation.Invalidate();
+            return nullptr;
         }
 
         uint16 pageIndex = static_cast<uint16>(bucket.Pages.size());
@@ -209,15 +209,14 @@ namespace Thunder
 
         uint32 offset = blockIndex * bucket.BlockSize;
 
-        D3D12ResourceLocation location;
-        location.Resource = newPage->Resource.Get();
-        location.GPUVirtualAddress = newPage->GPUBaseAddress + offset;
-        location.CPUAddress = static_cast<uint8*>(newPage->CPUBaseAddress) + offset;
-        location.OffsetInResource = offset;
-        location.AllocatedSize = bucket.BlockSize;
-        location.BucketIndex = bucketIndex;
-        location.PageIndex = pageIndex;
-        return location;
+        outLocation.Resource = newPage->Resource.Get();
+        outLocation.GPUVirtualAddress = newPage->GPUBaseAddress + offset;
+        outLocation.CPUAddress = static_cast<uint8*>(newPage->CPUBaseAddress) + offset;
+        outLocation.OffsetInResource = offset;
+        outLocation.AllocatedSize = bucket.BlockSize;
+        outLocation.BucketIndex = bucketIndex;
+        outLocation.PageIndex = pageIndex;
+        return outLocation.CPUAddress;
     }
 
     void D3D12SmallBlockAllocator::Free(const D3D12ResourceLocation& allocation)
@@ -382,7 +381,7 @@ namespace Thunder
         return entry;
     }
 
-    D3D12ResourceLocation D3D12BigBlockAllocator::Allocate(uint32 size)
+    void* D3D12BigBlockAllocator::Allocate(uint32 size, D3D12ResourceLocation& outLocation)
     {
         const uint32 alignedSize = Align256(size);
 
@@ -399,21 +398,18 @@ namespace Thunder
                 FreePool.erase(it);
             }
 
-            D3D12ResourceLocation location;
-            location.Resource = entry.Resource.Get();
-            location.GPUVirtualAddress = entry.GPUAddress;
-            location.CPUAddress = entry.CPUAddress;
-            location.OffsetInResource = 0;
-            location.AllocatedSize = entry.Size;
-            location.BucketIndex = UINT32_MAX;
-            location.PageIndex = 0;
+            outLocation.Resource = entry.Resource.Get();
+            outLocation.GPUVirtualAddress = entry.GPUAddress;
+            outLocation.CPUAddress = entry.CPUAddress;
+            outLocation.OffsetInResource = 0;
+            outLocation.AllocatedSize = entry.Size;
+            outLocation.BucketIndex = UINT32_MAX;
+            outLocation.PageIndex = 0;
 
-            // We need to prevent the ComPtr from releasing the resource.
-            // Store the ComPtr so it stays alive as long as the resource is in use.
-            // The caller is responsible for calling Free() which will reclaim it.
+            // Prevent ComPtr from releasing; caller owns the resource until Free().
             entry.Resource.Detach();
 
-            return location;
+            return outLocation.CPUAddress;
         }
 
         // No pooled resource available. Create a new one.
@@ -424,22 +420,21 @@ namespace Thunder
 
         if (!entry.Resource) [[unlikely]]
         {
-            D3D12ResourceLocation invalid;
-            return invalid;
+            outLocation.Invalidate();
+            return nullptr;
         }
 
-        D3D12ResourceLocation location;
-        location.Resource = entry.Resource.Get();
-        location.GPUVirtualAddress = entry.GPUAddress;
-        location.CPUAddress = entry.CPUAddress;
-        location.OffsetInResource = 0;
-        location.AllocatedSize = entry.Size;
-        location.BucketIndex = UINT32_MAX;
-        location.PageIndex = 0;
+        outLocation.Resource = entry.Resource.Get();
+        outLocation.GPUVirtualAddress = entry.GPUAddress;
+        outLocation.CPUAddress = entry.CPUAddress;
+        outLocation.OffsetInResource = 0;
+        outLocation.AllocatedSize = entry.Size;
+        outLocation.BucketIndex = UINT32_MAX;
+        outLocation.PageIndex = 0;
 
         entry.Resource.Detach();
 
-        return location;
+        return outLocation.CPUAddress;
     }
 
     void D3D12BigBlockAllocator::Free(const D3D12ResourceLocation& allocation)
@@ -507,21 +502,22 @@ namespace Thunder
     {
     }
 
-    D3D12ResourceLocation D3D12PersistentUploadHeapAllocator::Allocate(uint32 size)
+    void* D3D12PersistentUploadHeapAllocator::Allocate(uint32 size, D3D12ResourceLocation& outLocation)
     {
         if (size == 0) [[unlikely]]
         {
             TAssertf(false, "D3D12PersistentUploadHeapAllocator::Allocate: size must be > 0.");
-            return {};
+            outLocation.Invalidate();
+            return nullptr;
         }
 
         if (size <= UPLOAD_HEAP_SMALL_BLOCK_THRESHOLD)
         {
-            return SmallBlockAllocator.Allocate(size);
+            return SmallBlockAllocator.Allocate(size, outLocation);
         }
         else
         {
-            return BigBlockAllocator.Allocate(size);
+            return BigBlockAllocator.Allocate(size, outLocation);
         }
     }
 

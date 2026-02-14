@@ -1,9 +1,8 @@
 #pragma once
 
-#include "CoreMinimal.h"
-#include "D3D12RHICommon.h"
-#include "d3dx12.h"
 #include "Concurrent/Lock.h"
+#include "D3D12Resource.h"
+#include "D3D12RHICommon.h"
 
 #ifndef UPLOAD_HEAP_SMALL_BLOCK_THRESHOLD
 #define UPLOAD_HEAP_SMALL_BLOCK_THRESHOLD (64 * 1024)       // 64KB: SmallBlock/BigBlock boundary
@@ -23,23 +22,6 @@
 
 namespace Thunder
 {
-    // Allocation handle returned by the upload heap allocator.
-    // Represents a sub-region within a larger upload buffer (small block)
-    // or an entire committed resource (big block).
-    struct D3D12ResourceLocation
-    {
-        ID3D12Resource* Resource = nullptr;
-        D3D12_GPU_VIRTUAL_ADDRESS GPUVirtualAddress = 0;
-        void* CPUAddress = nullptr;
-        uint32 OffsetInResource = 0;
-        uint32 AllocatedSize = 0;
-        uint32 BucketIndex = UINT32_MAX;
-        uint16 PageIndex = 0;
-
-        bool IsValid() const { return Resource != nullptr; }
-        void Invalidate() { Resource = nullptr; CPUAddress = nullptr; GPUVirtualAddress = 0; }
-    };
-
     // A 2MB upload buffer page, sub-divided into equal-sized blocks.
     struct UploadHeapPage
     {
@@ -71,7 +53,8 @@ namespace Thunder
         D3D12SmallBlockAllocator(ID3D12Device* device);
         ~D3D12SmallBlockAllocator() override;
 
-        D3D12ResourceLocation Allocate(uint32 size);
+        // Allocate a block. Returns the CPU mapped address, or nullptr on failure.
+        void* Allocate(uint32 size, D3D12ResourceLocation& outLocation);
         void Free(const D3D12ResourceLocation& allocation);
 
         // Reclaim fully-free pages that have been idle for a while.
@@ -109,7 +92,8 @@ namespace Thunder
         D3D12BigBlockAllocator(ID3D12Device* device);
         ~D3D12BigBlockAllocator() override;
 
-        D3D12ResourceLocation Allocate(uint32 size);
+        // Allocate a committed upload buffer. Returns the CPU mapped address, or nullptr on failure.
+        void* Allocate(uint32 size, D3D12ResourceLocation& outLocation);
         void Free(const D3D12ResourceLocation& allocation);
 
         // Reclaim pooled resources that have been idle for a while.
@@ -132,7 +116,8 @@ namespace Thunder
         D3D12PersistentUploadHeapAllocator(ID3D12Device* device);
         ~D3D12PersistentUploadHeapAllocator() override;
 
-        D3D12ResourceLocation Allocate(uint32 size);
+        // Allocate upload heap memory. Returns the CPU mapped address, or nullptr on failure.
+        void* Allocate(uint32 size, D3D12ResourceLocation& outLocation);
         void Free(const D3D12ResourceLocation& allocation);
 
         // Call once per frame to reclaim idle resources.

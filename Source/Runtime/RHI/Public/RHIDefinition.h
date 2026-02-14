@@ -223,6 +223,16 @@ namespace Thunder
         DepthStencil = Depth | Stencil
     };
 
+    enum class EUniformBufferFlags : uint32
+    {
+        // the uniform buffer is temporary, used for a single draw call then discarded
+        UniformBuffer_SingleDraw = 0,
+        // the uniform buffer is used for multiple draw calls but only for the current frame
+        UniformBuffer_SingleFrame,
+        // the uniform buffer is used for multiple draw calls, possibly across multiple frames
+        UniformBuffer_MultiFrame,
+    };
+
     enum class EBufferCreateFlags : uint32
     {
         None                    = 0,

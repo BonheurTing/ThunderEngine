@@ -139,7 +139,9 @@ namespace Thunder
         TSet<PrimitiveSceneInfo*> SceneInfoUpdateSet[2]; // Game thread and render thread double buffer.
         TSet<PrimitiveSceneInfo*> SceneInfoRegistrationSet[2];
         TSet<PrimitiveSceneInfo*> SceneInfoUnregistrationSet[2];
-        TSet<PrimitiveSceneInfo*> SceneInfoCurrentUpdateSet;
+        TSet<PrimitiveSceneInfo*> SceneInfoCurrentUpdateSet; // Update CacheMeshDrawCommand
+
+        TSet<PrimitiveSceneInfo*> PrimitivesNeedingUniformBufferUpdate; // Update Primitive UniformBuffer
 
         // Command execution contexts.
         RenderContext* MainContext = nullptr;  // Main render thread context

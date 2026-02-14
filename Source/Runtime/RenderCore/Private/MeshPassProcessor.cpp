@@ -157,7 +157,7 @@ namespace Thunder
             // Global uniform buffer.
             auto frameGraph = context->GetFrameGraph();
             auto globalUB = frameGraph->GetGlobalUniformBuffer();
-            if (globalUB == nullptr || globalUB->GetConstantBuffer() == nullptr) [[unlikely]]
+            if (globalUB == nullptr || globalUB->GetResource() == nullptr) [[unlikely]]
             {
                 TAssertf(false, "Failed to get global CBV binding : buffer resource is invalid.");
             }
@@ -167,7 +167,7 @@ namespace Thunder
 
             // Pass uniform buffer.
             auto passUB = frameGraph->GetPassUniformBuffer(meshPassType);
-            if (passUB == nullptr || passUB->GetConstantBuffer() == nullptr) [[unlikely]]
+            if (passUB == nullptr || passUB->GetResource() == nullptr) [[unlikely]]
             {
                 TAssertf(false, "Failed to get pass \"%s\" CBV binding : buffer resource is invalid.", meshPassType);
             }
@@ -177,7 +177,7 @@ namespace Thunder
  
             // Material uniform buffer.
             const RHIUniformBuffer* materialUB = material->GetUniformBuffer();
-            if (materialUB == nullptr || materialUB->GetConstantBuffer() == nullptr) [[unlikely]]
+            if (materialUB == nullptr || materialUB->GetResource() == nullptr) [[unlikely]]
             {
                 TAssertf(false, "Failed to get CBV binding : buffer resource is invalid.");
             }
@@ -187,7 +187,7 @@ namespace Thunder
 
             // Primitive uniform buffer
             auto primitiveUB = sceneInfo->GetPrimitiveUniformBuffer();
-            if (primitiveUB == nullptr || primitiveUB->GetConstantBuffer() == nullptr) [[unlikely]]
+            if (primitiveUB == nullptr || primitiveUB->GetResource() == nullptr) [[unlikely]]
             {
                 TAssertf(false, "Failed to get global CBV binding : buffer resource is invalid.");
             }

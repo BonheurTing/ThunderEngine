@@ -27,6 +27,9 @@ namespace Thunder
         virtual ~DeferredShadingRenderer() = default;
         void Tick_RenderThread() override;
         void Setup() override;
+
+    private:
+        void UpdateAllPrimitiveSceneInfos();
     private:
         void InitViews();
         void Print(const std::string& message);

@@ -33,8 +33,9 @@ namespace Thunder
             StaticMeshCommandInfos[passType][meshBatchKey] = MeshDrawCommandInfo{ commandIndex };
         }
 
-        void UpdatePrimitiveUniformBuffer() const;
-        const RHIUniformBuffer* GetPrimitiveUniformBuffer() const { return PrimitiveUniformBuffer; }
+        RENDERCORE_API void CreateUniformBuffer();
+        RENDERCORE_API void UpdatePrimitiveUniformBuffer() const;
+        const RHIUniformBuffer* GetPrimitiveUniformBuffer() const { return PrimitiveUniformBuffer.IsValid() ? PrimitiveUniformBuffer.Get() : nullptr; }
         RENDERCORE_API bool CacheMeshDrawCommand(struct RenderContext* context, EMeshPass meshPassType);
         RENDERCORE_API bool IsMeshDrawCacheSupported() const  { return MeshDrawCacheSupported; }
 
@@ -55,7 +56,7 @@ namespace Thunder
         TMap<MeshBatchKey, StaticMeshBatchRelevance*> StaticMeshRelevances;
         bool MeshDrawCacheSupported = false;
 
-        RHIUniformBuffer* PrimitiveUniformBuffer;
+        TRefCountPtr<RHIUniformBuffer> PrimitiveUniformBuffer;
     };
 
     class StaticMeshSceneInfo : public PrimitiveSceneInfo

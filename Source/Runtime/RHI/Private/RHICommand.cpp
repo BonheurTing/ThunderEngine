@@ -1,9 +1,7 @@
 
 #pragma optimize("", off)
 #include "RHICommand.h"
-
 #include <algorithm>
-
 #include "ShaderArchive.h"
 #include "UniformBuffer.h"
 
@@ -115,7 +113,7 @@ namespace Thunder
             // Get the uniform buffer from bindings.
             uint64 ubRawPtr = bindings->GetUniformBuffer(bindingsLayout, cbvSlot).Handle;
             RHIUniformBuffer* uniformBuffer = reinterpret_cast<RHIUniformBuffer*>(ubRawPtr);
-            RHIConstantBuffer* constantBuffer = uniformBuffer->GetConstantBuffer();
+            void* constantBuffer = uniformBuffer->GetResource();
             if (constantBuffer == nullptr) [[unlikely]]
             {
                 TAssertf(false, "CBV slot %u: uniform buffer has no constant buffer.", cbvSlot);
@@ -124,7 +122,7 @@ namespace Thunder
             }
 
             // Get the GPU virtual address of the underlying D3D12 resource.
-            auto* d3d12Resource = static_cast<ID3D12Resource*>(constantBuffer->GetResource());
+            auto* d3d12Resource = static_cast<ID3D12Resource*>(constantBuffer);
             cbvGpuAddresses[cbvSlot] = d3d12Resource->GetGPUVirtualAddress();
             maxSlotUsedCount = std::max<uint32>(cbvSlot + 1, maxSlotUsedCount);
         }

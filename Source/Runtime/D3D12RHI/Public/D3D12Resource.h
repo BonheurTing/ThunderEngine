@@ -1,7 +1,7 @@
 #pragma once
 #include "Assertion.h"
 #include "d3d12.h"
-#include "RHIResource.h"
+#include "UniformBuffer.h"
 
 namespace Thunder
 {
@@ -14,6 +14,23 @@ namespace Thunder
     
     private:
         ComPtr<ID3D12Device> Device;
+    };
+
+    // Allocation handle returned by the upload heap allocator.
+    // Represents a sub-region within a larger upload buffer (small block)
+    // or an entire committed resource (big block).
+    struct D3D12ResourceLocation
+    {
+        ID3D12Resource* Resource = nullptr;
+        D3D12_GPU_VIRTUAL_ADDRESS GPUVirtualAddress = 0;
+        void* CPUAddress = nullptr;
+        uint32 OffsetInResource = 0;
+        uint32 AllocatedSize = 0;
+        uint32 BucketIndex = UINT32_MAX;
+        uint16 PageIndex = 0;
+
+        bool IsValid() const { return Resource != nullptr; }
+        void Invalidate() { Resource = nullptr; CPUAddress = nullptr; GPUVirtualAddress = 0; }
     };
     
     class D3D12RHIVertexBuffer : public RHIVertexBuffer
@@ -90,6 +107,22 @@ namespace Thunder
         _NODISCARD_ void * GetResource() const override { return Texture.Get(); }
     private:
         ComPtr<ID3D12Resource> Texture;
+    };
+
+    class D3D12UniformBuffer : public RHIUniformBuffer
+    {
+    public:
+        D3D12UniformBuffer(EUniformBufferFlags usage) : RHIUniformBuffer(usage) {}
+        D3D12ResourceLocation ResourceLocation;
+
+        _NODISCARD_ void* GetResource() const override
+        {
+            if (ConstantBuffer.IsValid())
+            {
+                return ConstantBuffer.Get()->GetResource();
+            }
+            return ResourceLocation.Resource;
+        }
     };
 
     

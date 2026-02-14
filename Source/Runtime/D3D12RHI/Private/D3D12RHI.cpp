@@ -1,6 +1,7 @@
 #pragma optimize("", off)
 #include "D3D12RHI.h"
 #include "D3D12Resource.h"
+#include "UniformBuffer.h"
 #include "D3D12DescriptorHeap.h"
 #include "D3D12CommandContext.h"
 #include "D3D12RHIPrivate.h"
@@ -12,6 +13,7 @@
 #include "D3D12RHIModule.h"
 #include "PlatformProcess.h"
 #define INITGUID
+#include "D3D12Allocator.h"
 #include "d3dx12.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Misc/CoreGlabal.h"
@@ -567,7 +569,69 @@ namespace Thunder
             return nullptr;
         }
     }
-    
+
+    RHIUniformBufferRef D3D12DynamicRHI::RHICreateUniformBuffer(uint32 size, EUniformBufferFlags usage, const void* Contents)
+    {
+        const uint32 alignedSize = Align256(size);
+
+        D3D12UniformBuffer* newUniformBuffer = new D3D12UniformBuffer(usage);
+
+        if (Contents)
+        {
+            void* MappedData = nullptr;
+            if (usage == EUniformBufferFlags::UniformBuffer_MultiFrame)
+            {
+                // Uniform buffers that live for multiple frames must use the more expensive and persistent allocation path
+                D3D12PersistentUploadHeapAllocator& Allocator = TD3D12RHIModule::GetUploadHeapAllocator();
+                MappedData = Allocator.Allocate(alignedSize, newUniformBuffer->ResourceLocation); //mapped data
+                // Allocator mamager可能先createcommittedresource分配过一大块uploadbuffer，这时候申请alignedSize的内存，cpu可以拿到地址，mapped data，然后向里面填数据
+            }
+            else
+            {
+            
+            }
+
+            memcpy(MappedData, Contents, alignedSize);
+        }
+
+        return newUniformBuffer;
+    }
+
+    void D3D12DynamicRHI::RHIUpdateUniformBuffer(RHIUniformBuffer* unformBuffer, const void* Contents)
+    {
+        /*
+        const FRHIUniformBufferLayout& Layout = unformBuffer->GetLayout();
+        const uint32 NumBytes = Layout.ConstantBufferSize;
+        const int32 NumResources = Layout.Resources.Num();
+        // 看有多数数据
+
+        FD3D12ResourceLocation UpdatedResourceLocation(Device);
+
+        if (NumBytes > 0)
+        {
+            void* MappedData = nullptr;
+
+            if (unformBuffer->UniformBufferUsage == EUniformBufferFlags::UniformBuffer_MultiFrame)
+            {
+                D3D12PersistentUploadHeapAllocator& Allocator = TD3D12RHIModule::GetUploadHeapAllocator();
+                UpdatedResourceLocation = Allocator.Allocate(NumBytes); //mapped data
+            }
+            else
+            {
+                
+            }
+
+            //UpdateUniformBufferConstants(MappedData, Contents, Layout);
+        }
+
+
+        new (RHICmdList.AllocCommand<FRHICommandD3D12UpdateUniformBuffer>()) FRHICommandD3D12UpdateUniformBuffer(&UniformBuffer, UpdatedResourceLocation, CmdListResources, NumResources);
+
+        //fence is required to stop parallel recording threads from recording with the old bad state of the uniformbuffer resource table.  This command MUST execute before dependent recording starts.
+        RHICmdList.RHIThreadFence(true);
+        */
+    }
+
     RHITextureRef D3D12DynamicRHI::RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* texture = nullptr;
@@ -650,7 +714,7 @@ namespace Thunder
         }
     }
 
-    bool D3D12DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)
+    bool D3D12DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId)
     {
         if (auto const d3d12Res = static_cast<ID3D12Resource*>(resource->GetResource()))
         {

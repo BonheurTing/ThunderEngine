@@ -52,7 +52,7 @@ namespace Thunder
             Views[i] = new (TMemory::Malloc<SceneView>()) SceneView(this, static_cast<EViewType>(i));
         }
         GlobalParameters = new ShaderParameterMap;
-        GlobalUniformBuffer = new RHIUniformBuffer();
+        GlobalUniformBuffer = new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_SingleFrame);
     }
 
     FrameGraph::~FrameGraph()
@@ -220,6 +220,7 @@ namespace Thunder
         auto const& registerRequests = SceneInfoRegistrationSet[renderThreadIndex];
         for (auto const& registerRequest : registerRequests)
         {
+            registerRequest->CreateUniformBuffer();
             SceneInfos.insert(registerRequest);
         }
 
@@ -281,6 +282,8 @@ namespace Thunder
         doWorkEvent->Wait();
         FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
         TMemory::Destroy(dispatcher);
+
+        // todo uptda
 
         // Finalize commands.
         for (auto& context : RenderContexts)
@@ -392,7 +395,7 @@ namespace Thunder
             ShaderParameterMap* defaultParam = ShaderModule::GetPassDefaultParameters(pass);
             auto [newIt, success] = PassParameters.emplace(pass, defaultParam);
             TAssertf(success, "Pass parameter already exists." );
-            PassUniformBufferMap.emplace(pass, new RHIUniformBuffer());
+            PassUniformBufferMap.emplace(pass, new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_SingleFrame));
             return newIt->second;
         }
         return it->second;

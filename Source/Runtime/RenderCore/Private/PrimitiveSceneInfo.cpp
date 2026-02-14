@@ -13,7 +13,7 @@ namespace Thunder
     PrimitiveSceneInfo::PrimitiveSceneInfo(bool meshDrawCacheSupported) :
             MeshDrawCacheSupported(meshDrawCacheSupported)
     {
-        PrimitiveUniformBuffer = new RHIUniformBuffer();
+        //PrimitiveUniformBuffer = new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_MultiFrame);
     }
 
     PrimitiveSceneInfo::~PrimitiveSceneInfo()
@@ -22,6 +22,31 @@ namespace Thunder
         {
             delete PrimitiveUniformBuffer;
             PrimitiveUniformBuffer = nullptr;
+        }
+    }
+
+    void PrimitiveSceneInfo::CreateUniformBuffer()
+    {
+        if (!PrimitiveUniformBuffer)
+        {
+            const auto layout = ShaderModule::GetPrimitiveUniformBufferLayout();
+            if (!layout) [[unlikely]]
+            {
+                TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"primitive\" not found.");
+                return;
+            }
+
+            uint32 const bufferSize = layout->GetTotalSize();
+            if (bufferSize == 0) [[unlikely]]
+            {
+                return;
+            }
+
+            // Pack and upload CPU data.
+            byte* packedData = static_cast<byte*>(TMemory::Malloc(bufferSize, 16));
+            memset(packedData, 0, bufferSize);
+
+            PrimitiveUniformBuffer = RHICreateUniformBuffer(bufferSize, EUniformBufferFlags::UniformBuffer_MultiFrame, packedData);
         }
     }
 
@@ -40,13 +65,6 @@ namespace Thunder
             return;
         }
 
-        // Deferred-delete the old buffer and create a new one.
-        if (!PrimitiveUniformBuffer->Update(bufferSize)) [[unlikely]]
-        {
-            TAssertf(false, "Failed to create primitive uniform buffer.");
-            return;
-        }
-
         // Pack and upload CPU data.
         byte* packedData = static_cast<byte*>(TMemory::Malloc(bufferSize, 16));
         memset(packedData, 0, bufferSize);
@@ -55,11 +73,8 @@ namespace Thunder
         SetPrimitiveParameter(layout, "LocalToWorld1", Transform.GetRow(1), packedData);
         SetPrimitiveParameter(layout, "LocalToWorld2", Transform.GetRow(2), packedData);
 
-        bool succeeded = RHIUpdateSharedMemoryResource(PrimitiveUniformBuffer->GetConstantBuffer(), packedData, bufferSize, 0);
-        if (!succeeded) [[unlikely]]
-        {
-            TAssertf(false, "Failed to update primitive uniform buffer.");
-        }
+        //RHIUpdateUniformBuffer(PrimitiveUniformBuffer, packedData);
+        //PrimitiveUniformBuffer->UpdateUB(bufferSize);
 
         TMemory::Free(packedData);
     }

@@ -1,12 +1,14 @@
 ﻿#pragma once
 #include "IRHIModule.h"
 #include "d3d12.h"
+#include "Concurrent/Lock.h"
 
 struct ID3D12Device;
 namespace Thunder
 {
 	class TD3D12PipelineStateCache;
 	class TD3D12RootSignatureManager;
+	class D3D12PersistentUploadHeapAllocator;
 
 	struct D3D12DescriptorSettings
 	{
@@ -30,9 +32,17 @@ namespace Thunder
 		void InitResourceBindingTier(ID3D12Device* InDevice);
 		void InitDescriptorSettings(D3D12_RESOURCE_BINDING_TIER const& resourceBindingTier);
 		D3D12DescriptorSettings const& GetDescriptorSettings() const { return DescriptorSettings; }
+
+		static D3D12PersistentUploadHeapAllocator& GetUploadHeapAllocator();
 	private:
 		TD3D12PipelineStateCache* PipelineStateTable;
 		TD3D12RootSignatureManager* RootSignatureManager;
 		D3D12DescriptorSettings DescriptorSettings{};
+
+		// Uniform buffer allocator
+		D3D12PersistentUploadHeapAllocator* UploadHeapAllocator;
+
+		TArray<class FTransientUniformBufferAllocator*> TransientUniformBufferAllocators;
+		ExclusiveLock TransientUniformBufferAllocatorsCS;
 	};
 }

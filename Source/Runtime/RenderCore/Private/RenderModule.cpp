@@ -145,7 +145,7 @@ namespace Thunder
 		}
 
 		// Deferred-delete the old buffer and create a new one.
-		if (!uniformBuffer->Update(bufferSize)) [[unlikely]]
+		if (!uniformBuffer->UpdateUB(bufferSize)) [[unlikely]]
 		{
 			TAssertf(false, "Failed to create uniform buffer for \"%s\".", ubName.c_str());
 			return;
@@ -224,11 +224,11 @@ namespace Thunder
         }
 
 		// Update buffer data.
-		bool succeeded = RHIUpdateSharedMemoryResource(uniformBuffer->GetConstantBuffer(), packedData, bufferSize, 0);
+		/*bool succeeded = RHIUpdateSharedMemoryResource(uniformBuffer->GetConstantBuffer(), packedData, bufferSize, 0);
 		if (!succeeded) [[unlikely]]
 		{
 			TAssertf(false, "Failed to update constant buffer for \"%s\".", ubName);
-		}
+		}*/
 
 		// Free temporary buffer if needed.
 		if (cacheMeshDrawCommand)

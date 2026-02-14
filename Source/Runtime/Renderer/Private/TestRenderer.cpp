@@ -142,16 +142,12 @@ namespace Thunder
 
     void DeferredShadingRenderer::Tick_RenderThread()
     {
-        // Update scene info.
-        mFrameGraph->UpdateSceneInfo_RenderThread();
-
         // Set global parameters and update uniform buffer.
         auto globalParameters = mFrameGraph->GetGlobalParameters();
         globalParameters->SetIntParameter("RenderQuality", 2);
         mFrameGraph->UpdateGlobalUniformBuffer();
 
-        // Update primitive uniform buffer.
-        UpdatePrimitiveUniformBuffer_RenderThread();
+        UpdateAllPrimitiveSceneInfos();
     }
 
     void DeferredShadingRenderer::Setup()
@@ -347,5 +343,13 @@ namespace Thunder
         }
 
         mFrameGraph->SetPresentTarget(postProcessRT2);
+    }
+
+    void DeferredShadingRenderer::UpdateAllPrimitiveSceneInfos()
+    {
+        // Update scene info.
+        mFrameGraph->UpdateSceneInfo_RenderThread();
+
+        UpdatePrimitiveUniformBuffer_RenderThread();
     }
 }

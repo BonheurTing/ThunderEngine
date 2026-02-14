@@ -1,6 +1,5 @@
 #pragma once
 #include "IDynamicRHI.h"
-#include "IRHIModule.h"
 #include "RHIContext.h"
 #include "RHIResource.h"
 #include "ShaderBindings.h"

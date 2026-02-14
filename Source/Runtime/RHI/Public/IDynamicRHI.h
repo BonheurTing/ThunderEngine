@@ -2,6 +2,7 @@
 #include "RHI.h"
 #include "RHIContext.h"
 #include "RHIResource.h"
+#include "UniformBuffer.h"
 
 namespace Thunder
 {
@@ -46,10 +47,14 @@ namespace Thunder
         virtual RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
         
         virtual RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
+
+        virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 size, EUniformBufferFlags usage, const void* Contents) = 0;
+
+        virtual void RHIUpdateUniformBuffer(RHIUniformBuffer* unformBuffer, const void* Contents) = 0;
     
         virtual RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void* resourceData = nullptr) = 0;
 
-        virtual bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId) = 0;
+        virtual bool RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId) = 0;
 
         virtual void RHIReleaseResource() = 0;
 
@@ -144,12 +149,22 @@ namespace Thunder
         return GDynamicRHI->RHICreateConstantBuffer(size, usage, resourceData);
     }
 
+    FORCEINLINE RHIUniformBufferRef RHICreateUniformBuffer(uint32 size, EUniformBufferFlags usage, const void* Contents)
+    {
+        return GDynamicRHI->RHICreateUniformBuffer(size, usage, Contents);
+    }
+
+    FORCEINLINE void RHIUpdateUniformBuffer(RHIUniformBuffer* unformBuffer, const void* Contents)
+    {
+        return GDynamicRHI->RHIUpdateUniformBuffer(unformBuffer, Contents);
+    }
+
     FORCEINLINE RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void* resourceData = nullptr)
     {
         return GDynamicRHI->RHICreateTexture(desc, usage, resourceData);
     }
 
-    FORCEINLINE bool RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)
+    FORCEINLINE bool RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId)
     {
         return GDynamicRHI->RHIUpdateSharedMemoryResource(resource, resourceData, size, subresourceId);
     }

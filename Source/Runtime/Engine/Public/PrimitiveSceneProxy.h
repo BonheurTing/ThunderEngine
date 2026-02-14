@@ -23,6 +23,8 @@ namespace Thunder
     protected:
         PrimitiveComponent* Component = nullptr;
         PrimitiveSceneInfo* SceneInfo = nullptr;
+
+        //TUniformBufferRef<FPrimitiveUniformShaderParameters> UniformBuffer;
     };
 
     class StaticMeshSceneProxy : public PrimitiveSceneProxy

@@ -583,7 +583,7 @@ namespace Thunder
 		}
 	}
 
-	bool D3D11DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, void* resourceData, uint32 size, uint8 subresourceId)
+	bool D3D11DynamicRHI::RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId)
 	{
 		TAssertf(false, "Not implemented");
 		return false;

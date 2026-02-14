@@ -1,4 +1,5 @@
 ﻿#include "D3D12RHIModule.h"
+#include "D3D12Allocator.h"
 #include "D3D12RHI.h"
 #include "D3D12PipelineState.h"
 #include "D3D12RootSignature.h"
@@ -35,6 +36,12 @@ namespace Thunder
 			delete RootSignatureManager;
 			RootSignatureManager = nullptr;
 		}
+
+		if (UploadHeapAllocator)
+		{
+			delete UploadHeapAllocator;
+			UploadHeapAllocator = nullptr;
+		}
 	}
 
 	void TD3D12RHIModule::InitD3D12Context(ID3D12Device* InDevice)
@@ -42,6 +49,8 @@ namespace Thunder
 		PipelineStateTable = new TD3D12PipelineStateCache(InDevice);
 		RootSignatureManager = new TD3D12RootSignatureManager(InDevice);
 		InitResourceBindingTier(InDevice);
+
+		UploadHeapAllocator = new D3D12PersistentUploadHeapAllocator(InDevice);
 	}
 
 	void TD3D12RHIModule::InitResourceBindingTier(ID3D12Device* InDevice)
@@ -74,5 +83,10 @@ namespace Thunder
 
 		// We always set the data in an upload heap before calling Set*RootConstantBufferView.
 		DescriptorSettings.CBVRootDescriptorFlags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC;
+	}
+
+	D3D12PersistentUploadHeapAllocator& TD3D12RHIModule::GetUploadHeapAllocator()
+	{
+		return *GetModule()->UploadHeapAllocator;
 	}
 }

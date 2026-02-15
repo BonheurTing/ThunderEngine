@@ -8,12 +8,14 @@ namespace Thunder
 
 	void IDynamicRHI::DeferredDeleteResource(TRefCountPtr<RHIResource> resource)
 	{
+		//render thread
 		uint32 index = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % MAX_FRAME_LAG;
 		DeferredDeleteQueue[index].push_back(std::move(resource));
 	}
 
 	void IDynamicRHI::FlushDeferredDeleteQueue()
 	{
+		// rhi thread
 		uint32 index = (GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) + 1) % MAX_FRAME_LAG;
 		DeferredDeleteQueue[index].clear();
 	}

@@ -51,7 +51,8 @@ namespace Thunder
 
 		bool RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId) override;
 
-		void RHIReleaseResource() override {}
+		void RHIReleaseResource_RenderThread() override {}
+		void RHIReleaseResource_RHIThread() override {}
 
 		void RHIBeginFrame(uint32 frameIndex) override {}
 

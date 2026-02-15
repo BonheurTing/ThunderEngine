@@ -56,7 +56,8 @@ namespace Thunder
 
         virtual bool RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId) = 0;
 
-        virtual void RHIReleaseResource() = 0;
+        virtual void RHIReleaseResource_RenderThread() = 0;
+        virtual void RHIReleaseResource_RHIThread() = 0;
 
         // CPU-GPU synchronization and frame lifecycle
         virtual void RHIBeginFrame(uint32 frameIndex) = 0;
@@ -174,10 +175,14 @@ namespace Thunder
         GDynamicRHI->DeferredDeleteResource(std::move(resource));
     }
 
-    FORCEINLINE void RHIReleaseResource()
+    FORCEINLINE void RHIReleaseResource_RenderThread()
     {
-        GDynamicRHI->RHIReleaseResource();
         GDynamicRHI->FlushDeferredDeleteQueue();
+    }
+
+    FORCEINLINE void RHIReleaseResource_RHIThread()
+    {
+        GDynamicRHI->RHIReleaseResource_RHIThread();
     }
 
     FORCEINLINE void RHIBeginFrame(uint32 frameIndex)

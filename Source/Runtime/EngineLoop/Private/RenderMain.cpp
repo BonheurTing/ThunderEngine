@@ -80,6 +80,8 @@ namespace Thunder
         IRHIModule::GetModule()->GetCopyCommandContext_Render()->Execute();
         GRHIUpdateSyncQueue.clear();
 
+        RHIReleaseResource_RenderThread();
+
         for (auto scene : RenderViewport->GetScenes())
         {
             auto renderer = scene->GetRenderer();

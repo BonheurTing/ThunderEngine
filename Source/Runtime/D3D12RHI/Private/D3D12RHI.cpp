@@ -38,7 +38,6 @@ namespace Thunder
 
     D3D12DynamicRHI::~D3D12DynamicRHI()
     {
-        // Cleanup offline descriptor managers
         for (int i = 0; i < 4; ++i)
         {
             if (OfflineDescriptorManagers[i] != nullptr)
@@ -48,11 +47,16 @@ namespace Thunder
             }
         }
 
-        // Cleanup online descriptor manager
         if (OnlineDescriptorManager != nullptr)
         {
             TMemory::Destroy(OnlineDescriptorManager);
             OnlineDescriptorManager = nullptr;
+        }
+
+        if (UploadHeapAllocator)
+        {
+            delete UploadHeapAllocator;
+            UploadHeapAllocator = nullptr;
         }
 
         if (FenceEvent != nullptr)
@@ -99,6 +103,8 @@ namespace Thunder
 
         // Initialize null descriptors for binding empty slots
         InitializeNullDescriptors();
+
+        UploadHeapAllocator = new D3D12PersistentUploadHeapAllocator(Device.Get());
 
         TD3D12RHIModule::GetModule()->InitD3D12Context(Device.Get());
 
@@ -583,8 +589,7 @@ namespace Thunder
             if (usage == EUniformBufferFlags::UniformBuffer_MultiFrame)
             {
                 // Uniform buffers that live for multiple frames must use the more expensive and persistent allocation path
-                D3D12PersistentUploadHeapAllocator& Allocator = TD3D12RHIModule::GetUploadHeapAllocator();
-                MappedData = Allocator.Allocate(alignedSize, newUniformBuffer->ResourceLocation);
+                MappedData = UploadHeapAllocator->Allocate(alignedSize, newUniformBuffer->ResourceLocation);
                 // Allocator mamager可能先createcommittedresource分配过一大块uploadbuffer，这时候申请alignedSize的内存，cpu可以拿到地址，mapped data，然后向里面填数据
             }
             else
@@ -619,6 +624,7 @@ namespace Thunder
 
     void D3D12DynamicRHI::RHIUpdateUniformBuffer(IRHICommandRecorder* recorder, RHIUniformBuffer* uniformBuffer, const void* Contents)
     {
+        // in render thread
         D3D12UniformBuffer* dx12UB = static_cast<D3D12UniformBuffer*>(uniformBuffer);
         const uint32 alignedSize = dx12UB->ResourceLocation.AllocatedSize;
 
@@ -629,13 +635,12 @@ namespace Thunder
 
             if (uniformBuffer->UniformBufferUsage == EUniformBufferFlags::UniformBuffer_MultiFrame)
             {
-                D3D12PersistentUploadHeapAllocator& Allocator = TD3D12RHIModule::GetUploadHeapAllocator();
-                mappedData = Allocator.Allocate(alignedSize, UpdatedResourceLocation);
+                mappedData = UploadHeapAllocator->Allocate(alignedSize, UpdatedResourceLocation);
 
                 uint32 currentFrame = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
                 if (dx12UB->ResourceLocation.IsValid())
                 {
-                    Allocator.DeferredFree(dx12UB->ResourceLocation, currentFrame);
+                    UploadHeapAllocator->DeferredFree(dx12UB->ResourceLocation, currentFrame);
                 }
             }
             else
@@ -750,9 +755,15 @@ namespace Thunder
         return false;
     }
 
-    void D3D12DynamicRHI::RHIReleaseResource()
+    void D3D12DynamicRHI::RHIReleaseResource_RenderThread()
     {
-        uint32 index = (GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) + 1) % MAX_FRAME_LAG;
+        uint32 index = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
+        UploadHeapAllocator->GarbageCollect(index);
+    }
+
+    void D3D12DynamicRHI::RHIReleaseResource_RHIThread()
+    {
+        uint32 index = (GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) + 1) % MAX_FRAME_LAG;
         /**
          * GReleaseQueue存ComPre方便自己释放
          * 1. 不能for array 中每一个元素，调push task，如果元素很多，task会慢

@@ -33,16 +33,9 @@ namespace Thunder
 		void InitDescriptorSettings(D3D12_RESOURCE_BINDING_TIER const& resourceBindingTier);
 		D3D12DescriptorSettings const& GetDescriptorSettings() const { return DescriptorSettings; }
 
-		static D3D12PersistentUploadHeapAllocator& GetUploadHeapAllocator();
 	private:
 		TD3D12PipelineStateCache* PipelineStateTable;
 		TD3D12RootSignatureManager* RootSignatureManager;
 		D3D12DescriptorSettings DescriptorSettings{};
-
-		// Uniform buffer allocator
-		D3D12PersistentUploadHeapAllocator* UploadHeapAllocator;
-
-		TArray<class FTransientUniformBufferAllocator*> TransientUniformBufferAllocators;
-		ExclusiveLock TransientUniformBufferAllocatorsCS;
 	};
 }

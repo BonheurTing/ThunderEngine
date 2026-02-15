@@ -77,7 +77,7 @@ namespace Thunder
 
         LOG("Present");
 
-        RHIReleaseResource();
+        RHIReleaseResource_RHIThread();
     }
 
     void RHITask::CommitRendererCommands(const IRenderer* renderer)

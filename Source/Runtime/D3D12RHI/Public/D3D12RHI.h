@@ -3,6 +3,7 @@
 #include "IDynamicRHI.h"
 #include "d3d12.h"
 #include "D3D12DescriptorHeap.h"
+#include "Concurrent/Lock.h"
 #include "HAL/Event.h"
 
 namespace Thunder
@@ -54,7 +55,8 @@ namespace Thunder
 
         bool RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId) override;
 
-        void RHIReleaseResource() override;
+        void RHIReleaseResource_RenderThread() override;
+        void RHIReleaseResource_RHIThread() override;
 
         /// dx12 only
         
@@ -104,6 +106,13 @@ namespace Thunder
 
         // Online descriptor manager for global heap (GPU-visible, for runtime binding)
         class D3D12OnlineDescriptorManager* OnlineDescriptorManager = nullptr;
+
+        
+        // Uniform buffer allocator
+        class D3D12PersistentUploadHeapAllocator* UploadHeapAllocator;
+
+        TArray<class FTransientUniformBufferAllocator*> TransientUniformBufferAllocators;
+        ExclusiveLock TransientUniformBufferAllocatorsCS;
 
         // Null descriptors for binding empty slots
         D3D12_CPU_DESCRIPTOR_HANDLE NullSRV = {};

@@ -111,8 +111,7 @@ namespace Thunder
         // Uniform buffer allocator
         class D3D12PersistentUploadHeapAllocator* UploadHeapAllocator;
 
-        TArray<class FTransientUniformBufferAllocator*> TransientUniformBufferAllocators;
-        ExclusiveLock TransientUniformBufferAllocatorsCS;
+        class D3D12TransientUploadHeapAllocator* TransientUploadAllocator = nullptr;
 
         // Null descriptors for binding empty slots
         D3D12_CPU_DESCRIPTOR_HANDLE NullSRV = {};

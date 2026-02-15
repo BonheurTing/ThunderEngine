@@ -20,6 +20,14 @@
 #define UPLOAD_HEAP_GC_BIG_BLOCK_FRAMES 60                  // Frames before reclaiming idle big blocks
 #endif
 
+#ifndef TRANSIENT_HEAP_PAGE_SIZE
+#define TRANSIENT_HEAP_PAGE_SIZE (64 * 1024)                // 64KB per transient page
+#endif
+
+#ifndef TRANSIENT_HEAP_GC_IDLE_FRAMES
+#define TRANSIENT_HEAP_GC_IDLE_FRAMES 60                    // Frames before reclaiming idle pool pages
+#endif
+
 namespace Thunder
 {
     // A 2MB upload buffer page, sub-divided into equal-sized blocks.
@@ -136,5 +144,49 @@ namespace Thunder
         // Deferred free queue: locations are held for MAX_FRAME_LAG frames before being freed.
         TArray<D3D12ResourceLocation> DeferredFreeQueue[MAX_FRAME_LAG];
         SpinLock DeferredFreeLock;
+    };
+
+    // A lightweight upload buffer page for transient (single-frame) allocations.
+    struct TransientUploadPage
+    {
+        ComPtr<ID3D12Resource> Resource;
+        void* CPUBaseAddress = nullptr;
+        D3D12_GPU_VIRTUAL_ADDRESS GPUBaseAddress = 0;
+        uint32 PageSize = 0;
+    };
+
+    // Per-frame page group: a primary page (always resident) plus overflow pages on demand.
+    struct TransientFrameHeap
+    {
+        TransientUploadPage* PrimaryPage = nullptr;
+        TArray<TransientUploadPage*> OverflowPages;
+        TransientUploadPage* CurrentPage = nullptr;
+        uint32 CurrentOffset = 0;
+    };
+
+    // Transient upload heap allocator for single-frame / single-draw uniform buffers.
+    // Uses linear bump allocation within per-frame page groups (ring of MAX_FRAME_LAG frames).
+    // Primary page is always resident; overflow pages are acquired on demand and recycled via a pool.
+    class D3D12TransientUploadHeapAllocator : public TD3D12DeviceChild
+    {
+    public:
+        D3D12TransientUploadHeapAllocator(ID3D12Device* device);
+        ~D3D12TransientUploadHeapAllocator() override;
+
+        // Linear bump allocation. Returns the CPU mapped address, or nullptr on failure.
+        void* Allocate(uint32 size, D3D12ResourceLocation& outLocation);
+
+        // Call once per frame to recycle the next frame's pages and advance the ring.
+        void FrameFlip(uint32 currentFrameNumber);
+
+    private:
+        TransientUploadPage* CreatePage();
+        void DestroyPage(TransientUploadPage* page);
+        TransientUploadPage* AcquirePage();
+        void ReleasePage(TransientUploadPage* page);
+
+        TransientFrameHeap FrameHeaps[MAX_FRAME_LAG];
+        TArray<TransientUploadPage*> PagePool;
+        uint32 PagePoolIdleFrameCount = 0;
     };
 }

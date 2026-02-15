@@ -3,6 +3,7 @@
 #include <bit>
 
 #include "D3D12CommandContext.h"
+#include "Misc/CoreGlabal.h"
 
 namespace Thunder
 {
@@ -566,5 +567,207 @@ namespace Thunder
 
         SmallBlockAllocator.GarbageCollect();
         BigBlockAllocator.GarbageCollect();
+    }
+
+    // ============================================================================
+    // D3D12TransientUploadHeapAllocator
+    // ============================================================================
+
+    D3D12TransientUploadHeapAllocator::D3D12TransientUploadHeapAllocator(ID3D12Device* device)
+        : TD3D12DeviceChild(device)
+    {
+        for (uint32 i = 0; i < MAX_FRAME_LAG; ++i)
+        {
+            TransientUploadPage* page = CreatePage();
+            TAssertf(page != nullptr, "D3D12TransientUploadHeapAllocator: Failed to create primary page for frame %u.", i);
+            FrameHeaps[i].PrimaryPage = page;
+            FrameHeaps[i].CurrentPage = page;
+            FrameHeaps[i].CurrentOffset = 0;
+        }
+    }
+
+    D3D12TransientUploadHeapAllocator::~D3D12TransientUploadHeapAllocator()
+    {
+        for (uint32 i = 0; i < MAX_FRAME_LAG; ++i)
+        {
+            TransientFrameHeap& heap = FrameHeaps[i];
+            for (TransientUploadPage* page : heap.OverflowPages)
+            {
+                DestroyPage(page);
+            }
+            heap.OverflowPages.clear();
+            DestroyPage(heap.PrimaryPage);
+            heap.PrimaryPage = nullptr;
+            heap.CurrentPage = nullptr;
+        }
+
+        for (TransientUploadPage* page : PagePool)
+        {
+            DestroyPage(page);
+        }
+        PagePool.clear();
+    }
+
+    TransientUploadPage* D3D12TransientUploadHeapAllocator::CreatePage()
+    {
+        constexpr D3D12_HEAP_PROPERTIES heapProps = {
+            D3D12_HEAP_TYPE_UPLOAD,
+            D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
+            D3D12_MEMORY_POOL_UNKNOWN, 1, 1
+        };
+        const auto resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(TRANSIENT_HEAP_PAGE_SIZE);
+
+        ID3D12Resource* resource = nullptr;
+        HRESULT hr = GetParentDevice()->CreateCommittedResource(
+            &heapProps,
+            D3D12_HEAP_FLAG_NONE,
+            &resourceDesc,
+            D3D12_RESOURCE_STATE_GENERIC_READ,
+            nullptr,
+            IID_PPV_ARGS(&resource));
+
+        if (FAILED(hr)) [[unlikely]]
+        {
+            TAssertf(false, "D3D12TransientUploadHeapAllocator: Failed to create %u byte upload page (HRESULT: 0x%08X).",
+                     TRANSIENT_HEAP_PAGE_SIZE, static_cast<uint32>(hr));
+            return nullptr;
+        }
+
+        void* cpuAddress = nullptr;
+        const D3D12_RANGE readRange = { 0, 0 };
+        hr = resource->Map(0, &readRange, &cpuAddress);
+        if (FAILED(hr)) [[unlikely]]
+        {
+            TAssertf(false, "D3D12TransientUploadHeapAllocator: Failed to map upload page (HRESULT: 0x%08X).",
+                     static_cast<uint32>(hr));
+            resource->Release();
+            return nullptr;
+        }
+
+        TransientUploadPage* page = new TransientUploadPage();
+        page->Resource.Attach(resource);
+        page->CPUBaseAddress = cpuAddress;
+        page->GPUBaseAddress = resource->GetGPUVirtualAddress();
+        page->PageSize = TRANSIENT_HEAP_PAGE_SIZE;
+        return page;
+    }
+
+    void D3D12TransientUploadHeapAllocator::DestroyPage(TransientUploadPage* page)
+    {
+        if (page)
+        {
+            if (page->Resource)
+            {
+                page->Resource->Unmap(0, nullptr);
+            }
+            delete page;
+        }
+    }
+
+    TransientUploadPage* D3D12TransientUploadHeapAllocator::AcquirePage()
+    {
+        if (!PagePool.empty())
+        {
+            TransientUploadPage* page = PagePool.back();
+            PagePool.pop_back();
+            PagePoolIdleFrameCount = 0;
+            return page;
+        }
+        return CreatePage();
+    }
+
+    void D3D12TransientUploadHeapAllocator::ReleasePage(TransientUploadPage* page)
+    {
+        PagePool.push_back(page);
+    }
+
+    void* D3D12TransientUploadHeapAllocator::Allocate(uint32 size, D3D12ResourceLocation& outLocation)
+    {
+        const uint32 alignedSize = Align256(size);
+        TAssertf(alignedSize <= TRANSIENT_HEAP_PAGE_SIZE,
+                 "D3D12TransientUploadHeapAllocator: Allocation size %u (aligned %u) exceeds page size %u.",
+                 size, alignedSize, TRANSIENT_HEAP_PAGE_SIZE);
+
+        // Determine current frame heap from render thread frame number
+        uint32 frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % MAX_FRAME_LAG;
+        TransientFrameHeap& heap = FrameHeaps[frameIndex];
+
+        // Fast path: fits in current page
+        if (heap.CurrentOffset + alignedSize <= TRANSIENT_HEAP_PAGE_SIZE)
+        {
+            TransientUploadPage* page = heap.CurrentPage;
+            uint32 offset = heap.CurrentOffset;
+
+            outLocation.Resource = page->Resource.Get();
+            outLocation.GPUVirtualAddress = page->GPUBaseAddress + offset;
+            outLocation.CPUAddress = static_cast<uint8*>(page->CPUBaseAddress) + offset;
+            outLocation.OffsetInResource = offset;
+            outLocation.AllocatedSize = alignedSize;
+            outLocation.BucketIndex = UINT32_MAX;
+            outLocation.PageIndex = 0;
+
+            heap.CurrentOffset += alignedSize;
+            return outLocation.CPUAddress;
+        }
+
+        // Slow path: current page full, acquire a new overflow page
+        TransientUploadPage* newPage = AcquirePage();
+        if (!newPage) [[unlikely]]
+        {
+            TAssertf(false, "D3D12TransientUploadHeapAllocator: Failed to acquire overflow page.");
+            return nullptr;
+        }
+
+        heap.OverflowPages.push_back(newPage);
+        heap.CurrentPage = newPage;
+        heap.CurrentOffset = alignedSize;
+
+        outLocation.Resource = newPage->Resource.Get();
+        outLocation.GPUVirtualAddress = newPage->GPUBaseAddress;
+        outLocation.CPUAddress = newPage->CPUBaseAddress;
+        outLocation.OffsetInResource = 0;
+        outLocation.AllocatedSize = alignedSize;
+        outLocation.BucketIndex = UINT32_MAX;
+        outLocation.PageIndex = 0;
+
+        return outLocation.CPUAddress;
+    }
+
+    void D3D12TransientUploadHeapAllocator::FrameFlip(uint32 currentFrameNumber)
+    {
+        // The next slot in the ring corresponds to data from MAX_FRAME_LAG frames ago,
+        // which the GPU has finished reading by now.
+        uint32 nextIndex = (currentFrameNumber + 1) % MAX_FRAME_LAG;
+        TransientFrameHeap& heap = FrameHeaps[nextIndex];
+
+        // Recycle overflow pages back to the pool
+        for (TransientUploadPage* page : heap.OverflowPages)
+        {
+            ReleasePage(page);
+        }
+        heap.OverflowPages.clear();
+
+        // Reset to primary page
+        heap.CurrentPage = heap.PrimaryPage;
+        heap.CurrentOffset = 0;
+
+        // GC: if pool pages have been idle for too long, release them
+        if (!PagePool.empty())
+        {
+            PagePoolIdleFrameCount++;
+            if (PagePoolIdleFrameCount >= TRANSIENT_HEAP_GC_IDLE_FRAMES)
+            {
+                for (TransientUploadPage* page : PagePool)
+                {
+                    DestroyPage(page);
+                }
+                PagePool.clear();
+                PagePoolIdleFrameCount = 0;
+            }
+        }
+        else
+        {
+            PagePoolIdleFrameCount = 0;
+        }
     }
 }

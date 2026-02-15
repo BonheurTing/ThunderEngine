@@ -53,6 +53,12 @@ namespace Thunder
             OnlineDescriptorManager = nullptr;
         }
 
+        if (TransientUploadAllocator)
+        {
+            delete TransientUploadAllocator;
+            TransientUploadAllocator = nullptr;
+        }
+
         if (UploadHeapAllocator)
         {
             delete UploadHeapAllocator;
@@ -105,6 +111,7 @@ namespace Thunder
         InitializeNullDescriptors();
 
         UploadHeapAllocator = new D3D12PersistentUploadHeapAllocator(Device.Get());
+        TransientUploadAllocator = new D3D12TransientUploadHeapAllocator(Device.Get());
 
         TD3D12RHIModule::GetModule()->InitD3D12Context(Device.Get());
 
@@ -594,7 +601,8 @@ namespace Thunder
             }
             else
             {
-            
+                // SingleFrame / SingleDraw: use transient linear allocator, reset each frame
+                MappedData = TransientUploadAllocator->Allocate(alignedSize, newUniformBuffer->ResourceLocation);
             }
 
             memcpy(MappedData, Contents, alignedSize);
@@ -645,7 +653,9 @@ namespace Thunder
             }
             else
             {
-
+                // SingleFrame / SingleDraw: allocate from transient allocator.
+                // No need to deferred-free the old location; it will be reclaimed on frame flip.
+                mappedData = TransientUploadAllocator->Allocate(alignedSize, UpdatedResourceLocation);
             }
 
             memcpy(mappedData, Contents, alignedSize);
@@ -759,6 +769,7 @@ namespace Thunder
     {
         uint32 index = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
         UploadHeapAllocator->GarbageCollect(index);
+        TransientUploadAllocator->FrameFlip(index);
     }
 
     void D3D12DynamicRHI::RHIReleaseResource_RHIThread()

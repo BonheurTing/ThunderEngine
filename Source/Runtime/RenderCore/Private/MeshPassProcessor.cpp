@@ -134,7 +134,7 @@ namespace Thunder
         return pipelineStateObject;
     }
 
-    void MeshPassProcessor::ApplyShaderBindings(const RenderContext* context, RHIDrawCommand* command, ShaderCombination* shader, RenderMaterial* material, PrimitiveSceneInfo* sceneInfo, EMeshPass meshPassType, bool cacheMeshDrawCommand)
+    void MeshPassProcessor::ApplyShaderBindings(RenderContext* context, RHIDrawCommand* command, ShaderCombination* shader, RenderMaterial* material, PrimitiveSceneInfo* sceneInfo, EMeshPass meshPassType, bool cacheMeshDrawCommand)
     {
         ShaderArchive* archive = shader->GetSubShader()->GetArchive();
         ShaderBindingsLayout* bindingsLayout = archive->GetBindingsLayout();

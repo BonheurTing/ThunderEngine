@@ -17,7 +17,7 @@ namespace Thunder
 
         static class ShaderCombination* GetShaderCombination(EMeshPass meshPassType, const class RenderMaterial* material);
         static class TRHIGraphicsPipelineState* GetPipelineState(const RenderContext* context, ShaderCombination* shaderCombination, EMeshPass meshPassType, const class SubMesh* subMesh, RenderMaterial* material);
-        static void ApplyShaderBindings(const RenderContext* context, RHIDrawCommand* command, ShaderCombination* shader, RenderMaterial* material, class PrimitiveSceneInfo* sceneInfo, EMeshPass meshPassType, bool cacheMeshDrawCommand);
+        static void ApplyShaderBindings(RenderContext* context, RHIDrawCommand* command, ShaderCombination* shader, RenderMaterial* material, class PrimitiveSceneInfo* sceneInfo, EMeshPass meshPassType, bool cacheMeshDrawCommand);
     };
 	using MeshPassProcessorRef = TRefCountPtr<MeshPassProcessor>;
 }

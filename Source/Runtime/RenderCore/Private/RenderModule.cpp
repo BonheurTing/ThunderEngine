@@ -132,26 +132,17 @@ namespace Thunder
 		return nullptr;
 	}
 
-	void RenderModule::PackUniformBuffer(const RenderContext* context, const UniformBufferLayout* layout,
-		const ShaderParameterMap* parameterMap, RHIUniformBuffer* uniformBuffer, bool cacheMeshDrawCommand, const String& ubName)
+	byte* RenderModule::SetupUniformBufferParameters(const RenderContext* context, const UniformBufferLayout* layout,
+		const ShaderParameterMap* parameterMap, const String& ubName)
 	{
 		uint32 const bufferSize = layout->GetTotalSize();
 		if (bufferSize == 0) [[unlikely]]
 		{
-			return;
-		}
-
-		// Deferred-delete the old buffer and create a new one.
-		if (!uniformBuffer->UpdateUB(bufferSize)) [[unlikely]]
-		{
-			TAssertf(false, "Failed to create uniform buffer for \"%s\".", ubName.c_str());
-			return;
+			return nullptr;
 		}
 
         // Allocate temporary buffer for packing.
-        byte* packedData = (cacheMeshDrawCommand) ?
-            static_cast<byte*>(TMemory::Malloc(bufferSize, 16)) :
-            static_cast<byte*>(context->Allocate<byte>(bufferSize));
+        byte* packedData = static_cast<byte*>(context->Allocate<byte>(bufferSize));
         memset(packedData, 0, bufferSize);
 
         // Pack parameters into the buffer according to layout.
@@ -219,18 +210,6 @@ namespace Thunder
                 memcpy(packedData + memberEntry.Offset, valuePtr, valueSize);
             }
         }
-
-		// Update buffer data.
-		/*bool succeeded = RHIUpdateSharedMemoryResource(uniformBuffer->GetConstantBuffer(), packedData, bufferSize, 0);
-		if (!succeeded) [[unlikely]]
-		{
-			TAssertf(false, "Failed to update constant buffer for \"%s\".", ubName);
-		}*/
-
-		// Free temporary buffer if needed.
-		if (cacheMeshDrawCommand)
-		{
-			TMemory::Free(packedData);
-		}
+		return packedData;
 	}
 }

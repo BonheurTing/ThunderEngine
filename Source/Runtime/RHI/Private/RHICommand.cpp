@@ -113,17 +113,15 @@ namespace Thunder
             // Get the uniform buffer from bindings.
             uint64 ubRawPtr = bindings->GetUniformBuffer(bindingsLayout, cbvSlot).Handle;
             RHIUniformBuffer* uniformBuffer = reinterpret_cast<RHIUniformBuffer*>(ubRawPtr);
-            void* constantBuffer = uniformBuffer->GetResource();
-            if (constantBuffer == nullptr) [[unlikely]]
+            if (uniformBuffer == nullptr) [[unlikely]]
             {
-                TAssertf(false, "CBV slot %u: uniform buffer has no constant buffer.", cbvSlot);
+                TAssertf(false, "CBV slot %u: uniform buffer is invalid.", cbvSlot);
                 cbvGpuAddresses[cbvSlot] = 0;
                 continue;
             }
 
             // Get the GPU virtual address of the underlying D3D12 resource.
-            auto* d3d12Resource = static_cast<ID3D12Resource*>(constantBuffer);
-            cbvGpuAddresses[cbvSlot] = d3d12Resource->GetGPUVirtualAddress();
+            cbvGpuAddresses[cbvSlot] = uniformBuffer->GetGpuVirtualAddress();
             maxSlotUsedCount = std::max<uint32>(cbvSlot + 1, maxSlotUsedCount);
         }
 

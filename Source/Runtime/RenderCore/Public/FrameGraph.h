@@ -103,11 +103,11 @@ namespace Thunder
 
         TArray<RHICachedDrawCommand*> const& GetVisibleCachedDrawList(EMeshPass passType) { return VisibleCachedDrawLists[passType]; }
 
-        struct ShaderParameterMap* GetGlobalParameters() const { return GlobalParameters; }
-        void UpdateGlobalUniformBuffer();
+        struct ShaderParameterMap* GetGlobalParameters() const { return CachedGlobalParameters; }
+        void InitGlobalUniformBuffer();
         ShaderParameterMap* GetPassParameters(EMeshPass pass);
         void UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName);
-        const RHIUniformBuffer* GetGlobalUniformBuffer() const { return GlobalUniformBuffer; }
+        const RHIUniformBuffer* GetGlobalUniformBuffer() const { return GlobalUniformBuffer.IsValid() ? GlobalUniformBuffer.Get() : nullptr; }
         const RHIUniformBuffer* GetPassUniformBuffer(EMeshPass pass) const;
          
     private:
@@ -156,10 +156,10 @@ namespace Thunder
         TMap<EMeshPass, TArray<RHICachedDrawCommand*>> VisibleCachedDrawLists;
 
         // Uniform buffer.
-        ShaderParameterMap* GlobalParameters = nullptr;
-        RHIUniformBuffer* GlobalUniformBuffer;
+        ShaderParameterMap* CachedGlobalParameters = nullptr;
+        TRefCountPtr<RHIUniformBuffer> GlobalUniformBuffer;
         TMap<EMeshPass, ShaderParameterMap*> PassParameters;
-        TMap<EMeshPass, RHIUniformBuffer*> PassUniformBufferMap;
+        TMap<EMeshPass, TRefCountPtr<RHIUniformBuffer>> PassUniformBufferMap;
     };
 
     #define EVENT_NAME(Name) Name

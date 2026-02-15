@@ -13,7 +13,6 @@ namespace Thunder
     PrimitiveSceneInfo::PrimitiveSceneInfo(bool meshDrawCacheSupported) :
             MeshDrawCacheSupported(meshDrawCacheSupported)
     {
-        //PrimitiveUniformBuffer = new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_MultiFrame);
     }
 
     PrimitiveSceneInfo::~PrimitiveSceneInfo()

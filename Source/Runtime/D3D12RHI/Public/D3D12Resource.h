@@ -120,11 +120,19 @@ namespace Thunder
 
         _NODISCARD_ void* GetResource() const override
         {
-            if (ConstantBuffer.IsValid())
-            {
-                return ConstantBuffer.Get()->GetResource();
-            }
             return ResourceLocation.Resource;
+        }
+
+        uint64 GetGpuVirtualAddress() override
+        {
+            if (ResourceLocation.IsValid())
+            {
+                return ResourceLocation.GPUVirtualAddress;
+            }
+            else
+            {
+                return 0;
+            }
         }
     };
 

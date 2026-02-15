@@ -51,8 +51,8 @@ namespace Thunder
         {
             Views[i] = new (TMemory::Malloc<SceneView>()) SceneView(this, static_cast<EViewType>(i));
         }
-        GlobalParameters = new ShaderParameterMap;
-        GlobalUniformBuffer = new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_SingleFrame);
+        CachedGlobalParameters = new ShaderParameterMap;
+        //GlobalUniformBuffer = new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_SingleFrame);
     }
 
     FrameGraph::~FrameGraph()
@@ -63,10 +63,10 @@ namespace Thunder
             TMemory::Destroy(view);
         }
 
-        if (GlobalParameters)
+        if (CachedGlobalParameters)
         {
-            delete GlobalParameters;
-            GlobalParameters = nullptr;
+            delete CachedGlobalParameters;
+            CachedGlobalParameters = nullptr;
         }
         if (GlobalUniformBuffer)
         {
@@ -386,7 +386,7 @@ namespace Thunder
         return true;
     }
 
-    void FrameGraph::UpdateGlobalUniformBuffer()
+    void FrameGraph::InitGlobalUniformBuffer()
     {
         const auto layout = ShaderModule::GetGlobalUniformBufferLayout();
         if (!layout) [[unlikely]]
@@ -394,7 +394,17 @@ namespace Thunder
             TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"global\" not found.");
             return;
         }
-        RenderModule::PackUniformBuffer(MainContext, layout, GlobalParameters, GlobalUniformBuffer, false, "Global");
+
+        byte* constantData = RenderModule::SetupUniformBufferParameters(MainContext, layout, CachedGlobalParameters, "Global");
+        if (GlobalUniformBuffer.IsValid())
+        {
+            //RHIDeferredDeleteResource(std::move(GlobalUniformBuffer));
+            RHIUpdateUniformBuffer(MainContext, GlobalUniformBuffer, constantData);
+        }
+        else
+        {
+            GlobalUniformBuffer = RHICreateUniformBuffer(layout->GetTotalSize(), EUniformBufferFlags::UniformBuffer_SingleFrame, constantData);
+        }
     }
 
     ShaderParameterMap* FrameGraph::GetPassParameters(EMeshPass pass)
@@ -405,7 +415,7 @@ namespace Thunder
             ShaderParameterMap* defaultParam = ShaderModule::GetPassDefaultParameters(pass);
             auto [newIt, success] = PassParameters.emplace(pass, defaultParam);
             TAssertf(success, "Pass parameter already exists." );
-            PassUniformBufferMap.emplace(pass, new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_SingleFrame));
+            PassUniformBufferMap.emplace(pass, nullptr);
             return newIt->second;
         }
         return it->second;
@@ -419,13 +429,17 @@ namespace Thunder
             TAssertf(false, "Cannot update uniform buffer: UniformBufferLayout \"%s\" not found.", ubName);
             return;
         }
-        RHIUniformBuffer* ub = PassUniformBufferMap.at(pass);
-        if (ub == nullptr) [[unlikely]]
+        TRefCountPtr<RHIUniformBuffer>& passUniformBuffer = PassUniformBufferMap.at(pass);
+        byte* constantData = RenderModule::SetupUniformBufferParameters(MainContext, layout, parameters, ubName);
+        if (passUniformBuffer.IsValid())
         {
-            TAssertf(false, "Cannot update uniform buffer: PassUniformBufferMap \"%s\" not found.", pass);
-            return;
+            //RHIDeferredDeleteResource(std::move(passUniformBuffer));
+            RHIUpdateUniformBuffer(MainContext, passUniformBuffer, constantData);
         }
-        RenderModule::PackUniformBuffer(MainContext, layout, parameters, ub, false, ubName);
+        else
+        {
+            passUniformBuffer = RHICreateUniformBuffer(layout->GetTotalSize(), EUniformBufferFlags::UniformBuffer_SingleFrame, constantData);
+        }
     }
 
     const RHIUniformBuffer* FrameGraph::GetPassUniformBuffer(EMeshPass pass) const

@@ -1,6 +1,7 @@
 ﻿#include "RenderMaterial.h"
 
 #include "IDynamicRHI.h"
+#include "RenderContext.h"
 #include "RenderTranslator.h"
 #include "RenderTexture.h"
 #include "RenderModule.h"
@@ -9,7 +10,6 @@
 #include "RHIResource.h"
 #include "RHI.h"
 #include "ShaderModule.h"
-#include "RenderModule.h"
 #include "ShaderBindingsLayout.h"
 #include "UniformBuffer.h"
 
@@ -18,7 +18,7 @@ namespace Thunder
     RenderMaterial::RenderMaterial()
     {
         ParameterCache = new ShaderParameterMap();
-        MaterialUniformBuffer = new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_MultiFrame);
+        //MaterialUniformBuffer = new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_MultiFrame);
     }
 
     RenderMaterial::~RenderMaterial()
@@ -66,7 +66,7 @@ namespace Thunder
         bTexturesDirty = true; // Mark textures as dirty when parameters change
     }
 
-    void RenderMaterial::UpdateUniformBuffer(const RenderContext* context, bool cacheMeshDrawCommand)
+    void RenderMaterial::UpdateUniformBuffer(RenderContext* context, bool cacheMeshDrawCommand)
     {
         if (!Archive || !ParameterCache) [[unlikely]]
         {
@@ -83,7 +83,15 @@ namespace Thunder
             return;
         }
 
-        RenderModule::PackUniformBuffer(context, ubLayout, ParameterCache, MaterialUniformBuffer, cacheMeshDrawCommand, Archive->GetName().ToString());
+        byte* constantData = RenderModule::SetupUniformBufferParameters(context, ubLayout, ParameterCache, Archive->GetName().ToString());
+        if (MaterialUniformBuffer.IsValid())
+        {
+            RHIUpdateUniformBuffer(context, MaterialUniformBuffer, constantData);
+        }
+        else
+        {
+            MaterialUniformBuffer = RHICreateUniformBuffer(ubLayout->GetTotalSize(), EUniformBufferFlags::UniformBuffer_MultiFrame, constantData);
+        }
     }
 
     RHITexture* RenderMaterial::GetTextureResource(const NameHandle& name)

@@ -86,13 +86,13 @@ namespace Thunder
         if (LoadingSignal == 0)
         {
             uint32 LoadingIndex = frameNum / 400;
-            GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 modelIndex, uint32 dummy, uint32 bundleId)
+            GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 modelIndex, uint32 dummy, uint32 threadId)
             {
                 ThunderZoneScopedN("AsyncLoading");
                 FPlatformProcess::BusyWaiting(100000);
                 ModelLoaded[LoadingIndex * 8 + modelIndex] = true;
                 ModelData[LoadingIndex * 8 + modelIndex] = static_cast<int>(modelIndex) * 100;
-            }, 8, 1);
+            }, 8, 8);
         }
 
         // 每帧打印加载情况

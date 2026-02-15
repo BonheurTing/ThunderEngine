@@ -88,6 +88,7 @@ namespace Thunder
         }
         // Execute D3D12 commands.
         const TArray<RHICommandContextRef>& rhiCommandContexts = IRHIModule::GetModule()->GetRHICommandContexts();
+        uint32 numThread = static_cast<uint32>(rhiCommandContexts.size());
 
         uint32 frontFrameGraphIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
         auto consolidatedCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(static_cast<int>(frontFrameGraphIndex));
@@ -97,9 +98,9 @@ namespace Thunder
             const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
             auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
             dispatcher->Promise(commandNum);
-            GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
+            GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 threadId) mutable
             {
-                RHICommandContext* commandList = rhiCommandContexts[bundleId];
+                RHICommandContext* commandList = rhiCommandContexts[threadId];
                 for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
                 {
                     if (index < static_cast<uint32>(commandNum))
@@ -113,7 +114,7 @@ namespace Thunder
                         dispatcher->Notify();
                     }
                 }
-            }, commandNum);
+            }, commandNum, numThread);
             doWorkEvent->Wait();
             FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
             TMemory::Destroy(dispatcher);

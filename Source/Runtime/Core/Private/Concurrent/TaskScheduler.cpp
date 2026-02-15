@@ -144,39 +144,40 @@ namespace Thunder
 		}
 	}
 
-	void PooledTaskScheduler::ParallelFor(TFunction<void(uint32, uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize)
+	void PooledTaskScheduler::ParallelFor(TFunction<void(uint32, uint32, uint32)>& Body, uint32 NumTask, uint32 NumThread)
 	{
 		class TaskBundle : public ITask
 		{
 		public:
-			TaskBundle(TFunction<void(uint32, uint32, uint32)>* InFunction, uint32 InStart, uint32 InSize, uint32 InBundleId) //接受指针并存下来
+			TaskBundle(TFunction<void(uint32, uint32, uint32)>* InFunction, uint32 InStart, uint32 InSize, uint32 InThreadId) //接受指针并存下来
 			: Function(InFunction)
 			, Head(InStart)
 			, Size(InSize)
-			, BundleId(InBundleId)
+			, ThreadId(InThreadId)
 			{}
 
 			void DoWork() override
 			{
 				LOG("Execute Parallel Task Bundle");
-				(*Function)(Head, Size, BundleId);
+				(*Function)(Head, Size, ThreadId);
 			}
 		private:
 
 			TFunction<void(uint32, uint32, uint32)>* Function;
 			uint32 Head;
 			uint32 Size;
-			uint32 BundleId;
+			uint32 ThreadId;
 		};
 
-		for (uint32 i = 0; i < NumTask; i += BundleSize)
+		uint32 bundleSize = (NumTask + NumThread - 1) / NumThread;
+		for (uint32 i = 0; i < NumTask; i += bundleSize)
 		{
-			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(&Body, i, BundleSize, i/BundleSize);
+			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(&Body, i, bundleSize, i/bundleSize);
 			PushTask(bundleTask);
 		}
 	}
 
-	void PooledTaskScheduler::ParallelFor(TFunction<void(uint32, uint32, uint32)>&& Body, uint32 NumTask, uint32 BundleSize)
+	void PooledTaskScheduler::ParallelFor(TFunction<void(uint32, uint32, uint32)>&& Body, uint32 NumTask, uint32 NumThread)
 	{
 		class TaskBundle : public ITask
 		{
@@ -201,10 +202,11 @@ namespace Thunder
 			uint32 ThreadId;
 		};
 
-		for (uint32 i = 0; i < NumTask; i += BundleSize)
+		uint32 bundleSize = (NumTask + NumThread - 1) / NumThread;
+		for (uint32 i = 0; i < NumTask; i += bundleSize)
 		{
 			//右值，此处是消亡值，直接传给构造函数
-			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(Body, i, BundleSize, i/BundleSize);
+			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(Body, i, bundleSize, i/bundleSize);
 			PushTask(bundleTask);
 		}
 	}

@@ -317,7 +317,7 @@ void TestPoolScheduler()
 		const auto DoWorkEvent = FPlatformProcess::GetSyncEventFromPool();
 		auto* Dispatcher = new TaskCounter(DoWorkEvent);
 		Dispatcher->Promise(1024);
-		poolScheduler->ParallelFor([&randomFloat, &isGreaterThanZeroResult, Dispatcher](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId)
+		poolScheduler->ParallelFor([&randomFloat, &isGreaterThanZeroResult, Dispatcher](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
 		{
 			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
 			{

@@ -4,28 +4,27 @@
 #include "CoreMinimal.h"
 #include "MeshPass.h"
 #include "RHI.h"
-#include "Memory/TransientAllocator.h"
+#include "RHICommand.h"
 
 namespace Thunder
 {
-    class IRHICommand;
-
     /**
      * Thread-specific render context that holds recorded commands
      * Each thread has its own context to record commands into
      */
-    struct RENDERCORE_API RenderContext
+    struct RENDERCORE_API RenderContext : public IRHICommandRecorder
     {
     public:
         RenderContext() = delete;
         RenderContext(class FrameGraph* owner);
-        ~RenderContext();
+        ~RenderContext() override;
 
         // Clear all commands and free allocator
         void FreeAllocator() const;
 
-        // Add a command to this context
-        void AddCommand(IRHICommand* Command);
+        // IRHICommandRecorder interface
+        void AddCommand(IRHICommand* Command) override;
+        TransientAllocator* GetTransientAllocator_RenderThread() const override;
 
         // Add command list.
         void AddCommandList(TArray<struct RHICachedDrawCommand*> commandList);
@@ -41,16 +40,6 @@ namespace Thunder
         void AddCachedCommand(const class MeshBatch* batch, class RHICachedDrawCommand* command);
         TArray<std::tuple<const MeshBatch*, RHICachedDrawCommand*>> const& GetCachedCommands() const { return CachedDrawCommands; }
         void ClearCachedCommands();
-
-        // Get the transient allocator for this context
-        TransientAllocator* GetTransientAllocator_RenderThread() const;
-        // TransientAllocator* GetTransientAllocator_RHIThread() const;
-
-        template<typename T>
-        void* Allocate(size_t count = 1) const // Call on render thread.
-        {
-            return GetTransientAllocator_RenderThread()->Allocate(sizeof(T) * count, alignof(T));
-        }
 
         FORCEINLINE void SetCurrentPass(class FrameGraphPass* pass) { CurrentPass = pass; }
         FORCEINLINE FrameGraphPass* GetCurrentPass() const { return CurrentPass; }

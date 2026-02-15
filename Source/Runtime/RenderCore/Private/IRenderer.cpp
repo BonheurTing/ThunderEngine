@@ -49,18 +49,16 @@ namespace Thunder
         dispatcher->Promise(static_cast<int>(sceneInfoCount));
         GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
         {
+            auto const& contexts = mFrameGraph->GetRenderContexts();
+            auto context = contexts[threadId];
             for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
             {
                 if (index >= sceneInfoCount)
                 {
                     break;
                 }
-
-                // Cache static mesh-draw commands for current pass.
-                for (auto& sceneInfo : sceneInfos)
-                {
-                    sceneInfo->UpdatePrimitiveUniformBuffer();
-                }
+                auto sceneInfo = sceneInfos[index];
+                sceneInfo->UpdatePrimitiveUniformBuffer(context);
 
                 dispatcher->Notify();
             }

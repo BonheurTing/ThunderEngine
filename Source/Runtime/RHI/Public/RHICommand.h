@@ -3,11 +3,37 @@
 #include "RHIContext.h"
 #include "RHIResource.h"
 #include "ShaderBindings.h"
+#include "Memory/TransientAllocator.h"
 
 namespace Thunder
 {
     class RHICommandContext;
     class TransientAllocator;
+    struct IRHICommand;
+
+    /**
+     * Abstract interface for recording RHI commands.
+     * Lives in the RHI module so that RHI backends (D3D12RHI, etc.) can
+     * accept a command recorder without depending on higher-level modules
+     * like RenderCore where the concrete RenderContext is defined.
+     */
+    struct RHI_API IRHICommandRecorder
+    {
+        virtual ~IRHICommandRecorder() = default;
+
+        /** Allocate raw memory from the transient allocator. */
+        virtual TransientAllocator* GetTransientAllocator_RenderThread() const = 0;
+
+        /** Enqueue a command into this recorder. */
+        virtual void AddCommand(IRHICommand* command) = 0;
+
+        /** Typed allocation helper. */
+        template<typename T>
+        void* Allocate(size_t count = 1) const
+        {
+            return GetTransientAllocator_RenderThread()->Allocate(sizeof(T) * count, alignof(T));
+        }
+    };
 
     /**
      * Abstract base class for all RHI commands

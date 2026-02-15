@@ -538,8 +538,32 @@ namespace Thunder
         }
     }
 
-    void D3D12PersistentUploadHeapAllocator::GarbageCollect()
+    void D3D12PersistentUploadHeapAllocator::DeferredFree(const D3D12ResourceLocation& allocation, uint32 currentFrameNumber)
     {
+        if (!allocation.IsValid()) [[unlikely]]
+        {
+            return;
+        }
+
+        uint32 index = currentFrameNumber % MAX_FRAME_LAG;
+        auto guard = DeferredFreeLock.Guard();
+        DeferredFreeQueue[index].push_back(allocation);
+    }
+
+    void D3D12PersistentUploadHeapAllocator::GarbageCollect(uint32 currentFrameNumber)
+    {
+        // Flush the deferred free queue from MAX_FRAME_LAG frames ago.
+        // By now the GPU has finished reading from these locations.
+        {
+            uint32 flushIndex = (currentFrameNumber + 1) % MAX_FRAME_LAG;
+            auto guard = DeferredFreeLock.Guard();
+            for (const D3D12ResourceLocation& location : DeferredFreeQueue[flushIndex])
+            {
+                Free(location);
+            }
+            DeferredFreeQueue[flushIndex].clear();
+        }
+
         SmallBlockAllocator.GarbageCollect();
         BigBlockAllocator.GarbageCollect();
     }

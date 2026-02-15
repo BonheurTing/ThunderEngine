@@ -9,6 +9,11 @@
 
 namespace Thunder
 {
+	void D3D12ResourceLocation::TransferOwnership(D3D12ResourceLocation& Destination, D3D12ResourceLocation& Source)
+	{
+		memmove(&Destination, &Source, sizeof(D3D12ResourceLocation));
+	}
+
 	void D3D12RHIVertexBuffer::Update(/*RHICommandList* commandList*/)
 	{
 		ComPtr<ID3D12Resource> uploadBuffer = VertexBuffer;

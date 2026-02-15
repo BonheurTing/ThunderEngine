@@ -45,7 +45,7 @@ namespace Thunder
 		
         RHIUniformBufferRef RHICreateUniformBuffer(uint32 size, EUniformBufferFlags usage, const void* Contents) override { return nullptr; }
 
-		void RHIUpdateUniformBuffer(RHIUniformBuffer* unformBuffer, const void* Contents) override { }
+		void RHIUpdateUniformBuffer(IRHICommandRecorder* recorder, RHIUniformBuffer* unformBuffer, const void* Contents) override { }
     
 		RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void *resourceData = nullptr) override;
 

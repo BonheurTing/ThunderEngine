@@ -10,6 +10,7 @@ namespace Thunder
 {
     class RenderMaterial;
     class RHIUniformBuffer;
+    struct RenderContext;
 
     class PrimitiveSceneInfo
     {
@@ -34,9 +35,9 @@ namespace Thunder
         }
 
         RENDERCORE_API void CreateUniformBuffer();
-        RENDERCORE_API void UpdatePrimitiveUniformBuffer() const;
+        RENDERCORE_API void UpdatePrimitiveUniformBuffer(RenderContext* context) const;
         const RHIUniformBuffer* GetPrimitiveUniformBuffer() const { return PrimitiveUniformBuffer.IsValid() ? PrimitiveUniformBuffer.Get() : nullptr; }
-        RENDERCORE_API bool CacheMeshDrawCommand(struct RenderContext* context, EMeshPass meshPassType);
+        RENDERCORE_API bool CacheMeshDrawCommand(RenderContext* context, EMeshPass meshPassType);
         RENDERCORE_API bool IsMeshDrawCacheSupported() const  { return MeshDrawCacheSupported; }
 
     protected:

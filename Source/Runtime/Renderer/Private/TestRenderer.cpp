@@ -258,6 +258,7 @@ namespace Thunder
                     const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
                     auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
                     dispatcher->Promise(static_cast<int>(sceneInfoCount));
+                    
                     GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
                     {
                         auto const& contexts = mFrameGraph->GetRenderContexts();
@@ -279,7 +280,7 @@ namespace Thunder
 
                             dispatcher->Notify();
                         }
-                    }, sceneInfoCount);
+                    }, sceneInfoCount, );
 
                     doWorkEvent->Wait();
                     FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);

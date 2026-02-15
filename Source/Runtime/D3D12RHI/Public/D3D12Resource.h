@@ -31,6 +31,9 @@ namespace Thunder
 
         bool IsValid() const { return Resource != nullptr; }
         void Invalidate() { Resource = nullptr; CPUAddress = nullptr; GPUVirtualAddress = 0; }
+
+        // Transfers the contents of 1 resource location to another, destroying the original but preserving the underlying resource 
+        static void TransferOwnership(D3D12ResourceLocation& Destination, D3D12ResourceLocation& Source);
     };
     
     class D3D12RHIVertexBuffer : public RHIVertexBuffer

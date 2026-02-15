@@ -15,6 +15,7 @@
 #define INITGUID
 #include "D3D12Allocator.h"
 #include "d3dx12.h"
+#include "RHICommand.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Misc/CoreGlabal.h"
 
@@ -583,7 +584,7 @@ namespace Thunder
             {
                 // Uniform buffers that live for multiple frames must use the more expensive and persistent allocation path
                 D3D12PersistentUploadHeapAllocator& Allocator = TD3D12RHIModule::GetUploadHeapAllocator();
-                MappedData = Allocator.Allocate(alignedSize, newUniformBuffer->ResourceLocation); //mapped data
+                MappedData = Allocator.Allocate(alignedSize, newUniformBuffer->ResourceLocation);
                 // Allocator mamager可能先createcommittedresource分配过一大块uploadbuffer，这时候申请alignedSize的内存，cpu可以拿到地址，mapped data，然后向里面填数据
             }
             else
@@ -597,39 +598,56 @@ namespace Thunder
         return newUniformBuffer;
     }
 
-    void D3D12DynamicRHI::RHIUpdateUniformBuffer(RHIUniformBuffer* unformBuffer, const void* Contents)
+    struct RHICommandD3D12UpdateUniformBuffer : public IRHICommand
     {
-        /*
-        const FRHIUniformBufferLayout& Layout = unformBuffer->GetLayout();
-        const uint32 NumBytes = Layout.ConstantBufferSize;
-        const int32 NumResources = Layout.Resources.Num();
-        // 看有多数数据
+        TRefCountPtr<D3D12UniformBuffer> UniformBuffer;
+        D3D12ResourceLocation UpdatedLocation;
 
-        FD3D12ResourceLocation UpdatedResourceLocation(Device);
-
-        if (NumBytes > 0)
+        RHICommandD3D12UpdateUniformBuffer(D3D12UniformBuffer* InUniformBuffer, D3D12ResourceLocation& InUpdatedLocation)
+            : UniformBuffer(InUniformBuffer)
         {
-            void* MappedData = nullptr;
+            D3D12ResourceLocation::TransferOwnership(UpdatedLocation, InUpdatedLocation);
+        }
 
-            if (unformBuffer->UniformBufferUsage == EUniformBufferFlags::UniformBuffer_MultiFrame)
+        ~RHICommandD3D12UpdateUniformBuffer() override {}
+
+        D3D12RHI_API void Execute(RHICommandContext* cmdList) override
+        {
+            D3D12ResourceLocation::TransferOwnership(UniformBuffer->ResourceLocation, UpdatedLocation);
+        }
+    };
+
+    void D3D12DynamicRHI::RHIUpdateUniformBuffer(IRHICommandRecorder* recorder, RHIUniformBuffer* uniformBuffer, const void* Contents)
+    {
+        D3D12UniformBuffer* dx12UB = static_cast<D3D12UniformBuffer*>(uniformBuffer);
+        const uint32 alignedSize = dx12UB->ResourceLocation.AllocatedSize;
+
+        D3D12ResourceLocation UpdatedResourceLocation;
+        if (alignedSize > 0)
+        {
+            void* mappedData = nullptr;
+
+            if (uniformBuffer->UniformBufferUsage == EUniformBufferFlags::UniformBuffer_MultiFrame)
             {
                 D3D12PersistentUploadHeapAllocator& Allocator = TD3D12RHIModule::GetUploadHeapAllocator();
-                UpdatedResourceLocation = Allocator.Allocate(NumBytes); //mapped data
+                mappedData = Allocator.Allocate(alignedSize, UpdatedResourceLocation);
+
+                uint32 currentFrame = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
+                if (dx12UB->ResourceLocation.IsValid())
+                {
+                    Allocator.DeferredFree(dx12UB->ResourceLocation, currentFrame);
+                }
             }
             else
             {
-                
+
             }
 
-            //UpdateUniformBufferConstants(MappedData, Contents, Layout);
+            memcpy(mappedData, Contents, alignedSize);
         }
 
-
-        new (RHICmdList.AllocCommand<FRHICommandD3D12UpdateUniformBuffer>()) FRHICommandD3D12UpdateUniformBuffer(&UniformBuffer, UpdatedResourceLocation, CmdListResources, NumResources);
-
-        //fence is required to stop parallel recording threads from recording with the old bad state of the uniformbuffer resource table.  This command MUST execute before dependent recording starts.
-        RHICmdList.RHIThreadFence(true);
-        */
+        RHICommandD3D12UpdateUniformBuffer* newCommand = new (recorder->Allocate<RHICommandD3D12UpdateUniformBuffer>()) RHICommandD3D12UpdateUniformBuffer(dx12UB, UpdatedResourceLocation);
+        recorder->AddCommand(newCommand);
     }
 
     RHITextureRef D3D12DynamicRHI::RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void *resourceData)

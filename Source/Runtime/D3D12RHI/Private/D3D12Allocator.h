@@ -118,13 +118,23 @@ namespace Thunder
 
         // Allocate upload heap memory. Returns the CPU mapped address, or nullptr on failure.
         void* Allocate(uint32 size, D3D12ResourceLocation& outLocation);
+
+        // Immediately free a location back to the allocator pool.
         void Free(const D3D12ResourceLocation& allocation);
 
-        // Call once per frame to reclaim idle resources.
-        void GarbageCollect();
+        // Queue a location for deferred freeing. The location will be freed after MAX_FRAME_LAG frames
+        // to ensure the GPU is no longer reading from it.
+        void DeferredFree(const D3D12ResourceLocation& allocation, uint32 currentFrameNumber);
+
+        // Call once per frame to reclaim idle resources and flush matured deferred frees.
+        void GarbageCollect(uint32 currentFrameNumber);
 
     private:
         D3D12SmallBlockAllocator SmallBlockAllocator;
         D3D12BigBlockAllocator BigBlockAllocator;
+
+        // Deferred free queue: locations are held for MAX_FRAME_LAG frames before being freed.
+        TArray<D3D12ResourceLocation> DeferredFreeQueue[MAX_FRAME_LAG];
+        SpinLock DeferredFreeLock;
     };
 }

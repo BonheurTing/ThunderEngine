@@ -50,7 +50,7 @@ namespace Thunder
 
         virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 size, EUniformBufferFlags usage, const void* Contents) = 0;
 
-        virtual void RHIUpdateUniformBuffer(RHIUniformBuffer* unformBuffer, const void* Contents) = 0;
+        virtual void RHIUpdateUniformBuffer(struct IRHICommandRecorder* recorder, RHIUniformBuffer* unformBuffer, const void* Contents) = 0;
     
         virtual RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void* resourceData = nullptr) = 0;
 
@@ -154,9 +154,9 @@ namespace Thunder
         return GDynamicRHI->RHICreateUniformBuffer(size, usage, Contents);
     }
 
-    FORCEINLINE void RHIUpdateUniformBuffer(RHIUniformBuffer* unformBuffer, const void* Contents)
+    FORCEINLINE void RHIUpdateUniformBuffer(IRHICommandRecorder* recorder, RHIUniformBuffer* unformBuffer, const void* Contents)
     {
-        return GDynamicRHI->RHIUpdateUniformBuffer(unformBuffer, Contents);
+        return GDynamicRHI->RHIUpdateUniformBuffer(recorder, unformBuffer, Contents);
     }
 
     FORCEINLINE RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void* resourceData = nullptr)

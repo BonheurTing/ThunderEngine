@@ -1,6 +1,6 @@
 #include "PrimitiveSceneInfo.h"
-
 #include "IDynamicRHI.h"
+#include "RenderContext.h"
 #include "RenderMaterial.h"
 #include "RenderMesh.h"
 #include "RenderModule.h"
@@ -50,7 +50,7 @@ namespace Thunder
         }
     }
 
-    void PrimitiveSceneInfo::UpdatePrimitiveUniformBuffer() const
+    void PrimitiveSceneInfo::UpdatePrimitiveUniformBuffer(RenderContext* context) const
     {
         const auto layout = ShaderModule::GetPrimitiveUniformBufferLayout();
         if (!layout) [[unlikely]]
@@ -73,7 +73,7 @@ namespace Thunder
         SetPrimitiveParameter(layout, "LocalToWorld1", Transform.GetRow(1), packedData);
         SetPrimitiveParameter(layout, "LocalToWorld2", Transform.GetRow(2), packedData);
 
-        //RHIUpdateUniformBuffer(PrimitiveUniformBuffer, packedData);
+        RHIUpdateUniformBuffer(context, PrimitiveUniformBuffer, packedData);
         //PrimitiveUniformBuffer->UpdateUB(bufferSize);
 
         TMemory::Free(packedData);

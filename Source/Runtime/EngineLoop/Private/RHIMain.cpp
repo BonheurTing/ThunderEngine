@@ -105,11 +105,6 @@ namespace Thunder
                 {
                     if (index < static_cast<uint32>(commandNum))
                     {
-                        size_t currentSize = consolidatedCommands.size();
-                        consolidatedCommands.resize(currentSize * 2);
-                        consolidatedCommands.resize(currentSize);
-                        // consolidatedCommands[index]->TestMember;
-
                         consolidatedCommands[index]->ExecuteAndDestruct(commandList);
                         dispatcher->Notify();
                     }

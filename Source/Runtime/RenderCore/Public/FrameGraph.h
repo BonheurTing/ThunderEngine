@@ -119,6 +119,9 @@ namespace Thunder
         void ScheduleRenderTargetLifetime();
         void AllocateRenderTargets();
 
+        // Excute
+        void IntegrateCommands(uint32 frameIndex);
+
         // Passes.
         TArray<TRefCountPtr<FrameGraphPass>> Passes;
         TMap<NameHandle, int32> PassIndexMap;

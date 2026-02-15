@@ -74,7 +74,6 @@ namespace Thunder
         SetPrimitiveParameter(layout, "LocalToWorld2", Transform.GetRow(2), packedData);
 
         RHIUpdateUniformBuffer(context, PrimitiveUniformBuffer, packedData);
-        //PrimitiveUniformBuffer->UpdateUB(bufferSize);
 
         TMemory::Free(packedData);
     }

@@ -111,6 +111,17 @@ namespace Thunder
         RenderTargetLifetimes.clear();
         PresentTargetID = 0;
         bHasPresentTarget = false;
+
+        // Clear commands from previous frame
+        uint32 frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
+        AllCommands[frameIndex].clear();
+        for (auto& context : RenderContexts)
+        {
+            context->ClearCommands();
+            context->FreeAllocator();
+        }
+        MainContext->ClearCommands();
+        MainContext->FreeAllocator();
     }
 
     void FrameGraph::Compile()
@@ -128,18 +139,30 @@ namespace Thunder
         AllocateRenderTargets();
     }
 
-    void FrameGraph::Execute()
+    void FrameGraph::IntegrateCommands(uint32 frameIndex)
     {
-        // Clear commands from previous frame
-        uint32 frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
-        AllCommands[frameIndex].clear();
+        // Add main context commands.
+        const auto& mainCommands = MainContext->GetCommands();
+        AllCommands[frameIndex].insert(AllCommands[frameIndex].end(), mainCommands.begin(), mainCommands.end());
+        MainContext->ClearCommands();
+
+        // Add threaded commands.
         for (auto& context : RenderContexts)
         {
+            auto const& commands = context->GetCommands();
+            if (!commands.empty())
+            {
+                AllCommands[frameIndex].insert(AllCommands[frameIndex].end(), commands.begin(), commands.end());
+            }
             context->ClearCommands();
-            context->FreeAllocator();
         }
-        MainContext->ClearCommands();
-        MainContext->FreeAllocator();
+    }
+
+    void FrameGraph::Execute()
+    {
+        uint32 frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
+        // Execute command before passes
+        IntegrateCommands(frameIndex);
 
         // Execute passes in order.
         for (size_t i = 0; i < ExecutionOrder.size(); ++i)
@@ -154,21 +177,7 @@ namespace Thunder
                     SetCurrentPass(pass.Get());
                     pass->ExecuteFunction();
 
-                    // Add main context commands.
-                    const auto& mainCommands = MainContext->GetCommands();
-                    AllCommands[frameIndex].insert(AllCommands[frameIndex].end(), mainCommands.begin(), mainCommands.end());
-                    MainContext->ClearCommands();
-
-                    // Add threaded commands.
-                    for (auto& context : RenderContexts)
-                    {
-                        auto const& commands = context->GetCommands();
-                        if (!commands.empty())
-                        {
-                            AllCommands[frameIndex].insert(AllCommands[frameIndex].end(), commands.begin(), commands.end());
-                        }
-                        context->ClearCommands();
-                    }
+                    IntegrateCommands(frameIndex);
                 }
 
                 // After pass execution, release render targets that are no longer needed

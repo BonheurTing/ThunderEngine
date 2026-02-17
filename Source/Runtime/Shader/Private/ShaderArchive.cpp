@@ -164,9 +164,12 @@ namespace Thunder
     	outCount.ShaderResourceCount = 0;
     	outCount.UnorderedAccessCount = 0;
     	GenerateParameterResourceCount<ShaderPropertyMeta>(PropertyMeta, outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
-    	for (auto& uniformMetas : UniformParameterMeta | std::views::values)
+    	for (auto& uniformMetas : UniformParameterMeta)
     	{
-    		GenerateParameterResourceCount<ShaderParameterMeta>(uniformMetas, outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
+    		if (GUniformBufferDefinitions.contains(uniformMetas.first))
+    		{
+    			GenerateParameterResourceCount<ShaderParameterMeta>(uniformMetas.second, outCount.ShaderResourceCount, outCount.UnorderedAccessCount);
+    		}
     	}
     	QuantizeRegisterCounts(outCount);
     }
@@ -360,6 +363,24 @@ namespace Thunder
     			meta.Type = uniformBufferParameter->type->get_type_text();
     			meta.Format = uniformBufferParameter->type->get_type_format_text();
     			meta.Default = uniformBufferParameter->default_value;
+    			metaList.push_back(meta);
+    		}
+    	}
+
+    	// Reflect pass parameter
+    	for (auto const& constantBufferParametersEntry : node->pass_cb_parameters)
+    	{
+    		String const& uniformBufferName = constantBufferParametersEntry.first;
+    		TArray<ast_node_variable*> const& constantBufferParameters = constantBufferParametersEntry.second;
+    		auto& metaList = archive->EnsureAndGetUniformBufferMetaList(uniformBufferName);
+    		TAssertf(metaList.empty(), "Uniform buffer is not empty.");
+    		for (ast_node_variable* constantBufferParameter : constantBufferParameters)
+    		{
+    			ShaderParameterMeta meta{};
+    			meta.Name = constantBufferParameter->name;
+    			meta.Type = constantBufferParameter->type->get_type_text();
+    			meta.Format = constantBufferParameter->type->get_type_format_text();
+    			meta.Default = constantBufferParameter->default_value;
     			metaList.push_back(meta);
     		}
     	}
@@ -568,6 +589,10 @@ namespace Thunder
 	{
     	for (auto const& [uniformBufferName, parameterMetas] : UniformParameterMeta)
     	{
+    		if (uniformBufferName == "Pass")
+    		{
+    			continue;
+    		}
     		UniformBufferLayoutRef layout = new UniformBufferLayout{ this };
     		uint32 currentOffset = 0;
 
@@ -648,7 +673,7 @@ namespace Thunder
     	for (auto& uniformBufferNames : UniformParameterMeta | std::views::keys)
     	{
     		auto definitionIt = GUniformBufferDefinitions.find(uniformBufferNames);
-    		if (definitionIt != GUniformBufferDefinitions.end())
+    		if (definitionIt != GUniformBufferDefinitions.end()) // only GUniformBufferDefinitions.size cb
     		{
     			uint16 bufferIndex = definitionIt->second.index;
     			BindingsLayout->AddBinding(
@@ -658,16 +683,16 @@ namespace Thunder
 					.Type = EShaderParameterType::UniformBuffer,
 				});
     		}
-		    else
-		    {
-			    TAssertf(false, "Uniform buffer not defined : \"%s\".", uniformBufferNames.c_str());
-		    }
     	}
 
     	// Build UAVs and SRVs.
-    	for (auto& uniformMetas : UniformParameterMeta | std::views::values)
+    	for (auto& uniformMetas : UniformParameterMeta)
     	{
-    		for (auto const& uniformBufferParameter : uniformMetas)
+    		if (!GUniformBufferDefinitions.contains(uniformMetas.first))
+    		{
+    			continue;
+    		}
+    		for (auto const& uniformBufferParameter : uniformMetas.second)
     		{
     			if (uniformBufferParameter.Type.find("Texture") != std::string::npos)
     			{

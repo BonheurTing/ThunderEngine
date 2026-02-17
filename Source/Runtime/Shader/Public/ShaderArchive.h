@@ -186,14 +186,14 @@ namespace Thunder
     	// all type parameters from ast
     	TArray<ShaderPropertyMeta> PropertyMeta; // visible
     	TArray<ShaderVariantMeta> VariantMeta; // partially visible
-    	TMap<String, TArray<ShaderParameterMeta>> UniformParameterMeta;
+    	TMap<String, TArray<ShaderParameterMeta>> UniformParameterMeta; // global pass material primitive + subshader
 
     	RenderStateMeta RenderState {};
     	THashMap<NameHandle, ShaderPassRef> SubShaders;
     	THashMap<EMeshPass, ShaderPassRef> MeshDrawSubShaders;
 
-    	ShaderBindingsLayoutRef BindingsLayout{ nullptr };
-    	TMap<String, UniformBufferLayoutRef> UniformBufferLayoutMap;
+    	ShaderBindingsLayoutRef BindingsLayout{ nullptr }; // srv + uav + 4 cbv
+    	TMap<String, UniformBufferLayoutRef> UniformBufferLayoutMap; // [global subshader material primitive] constant buffer
     };
     
 }

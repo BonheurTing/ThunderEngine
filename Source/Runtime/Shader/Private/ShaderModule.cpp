@@ -417,8 +417,12 @@ namespace Thunder
 				delete param;
 				return;
 			}
-			PassUniformBufferLayoutMap[pass] = archive->GetUniformBufferLayout(passUB);
-			PassDefaultParameterMap.emplace(pass, param);
+			if (auto subShader = archive->GetSubShader(pass))
+			{
+				String subShadeName = subShader->GetName().ToString();
+				PassUniformBufferLayoutMap[pass] = archive->GetUniformBufferLayout(subShadeName);
+				PassDefaultParameterMap.emplace(pass, param);
+			}
 		}
     }
 

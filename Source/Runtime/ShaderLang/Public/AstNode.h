@@ -466,6 +466,15 @@ namespace Thunder
         {
             uniform_buffer_parameters[buffer_name].push_back(var);
         }
+        void push_symbol(const String& text, enum_symbol_type type, ast_node* node) const
+        {
+            global_scope->push_symbol(text, type, node);
+        }
+        ast_node* find_symbol(const String& text) const
+        {
+            return global_scope->find_local_symbol(text);
+        }
+        void reflect_pass_cb_parameters();
 
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
@@ -477,8 +486,8 @@ namespace Thunder
         TArray<ast_node_variable*> properties;
         TArray<ast_node_variable*> variants;
         TMap<String, TArray<ast_node_variable*>> uniform_buffer_parameters;
+        TMap<String, TArray<ast_node_variable*>> pass_cb_parameters;
         TArray<ast_node_pass*> passes;
-        
     };
 
     class ast_node_pass : public ast_node
@@ -509,6 +518,8 @@ namespace Thunder
         {
             functions.push_back(function);
         }
+        void add_parameter(const String& name) { pass_parameters.emplace(name); }
+        bool fine_parameter(const String& name) const { return pass_parameters.contains(name); }
 
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
@@ -519,6 +530,9 @@ namespace Thunder
         THashMap<enum class enum_shader_stage, String> stage_entries;
         TArray<ast_node_struct*> structures;
         TArray<ast_node_function*> functions;
+
+        // parse
+        TSet<String> pass_parameters;
     };
 
     class ast_node_struct : public ast_node

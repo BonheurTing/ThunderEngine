@@ -129,6 +129,7 @@ namespace Thunder
 	ast_node* shader_lang_state::parsing_archive_end(ast_node* content)
 	{
 		current_archive->end_archive(pop_scope());
+		current_archive->reflect_pass_cb_parameters();
 
 		ast_node_archive* dummy = current_archive;
 		current_archive = nullptr;
@@ -138,6 +139,12 @@ namespace Thunder
 	void shader_lang_state::add_variable_to_list(ast_node_type_format* type, const token_data& name, ast_node_expression* default_value)
 	{
 		TAssert(name.token_id == NEW_ID);
+		//check symbol
+		if (get_global_symbol(name.text) != nullptr) [[unlikely]]
+		{
+			TAssertf(false, "Redefine variable %s" , name.text);
+			return;
+		}
 
 		const auto variable = new ast_node_variable(type, name.text);
 		
@@ -163,6 +170,7 @@ namespace Thunder
 		}
 
 		current_variables.push_back(variable);
+		current_archive->push_symbol(name.text, enum_symbol_type::variable, variable);
 	}
 
 	void shader_lang_state::add_variant(ast_node_variable* variant)
@@ -222,7 +230,7 @@ namespace Thunder
 		current_archive->add_pass(current_pass);
 		ast_node_pass* dummy = current_pass;
 		current_pass = nullptr;
-		//current_attributes = shader_attributes();
+
 		return dummy;
 	}
 
@@ -742,6 +750,10 @@ namespace Thunder
 	ast_node_expression* shader_lang_state::create_reference_expression(const token_data& name)
 	{
 		const auto ref_expr = new reference_expression(name.text, get_global_symbol(name.text));
+		if (current_archive->find_symbol(name.text))
+		{
+			current_pass->add_parameter(name.text);
+		}
 		return ref_expr;
 	}
 
@@ -860,10 +872,10 @@ namespace Thunder
 			debug_log("Parse Error, current text : " + sl_state->current_text);
 			return;
 		}
-		//ast_root->print_ast(0);
 		printf("\n");
 		String outHlsl;
 		shader_codegen_state temp_state{};
+		temp_state.sub_shader_name = "MySubShaderName";
 		ast_root->generate_hlsl(outHlsl, temp_state);
 		printf("------------ Generate HLSL ------------\n%s", outHlsl.c_str());
 		printf("------------ Generate HLSL End ------------\n\n");

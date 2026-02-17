@@ -83,6 +83,7 @@ namespace Thunder
             return;
         }
 
+        // todo: check layout update
         byte* constantData = RenderModule::SetupUniformBufferParameters(context, ubLayout, ParameterCache, Archive->GetName().ToString());
         if (MaterialUniformBuffer.IsValid())
         {

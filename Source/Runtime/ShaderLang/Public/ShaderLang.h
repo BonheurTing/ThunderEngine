@@ -71,7 +71,6 @@ namespace Thunder
 		/* 抽象语法树 */
 		String shader_name;
 		ast_node* ast_root = nullptr;	// AST根节点
-		scope_ref global_scope = nullptr;	// 全局作用域
 
 		// 作用域
 		TArray<scope*> symbol_scopes;

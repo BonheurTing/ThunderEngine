@@ -19,8 +19,10 @@ Shader "TestShader"
     }
     Parameters "Pass"
     {
-        float4 PassParameters0;
+        float PassParameters0;
         float4 PassParameters1;
+        float4 PassParameters2;
+        int PassParameters3;
     }
     #include "test_include_primitive.tsh"
     #include "TestInclude1/TestInclude2/test_include_common.tsh"
@@ -77,7 +79,7 @@ Shader "TestShader"
         ps_out frag(in v2f v)
         {
             int x = 0;
-            int y = 1;
+            int y = PassParameters1.x;
             for (int i = 0; i < 10; i++)
             {
                 x += y;

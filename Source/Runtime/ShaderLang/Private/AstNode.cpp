@@ -224,13 +224,39 @@ namespace Thunder
         }
     }
 
+    void ast_node_archive::reflect_pass_cb_parameters()
+    {
+        auto const& uniform_buffer_entry = uniform_buffer_parameters.find("Pass");
+        if (uniform_buffer_entry == uniform_buffer_parameters.end()) [[uniform_buffer]] return;
+        auto const& buffer_parameters = uniform_buffer_entry->second;
+        for (const auto pass : passes)
+        {
+            pass_cb_parameters[pass->get_name()] = {};
+        }
+        for (auto const& parameter : buffer_parameters)
+        {
+            for (const auto pass : passes)
+            {
+                if (pass->fine_parameter(parameter->name))
+                {
+                    pass_cb_parameters.at(pass->get_name()).push_back(parameter);
+                }
+            }
+        }
+    }
+
     void ast_node_archive::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
+        if (state.sub_shader_name.IsEmpty())
+        {
+            TAssert(false, "Empty subshader.");
+            return;
+        }
         TArray<ast_node_variable*> objects;
         for (auto const& uniform_buffer_entry : uniform_buffer_parameters)
         {
             String const& buffer_name = uniform_buffer_entry.first;
-            auto const& buffer_parameters = uniform_buffer_entry.second;
+            TArray<ast_node_variable*> buffer_parameters;
             auto uniform_buffer_definition_it = GUniformBufferDefinitions.find(buffer_name);
             if (uniform_buffer_definition_it == GUniformBufferDefinitions.end())
             {
@@ -238,7 +264,16 @@ namespace Thunder
                 continue;
             }
             uint16 const buffer_index = uniform_buffer_definition_it->second.index;
-            outResult += "cbuffer cb" + buffer_name + " : register(b" + std::to_string(buffer_index) + ", space0)\n{\n";
+            if (buffer_name == "Pass")
+            {
+                outResult += "cbuffer cb" + state.sub_shader_name.ToString() + " : register(b" + std::to_string(buffer_index) + ", space0)\n{\n";
+                buffer_parameters = pass_cb_parameters.at(state.sub_shader_name.ToString());
+            }
+            else
+            {
+                outResult += "cbuffer cb" + buffer_name + " : register(b" + std::to_string(buffer_index) + ", space0)\n{\n";
+                buffer_parameters = uniform_buffer_entry.second;
+            }
             for (auto const& parameter : buffer_parameters)
             {
                 if (parameter->type->is_object())
@@ -249,6 +284,7 @@ namespace Thunder
                 parameter->generate_hlsl(outResult, state);
                 outResult += ";\n";
             }
+
             outResult += "};\n\n";
         }
         int object_index = 0;
@@ -259,11 +295,17 @@ namespace Thunder
         }
         outResult += "\n";
 
+        bool find_valid_pass = false;
         for (const auto pass : passes)
         {
-            pass->generate_hlsl(outResult, state);
-            outResult += "\n";
+            if (pass->get_name() == state.sub_shader_name.ToString())
+            {
+                find_valid_pass = true;
+                pass->generate_hlsl(outResult, state);
+                outResult += "\n";
+            }
         }
+        TAssert(find_valid_pass, "Unknown subshader name : \"%s\".", state.sub_shader_name);
     }
 
     void ast_node_pass::generate_hlsl(String& outResult, shader_codegen_state& state)

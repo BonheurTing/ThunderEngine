@@ -92,13 +92,10 @@ namespace Thunder
         }
         FORCEINLINE FrameGraphPass* GetPass(NameHandle name)
         {
-            auto passIt = PassIndexMap.find(name);
-            TAssertf(passIt->second < Passes.size(), "Invalid pass index found, pass name : \"%s\".", name.c_str());
-            TAssertf(passIt != PassIndexMap.end(), "Pass not found, pass name : \"%s\".", name.c_str());
-            return (passIt != PassIndexMap.end()) ? Passes[passIt->second].Get() : nullptr;
+            auto passIt = Passes.find(name);
+            TAssertf(passIt != Passes.end(), "Pass not found, pass name : \"%s\".", name.c_str());
+            return (passIt != Passes.end()) ? passIt->second.Get() : nullptr;
         }
-        FORCEINLINE FrameGraphPass* GetPass(const String& name) { return GetPass(NameHandle{ name }); }
-        FORCEINLINE FrameGraphPass* GetPass(int passIndex) const { return passIndex < Passes.size() ? Passes[passIndex].Get() : nullptr; }
         bool GetRenderTargetFormat(uint32 renderTargetIndex, RHIFormat& outFormat, bool& outIsDepthStencil) const;
 
         TArray<RHICachedDrawCommand*> const& GetVisibleCachedDrawList(EMeshPass passType) { return VisibleCachedDrawLists[passType]; }
@@ -123,9 +120,11 @@ namespace Thunder
         void IntegrateCommands(uint32 frameIndex);
 
         // Passes.
-        TArray<TRefCountPtr<FrameGraphPass>> Passes;
-        TMap<NameHandle, int32> PassIndexMap;
-        TArray<size_t> ExecutionOrder;
+        
+        TSet<NameHandle> CurrentFramePasses;
+        TMap<NameHandle, TRefCountPtr<FrameGraphPass>> Passes;
+
+        TArray<NameHandle> ExecutionOrder;
 
         // Render targets.
         THashMap<uint32, FGRenderTargetRef> RenderTargets;

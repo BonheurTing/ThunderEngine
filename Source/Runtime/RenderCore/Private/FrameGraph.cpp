@@ -103,8 +103,19 @@ namespace Thunder
             Pool.ReleaseRenderTarget(renderTarget);
         }
 
-        Passes.clear();
-        PassIndexMap.clear();
+        for (auto it = Passes.begin(); it != Passes.end(); )
+        {
+            if (!CurrentFramePasses.contains(it->first) )
+            {
+                it = Passes.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+        CurrentFramePasses.clear();
+
         ExecutionOrder.clear();
         RenderTargets.clear();
         AllocatedRenderTargets.clear();
@@ -167,32 +178,34 @@ namespace Thunder
         // Execute passes in order.
         for (size_t i = 0; i < ExecutionOrder.size(); ++i)
         {
-            size_t passIndex = ExecutionOrder[i];
-            if (passIndex < Passes.size() && !Passes[passIndex]->bCulled)
+            NameHandle passName = ExecutionOrder[i];
+            if (!Passes.contains(passName) || Passes[passName]->bCulled) [[unlikely]]
             {
-                auto& pass = Passes[passIndex];
+                TAssertf(false, "Execution invalid pass \"%s\".", passName);
+                continue;
+            }
 
+            {
+                auto& pass = Passes[passName];
+                // Execute pass.
+                SetCurrentPass(pass.Get());
+                pass->ExecuteFunction();
+
+                IntegrateCommands(frameIndex);
+            }
+
+            // After pass execution, release render targets that are no longer needed
+            for (const auto& [rtID, lifetime] : RenderTargetLifetimes)
+            {
+                if (lifetime.second == i) // This is the last use of the render target
                 {
-                    // Execute pass.
-                    SetCurrentPass(pass.Get());
-                    pass->ExecuteFunction();
-
-                    IntegrateCommands(frameIndex);
-                }
-
-                // After pass execution, release render targets that are no longer needed
-                for (const auto& [rtID, lifetime] : RenderTargetLifetimes)
-                {
-                    if (lifetime.second == i) // This is the last use of the render target
+                    // Don't release the present target as it might be needed later
+                    if (rtID != PresentTargetID)
                     {
-                        // Don't release the present target as it might be needed later
-                        if (rtID != PresentTargetID)
+                        auto it = AllocatedRenderTargets.find(rtID);
+                        if (it != AllocatedRenderTargets.end())
                         {
-                            auto it = AllocatedRenderTargets.find(rtID);
-                            if (it != AllocatedRenderTargets.end())
-                            {
-                                Pool.ReleaseRenderTarget(it->second);
-                            }
+                            Pool.ReleaseRenderTarget(it->second);
                         }
                     }
                 }
@@ -367,9 +380,18 @@ namespace Thunder
 
     void FrameGraph::AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction)
     {
-        auto pass = MakeRefCount<FrameGraphPass>(this, name, std::move(operations), std::move(executeFunction));
-        Passes.push_back(pass);
-        PassIndexMap[name] = (static_cast<int>(Passes.size()) - 1);
+        auto pass = Passes.find(name);
+        if (pass == Passes.end())
+        {
+            auto newPass = MakeRefCount<FrameGraphPass>(this, name, std::move(operations), std::move(executeFunction));
+            Passes[name] = newPass;
+        }
+        else
+        {
+            pass->second->Operations = std::move(operations);
+            pass->second->ExecuteFunction = std::move(executeFunction);
+        }
+        CurrentFramePasses.emplace(name);
     }
 
     bool FrameGraph::GetRenderTargetFormat(uint32 renderTargetIndex, RHIFormat& outFormat, bool& outIsDepthStencil) const
@@ -502,8 +524,8 @@ namespace Thunder
             return;
         }
 
-        // Mark all passes as culled initially
-        for (auto& pass : Passes)
+        // Mark all current passes as culled initially
+        for (const auto& pass : Passes | std::views::values)
         {
             pass->bCulled = true;
         }
@@ -524,15 +546,19 @@ namespace Thunder
             // Find passes that write to this target
             for (auto& pass : Passes)
             {
-                const auto& writeTargets = pass->Operations.GetWriteTargets();
-                if (std::find(writeTargets.begin(), writeTargets.end(), currentTarget) != writeTargets.end())
+                if (!CurrentFramePasses.contains(pass.first))
                 {
-                    pass->bCulled = false;
+                    continue;
+                }
+                const auto& writeTargets = pass.second->Operations.GetWriteTargets();
+                if (std::ranges::find(writeTargets, currentTarget) != writeTargets.end())
+                {
+                    pass.second->bCulled = false;
 
                     // Add read targets to the queue
-                    for (uint32 readTarget : pass->Operations.GetReadTargets())
+                    for (uint32 readTarget : pass.second->Operations.GetReadTargets())
                     {
-                        if (neededTargets.find(readTarget) == neededTargets.end())
+                        if (!neededTargets.contains(readTarget))
                         {
                             neededTargets.insert(readTarget);
                             targetQueue.push(readTarget);
@@ -547,59 +573,63 @@ namespace Thunder
     {
         ExecutionOrder.clear();
 
-        TArray<bool> visited(Passes.size(), false);
-        TArray<int> inDegree(Passes.size(), 0);
+        TMap<NameHandle, uint32> inDegreeMap;
 
         // Calculate in-degrees
-        for (size_t i = 0; i < Passes.size(); ++i)
+        for (auto& passX : Passes)
         {
-            if (Passes[i]->bCulled) continue;
+            if (passX.second->bCulled) continue;
+            inDegreeMap.emplace(passX.first, 0);
 
-            for (uint32 readTarget : Passes[i]->Operations.GetReadTargets())
+            for (uint32 readTarget : passX.second->Operations.GetReadTargets())
             {
-                for (size_t j = 0; j < Passes.size(); ++j)
+                for (auto& passY : Passes)
                 {
-                    if (i == j || Passes[j]->bCulled) continue;
+                    if (passX.first == passY.first || passY.second->bCulled) continue;
 
-                    const auto& writeTargets = Passes[j]->Operations.GetWriteTargets();
-                    if (std::find(writeTargets.begin(), writeTargets.end(), readTarget) != writeTargets.end())
+                    const auto& writeTargets = passY.second->Operations.GetWriteTargets();
+                    if (std::ranges::find(writeTargets, readTarget) != writeTargets.end())
                     {
-                        inDegree[i]++;
+                        inDegreeMap[passX.first]++;
                     }
                 }
             }
         }
+    
 
         // Kahn's algorithm
-        TQueue<size_t> queue;
-        for (size_t i = 0; i < Passes.size(); ++i)
+        TQueue<NameHandle> queue;
+        for (auto& pass : Passes)
         {
-            if (!Passes[i]->bCulled && inDegree[i] == 0)
+            if (!pass.second->bCulled)
             {
-                queue.push(i);
+                auto const& inDegree = inDegreeMap.find(pass.first);
+                if (inDegree != inDegreeMap.end() && inDegree->second == 0)
+                {
+                    queue.push(pass.first);
+                }
             }
         }
 
         while (!queue.empty())
         {
-            size_t current = queue.front();
+            NameHandle current = queue.front();
             queue.pop();
             ExecutionOrder.push_back(current);
 
             // Update in-degrees for dependent passes
             for (uint32 writeTarget : Passes[current]->Operations.GetWriteTargets())
             {
-                for (size_t i = 0; i < Passes.size(); ++i)
+                for (auto& pass : Passes)
                 {
-                    if (Passes[i]->bCulled) continue;
-
-                    const auto& readTargets = Passes[i]->Operations.GetReadTargets();
-                    if (std::find(readTargets.begin(), readTargets.end(), writeTarget) != readTargets.end())
+                    if (pass.second->bCulled) continue;
+                    const auto& readTargets = pass.second->Operations.GetReadTargets();
+                    if (std::ranges::find(readTargets, writeTarget) != readTargets.end())
                     {
-                        inDegree[i]--;
-                        if (inDegree[i] == 0)
+                        inDegreeMap[pass.first]--;
+                        if (inDegreeMap[pass.first] == 0)
                         {
-                            queue.push(i);
+                            queue.push(pass.first);
                         }
                     }
                 }
@@ -614,13 +644,13 @@ namespace Thunder
         // Calculate lifetimes based on execution order
         for (size_t execIndex = 0; execIndex < ExecutionOrder.size(); ++execIndex)
         {
-            size_t passIndex = ExecutionOrder[execIndex];
-            const auto& pass = Passes[passIndex];
+            NameHandle passName = ExecutionOrder[execIndex];
+            const auto& pass = Passes[passName];
 
             // Update lifetimes for read targets
             for (uint32 rtID : pass->Operations.GetReadTargets())
             {
-                if (RenderTargetLifetimes.find(rtID) == RenderTargetLifetimes.end())
+                if (!RenderTargetLifetimes.contains(rtID))
                 {
                     RenderTargetLifetimes[rtID] = {execIndex, execIndex};
                 }
@@ -633,7 +663,7 @@ namespace Thunder
             // Update lifetimes for write targets
             for (uint32 rtID : pass->Operations.GetWriteTargets())
             {
-                if (RenderTargetLifetimes.find(rtID) == RenderTargetLifetimes.end())
+                if (!RenderTargetLifetimes.contains(rtID))
                 {
                     RenderTargetLifetimes[rtID] = {execIndex, execIndex};
                 }
@@ -652,7 +682,7 @@ namespace Thunder
         TArray<std::pair<uint32, std::pair<size_t, size_t>>> sortedLifetimes;
         for (const auto& [rtID, lifetime] : RenderTargetLifetimes)
         {
-            sortedLifetimes.push_back({rtID, lifetime});
+            sortedLifetimes.emplace_back(rtID, lifetime);
         }
 
         // Sort by allocation time (first_use)

@@ -14,6 +14,7 @@ namespace Thunder
 
         SubMesh() = delete;
         SubMesh(uint32 index) : SubMeshIndex(index) {}
+        SubMesh(const TReflectiveContainerRef& inVertices, const TReflectiveContainerRef& inIndices) : Vertices(inVertices), Indices(inIndices) {}
 
         bool GetVertexDeclaration(TArray<RHIVertexElement>& outDeclarations) const;
         bool GetVertexDeclaration(RHIVertexDeclarationDescriptor& outDeclarations) const;
@@ -49,4 +50,26 @@ namespace Thunder
     private:
         void CreateMesh_RenderThread() override;
     };
+
+    enum class RENDERCORE_API EProceduralGeometry : uint32
+    {
+        Cube,
+        Quad,
+        Triangle,
+        Num
+    };
+
+    class ProceduralGeometryManager
+    {
+    public:
+        ProceduralGeometryManager() = default;
+        ~ProceduralGeometryManager();
+        void InitBasicGeometrySubMeshes();
+
+        RENDERCORE_API SubMesh* GetGeometry(EProceduralGeometry geometry);
+    private:
+        TMap<EProceduralGeometry, SubMesh*> SubMeshes;
+    };
+
+    extern RENDERCORE_API ProceduralGeometryManager* GProceduralGeometryManager;
 }

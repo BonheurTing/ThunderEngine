@@ -49,8 +49,6 @@ namespace Thunder
         ShaderParameterMap* PassParameters = nullptr;
         TRefCountPtr<RHIUniformBuffer> PassUniformBuffer;
         bool bLayoutNeedsUpdate = true;
-        TRefCountPtr<ShaderCombination> Shader;
-        TRefCountPtr<TRHIPipelineState> PSO;
 
         FrameGraphPass() = delete;
         FrameGraphPass(class FrameGraph* graph, const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction)

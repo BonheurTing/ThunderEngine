@@ -142,6 +142,15 @@ namespace Thunder
 		return nullptr;
 	}
 
+	ShaderCombination* ShaderModule::GetShaderCombination(ShaderArchive* archive, NameHandle subShaderName, uint64 variantMask)
+	{
+		if (ShaderPass* subShader = archive->GetSubShader(subShaderName))
+		{
+			return subShader->GetOrCompileShaderCombination(variantMask);
+		}
+		return nullptr;
+	}
+
 	TRHIPipelineState* ShaderModule::GetPSO(uint64 psoKey)
 	{
 		if (GetModule()->PSOMap.contains(psoKey))
@@ -182,41 +191,6 @@ namespace Thunder
 		}
 		TAssertf(false, "Sub-shader \"%s\" not exist in archive \"%s\"", ShaderModule::GetMeshPassName(meshPassType).c_str(), archive->GetName().c_str());
 		return false;
-	}
-
-	ShaderCombination* ShaderModule::GetShaderCombination(const String& combinationHandle)
-	{
-		size_t pos1 = 0, pos2 = 0;
-		pos1 = combinationHandle.find_first_of('|');
-		TAssert(pos1 != String::npos);
-		const NameHandle shaderName = combinationHandle.substr(0, pos1);
-		pos2 = combinationHandle.find_last_of('|');
-		TAssert(pos2 != String::npos && pos2 > pos1);
-		const NameHandle passName = combinationHandle.substr(pos1 + 1, pos2 - pos1 - 1);
-		const uint64 variantId = CommonUtilities::StringToInteger(combinationHandle.substr(pos2 + 1));
-		return GetShaderCombination(shaderName, passName, variantId);
-	}
-
-	ShaderCombination* ShaderModule::GetShaderCombination(NameHandle shaderName, NameHandle passName, uint64 variantId)
-	{
-		if (!ShaderMap.contains(shaderName))
-		{
-			TAssertf(false, "ShaderArchive not exist");
-			return nullptr;
-		}
-		if (const auto pass = ShaderMap[shaderName]->GetSubShader(passName))
-		{
-			if (pass->CheckCache(variantId))
-			{
-				return pass->GetShaderCombination(variantId);
-			}
-			else
-			{
-				//todo compile?
-			}
-		}
-		TAssertf(false, "ShaderPass not exist");
-		return nullptr;
 	}
 	
 	void ShaderModule::Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco,

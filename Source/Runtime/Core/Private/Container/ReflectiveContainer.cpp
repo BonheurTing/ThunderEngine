@@ -299,6 +299,16 @@ namespace Thunder
 		return reinterpret_cast<const T*>(static_cast<const char*>(Data) + component.Offset);
 	}
 
+	template <typename T>
+	void ReflectiveContainer::SetComponentData(String const& componentName, TArray<T> const& data)
+	{
+		for (size_t dataIndex = 0, offset = GetComponentOffset(componentName); dataIndex < data.size(); ++dataIndex, offset += Stride)
+		{
+			T const& dataToCopy = data[dataIndex];
+			CopyData(&dataToCopy, offset, sizeof(T));
+		}
+	}
+
 	const TypeComponent* ReflectiveContainer::GetComponentInfo(const String& name) const
 	{
 		size_t index = FindComponentIndex(name);
@@ -849,4 +859,29 @@ namespace Thunder
 	template TVector2u* ReflectiveContainer::GetComponent<TVector2u>(const String& name);
 	template TVector3u* ReflectiveContainer::GetComponent<TVector3u>(const String& name);
 	template TVector4u* ReflectiveContainer::GetComponent<TVector4u>(const String& name);
+
+	// Template instantiations for SetComponentData
+	template void ReflectiveContainer::SetComponentData<bool>(String const&, TArray<bool> const&);
+	template void ReflectiveContainer::SetComponentData<int8>(String const&, TArray<int8> const&);
+	template void ReflectiveContainer::SetComponentData<int16>(String const&, TArray<int16> const&);
+	template void ReflectiveContainer::SetComponentData<int32>(String const&, TArray<int32> const&);
+	template void ReflectiveContainer::SetComponentData<int64>(String const&, TArray<int64> const&);
+	template void ReflectiveContainer::SetComponentData<uint8>(String const&, TArray<uint8> const&);
+	template void ReflectiveContainer::SetComponentData<uint16>(String const&, TArray<uint16> const&);
+	template void ReflectiveContainer::SetComponentData<uint32>(String const&, TArray<uint32> const&);
+	template void ReflectiveContainer::SetComponentData<uint64>(String const&, TArray<uint64> const&);
+	template void ReflectiveContainer::SetComponentData<float>(String const&, TArray<float> const&);
+	template void ReflectiveContainer::SetComponentData<double>(String const&, TArray<double> const&);
+	template void ReflectiveContainer::SetComponentData<TVector2f>(String const&, TArray<TVector2f> const&);
+	template void ReflectiveContainer::SetComponentData<TVector3f>(String const&, TArray<TVector3f> const&);
+	template void ReflectiveContainer::SetComponentData<TVector4f>(String const&, TArray<TVector4f> const&);
+	template void ReflectiveContainer::SetComponentData<TVector2d>(String const&, TArray<TVector2d> const&);
+	template void ReflectiveContainer::SetComponentData<TVector3d>(String const&, TArray<TVector3d> const&);
+	template void ReflectiveContainer::SetComponentData<TVector4d>(String const&, TArray<TVector4d> const&);
+	template void ReflectiveContainer::SetComponentData<TVector2i>(String const&, TArray<TVector2i> const&);
+	template void ReflectiveContainer::SetComponentData<TVector3i>(String const&, TArray<TVector3i> const&);
+	template void ReflectiveContainer::SetComponentData<TVector4i>(String const&, TArray<TVector4i> const&);
+	template void ReflectiveContainer::SetComponentData<TVector2u>(String const&, TArray<TVector2u> const&);
+	template void ReflectiveContainer::SetComponentData<TVector3u>(String const&, TArray<TVector3u> const&);
+	template void ReflectiveContainer::SetComponentData<TVector4u>(String const&, TArray<TVector4u> const&);
 }

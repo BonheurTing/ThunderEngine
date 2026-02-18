@@ -2,6 +2,7 @@
 
 #include "CoreModule.h"
 #include "FrameGraph.h"
+#include "RenderMesh.h"
 #include "RenderModule.h"
 #include "ShaderArchive.h"
 #include "ShaderModule.h"
@@ -41,9 +42,9 @@ namespace Thunder
         // set up param
         auto context = Owner->GetMainContext();
         auto pass = Owner->GetPass(PassName_Blur); // or context->GetCurrentPass();
+        auto archive = ShaderModule::GetShaderArchive("PostProcess");
         if (pass->bLayoutNeedsUpdate)
         {
-            auto archive = ShaderModule::GetShaderArchive("PostProcess");
             pass->BindingLayout = archive->GetBindingsLayout();
             pass->PassUBLayout = archive->GetUniformBufferLayout(PassName_Blur);
             if (pass->PassParameters == nullptr)
@@ -54,8 +55,6 @@ namespace Thunder
             {
                 pass->PassParameters->Reset();
             }
-            //pass->Shader = GetShaderCombination(meshPassType, material);
-            //pass->PSO = GetPipelineState(context, shaderVariant, meshPassType, subMesh, material);
         }
         pass->PassParameters->SetFloatParameter("PassParameters0", Parameter0);
         byte* constantData = RenderModule::SetupUniformBufferParameters(context, pass->PassUBLayout, pass->PassParameters, PassName_Blur.ToString());
@@ -73,11 +72,12 @@ namespace Thunder
             RHIUpdateUniformBuffer(context, pass->PassUniformBuffer, constantData);
         }
         pass->bLayoutNeedsUpdate = false;
-
+        
         // Dispatch command
         RHIDrawCommand* newCommand = new (context->Allocate<RHIDrawCommand>()) RHIDrawCommand;
-        newCommand->Shader = pass->Shader;
-        newCommand->GraphicsPSO = pass->PSO;
+        newCommand->Shader = ShaderModule::GetShaderCombination(archive, PassName_Blur, 0);
+        auto subMesh = GProceduralGeometryManager->GetGeometry(EProceduralGeometry::Triangle);
+        //newCommand->GraphicsPSO = GetPipelineState(context, shaderVariant, meshPassType, subMesh, material);
 
         // Apply shader bindings.
         newCommand->Bindings.SetTransientAllocated(true);

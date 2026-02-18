@@ -111,6 +111,9 @@ namespace Thunder
 		_NODISCARD_ const TypeComponent* GetComponentInfo(const String& name) const;
 		_NODISCARD_ const TypeComponent* GetComponentInfo(size_t index) const;
 		_NODISCARD_ size_t GetComponentOffset(const String& name) const { return GetComponentInfo(name)->Offset; }
+
+		template<typename T>
+		void SetComponentData(String const& componentName, TArray<T> const& data);
 		
 		// Data access
 		//void* GetData() { return Data; }

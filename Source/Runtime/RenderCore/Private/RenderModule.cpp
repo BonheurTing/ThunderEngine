@@ -6,6 +6,7 @@
 #include "ShaderBindingsLayout.h"
 #include "ShaderParameterMap.h"
 #include "RenderContext.h"
+#include "RenderMesh.h"
 #include "UniformBuffer.h"
 
 namespace Thunder
@@ -14,6 +15,8 @@ namespace Thunder
 
 	void RenderModule::StartUp()
 	{
+		GProceduralGeometryManager = new ProceduralGeometryManager();
+		GProceduralGeometryManager->InitBasicGeometrySubMeshes();
 	}
 
 	void RenderModule::ShutDown()
@@ -31,6 +34,11 @@ namespace Thunder
 		{
 			TextureRegistrationSet[i].clear();
 			TextureUnregistrationSet[i].clear();
+		}
+		if (GProceduralGeometryManager)
+		{
+			delete GProceduralGeometryManager;
+			GProceduralGeometryManager = nullptr;
 		}
 	}
 

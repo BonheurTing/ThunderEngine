@@ -13,8 +13,9 @@
 namespace Thunder
 {
     struct RenderContext;
-    class IRHICommand;
+    struct IRHICommand;
     class RHIUniformBuffer;
+    struct ShaderParameterMap;
 
     class RENDERCORE_API PassOperations
     {
@@ -41,6 +42,12 @@ namespace Thunder
         PassOperations Operations;
         PassExecutionFunction ExecuteFunction;
         bool bCulled = false;
+
+        // Shader bindings
+        TRefCountPtr<ShaderBindingsLayout> BindingLayout;
+        TRefCountPtr<UniformBufferLayout> UBLayout;
+        ShaderParameterMap* PassParameters = nullptr;
+        TRefCountPtr<RHIUniformBuffer> PassUniformBuffer;
 
         FrameGraphPass() = delete;
         FrameGraphPass(class FrameGraph* graph, const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction)

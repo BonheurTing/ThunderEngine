@@ -7,6 +7,7 @@
 #include "MeshPass.h"
 #include "MeshPassProcessor.h"
 #include "PlatformProcess.h"
+#include "PostProcessRenderer.h"
 #include "RHICommand.h"
 #include "Memory/TransientAllocator.h"
 #include "PrimitiveSceneInfo.h"
@@ -135,9 +136,12 @@ namespace Thunder
         
     }
 
-    void DeferredShadingRenderer::Print(const std::string& message)
+    namespace
     {
-        std::cout << message << std::endl;
+        void Print(const std::string& message)
+        {
+            std::cout << message << std::endl;
+        }
     }
 
     void DeferredShadingRenderer::Tick_RenderThread()
@@ -320,6 +324,8 @@ namespace Thunder
             mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this]()
             {
                 auto context = mFrameGraph->GetMainContext();
+                FrameGraphPass* currentPass = context->GetCurrentPass();
+                
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
                 Print("Execute postprocess1");
@@ -334,13 +340,14 @@ namespace Thunder
             PassOperations operations;
             operations.Read(LightingRT);
             operations.Write(postProcessRT2);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this]()
+
+            static PostProcessRenderer* ppRenderer = nullptr;
+            if (ppRenderer == nullptr)
             {
-                auto context = mFrameGraph->GetMainContext();
-                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
-                context->AddCommand(newCommand);
-                Print("Execute postprocess2");
-            });
+                ppRenderer = new PostProcessRenderer();
+            }
+
+            ppRenderer->Setup(mFrameGraph.Get(), operations);
         }
 
         mFrameGraph->SetPresentTarget(postProcessRT2);

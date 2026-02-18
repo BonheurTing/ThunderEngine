@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Renderer.export.h"
 #include "IRenderer.h"
 
 namespace Thunder
@@ -32,6 +30,5 @@ namespace Thunder
         void UpdateAllPrimitiveSceneInfos();
     private:
         void InitViews();
-        void Print(const std::string& message);
     };
 }

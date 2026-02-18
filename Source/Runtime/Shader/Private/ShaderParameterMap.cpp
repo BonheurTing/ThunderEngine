@@ -3,6 +3,15 @@
 
 namespace Thunder
 {
+	void ShaderParameterMap::Reset()
+	{
+		IntParameters.clear();
+		FloatParameters.clear();
+		VectorParameters.clear();
+		TextureParameters.clear();
+		StaticSwitchParameters.clear();
+	}
+
 	void ShaderParameterMap::SetIntParameter(const NameHandle& paramName, int32 value)
 	{
 		IntParameters[paramName] = value;

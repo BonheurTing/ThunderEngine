@@ -175,13 +175,13 @@ namespace Thunder
     	void BuildUniformBufferLayout();
     	void BuildBindingsLayout();
     	ShaderBindingsLayout* GetBindingsLayout() const { return BindingsLayout; }
-    	UniformBufferLayout* GetUniformBufferLayout(String const& cbName) { return UniformBufferLayoutMap[cbName]; }
+    	UniformBufferLayout* GetUniformBufferLayout(NameHandle cbName);
 
     private:
     	static void GenerateDefaultParameters(const TArray<ShaderParameterMeta>& parameterMeta, ShaderParameterMap* shaderParameterMap);
 
     private:
-    	friend class ShaderAST;
+    	friend struct ShaderAST;
     	String SourcePath;
     	NameHandle Name;
     	ShaderAST* AST { nullptr }; // ShaderAST manages ast root lifetime
@@ -196,7 +196,7 @@ namespace Thunder
     	THashMap<EMeshPass, ShaderPassRef> MeshDrawSubShaders;
 
     	ShaderBindingsLayoutRef BindingsLayout{ nullptr }; // srv + uav + 4 cbv
-    	TMap<String, UniformBufferLayoutRef> UniformBufferLayoutMap; // [global subshader material primitive] constant buffer
+    	TMap<NameHandle, UniformBufferLayoutRef> UniformBufferLayoutMap; // [global subshader material primitive] constant buffer
     };
     
 }

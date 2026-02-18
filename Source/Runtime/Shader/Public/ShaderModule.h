@@ -62,7 +62,7 @@ namespace Thunder
     	// Uniform Buffer Layout
     	void SetGlobalUniformBufferLayout(UniformBufferLayout* layout);
     	void SetPassUniformBufferLayout(EMeshPass pass, ShaderArchive* archive);
-    	void SetPrimitiveUniformBufferLayout(UniformBufferLayout* layout);
+    	void SetPrimitiveUniformBufferLayout(ShaderArchive* archive);
     	static const UniformBufferLayout* GetGlobalUniformBufferLayout() { return GetModule()->GlobalUniformBufferLayout.Get(); }
     	static const UniformBufferLayout* GetPassUniformBufferLayout(EMeshPass pass);
     	static const UniformBufferLayout* GetPrimitiveUniformBufferLayout() { return GetModule()->PrimitiveUniformBufferLayout.Get(); }

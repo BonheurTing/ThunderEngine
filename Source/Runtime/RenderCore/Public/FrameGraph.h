@@ -45,9 +45,12 @@ namespace Thunder
 
         // Shader bindings
         TRefCountPtr<ShaderBindingsLayout> BindingLayout;
-        TRefCountPtr<UniformBufferLayout> UBLayout;
+        TRefCountPtr<UniformBufferLayout> PassUBLayout;
         ShaderParameterMap* PassParameters = nullptr;
         TRefCountPtr<RHIUniformBuffer> PassUniformBuffer;
+        bool bLayoutNeedsUpdate = true;
+        TRefCountPtr<ShaderCombination> Shader;
+        TRefCountPtr<TRHIPipelineState> PSO;
 
         FrameGraphPass() = delete;
         FrameGraphPass(class FrameGraph* graph, const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction)
@@ -107,7 +110,7 @@ namespace Thunder
 
         TArray<RHICachedDrawCommand*> const& GetVisibleCachedDrawList(EMeshPass passType) { return VisibleCachedDrawLists[passType]; }
 
-        struct ShaderParameterMap* GetGlobalParameters() const { return CachedGlobalParameters; }
+        ShaderParameterMap* GetGlobalParameters() const { return CachedGlobalParameters; }
         void InitGlobalUniformBuffer();
         ShaderParameterMap* GetPassParameters(EMeshPass pass);
         void UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName);

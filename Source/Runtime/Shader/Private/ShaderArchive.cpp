@@ -428,7 +428,7 @@ namespace Thunder
     	{
     		ShaderModule::GetModule()->SetPassUniformBufferLayout(static_cast<EMeshPass>(passIndex), archive);
     	}
-    	ShaderModule::GetModule()->SetPrimitiveUniformBufferLayout(archive->GetUniformBufferLayout("Primitive"));
+    	ShaderModule::GetModule()->SetPrimitiveUniformBufferLayout(archive);
 
     	// Generate bindings layout.
     	archive->BuildBindingsLayout();
@@ -739,6 +739,16 @@ namespace Thunder
     			}
     		}
     	}
+	}
+
+	UniformBufferLayout* ShaderArchive::GetUniformBufferLayout(NameHandle cbName)
+	{
+    	auto layoutIt = UniformBufferLayoutMap.find(cbName);
+    	if (layoutIt != UniformBufferLayoutMap.end() && layoutIt->second.IsValid())
+    	{
+    		return layoutIt->second.Get();
+    	}
+	    return nullptr;
 	}
 
 	void ShaderArchive::GenerateDefaultParameters(const TArray<ShaderParameterMeta>& parameterMeta, ShaderParameterMap* shaderParameterMap)

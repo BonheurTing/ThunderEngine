@@ -68,6 +68,8 @@ namespace Thunder
 			return *this;
 		}
 
+		void Reset();
+
 		void SetIntParameter(const NameHandle& paramName, int32 value);
 		void SetFloatParameter(const NameHandle& paramName, float value);
 		void SetVectorParameter(const NameHandle& paramName, const TVector4f& value);

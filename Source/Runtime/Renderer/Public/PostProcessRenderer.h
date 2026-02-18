@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Vector.h"
 
 namespace Thunder
 {
@@ -11,8 +12,9 @@ namespace Thunder
         void Execute();
     private:
         float Parameter0 = 0.f;
-        float Parameter1 = 0.f;
-        float Parameter2 = 0.f;
+        TVector4f Parameter1;
+        TVector4f Parameter2;
+        int Parameter3 = 0;
 
         FrameGraph* Owner = nullptr;
     };

@@ -338,7 +338,7 @@ namespace Thunder
 
         {
             PassOperations operations;
-            operations.Read(LightingRT);
+            operations.Read(LightingRT); //todo bind
             operations.Write(postProcessRT2);
 
             static PostProcessRenderer* ppRenderer = nullptr;

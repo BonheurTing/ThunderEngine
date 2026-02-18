@@ -462,11 +462,15 @@ namespace Thunder
 		return it->second;
     }
 
-    void ShaderModule::SetPrimitiveUniformBufferLayout(UniformBufferLayout* layout)
+    void ShaderModule::SetPrimitiveUniformBufferLayout(ShaderArchive* archive)
 	{
 		if (!PrimitiveUniformBufferLayout.IsValid()) [[unlikely]]
 		{
-			PrimitiveUniformBufferLayout = layout;
+			auto layout = archive->GetUniformBufferLayout("Primitive");
+			if (layout != nullptr)
+			{
+				PrimitiveUniformBufferLayout = layout;
+			}
 		}
     }
 

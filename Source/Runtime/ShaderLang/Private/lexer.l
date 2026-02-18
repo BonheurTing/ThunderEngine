@@ -124,6 +124,7 @@ SV_Target				SV_Target{TARGETS}?
 POSITION[0-7]?	{ return TOKENIZE(TOKEN_SV); }
 SV_POSITION		{ return TOKENIZE(TOKEN_SV); }
 SV_Position		{ return TOKENIZE(TOKEN_SV); }
+SV_VertexID		{ return TOKENIZE(TOKEN_SV); }
 {TEXCOORD}  	{ return TOKENIZE(TOKEN_SV); }
 {Texcoord}		{ return TOKENIZE(TOKEN_SV); }
 {SV_TARGET} 	{ return TOKENIZE(TOKEN_SV); }

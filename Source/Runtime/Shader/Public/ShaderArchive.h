@@ -94,6 +94,7 @@ namespace Thunder
     	THashMap<uint64, SyncCompilingCombinationEntry*> SyncCompilingVariants;
 
 		// Pass meta.
+		bool bMeshPass = false;
 		EMeshPass MeshPass = EMeshPass::Num;
 		EShaderBlendMode BlendMode = EShaderBlendMode::Unknown;
 		EShaderDepthState DepthState = EShaderDepthState::Unknown;
@@ -103,16 +104,18 @@ namespace Thunder
 
 	struct ShaderAST
 	{
-		ShaderAST(ast_node* inRoot): ASTRoot(inRoot) {}
+		ShaderAST(ast_node* inRoot, TArray<ast_node*>&& inCustomTypes): ASTRoot(inRoot), CustomTypes(std::move(inCustomTypes)) {}
 		~ShaderAST();
 
 		// parse ast to obtain Property/Variant/Parameters
 		void Reflect(class ShaderArchive* archive) const;
     	String GenerateShaderVariantSource(shader_codegen_state& state) const;
 		String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
+		const TArray<ast_node*>& GetCustomTypes() const { return CustomTypes; }
 
 	private:
 		ast_node* ASTRoot = nullptr;
+		TArray<ast_node*> CustomTypes;
 	};
 
     class ShaderArchive
@@ -120,7 +123,6 @@ namespace Thunder
     public:
     	ShaderArchive() = delete;
     	ShaderArchive(String inShaderSource, NameHandle name) : SourcePath(std::move(inShaderSource)), Name(name) {}
-    	ShaderArchive(String sourceFilePath, NameHandle shaderName, ast_node* astRoot);
     	~ShaderArchive();
 
     	void AddSubShader(ShaderPass* inSubShader);
@@ -161,6 +163,7 @@ namespace Thunder
 	    static void QuantizeRegisterCounts(TShaderRegisterCounts& outCount);
     	ShaderCombination* CompileShaderVariant(NameHandle subShaderName, uint64 variantId);
     	ShaderAST* GetAST() const { return AST; }
+    	void SetAST(ShaderAST* ast) { AST = ast; AST->Reflect(this); }
 
     	String GenerateShaderSource(ShaderCodeGenConfig const& config) const;
     	String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;

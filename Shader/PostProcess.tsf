@@ -1,0 +1,106 @@
+Shader "PostProcess"
+{
+    Properties
+    {
+    }
+    Variants
+    {
+        bool _Variant0 = false;
+        bool _Variant1;
+    }
+    Parameters "Pass"
+    {
+        float PassParameters0;
+        float4 PassParameters1;
+        float4 PassParameters2;
+        int PassParameters3;
+
+        Texture2D SceneTexture;
+        //SamplerState SceneSampler;
+    }
+    #define BLOCK_SIZE 16
+    SubShader "Blur"
+    {
+        Attributes
+        {
+            DepthTest : "Near",
+            BlendMode : "Opaque"
+        }
+
+        using VertexEntry = MainVS;
+        using PixelEntry = MainPS;
+
+        struct VSOutput
+        {
+            float4 Position : SV_POSITION;
+            float2 UV       : TEXCOORD0;
+        };
+
+        VSOutput MainVS(uint VertexID : SV_VertexID)
+        {
+            VSOutput output;
+
+            // Fullscreen triangle (no vertex buffer needed)
+            float2 pos;
+            pos.x = (VertexID == 2) ? 3.0 : -1.0;
+            pos.y = (VertexID == 1) ? 3.0 : -1.0;
+
+            output.Position = float4(pos, 0.0, 1.0);
+
+            // Convert from clip space (-1~3) to UV (0~1)
+            output.UV = float2(
+                (pos.x + 1.0) * 0.5,
+                1.0 - (pos.y + 1.0) * 0.5
+            );
+
+            return output;
+        }
+
+        float4 MainPS(VSOutput input) : SV_Target
+        {
+            return float4(1.0, 0.0, 0.0, 1.0);
+        }
+    }
+
+    SubShader "ToneMapping"
+    {
+        Attributes
+        {
+            DepthTest : "Near",
+            BlendMode : "Opaque"
+        }
+
+        using VertexEntry = MainVS2;
+        using PixelEntry = MainPS2;
+
+        struct VSInput
+        {
+            float3 Position : POSITION;
+            float2 UV       : TEXCOORD0;
+        };
+
+        struct VSOutput2
+        {
+            float4 Position : SV_POSITION;
+            float2 UV       : TEXCOORD0;
+        };
+
+        VSOutput2 MainVS2(VSInput input)
+        {
+            VSOutput2 output;
+
+            output.Position = float4(input.Position, 1.0);
+            output.UV = input.UV;
+
+            return output;
+        }
+
+        float4 MainPS2(VSOutput2 input) : SV_Target
+        {
+            //TestFunction2345();
+            float4 color = SceneTexture.Sample(input.UV);
+
+            return color;
+        }
+    }
+}

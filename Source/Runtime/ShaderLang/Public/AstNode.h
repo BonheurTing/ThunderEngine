@@ -13,6 +13,7 @@ namespace Thunder
         NameHandle sub_shader_name;
         uint64 variant_mask;
         enum_shader_stage stage;
+        TArray<class ast_node*> custom_types;
         THashMap<NameHandle, bool> variants;
     };
 
@@ -56,6 +57,7 @@ namespace Thunder
         assignment, // 赋值表达式
         conditional, // 条件表达式
         function_call, // 函数调用
+        method_call, // 方法调用
         constructor_call, // 构造函数调用
         compound_assignment, // 复合赋值表达式
         chain, // 链式表达式（逗号表达式）
@@ -411,7 +413,7 @@ namespace Thunder
             uint64 combination;
         };
     private:
-        _NODISCARD_ String get_type_text_internal() const;
+        _NODISCARD_ String get_type_text_internal(shader_codegen_state& state) const;
     public:
         ast_node_type_format() noexcept
             : ast_node(enum_ast_node_type::type_format)
@@ -421,7 +423,7 @@ namespace Thunder
         {
             return object_type != enum_object_type::none;
         }
-        _NODISCARD_ String get_type_text() const;
+        _NODISCARD_ String get_type_text(shader_codegen_state& state) const;
         _NODISCARD_ String get_type_format_text() const;
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
@@ -933,6 +935,21 @@ namespace Thunder
     private:
         String function_name;
         TArray<ast_node_expression*> arguments = {};
+    };
+
+    class method_call_expression : public ast_node_expression
+    {
+    public:
+        method_call_expression(ast_node_expression* obj, function_call_expression* post_obj) noexcept
+            : ast_node_expression(enum_expr_type::method_call), object(obj), function_call_exp(post_obj) {}
+
+        void generate_hlsl(String& outResult, shader_codegen_state& state) override;
+        void print_ast(int indent) override;
+        evaluate_expr_result evaluate(shader_codegen_state& state) override;
+        String to_string() const override;
+    private:
+        ast_node_expression* object = nullptr;
+        function_call_expression* function_call_exp = nullptr;
     };
 
     class constructor_expression : public ast_node_expression

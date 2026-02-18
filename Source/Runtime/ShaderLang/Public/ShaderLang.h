@@ -59,6 +59,7 @@ namespace Thunder
 	{
 		shader_lang_state();
 		~shader_lang_state();
+		void reset();
 
 		// 调试信息
 		String current_text; // 当前token文本
@@ -112,7 +113,7 @@ namespace Thunder
 		
 		void parsing_function_begin(ast_node_type_format* type, const token_data& name);
 		ast_node_function* parsing_function_end(const token_data& info, ast_node_block* body);
-		void add_function_param(ast_node_type_format* type, const token_data& name, const parse_location* loc);
+		void add_function_param(ast_node_type_format* type, const token_data& name, const token_data& modifier, const parse_location* loc);
 
 		void parsing_block_begin();
 		ast_node_block* parsing_block_end();
@@ -146,6 +147,7 @@ namespace Thunder
 		ast_node_expression* create_shuffle_or_component_expression(ast_node_expression* expr, const token_data& comp);
 		ast_node_expression* create_index_expression(ast_node_expression* expr, ast_node_expression* index_expr);
 		ast_node_expression* create_function_call_expression(const token_data& func_name);
+		ast_node_expression* create_method_call_expression(ast_node_expression* object, ast_node_expression* post_obj);
 		ast_node_expression* create_constructor_expression(ast_node_type_format* type);
 		void append_argument(ast_node_expression* func_call_expr, ast_node_expression* arg_expr);
 		ast_node_expression* create_assignment_expression(ast_node_expression* lhs, ast_node_expression* rhs);

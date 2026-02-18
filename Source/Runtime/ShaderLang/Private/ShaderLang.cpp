@@ -27,8 +27,6 @@ namespace Thunder
 	shader_lang_state::shader_lang_state()
 	{
 		current_location = new parse_location(0, 0, 0, 0, 0, 0);
-		current_structure = nullptr;
-		current_function = nullptr;
 	}
 
 	shader_lang_state::~shader_lang_state()
@@ -38,6 +36,21 @@ namespace Thunder
 			delete current_location;
 			current_location = nullptr;
 		}
+	}
+
+	void shader_lang_state::reset()
+	{
+		ast_root = nullptr;
+		current_location = new parse_location(0, 0, 0, 0, 0, 0);
+		TAssert(current_pass == nullptr);
+		TAssert(current_structure == nullptr);
+		TAssert(current_function == nullptr);
+		TAssert(current_archive == nullptr);
+		TAssert(symbol_scopes.empty());
+		variants_map.clear();
+		TAssert(custom_types.empty());
+		TAssert(block_stacks.empty());
+		TAssert(current_variables.empty());
 	}
 
 	// 作用域管理实现
@@ -388,11 +401,16 @@ namespace Thunder
 		return dummy;
 	}
 
-	void shader_lang_state::add_function_param(ast_node_type_format* type, const token_data& name, const parse_location* loc)
+	void shader_lang_state::add_function_param(ast_node_type_format* type, const token_data& name, const token_data& modifier, const parse_location* loc)
 	{
 		TAssert(name.token_id == NEW_ID);
 		const auto variable = new ast_node_variable(type, name.text);
-		
+		if (modifier.token_id == TOKEN_SV)
+		{
+			type->is_semantic = true;
+			variable->semantic = modifier.text;
+		}
+
 		if (current_function)
 		{
 			current_function->add_parameter(variable);
@@ -687,6 +705,13 @@ namespace Thunder
 	ast_node_expression* shader_lang_state::create_function_call_expression(const token_data& func_name)
 	{
 		return new function_call_expression(func_name.text);
+	}
+
+	ast_node_expression* shader_lang_state::create_method_call_expression(ast_node_expression* object, ast_node_expression* post_obj)
+	{
+		TAssert(post_obj != nullptr && post_obj->expr_type == enum_expr_type::function_call);
+		method_call_expression* method_exp = new method_call_expression(object, static_cast<function_call_expression*>(post_obj));
+		return method_exp;
 	}
 
 	ast_node_expression* shader_lang_state::create_constructor_expression(ast_node_type_format* type)

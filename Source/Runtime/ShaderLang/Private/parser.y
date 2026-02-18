@@ -116,7 +116,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <dimension> maybe_array array_dimensions
 %type <op_type> assignment_operator unary_operator
 %type <node> archive_definition pass_definition stage_definition struct_definition function_definition
-%type <node> program passes pass_content param_list param
+%type <node> program passes param_list param
 %type <node> struct_members struct_member
 
 /* statement */
@@ -364,9 +364,9 @@ param_list:
     ;
 
 param:
-    maybe_type_qualifications type new_identifier {
+    maybe_type_qualifications type new_identifier maybe_semantic{
         sl_state->combine_modifier($2,$1);
-        sl_state->add_function_param($2, $3, &yylloc);
+        sl_state->add_function_param($2, $3, $4, &yylloc);
     }
     ;
 
@@ -596,6 +596,7 @@ maybe_expression:
     | expression
     ;
 
+/* todo */
 expression:
     assignment_expr
     | expression COMMA assignment_expr
@@ -924,6 +925,10 @@ postfix_expr:
     {
 		$$ = $1;
     }
+    | postfix_expr '.' function_call
+    {
+        $$ = sl_state->create_method_call_expression($1, $3);
+    }
     ;
 
 function_call_header:
@@ -972,10 +977,14 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg){
 shader_lang_state* ThunderParse(const char* text)
 {
     yydebug = 1;
-    sl_state = new shader_lang_state();
+    if (sl_state == nullptr)
+    {
+        sl_state = new shader_lang_state();
+    }
+
     lexer_constructor(sl_state, text);
     yyparse(sl_state);
-    sl_state->post_process_ast();
+    //sl_state->post_process_ast();
 	lexer_lexer_dtor(sl_state);
     return sl_state;
 }

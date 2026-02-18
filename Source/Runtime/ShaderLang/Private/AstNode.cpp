@@ -112,7 +112,7 @@ namespace Thunder
         "ConstantBuffer",
     };
 
-    String ast_node_type_format::get_type_text_internal() const
+    String ast_node_type_format::get_type_text_internal(shader_codegen_state& state) const
     {
         String text = "";
         switch (basic_type)
@@ -129,7 +129,7 @@ namespace Thunder
                 break;
             case enum_basic_type::tp_indict:
             {
-                ast_node* node = sl_state->custom_types[indirect_index];
+                ast_node* node = state.custom_types[indirect_index];
                 if (node && node->node_type == enum_ast_node_type::structure)
                 {
                     text = static_cast<ast_node_struct*>(node)->get_name();
@@ -155,7 +155,7 @@ namespace Thunder
         return text;
     }
 
-    String ast_node_type_format::get_type_text() const
+    String ast_node_type_format::get_type_text(shader_codegen_state& state) const
     {
         String text = "";
         if (object_type != enum_object_type::none)
@@ -164,24 +164,25 @@ namespace Thunder
             if (basic_type != enum_basic_type::tp_none)
             {
                 text += '<';
-                text += get_type_text_internal();
+                text += get_type_text_internal(state);
                 text += '>';
             }
         }
         else
         {
-            text = get_type_text_internal();
+            text = get_type_text_internal(state);
         }
         return text;
     }
 
     String ast_node_type_format::get_type_format_text() const
     {
+        auto state = shader_codegen_state{};
         if (object_type != enum_object_type::none)
         {
             if (basic_type != enum_basic_type::tp_none)
             {
-                return get_type_text_internal();
+                return get_type_text_internal(state);
             }
         }
         return "";
@@ -211,7 +212,7 @@ namespace Thunder
             outResult += "const ";
         }
 
-        outResult += get_type_text();
+        outResult += get_type_text(state);
     }
 
     void ast_node_variable::generate_hlsl(String& outResult, shader_codegen_state& state)
@@ -635,6 +636,13 @@ namespace Thunder
         outResult += ")";
     }
 
+    void method_call_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
+    {
+        object->generate_hlsl(outResult, state);
+        outResult += "." ;
+        function_call_exp->generate_hlsl(outResult, state);
+    }
+
     void constructor_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         if (constructor_type)
@@ -917,12 +925,28 @@ namespace Thunder
         return result;
     }
 
+    String method_call_expression::to_string() const
+    {
+        String result;
+        if (object)
+        {
+            result += object->to_string();
+        }
+        result += ".";
+        if (function_call_exp)
+        {
+            result += function_call_exp->to_string();
+        }
+        return result;
+    }
+
     String constructor_expression::to_string() const
     {
+        auto state = shader_codegen_state{};
         String result;
         if (constructor_type)
         {
-            result += constructor_type->get_type_text();
+            result += constructor_type->get_type_text(state);
         }
         result += "(";
         for (size_t i = 0; i < arguments.size(); ++i)
@@ -1067,10 +1091,11 @@ namespace Thunder
 
     String cast_expression::to_string() const
     {
+        auto state = shader_codegen_state{};
         String result = "(";
         if (cast_type)
         {
-            result += cast_type->get_type_text();
+            result += cast_type->get_type_text(state);
         }
         result += ")";
         if (operand)
@@ -1442,6 +1467,24 @@ namespace Thunder
         for (const auto argument : arguments)
         {
             argument->print_ast(indent + 1);
+        }
+    }
+
+    void method_call_expression::print_ast(int indent)
+    {
+        print_blank(indent);
+        printf("MethodCall:\n");
+        print_blank(indent + 1);
+        printf("Object:\n");
+        if (object)
+        {
+            object->print_ast(indent + 2);
+        }
+        print_blank(indent + 1);
+        printf("Call:\n");
+        if (function_call_exp)
+        {
+            function_call_exp->print_ast(indent + 2);
         }
     }
 
@@ -1873,6 +1916,13 @@ namespace Thunder
     evaluate_expr_result function_call_expression::evaluate(shader_codegen_state& state)
     {
         // 函数调用一般无法在编译时求值，返回未确定结果
+        evaluate_expr_result result;
+        result.result_type = enum_eval_result_type::undetermined;
+        return result;
+    }
+
+    evaluate_expr_result method_call_expression::evaluate(shader_codegen_state& state)
+    {
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;

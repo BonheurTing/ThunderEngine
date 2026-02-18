@@ -146,6 +146,14 @@ namespace Thunder
     {
     	auto const& attributes = astNode->get_attributes();
     	MeshPass = ShaderModule::GetMeshPass(attributes.mesh_draw_type);
+    	if (MeshPass == EMeshPass::Num)
+    	{
+    		bMeshPass = false;
+    	}
+	    else
+	    {
+	    	bMeshPass = true;
+	    }
     	BlendMode = ShaderModule::GetBlendMode(attributes.blend_mode);
     	DepthState = ShaderModule::GetDepthState(attributes.depth_test);
     	StencilState = EShaderStencilState::Default;
@@ -329,12 +337,17 @@ namespace Thunder
     	TAssert(ASTRoot->node_type == enum_ast_node_type::archive);
     	ast_node_archive* node = static_cast<ast_node_archive*>(ASTRoot);
 
+    	shader_codegen_state state
+		{
+			.custom_types = CustomTypes,
+		};
+
     	// Reflect properties.
     	for (ast_node_variable* var : node->properties)
     	{
     		ShaderPropertyMeta meta{};
     		meta.Name = var->name;
-    		meta.Type = var->type->get_type_text();
+    		meta.Type = var->type->get_type_text(state);
     		meta.Format = var->type->get_type_format_text();
     		meta.Default = var->default_value;
     		archive->AddPropertyMeta(meta);
@@ -360,7 +373,7 @@ namespace Thunder
     		{
     			ShaderParameterMeta meta{};
     			meta.Name = uniformBufferParameter->name;
-    			meta.Type = uniformBufferParameter->type->get_type_text();
+    			meta.Type = uniformBufferParameter->type->get_type_text(state);
     			meta.Format = uniformBufferParameter->type->get_type_format_text();
     			meta.Default = uniformBufferParameter->default_value;
     			metaList.push_back(meta);
@@ -378,7 +391,7 @@ namespace Thunder
     		{
     			ShaderParameterMeta meta{};
     			meta.Name = constantBufferParameter->name;
-    			meta.Type = constantBufferParameter->type->get_type_text();
+    			meta.Type = constantBufferParameter->type->get_type_text(state);
     			meta.Format = constantBufferParameter->type->get_type_format_text();
     			meta.Default = constantBufferParameter->default_value;
     			metaList.push_back(meta);
@@ -452,13 +465,6 @@ namespace Thunder
     	enum_shader_stage astStage = ShaderModule::GetShaderASTStage(stageType);
     	return subShaderNode->get_stage_entry(astStage);
 	}
-
-	ShaderArchive::ShaderArchive(String sourceFilePath, NameHandle shaderName, ast_node* astRoot)
-	    : SourcePath(std::move(sourceFilePath)), Name(shaderName)
-    {
-    	AST = new (TMemory::Malloc<ShaderAST>()) ShaderAST(astRoot);
-    	AST->Reflect(this);
-    }
 
     ShaderArchive::~ShaderArchive()
     {
@@ -870,6 +876,7 @@ namespace Thunder
     		.sub_shader_name = config.SubShaderName,
     		.variant_mask = config.VariantMask,
     		.stage = ShaderModule::GetShaderASTStage(config.Stage),
+    		.custom_types = AST->GetCustomTypes(),
     		.variants = {}
     	};
     	ParseVariants(config, state);

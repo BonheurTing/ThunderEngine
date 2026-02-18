@@ -83,8 +83,25 @@ namespace Thunder
 			shader_lang_state* st = ThunderParse(processed_text.c_str());
 			fflush(stdout);
 
-			ShaderArchive* newArchive = new (TMemory::Malloc<ShaderArchive>()) ShaderArchive(metaFileName, st->shader_name, st->ast_root);
+			TAssertf( st->ast_root != nullptr, "Parse Error");
+
+			printf("\n");
+			String outHlsl;
+			shader_codegen_state temp_state
+			{
+				.sub_shader_name = metaFileName.find("example") != String::npos ? "MySubShaderName" : "ToneMapping",
+				.custom_types = st->custom_types
+			};
+			st->ast_root->generate_hlsl(outHlsl, temp_state);
+			printf("------------ Generate HLSL ------------\n%s", outHlsl.c_str());
+			printf("------------ Generate HLSL End ------------\n\n");
+			fflush(stdout);
+
+			ShaderAST* newAst = new (TMemory::Malloc<ShaderAST>()) ShaderAST(st->ast_root, std::move(st->custom_types));
+			ShaderArchive* newArchive = new (TMemory::Malloc<ShaderArchive>()) ShaderArchive(metaFileName, st->shader_name);
 			GetModule()->ShaderMap[st->shader_name] = newArchive;
+			newArchive->SetAST(newAst);
+			st->reset();
 			LOG("Succeed to Parse %s", metaFileName.c_str());
 		}
 
@@ -312,7 +329,6 @@ namespace Thunder
 			return EMeshPass::Translucent;
 		}
 
-		TAssertf(false, "Unknown mesh pass type : %s.", passName.c_str());
 		return EMeshPass::Num;
     }
 

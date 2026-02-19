@@ -64,6 +64,7 @@ namespace Thunder
         }
         *ParameterCache = *gameMaterialCache; // Copy assignment
         bTexturesDirty = true; // Mark textures as dirty when parameters change
+        // add to render module update RenderMaterial List
     }
 
     void RenderMaterial::UpdateUniformBuffer(RenderContext* context, bool cacheMeshDrawCommand)

@@ -124,4 +124,31 @@ namespace Thunder
     }
     
     DXGI_FORMAT ConvertRHIFormatToD3DFormat(RHIFormat type);
+
+    // Returns the typeless resource format for a given depth format.
+    // Used when creating a texture that needs both a DSV and an SRV.
+    inline DXGI_FORMAT GetDepthTypelessFormat(DXGI_FORMAT depthFormat)
+    {
+        switch (depthFormat)
+        {
+        case DXGI_FORMAT_D32_FLOAT_S8X24_UINT: return DXGI_FORMAT_R32G8X24_TYPELESS;
+        case DXGI_FORMAT_D32_FLOAT:            return DXGI_FORMAT_R32_TYPELESS;
+        case DXGI_FORMAT_D24_UNORM_S8_UINT:    return DXGI_FORMAT_R24G8_TYPELESS;
+        case DXGI_FORMAT_D16_UNORM:            return DXGI_FORMAT_R16_TYPELESS;
+        default:                               return depthFormat;
+        }
+    }
+
+    // Returns the SRV-compatible format for reading the depth component of a depth texture.
+    inline DXGI_FORMAT GetDepthSRVFormat(DXGI_FORMAT depthFormat)
+    {
+        switch (depthFormat)
+        {
+        case DXGI_FORMAT_D32_FLOAT_S8X24_UINT: return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        case DXGI_FORMAT_D32_FLOAT:            return DXGI_FORMAT_R32_FLOAT;
+        case DXGI_FORMAT_D24_UNORM_S8_UINT:    return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        case DXGI_FORMAT_D16_UNORM:            return DXGI_FORMAT_R16_UNORM;
+        default:                               return depthFormat;
+        }
+    }
 }

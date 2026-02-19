@@ -10,13 +10,19 @@ namespace Thunder
 
 		TGuid() : A(0), B(0), C(0), D(0) {}
 
-		// 从四个32位整数构造
 		TGuid(uint32 InA, uint32 InB, uint32 InC, uint32 InD)
-			: A(InA), B(InB), C(InC), D(InD) {}
+			: A(InA), B(InB), C(InC), D(InD)
+		{
+			TAssertf(!IsSystemValue(), "Invalid guid.");
+		}
+
+		// System value.
+		TGuid(uint32 InD)
+			: A(0xFFFFFFFF), B(0xFFFFFFFF), C(0xFFFFFFFF), D(InD) {}
 
 		bool IsValid() const
 		{
-			return (A | B | C | D) != 0; // 全0为无效
+			return (A | B | C | D) != 0;
 		}
 		
 		bool operator==(const TGuid& X) const
@@ -46,13 +52,17 @@ namespace Thunder
 
 		static void GenerateGUID(TGuid& Result)
 		{
-			TAssert( CoCreateGuid( (GUID*)&Result )==S_OK );
-			/*Result.A = rand() | (rand() << 16);
-			Result.B = rand() | (rand() << 16);
-			Result.C = rand() | (rand() << 16);
-			Result.D = rand() | (rand() << 16);*/
+			TAssert(CoCreateGuid(reinterpret_cast<GUID*>(&Result)) == S_OK);
+			while (Result.IsSystemValue())
+			{
+				TAssert(CoCreateGuid(reinterpret_cast<GUID*>(&Result)) == S_OK);
+			}
 		}
 
+		bool IsSystemValue() const
+		{
+			return A == 0xFFFFFFFF && B == 0xFFFFFFFF && C == 0xFFFFFFFF;
+		}
 	};
 }
 

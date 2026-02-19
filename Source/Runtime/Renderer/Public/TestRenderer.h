@@ -7,14 +7,11 @@ namespace Thunder
     class RENDERER_API TestRenderer : public IRenderer
     {
     public:
-        TestRenderer();
+        TestRenderer() = default;
         virtual ~TestRenderer() = default;
 
         void Setup() override;
         void Tick_RenderThread() override;
-
-    private:
-        void Print(const std::string& message);
     };
 
 

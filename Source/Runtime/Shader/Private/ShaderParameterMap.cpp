@@ -32,6 +32,11 @@ namespace Thunder
 		TextureParameters[paramName] = textureGuid;
 	}
 
+	void ShaderParameterMap::SetTextureParameter(const NameHandle& paramName, uint32 textureId)
+	{
+		TextureParameters[paramName] = TGuid(textureId);
+	}
+
 	void ShaderParameterMap::SetStaticSwitchParameter(const NameHandle& paramName, bool value)
 	{
 		StaticSwitchParameters[paramName] = value;

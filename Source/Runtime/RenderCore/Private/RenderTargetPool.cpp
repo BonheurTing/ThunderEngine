@@ -12,30 +12,56 @@ namespace Thunder
         // Find compatible render target in available pool
         for (auto it = AvailableTargets.begin(); it != AvailableTargets.end(); ++it)
         {
-            auto& pooledTarget = *it;
-            if (pooledTarget.RenderTarget->GetSizeX() == desc.Width &&
-                pooledTarget.RenderTarget->GetSizeY() == desc.Height)
+            RenderTexture* rt = it->RenderTarget.Get();
+
+            if (rt->GetSizeX() != desc.Width || rt->GetSizeY() != desc.Height)
             {
-                RenderTextureRef result = pooledTarget.RenderTarget;
-                AvailableTargets.erase(it);
-                UsedTargets.push_back(result);
-                return result;
+                continue;
             }
+
+            const RHITextureRef& textureRHI = rt->GetTextureRHI();
+            if (!textureRHI.IsValid() || textureRHI->GetResourceDescriptor()->Format != desc.Format)
+            {
+                continue;
+            }
+
+            if (desc.bIsDepthStencil != rt->IsDepthStencilTargetable())
+            {
+                continue;
+            }
+
+            RenderTextureRef result = it->RenderTarget;
+            AvailableTargets.erase(it);
+            UsedTargets.push_back(result);
+            return result;
         }
 
         // Create new render target if no compatible one found.
-        RenderTextureRef newTarget = new RenderTexture2D(
-            desc.Width, desc.Height, desc.Format, nullptr);
+        ETextureCreateFlags flags = ETextureCreateFlags::Static;
+        if (desc.bIsDepthStencil)
+        {
+            flags = static_cast<ETextureCreateFlags>(
+                static_cast<uint32>(flags) | static_cast<uint32>(ETextureCreateFlags::DepthStencilTargetable));
+        }
+        else
+        {
+            flags = static_cast<ETextureCreateFlags>(
+                static_cast<uint32>(flags) | static_cast<uint32>(ETextureCreateFlags::RenderTargetable));
+        }
+
+        RenderTextureRef newTarget = new RenderTexture2D(desc.Width, desc.Height, desc.Format, nullptr, flags);
+        newTarget->InitRHI();
+
         UsedTargets.push_back(newTarget);
         return newTarget;
     }
 
-    void RenderTargetPool::ReleaseRenderTarget(RenderTextureRef renderTarget)
+    void RenderTargetPool::ReleaseRenderTarget(const RenderTextureRef& renderTarget)
     {
-        auto it = std::find(UsedTargets.begin(), UsedTargets.end(), renderTarget);
+        auto it = std::ranges::find(UsedTargets, renderTarget);
         if (it != UsedTargets.end())
         {
-            AvailableTargets.emplace_back(PooledRenderTarget(*it));
+            AvailableTargets.emplace_back(*it);
             UsedTargets.erase(it);
         }
     }

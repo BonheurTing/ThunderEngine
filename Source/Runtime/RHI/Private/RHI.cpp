@@ -58,7 +58,7 @@ namespace Thunder
 	}
 
 	RHIDepthStencilState::RHIDepthStencilState() :
-		DepthEnable(1),
+		DepthEnable(0),
 		DepthWriteMask(ERHIDepthWriteMask::All),
 		DepthFunc(ERHIComparisonFunc::Less),
 		StencilEnable(0),

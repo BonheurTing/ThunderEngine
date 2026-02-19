@@ -82,7 +82,7 @@ namespace Thunder
         TAssertf(renderTargetIndices.size() <= 8, "Rendering into more than 8 render targets is not supported.");
         key.RenderTargetCount = static_cast<uint8>(renderTargetIndices.size());
         uint32 outTargetIndex = 0;
-        for (auto const& targetIndex : renderTargetIndices)
+        for (auto const& targetIndex : renderTargetIndices | std::views::keys)
         {
             RHIFormat format = RHIFormat::UNKNOWN;
             bool isDepthStencil = false;

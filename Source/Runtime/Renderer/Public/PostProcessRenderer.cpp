@@ -58,6 +58,18 @@ namespace Thunder
             }
         }
         pass->PassParameters->SetFloatParameter("PassParameters0", Parameter0);
+        pass->PassParameters->SetVectorParameter("PassParameters1", TVector4f(0.f, 0.f, 0.f, 1.f));
+        pass->PassParameters->SetVectorParameter("PassParameters2", TVector4f(0.f, 0.f, 0.f, 1.f));
+        pass->PassParameters->SetIntParameter("PassParameters3", Parameter3);
+
+        static NameHandle sceneTextureName = "SceneTexture";
+        auto rts = pass->GetFGTextures();
+        auto sceneTex = rts.find(sceneTextureName);
+        if (sceneTex != rts.end())
+        {
+            pass->PassParameters->SetTextureParameter(sceneTextureName, sceneTex->second);
+        }
+
         byte* constantData = RenderModule::SetupUniformBufferParameters(context, pass->PassUBLayout, pass->PassParameters, PassName_Blur.ToString());
 
         if (pass->bLayoutNeedsUpdate)
@@ -88,10 +100,10 @@ namespace Thunder
         byte* bindingData = static_cast<byte*>(context->Allocate<byte>(bindingSize));
         memset(bindingData, 0, bindingSize);
         bindings->SetData(bindingData);
+        auto frameGraph = context->GetFrameGraph();
         // Bind Constant Buffer
         {
             // Global uniform buffer.
-            auto frameGraph = context->GetFrameGraph();
             auto globalUB = frameGraph->GetGlobalUniformBuffer();
             if (globalUB == nullptr || globalUB->GetResource() == nullptr) [[unlikely]]
             {
@@ -104,6 +116,42 @@ namespace Thunder
             // Pass uniform buffer.
             static NameHandle passUBName = "Pass";
             bindings->SetUniformBuffer(pass->BindingLayout, passUBName, { .Handle = reinterpret_cast<uint64>(pass->PassUniformBuffer.Get()) });
+        }
+        // Bind Texture
+        {
+            TGuid texGuid;
+            pass->PassParameters->GetTextureParameter(sceneTextureName, texGuid);
+            if (!texGuid.IsSystemValue()) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get FGTexture binding : \"%s\", texture resource is invalid.", sceneTextureName.c_str());
+                return;
+            }
+
+            RenderTextureRef rt = frameGraph->GetAllocatedRenderTarget(texGuid.D);
+            if (!rt.IsValid()) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get FGTexture binding : \"%s\", texture resource is invalid.", sceneTextureName.c_str());
+                return;
+            }
+
+            // Get resource.
+            RHITexture* textureResource = rt->GetTextureRHI();
+            if (!textureResource) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get SRV binding : \"%s\", texture resource is invalid.", sceneTextureName.c_str());
+                return;
+            }
+
+            // Get SRV.
+            RHIShaderResourceView* srv = textureResource->GetSRV();
+            if (!srv) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get SRV binding : \"%s\", SRV is invalid.", sceneTextureName.c_str());
+                return;
+            }
+
+            // Bind.
+            bindings->SetSRV(pass->BindingLayout, sceneTextureName, { .Handle = srv->GetOfflineHandle() });
         }
 
         context->AddCommand(newCommand);

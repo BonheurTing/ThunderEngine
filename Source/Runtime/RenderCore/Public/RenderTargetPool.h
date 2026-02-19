@@ -63,7 +63,7 @@ namespace Thunder
     {
     public:
         RenderTextureRef AcquireRenderTarget(const FGRenderTargetDesc& desc);
-        void ReleaseRenderTarget(RenderTextureRef renderTarget);
+        void ReleaseRenderTarget(const RenderTextureRef& renderTarget);
         void TickUnusedFrameCounters();
         void ReleaseLongUnusedTargets();
         void Reset();

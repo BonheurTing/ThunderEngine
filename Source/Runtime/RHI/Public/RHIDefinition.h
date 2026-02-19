@@ -256,6 +256,10 @@ namespace Thunder
         Dynamic                 = 1 << 1,
         /** The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame. */
         Volatile                = 1 << 2,
+        /** Texture can be used as a render target (RTV will be created). */
+        RenderTargetable        = 1 << 3,
+        /** Texture can be used as a depth stencil target (DSV will be created). */
+        DepthStencilTargetable  = 1 << 4,
 
         // Helper bit-masks
         AnyDynamic = (Dynamic | Volatile)

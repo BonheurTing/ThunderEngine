@@ -25,6 +25,9 @@ namespace Thunder
          * 6.CopyTetxureRegion
          **/
 
+        const bool bNeedRTV = IsRenderTargetable();
+        const bool bNeedDSV = IsDepthStencilTargetable();
+
         RHIResourceDescriptor desc{};
         desc.Type = ERHIResourceType::Texture2D;
         desc.Alignment = 0;
@@ -35,9 +38,12 @@ namespace Thunder
         desc.Format = PixelFormat;
         desc.SampleDesc = {1, 0};
         desc.Layout = ERHITextureLayout::RowMajor;
-        desc.Flags = {0, 0, 0, 0, 0};
+        desc.Flags = {};
+        desc.Flags.NeedRTV = bNeedRTV;
+        desc.Flags.NeedDSV = bNeedDSV;
 
         TextureRHI = RHICreateTexture(desc, CreationFlags);
+
         RHICreateShaderResourceView(*TextureRHI, {
             .Format = desc.Format,
             .Type = ERHIViewDimension::Texture2D,
@@ -46,25 +52,49 @@ namespace Thunder
             .DepthOrArraySize = desc.DepthOrArraySize
         });
 
+        if (bNeedRTV)
+        {
+            RHICreateRenderTargetView(*TextureRHI, {
+                .Format = desc.Format,
+                .Type = ERHIViewDimension::Texture2D,
+                .Width = desc.Width,
+                .Height = desc.Height,
+                .DepthOrArraySize = desc.DepthOrArraySize
+            });
+        }
+
+        if (bNeedDSV)
+        {
+            RHICreateDepthStencilView(*TextureRHI, {
+                .Format = desc.Format,
+                .Type = ERHIViewDimension::Texture2D,
+                .Width = desc.Width,
+                .Height = desc.Height,
+                .DepthOrArraySize = desc.DepthOrArraySize
+            });
+        }
+
         if (!TextureRHI.IsValid() || MipLevels > 1)
         {
             return;
         }
 
-        /**
-         * 把binary data放在 rhi resource中，防止rhi线程访问渲染线程的数据
-         **/
-        GRHIScheduler->PushTask([bin = RawData, rhiRes = TextureRHI, bAsync = isDoubleBuffered() || (!isDynamic())]()
+        // Store the binary data inside the RHI resource
+        // to prevent the RHI thread from accessing data owned by the render thread.
+        if (RawData.IsValid())
         {
-            rhiRes->SetBinaryData(bin);
-            if (bAsync)
+            GRHIScheduler->PushTask([bin = RawData, rhiRes = TextureRHI, bAsync = isDoubleBuffered() || (!isDynamic())]()
             {
-                GRHIUpdateAsyncQueue.push_back(rhiRes);
-            }
-            else
-            {
-                GRHIUpdateSyncQueue.push_back(rhiRes);
-            }
-        });
+                rhiRes->SetBinaryData(bin);
+                if (bAsync)
+                {
+                    GRHIUpdateAsyncQueue.push_back(rhiRes);
+                }
+                else
+                {
+                    GRHIUpdateSyncQueue.push_back(rhiRes);
+                }
+            });
+        }
     }
 }

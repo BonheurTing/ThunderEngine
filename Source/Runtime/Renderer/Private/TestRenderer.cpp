@@ -3,25 +3,26 @@
 
 #include "CoreModule.h"
 #include "FrameGraph.h"
-#include "MeshDrawCommand.h"
 #include "MeshPass.h"
 #include "MeshPassProcessor.h"
 #include "PlatformProcess.h"
 #include "PostProcessRenderer.h"
 #include "RHICommand.h"
-#include "Memory/TransientAllocator.h"
 #include "PrimitiveSceneInfo.h"
 #include "RenderModule.h"
 #include "ShaderParameterMap.h"
-#include "UniformBuffer.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
 #include "HAL/Event.h"
 
 namespace Thunder
 {
-    TestRenderer::TestRenderer()
+    namespace
     {
+        void Print(const std::string& message)
+        {
+            std::cout << message << '\n';
+        }
     }
 
     void TestRenderer::Setup()
@@ -120,10 +121,7 @@ namespace Thunder
         mFrameGraph->UpdateSceneInfo_RenderThread();
     }
 
-    void TestRenderer::Print(const std::string& message)
-    {
-        std::cout << message << std::endl;
-    }
+
 
     DeferredShadingRenderer::DeferredShadingRenderer()
     {
@@ -131,17 +129,8 @@ namespace Thunder
 
     void DeferredShadingRenderer::InitViews()
     {
-        // scene 需要 build 一个 PrimitiveSceneInfo List，有primitiveid做索引，可以拿proxy
-
-        
-    }
-
-    namespace
-    {
-        void Print(const std::string& message)
-        {
-            std::cout << message << std::endl;
-        }
+        // todo The scene needs to build a PrimitiveSceneInfo list.
+        // Each element is indexed by PrimitiveId and can be used to access its proxy.
     }
 
     void DeferredShadingRenderer::Tick_RenderThread()
@@ -338,7 +327,7 @@ namespace Thunder
 
         {
             PassOperations operations;
-            operations.Read(LightingRT); //todo bind
+            operations.Read(LightingRT, "SceneTexture"); //todo bind
             operations.Write(postProcessRT2);
 
             static PostProcessRenderer* ppRenderer = nullptr;

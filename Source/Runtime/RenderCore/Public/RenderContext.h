@@ -41,7 +41,7 @@ namespace Thunder
         TArray<std::tuple<const MeshBatch*, RHICachedDrawCommand*>> const& GetCachedCommands() const { return CachedDrawCommands; }
         void ClearCachedCommands();
 
-        FORCEINLINE void SetCurrentPass(class FrameGraphPass* pass) { CurrentPass = pass; }
+        FORCEINLINE void SetCurrentPass(struct FrameGraphPass* pass) { CurrentPass = pass; }
         FORCEINLINE FrameGraphPass* GetCurrentPass() const { return CurrentPass; }
         FORCEINLINE FrameGraph* GetFrameGraph() const { return FrameGraph; }
         RenderPass* GetRenderPass() const;

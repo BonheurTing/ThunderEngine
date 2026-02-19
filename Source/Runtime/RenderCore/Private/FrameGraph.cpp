@@ -2,7 +2,6 @@
 #include "FrameGraph.h"
 #include <algorithm>
 #include <UniformBuffer.h>
-
 #include "RenderTexture.h"
 #include "RenderContext.h"
 #include "RHICommand.h"
@@ -22,24 +21,44 @@ namespace Thunder
 {
     class TaskDispatcher;
 
-    void PassOperations::Read(const FGRenderTarget* renderTarget)
+    void PassOperations::Read(const FGRenderTarget* renderTarget, NameHandle rtName)
     {
-        ReadTargets.push_back(renderTarget->GetID());
+        ReadTargets.emplace(renderTarget->GetID(), rtName);
     }
 
-    void PassOperations::Read(const FGRenderTargetRef& renderTarget)
+    void PassOperations::Read(const FGRenderTargetRef& renderTarget, NameHandle rtName)
     {
-        ReadTargets.push_back(renderTarget->GetID());
+        ReadTargets.emplace(renderTarget->GetID(), rtName);
     }
 
-    void PassOperations::Write(const FGRenderTarget* renderTarget)
+    void PassOperations::Write(const FGRenderTarget* renderTarget, NameHandle rtName)
     {
-        WriteTargets.push_back(renderTarget->GetID());
+        WriteTargets.emplace(renderTarget->GetID(), rtName);
     }
 
-    void PassOperations::Write(const FGRenderTargetRef& renderTarget)
+    void PassOperations::Write(const FGRenderTargetRef& renderTarget, NameHandle rtName)
     {
-        WriteTargets.push_back(renderTarget->GetID());
+        WriteTargets.emplace(renderTarget->GetID(), rtName);
+    }
+
+    TMap<NameHandle, uint32> FrameGraphPass::GetFGTextures()
+    {
+        TMap<NameHandle, uint32> usedTextures;
+        for (auto texPair : Operations.GetReadTargets())
+        {
+            if (!texPair.second.IsEmpty())
+            {
+                usedTextures.emplace(texPair.second, texPair.first);
+            }
+        }
+        for (auto texPair : Operations.GetWriteTargets())
+        {
+            if (!texPair.second.IsEmpty())
+            {
+                usedTextures.emplace(texPair.second, texPair.first);
+            }
+        }
+        return usedTextures;
     }
 
     FrameGraph::FrameGraph(IRenderer* owner, int contextNum) : OwnerRenderer(owner)
@@ -408,6 +427,16 @@ namespace Thunder
         return true;
     }
 
+    RenderTextureRef FrameGraph::GetAllocatedRenderTarget(uint32 textureID)
+    {
+        auto it = AllocatedRenderTargets.find(textureID);
+        if (it != AllocatedRenderTargets.end())
+        {
+            return it->second;
+        }
+        return nullptr;
+    }
+
     void FrameGraph::InitGlobalUniformBuffer()
     {
         const auto layout = ShaderModule::GetGlobalUniformBufferLayout();
@@ -551,12 +580,12 @@ namespace Thunder
                     continue;
                 }
                 const auto& writeTargets = pass.second->Operations.GetWriteTargets();
-                if (std::ranges::find(writeTargets, currentTarget) != writeTargets.end())
+                if (writeTargets.contains(currentTarget))
                 {
                     pass.second->bCulled = false;
 
                     // Add read targets to the queue
-                    for (uint32 readTarget : pass.second->Operations.GetReadTargets())
+                    for (uint32 readTarget : pass.second->Operations.GetReadTargets() | std::views::keys)
                     {
                         if (!neededTargets.contains(readTarget))
                         {
@@ -581,14 +610,14 @@ namespace Thunder
             if (passX.second->bCulled) continue;
             inDegreeMap.emplace(passX.first, 0);
 
-            for (uint32 readTarget : passX.second->Operations.GetReadTargets())
+            for (uint32 readTarget : passX.second->Operations.GetReadTargets() | std::views::keys)
             {
                 for (auto& passY : Passes)
                 {
                     if (passX.first == passY.first || passY.second->bCulled) continue;
 
                     const auto& writeTargets = passY.second->Operations.GetWriteTargets();
-                    if (std::ranges::find(writeTargets, readTarget) != writeTargets.end())
+                    if (writeTargets.contains(readTarget))
                     {
                         inDegreeMap[passX.first]++;
                     }
@@ -618,13 +647,13 @@ namespace Thunder
             ExecutionOrder.push_back(current);
 
             // Update in-degrees for dependent passes
-            for (uint32 writeTarget : Passes[current]->Operations.GetWriteTargets())
+            for (uint32 writeTarget : Passes[current]->Operations.GetWriteTargets() | std::views::keys)
             {
                 for (auto& pass : Passes)
                 {
                     if (pass.second->bCulled) continue;
                     const auto& readTargets = pass.second->Operations.GetReadTargets();
-                    if (std::ranges::find(readTargets, writeTarget) != readTargets.end())
+                    if (readTargets.contains(writeTarget))
                     {
                         inDegreeMap[pass.first]--;
                         if (inDegreeMap[pass.first] == 0)
@@ -648,7 +677,7 @@ namespace Thunder
             const auto& pass = Passes[passName];
 
             // Update lifetimes for read targets
-            for (uint32 rtID : pass->Operations.GetReadTargets())
+            for (uint32 rtID : pass->Operations.GetReadTargets() | std::views::keys)
             {
                 if (!RenderTargetLifetimes.contains(rtID))
                 {
@@ -661,7 +690,7 @@ namespace Thunder
             }
 
             // Update lifetimes for write targets
-            for (uint32 rtID : pass->Operations.GetWriteTargets())
+            for (uint32 rtID : pass->Operations.GetWriteTargets() | std::views::keys)
             {
                 if (!RenderTargetLifetimes.contains(rtID))
                 {

@@ -5,6 +5,7 @@
 #include "D3D12DescriptorHeap.h"
 #include "D3D12CommandContext.h"
 #include "D3D12RHIPrivate.h"
+#include "D3D12Util.h"
 #include "D3D12PipelineState.h"
 #include "RHIHelper.h"
 #include "Assertion.h"
@@ -221,8 +222,14 @@ namespace Thunder
 
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        srvDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
-        srvDesc.ViewDimension = static_cast<D3D12_SRV_DIMENSION>(desc.Type);
+        // Depth-stencil textures are created with a typeless format; SRV must use the readable depth format.
+        DXGI_FORMAT srvFormat = ConvertRHIFormatToD3DFormat(desc.Format);
+        if (resource.GetResourceDescriptor()->Flags.NeedDSV)
+        {
+            srvFormat = GetDepthSRVFormat(ConvertRHIFormatToD3DFormat(resource.GetResourceDescriptor()->Format));
+        }
+        srvDesc.Format = srvFormat;
+        srvDesc.ViewDimension = ConvertToD3D12SRVDimension(desc.Type);
         const auto resourceDesc = resource.GetResourceDescriptor();
         switch (resourceDesc->Type)
         {
@@ -302,7 +309,7 @@ namespace Thunder
         }
 
         uavDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
-        uavDesc.ViewDimension = static_cast<D3D12_UAV_DIMENSION>(desc.Type);
+        uavDesc.ViewDimension = ConvertToD3D12UAVDimension(desc.Type);
         const auto inst = static_cast<ID3D12Resource*>( resource.GetResource() );
         Device->CreateUnorderedAccessView(inst, nullptr, &uavDesc, uavDescriptor.Handle);
         const HRESULT hr = Device->GetDeviceRemovedReason();
@@ -328,7 +335,7 @@ namespace Thunder
 
         D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
         rtvDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
-        rtvDesc.ViewDimension = static_cast<D3D12_RTV_DIMENSION>(desc.Type);
+        rtvDesc.ViewDimension = ConvertToD3D12RTVDimension(desc.Type);
         const auto resourceDesc = resource.GetResourceDescriptor();
         switch (resourceDesc->Type)
         {
@@ -379,7 +386,7 @@ namespace Thunder
 
         D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
         dsvDesc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
-        dsvDesc.ViewDimension = static_cast<D3D12_DSV_DIMENSION>(desc.Type);
+        dsvDesc.ViewDimension = ConvertToD3D12DSVDimension(desc.Type);
         const auto resourceDesc = resource.GetResourceDescriptor();
         switch (resourceDesc->Type)
         {
@@ -678,7 +685,13 @@ namespace Thunder
         d3d12Desc.Width = desc.Width;
         d3d12Desc.Height = desc.Height;
         d3d12Desc.MipLevels = desc.MipLevels;
-        d3d12Desc.Format = ConvertRHIFormatToD3DFormat(desc.Format);
+        // Depth-stencil textures that also need an SRV must be created with a typeless format.
+        DXGI_FORMAT resourceFormat = ConvertRHIFormatToD3DFormat(desc.Format);
+        if (desc.Flags.NeedDSV)
+        {
+            resourceFormat = GetDepthTypelessFormat(resourceFormat);
+        }
+        d3d12Desc.Format = resourceFormat;
         d3d12Desc.SampleDesc = {1, 0};
         d3d12Desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         d3d12Desc.Flags = GetRHIResourceFlags(desc.Flags);

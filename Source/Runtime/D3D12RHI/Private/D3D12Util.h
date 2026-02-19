@@ -5,6 +5,69 @@
 
 namespace Thunder
 {
+    inline D3D12_SRV_DIMENSION ConvertToD3D12SRVDimension(ERHIViewDimension dim)
+    {
+        switch (dim)
+        {
+        case ERHIViewDimension::Buffer:           return D3D12_SRV_DIMENSION_BUFFER;
+        case ERHIViewDimension::Texture1D:        return D3D12_SRV_DIMENSION_TEXTURE1D;
+        case ERHIViewDimension::Texture1DArray:   return D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+        case ERHIViewDimension::Texture2D:        return D3D12_SRV_DIMENSION_TEXTURE2D;
+        case ERHIViewDimension::Texture2DArray:   return D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+        case ERHIViewDimension::Texture2DMS:      return D3D12_SRV_DIMENSION_TEXTURE2DMS;
+        case ERHIViewDimension::Texture2DMSArray: return D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
+        case ERHIViewDimension::Texture3D:        return D3D12_SRV_DIMENSION_TEXTURE3D;
+        case ERHIViewDimension::TextureCube:      return D3D12_SRV_DIMENSION_TEXTURECUBE;
+        case ERHIViewDimension::TextureCubeArray: return D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+        default:                                  return D3D12_SRV_DIMENSION_UNKNOWN;
+        }
+    }
+
+    inline D3D12_UAV_DIMENSION ConvertToD3D12UAVDimension(ERHIViewDimension dim)
+    {
+        switch (dim)
+        {
+        case ERHIViewDimension::Buffer:          return D3D12_UAV_DIMENSION_BUFFER;
+        case ERHIViewDimension::Texture1D:       return D3D12_UAV_DIMENSION_TEXTURE1D;
+        case ERHIViewDimension::Texture1DArray:  return D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+        case ERHIViewDimension::Texture2D:       return D3D12_UAV_DIMENSION_TEXTURE2D;
+        case ERHIViewDimension::Texture2DArray:  return D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+        case ERHIViewDimension::Texture3D:       return D3D12_UAV_DIMENSION_TEXTURE3D;
+        default:                                 return D3D12_UAV_DIMENSION_UNKNOWN;
+        }
+    }
+
+    inline D3D12_RTV_DIMENSION ConvertToD3D12RTVDimension(ERHIViewDimension dim)
+    {
+        switch (dim)
+        {
+        case ERHIViewDimension::Buffer:           return D3D12_RTV_DIMENSION_BUFFER;
+        case ERHIViewDimension::Texture1D:        return D3D12_RTV_DIMENSION_TEXTURE1D;
+        case ERHIViewDimension::Texture1DArray:   return D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+        case ERHIViewDimension::Texture2D:        return D3D12_RTV_DIMENSION_TEXTURE2D;
+        case ERHIViewDimension::Texture2DArray:   return D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+        case ERHIViewDimension::Texture2DMS:      return D3D12_RTV_DIMENSION_TEXTURE2DMS;
+        case ERHIViewDimension::Texture2DMSArray: return D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
+        case ERHIViewDimension::Texture3D:        return D3D12_RTV_DIMENSION_TEXTURE3D;
+        default:                                  return D3D12_RTV_DIMENSION_UNKNOWN;
+        }
+    }
+
+    inline D3D12_DSV_DIMENSION ConvertToD3D12DSVDimension(ERHIViewDimension dim)
+    {
+        switch (dim)
+        {
+        case ERHIViewDimension::Texture1D:        return D3D12_DSV_DIMENSION_TEXTURE1D;
+        case ERHIViewDimension::Texture1DArray:   return D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+        case ERHIViewDimension::Texture2D:        return D3D12_DSV_DIMENSION_TEXTURE2D;
+        case ERHIViewDimension::Texture2DArray:   return D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+        case ERHIViewDimension::Texture2DMS:      return D3D12_DSV_DIMENSION_TEXTURE2DMS;
+        case ERHIViewDimension::Texture2DMSArray: return D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
+        default:                                  return D3D12_DSV_DIMENSION_UNKNOWN;
+        }
+    }
+
+
 	inline D3D12_BLEND_DESC CastD3D12BlendStateFromRHI(const RHIBlendState& blendDesc)
 	{
 		D3D12_BLEND_DESC desc

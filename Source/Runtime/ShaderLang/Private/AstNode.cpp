@@ -238,7 +238,7 @@ namespace Thunder
         {
             for (const auto pass : passes)
             {
-                if (pass->fine_parameter(parameter->name))
+                // if (pass->fine_parameter(parameter->name)) // pass cb optimize: temporarily not opened for debug.
                 {
                     pass_cb_parameters.at(pass->get_name()).push_back(parameter);
                 }

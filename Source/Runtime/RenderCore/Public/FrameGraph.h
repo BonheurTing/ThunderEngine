@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "MeshDrawCommand.h"
 #include "MeshPass.h"
-#include "RenderResource.h"
 #include "RenderTargetPool.h"
 #include "RenderContext.h"
 #include "RenderPass.h"
@@ -20,17 +19,17 @@ namespace Thunder
     class RENDERCORE_API PassOperations
     {
     public:
-        void Read(const FGRenderTarget* renderTarget);
-        void Read(const FGRenderTargetRef& renderTarget);
-        void Write(const FGRenderTarget* renderTarget);
-        void Write(const FGRenderTargetRef& renderTarget);
+        void Read(const FGRenderTarget* renderTarget, NameHandle rtName = NameHandle());
+        void Read(FGRenderTargetRef const& renderTarget, NameHandle rtName = NameHandle());
+        void Write(const FGRenderTarget* renderTarget, NameHandle rtName = NameHandle());
+        void Write(FGRenderTargetRef const& renderTarget, NameHandle rtName = NameHandle());
 
-        const TArray<uint32>& GetReadTargets() const { return ReadTargets; }
-        const TArray<uint32>& GetWriteTargets() const { return WriteTargets; }
+        const TMap<uint32, NameHandle>& GetReadTargets() { return ReadTargets; }
+        const TMap<uint32, NameHandle>& GetWriteTargets() { return WriteTargets; }
 
     private:
-        TArray<uint32> ReadTargets;
-        TArray<uint32> WriteTargets;
+        TMap<uint32, NameHandle> ReadTargets;
+        TMap<uint32, NameHandle> WriteTargets;
     };
 
     using PassExecutionFunction = TFunction<void()>;
@@ -53,7 +52,8 @@ namespace Thunder
         FrameGraphPass() = delete;
         FrameGraphPass(class FrameGraph* graph, const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction)
             : FrameGraph(graph), Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)) {}
-        PassOperations const& GetOperations() const { return Operations; }
+        PassOperations& GetOperations() { return Operations; }
+        RENDERCORE_API TMap<NameHandle, uint32> GetFGTextures();
     };
 
     class RENDERCORE_API FrameGraph : public RefCountedObject
@@ -105,6 +105,7 @@ namespace Thunder
             return (passIt != Passes.end()) ? passIt->second.Get() : nullptr;
         }
         bool GetRenderTargetFormat(uint32 renderTargetIndex, RHIFormat& outFormat, bool& outIsDepthStencil) const;
+        TRefCountPtr<RenderTexture> GetAllocatedRenderTarget(uint32 textureID);
 
         TArray<RHICachedDrawCommand*> const& GetVisibleCachedDrawList(EMeshPass passType) { return VisibleCachedDrawLists[passType]; }
 
@@ -136,7 +137,7 @@ namespace Thunder
 
         // Render targets.
         THashMap<uint32, FGRenderTargetRef> RenderTargets;
-        THashMap<uint32, RenderTextureRef> AllocatedRenderTargets;
+        THashMap<uint32, TRefCountPtr<RenderTexture>> AllocatedRenderTargets;
         THashMap<uint32, std::pair<size_t, size_t>> RenderTargetLifetimes; // target -> (first_use, last_use)
         uint32 PresentTargetID = 0;
         bool bHasPresentTarget = false;

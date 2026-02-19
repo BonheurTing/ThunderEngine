@@ -7,6 +7,7 @@
 #include "ShaderArchive.h"
 #include "ShaderModule.h"
 #include "ShaderParameterMap.h"
+#include "RHIResource.h"
 
 namespace Thunder
 {
@@ -75,9 +76,10 @@ namespace Thunder
         
         // Dispatch command
         RHIDrawCommand* newCommand = new (context->Allocate<RHIDrawCommand>()) RHIDrawCommand;
-        newCommand->Shader = ShaderModule::GetShaderCombination(archive, PassName_Blur, 0);
+        uint64 shaderVariant = 0; // todo
+        newCommand->Shader = ShaderModule::GetShaderCombination(archive, PassName_Blur, shaderVariant);
         auto subMesh = GProceduralGeometryManager->GetGeometry(EProceduralGeometry::Triangle);
-        //newCommand->GraphicsPSO = GetPipelineState(context, shaderVariant, meshPassType, subMesh, material);
+        newCommand->GraphicsPSO = RenderModule::GetPipelineState(context, PassName_Blur, archive, newCommand->Shader, subMesh);
 
         // Apply shader bindings.
         newCommand->Bindings.SetTransientAllocated(true);

@@ -33,6 +33,9 @@ namespace Thunder
     	static byte* SetupUniformBufferParameters(const RenderContext* context, const class UniformBufferLayout* layout
 			, const struct ShaderParameterMap* parameterMap, const String& ubName);
 
+		// Set up pso
+    	static TRHIGraphicsPipelineState* GetPipelineState(const RenderContext* context, NameHandle subShaderName, class ShaderArchive* archive, ShaderCombination* shaderCombination, const SubMesh* subMesh);
+
     private:
     	std::array<MeshPassProcessorRef, static_cast<size_t>(EMeshPass::Num)> MeshPassProcessors;
     	std::array<TFunction<class MeshPassProcessor*()>, static_cast<size_t>(EMeshPass::Num)> MeshPassProcessorCreators;

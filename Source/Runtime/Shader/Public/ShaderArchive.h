@@ -2,7 +2,6 @@
 #include "ShaderDefinition.h"
 #include "Concurrent/Lock.h"
 #include "Templates/RefCounting.h"
-#include "AstNode.h"
 #include "MeshPass.h"
 #include "RenderStates.h"
 #include "ShaderBindingsLayout.h"
@@ -41,7 +40,7 @@ namespace Thunder
     {
     public:
     	ShaderPass() = delete;
-    	ShaderPass(class ShaderArchive* archive, const ast_node_pass* astNode);
+    	ShaderPass(class ShaderArchive* archive, const class ast_node_pass* astNode);
 		void SetShaderRegisterCounts(const TShaderRegisterCounts& counts) { RegisterCounts = counts; }
         _NODISCARD_ TShaderRegisterCounts GetShaderRegisterCounts() const { return RegisterCounts; }
     	void AddStageMeta(EShaderStageType type, const StageMeta& meta) {StageMetas[type] = meta;}
@@ -109,7 +108,7 @@ namespace Thunder
 
 		// parse ast to obtain Property/Variant/Parameters
 		void Reflect(class ShaderArchive* archive) const;
-    	String GenerateShaderVariantSource(shader_codegen_state& state) const;
+    	String GenerateShaderVariantSource(struct shader_codegen_state& state) const;
 		String GetSubShaderEntry(String const& subShaderName, EShaderStageType stageType) const;
 		const TArray<ast_node*>& GetCustomTypes() const { return CustomTypes; }
 
@@ -174,8 +173,8 @@ namespace Thunder
     	void VariantMaskToName(uint64 variantMask, THashMap<NameHandle, bool>& variantMap) const;
     	void BuildUniformBufferLayout();
     	void BuildBindingsLayout();
-    	ShaderBindingsLayout* GetBindingsLayout() const { return BindingsLayout; }
-    	UniformBufferLayout* GetUniformBufferLayout(NameHandle cbName);
+    	class ShaderBindingsLayout* GetBindingsLayout() const { return BindingsLayout.Get(); }
+    	class UniformBufferLayout* GetUniformBufferLayout(NameHandle cbName);
 
     private:
     	static void GenerateDefaultParameters(const TArray<ShaderParameterMeta>& parameterMeta, ShaderParameterMap* shaderParameterMap);
@@ -195,8 +194,8 @@ namespace Thunder
     	THashMap<NameHandle, ShaderPassRef> SubShaders;
     	THashMap<EMeshPass, ShaderPassRef> MeshDrawSubShaders;
 
-    	ShaderBindingsLayoutRef BindingsLayout{ nullptr }; // srv + uav + 4 cbv
-    	TMap<NameHandle, UniformBufferLayoutRef> UniformBufferLayoutMap; // [global subshader material primitive] constant buffer
+    	TRefCountPtr<ShaderBindingsLayout> BindingsLayout{ nullptr }; // srv + uav + 4 cbv
+    	TMap<NameHandle, TRefCountPtr<UniformBufferLayout>> UniformBufferLayoutMap; // [global subshader material primitive] constant buffer
     };
     
 }

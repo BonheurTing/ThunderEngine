@@ -18,7 +18,7 @@ namespace Thunder
 
     SingleShaderBindings::~SingleShaderBindings()
     {
-        ClearData();
+        // Data releasing is handled by ShaderBindings
     }
 
     void SingleShaderBindings::ClearData()

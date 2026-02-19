@@ -264,7 +264,7 @@ namespace Thunder
     	TAssertf(false, "ShaderPass::CompileShader is deprecated.");
     	// Stage
     	Variants[variantId] = MakeRefCount<ShaderCombination>(this);
-    	ShaderCombination& newVariant = *Variants[variantId];
+    	ShaderCombination* newVariant = Variants[variantId];
     	for (auto& meta : StageMetas)
     	{
     		// Variant Marco
@@ -272,8 +272,9 @@ namespace Thunder
     		THashMap<NameHandle, bool> shaderMarco{};
     		Archive->VariantMaskToName(stageVariantId, shaderMarco);
     		//todo: include file
-    		newVariant.Shaders[meta.first] = new ShaderStage{};
-    		ShaderStage* newStageVariant = newVariant.Shaders[meta.first];
+    		auto& shaderStageMap = newVariant->GetShaders();
+    		ShaderStage* newStageVariant = new ShaderStage{};
+    		shaderStageMap[meta.first] = newStageVariant;
     		ShaderModule::GetModule()->Compile(archiveName, shaderSource, shaderMarco, includeStr, meta.second.EntryPoint.c_str(), GShaderModuleTarget[meta.first], newStageVariant->ByteCode);
     
     		if (newStageVariant->ByteCode.Size == 0)
@@ -308,8 +309,9 @@ namespace Thunder
 				.Stage = stageType,
 			});
 
-    		newVariant->Shaders[stageType] = new (TMemory::Malloc<ShaderStage>()) ShaderStage{};
-    		ShaderStage* newStageVariant = newVariant->Shaders[stageType];
+    		ShaderStage* newStageVariant = new (TMemory::Malloc<ShaderStage>()) ShaderStage{};
+    		auto& shaderStageMap = newVariant->GetShaders();
+    		shaderStageMap[stageType] = newStageVariant;
 
     		String entryName = stageMeta.EntryPoint;
     		ShaderModule::CompileShaderSource(source, entryName, stageType, newStageVariant->ByteCode, enableDebugInfo);

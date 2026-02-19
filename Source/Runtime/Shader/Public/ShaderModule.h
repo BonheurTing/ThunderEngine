@@ -5,7 +5,6 @@
 #include "ShaderLang.h"
 #include "RenderStates.h"
 #include "ShaderBindingsLayout.h"
-#include "Concurrent/Lock.h"
 
 namespace Thunder
 {
@@ -38,8 +37,9 @@ namespace Thunder
     	static uint64 GetVariantMask(ShaderArchive* archive, const TMap<NameHandle, bool>& parameters);
     	static ShaderCombination* GetShaderCombination(ShaderArchive* archive, EMeshPass meshPassType, uint64 variantMask);
     	static ShaderCombination* GetShaderCombination(ShaderArchive* archive, NameHandle subShaderName, uint64 variantMask);
-		static TRHIPipelineState* GetPSO(uint64 psoKey);
 	    static bool GetPassRegisterCounts(ShaderArchive* archive, EMeshPass meshPassType, TShaderRegisterCounts& outRegisterCounts);
+	    static bool GetPassRegisterCounts(ShaderArchive* archive, NameHandle subShaderName, TShaderRegisterCounts& outRegisterCounts);
+		static TRHIPipelineState* GetPSO(uint64 psoKey);
 
     	static void GenerateDefaultParameters(NameHandle archiveName, struct ShaderParameterMap* shaderParameterMap);
 		void Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode);

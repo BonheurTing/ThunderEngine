@@ -56,8 +56,9 @@ namespace Thunder
     };
 	using ShaderStageRef = TRefCountPtr<ShaderStage, true>;
     
-    struct ShaderCombination : public RefCountedObject
+    class ShaderCombination : public RefCountedObject
     {
+    public:
     	ShaderCombination(class ShaderPass* subShader) : SubShader(subShader) {}
     	ShaderCombination& operator=(ShaderCombination&& rhs) noexcept
     	{
@@ -92,7 +93,9 @@ namespace Thunder
     	static uint32 GetTypeHash(const ShaderCombination& combination);
     	
     	ShaderPass* GetSubShader() const { return SubShader; }
+    	THashMap<EShaderStageType, ShaderStageRef>& GetShaders() { return Shaders; }
 
+    private:
     	ShaderPass* SubShader = nullptr;
     	THashMap<EShaderStageType, ShaderStageRef> Shaders;
     };

@@ -8,7 +8,7 @@
 
 namespace Thunder
 {
-    class SubMesh;
+    struct SubMesh;
     class RenderMaterial;
 
     struct MeshBatchKey
@@ -59,7 +59,7 @@ namespace Thunder
     class StaticMeshBatch : public MeshBatch
     {
     public:
-        RENDERCORE_API StaticMeshBatch(PrimitiveSceneInfo* sceneInfo, class SubMesh* const& subMesh, RenderMaterial* const& material, uint32 lodLevel = 0);
+        RENDERCORE_API StaticMeshBatch(PrimitiveSceneInfo* sceneInfo, SubMesh* const& subMesh, RenderMaterial* const& material, uint32 lodLevel = 0);
     };
 }
 

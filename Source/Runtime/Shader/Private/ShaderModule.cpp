@@ -10,7 +10,6 @@
 #include "MeshPass.h"
 #include "PreProcessor.h"
 #include "ShaderLang.h"
-#include "ShaderCompiler.h"
 #include "rapidjson/document.h"
 #include "ShaderArchive.h"
 #include "ShaderParameterMap.h"
@@ -192,7 +191,18 @@ namespace Thunder
 		TAssertf(false, "Sub-shader \"%s\" not exist in archive \"%s\"", ShaderModule::GetMeshPassName(meshPassType).c_str(), archive->GetName().c_str());
 		return false;
 	}
-	
+
+	bool ShaderModule::GetPassRegisterCounts(ShaderArchive* archive, NameHandle subShaderName, TShaderRegisterCounts& outRegisterCounts)
+	{
+		if (ShaderPass* subShader = archive->GetSubShader(subShaderName))
+		{
+			outRegisterCounts = subShader->GetShaderRegisterCounts();
+			return true;
+		}
+		TAssertf(false, "Sub-shader \"%s\" not exist in archive \"%s\"", subShaderName, archive->GetName().c_str());
+		return false;
+	}
+
 	void ShaderModule::Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco,
 		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode)
 	{

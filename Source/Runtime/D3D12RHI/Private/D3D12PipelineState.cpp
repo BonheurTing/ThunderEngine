@@ -61,7 +61,7 @@ namespace Thunder
 		outD3D12Desc.Desc.SampleDesc.Count = rhiDesc.NumSamples;
 		outD3D12Desc.Desc.SampleDesc.Quality = 0;
 
-		auto& shaderBound = rhiDesc.shaderVariant->Shaders;
+		auto& shaderBound = rhiDesc.shaderVariant->GetShaders();
 		auto CopyShader = [&shaderBound](D3D12_SHADER_BYTECODE& destination, EShaderStageType sourceStage)
 		{
 			if (shaderBound.contains(sourceStage))

@@ -2,21 +2,21 @@
 #include "d3dx12.h"
 #include "CommonUtilities.h"
 #include "D3D12RHIModule.h"
-#include "D3D12RHIPrivate.h"
 #include "ShaderDefinition.h"
+#include "RHI.h"
 
 namespace Thunder
 {
-	static D3D12_STATIC_SAMPLER_DESC MakeStaticSampler(D3D12_FILTER Filter, D3D12_TEXTURE_ADDRESS_MODE WrapMode, uint32 Register, uint32 Space)
+	static D3D12_STATIC_SAMPLER_DESC MakeStaticSampler(RHISamplerDescriptor desc, uint32 Register, uint32 Space)
 	{
 		D3D12_STATIC_SAMPLER_DESC result = {};
-	
-		result.Filter           = Filter;
-		result.AddressU         = WrapMode;
-		result.AddressV         = WrapMode;
-		result.AddressW         = WrapMode;
+
+		result.Filter           = static_cast<D3D12_FILTER>(desc.Filter);
+		result.AddressU         = static_cast<D3D12_TEXTURE_ADDRESS_MODE>(desc.AddressU);
+		result.AddressV         = static_cast<D3D12_TEXTURE_ADDRESS_MODE>(desc.AddressV);
+		result.AddressW         = static_cast<D3D12_TEXTURE_ADDRESS_MODE>(desc.AddressW);
 		result.MipLODBias       = 0.0f;
-		result.MaxAnisotropy    = 1;
+		result.MaxAnisotropy    = desc.MaxAnisotropy;
 		result.ComparisonFunc   = D3D12_COMPARISON_FUNC_NEVER;
 		result.BorderColor      = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
 		result.MinLOD           = 0.0f;
@@ -28,17 +28,9 @@ namespace Thunder
 		return result;
 	}
 
-	// Static sampler table must match D3DCommon.ush
-	static const D3D12_STATIC_SAMPLER_DESC StaticSamplerDescs[] =
-	{
-		MakeStaticSampler(D3D12_FILTER_MIN_MAG_MIP_POINT,        D3D12_TEXTURE_ADDRESS_MODE_WRAP,  0, 1000),
-		MakeStaticSampler(D3D12_FILTER_MIN_MAG_MIP_POINT,        D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 1, 1000),
-		MakeStaticSampler(D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP,  2, 1000),
-		MakeStaticSampler(D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 3, 1000),
-		MakeStaticSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR,       D3D12_TEXTURE_ADDRESS_MODE_WRAP,  4, 1000),
-		MakeStaticSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR,       D3D12_TEXTURE_ADDRESS_MODE_CLAMP, 5, 1000),
-	};
-	
+	// Static sampler table must match test_include_common.tsh
+	static TArray<D3D12_STATIC_SAMPLER_DESC> StaticSamplerDescs {};
+
 	TD3D12RootSignature::TD3D12RootSignature(ID3D12Device* InParent, const TShaderRegisterCounts& shaderRC) : TD3D12DeviceChild(InParent)
 	{
 		D3D12DescriptorSettings const& descriptorSettings = TD3D12RHIModule::GetModule()->GetDescriptorSettings();
@@ -106,8 +98,14 @@ namespace Thunder
 			}
 		}
 
+		static const uint32 StaticSamplerCount = GStaticSamplerDefinitions.size();
+		for (uint32 i = 0; i < GStaticSamplerDefinitions.size(); i++)
+		{
+			StaticSamplerDescs.push_back(MakeStaticSampler(GStaticSamplerDefinitions[i],  i, 1000));
+		}
+
 		CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootDesc;
-		rootDesc.Init_1_1(rootParameterCount, tableSlots, 6, StaticSamplerDescs, flags);
+		rootDesc.Init_1_1(rootParameterCount, tableSlots, StaticSamplerCount, StaticSamplerDescs.data(), flags);
 
 		ComPtr<ID3DBlob> error;
 		ComPtr<ID3DBlob> signature;

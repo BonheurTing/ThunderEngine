@@ -1,11 +1,81 @@
 #include "RHI.h"
 
+#include "ShaderLang.h"
+
 namespace Thunder
 {
 	THashMap<ERHIDepthBiasType, DepthBiasConfig> GRHIDepthBiasConfig
 	{
 		{ ERHIDepthBiasType::Default, {} },
 		{ ERHIDepthBiasType::Invalid, {} }
+	};
+
+	const TArray<RHISamplerDescriptor> GStaticSamplerDefinitions =
+	{
+		// PointWrappedSampler.
+		{
+			.Filter = ERHIFilter::MinMagMipPoint,
+			.AddressU = ERHITextureAddressMode::Wrap,
+			.AddressV = ERHITextureAddressMode::Wrap,
+			.AddressW = ERHITextureAddressMode::Wrap,
+			.MaxAnisotropy = 1
+		},
+		// PointClampedSampler.
+		{
+			.Filter = ERHIFilter::MinMagMipPoint,
+			.AddressU = ERHITextureAddressMode::Clamp,
+			.AddressV = ERHITextureAddressMode::Clamp,
+			.AddressW = ERHITextureAddressMode::Clamp,
+			.MaxAnisotropy = 1
+		},
+		//"BilinearWrappedSampler",
+		{
+			.Filter = ERHIFilter::MinMagLinearMipPoint,
+			.AddressU = ERHITextureAddressMode::Wrap,
+			.AddressV = ERHITextureAddressMode::Wrap,
+			.AddressW = ERHITextureAddressMode::Wrap,
+			.MaxAnisotropy = 1
+		},
+		//"BilinearClampedSampler",
+		{
+			.Filter = ERHIFilter::MinMagLinearMipPoint,
+			.AddressU = ERHITextureAddressMode::Clamp,
+			.AddressV = ERHITextureAddressMode::Clamp,
+			.AddressW = ERHITextureAddressMode::Clamp,
+			.MaxAnisotropy = 1
+		},
+		//"TrilinearWrappedSampler",
+		{
+			.Filter = ERHIFilter::MinMagMipLinear,
+			.AddressU = ERHITextureAddressMode::Wrap,
+			.AddressV = ERHITextureAddressMode::Wrap,
+			.AddressW = ERHITextureAddressMode::Wrap,
+			.MaxAnisotropy = 1
+		},
+		//"TrilinearClampedSampler",
+		{
+			.Filter = ERHIFilter::MinMagMipLinear,
+			.AddressU = ERHITextureAddressMode::Clamp,
+			.AddressV = ERHITextureAddressMode::Clamp,
+			.AddressW = ERHITextureAddressMode::Clamp,
+			.MaxAnisotropy = 1
+		},
+		//"AnisotropicWrappedSampler",
+		{
+			.Filter = ERHIFilter::Anisotropic,
+			.AddressU = ERHITextureAddressMode::Wrap,
+			.AddressV = ERHITextureAddressMode::Wrap,
+			.AddressW = ERHITextureAddressMode::Wrap,
+			.MaxAnisotropy = 8
+		},
+		//"AnisotropicClampedSampler"
+		{
+			.Filter = ERHIFilter::Anisotropic,
+			.AddressU = ERHITextureAddressMode::Clamp,
+			.AddressV = ERHITextureAddressMode::Clamp,
+			.AddressW = ERHITextureAddressMode::Clamp,
+			.MaxAnisotropy = 8
+		}
 	};
 
 	RHIVertexElement::RHIVertexElement(ERHIVertexInputSemantic name, uint8 index, RHIFormat format, uint8 inputSlot,

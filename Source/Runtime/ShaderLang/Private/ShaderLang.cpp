@@ -15,13 +15,25 @@ namespace Thunder
 	};
 
 	TSet<String> key_id_list = {"Near", "Opaque", "Translucent"};
-	
-	SHADERLANG_API TMap<String, uniform_buffer_definition> GUniformBufferDefinitions =
+
+	TMap<String, uniform_buffer_definition> GUniformBufferDefinitions =
 	{
 		{ "Global", { .index = 0 } },
 		{ "Pass", { .index = 1 } },
 		{ "Primitive", { .index = 2 } },
 		{ "Material", { .index = 3 } }
+	};
+
+	const TArray<NameHandle> GStaticSamplerNames =
+	{
+		"PointWrappedSampler",
+		"PointClampedSampler",
+		"BilinearWrappedSampler",
+		"BilinearClampedSampler",
+		"TrilinearWrappedSampler",
+		"TrilinearClampedSampler",
+		"AnisotropicWrappedSampler",
+		"AnisotropicClampedSampler"
 	};
 
 	shader_lang_state::shader_lang_state()
@@ -210,16 +222,23 @@ namespace Thunder
 		else if (name.token_id == TOKEN_PARAMETERS)
 		{
 			auto uniform_buffer_definition_it = GUniformBufferDefinitions.find(text.text);
-			if (uniform_buffer_definition_it != GUniformBufferDefinitions.end())
+			if (uniform_buffer_definition_it == GUniformBufferDefinitions.end()) [[unlikely]]
 			{
-				for (const auto& var : current_variables)
+				TAssertf(false, "Unknown uniform buffer type : \"%s\".", text.text.c_str());
+				current_variables.clear();
+				return;
+			}
+			for (const auto& var : current_variables)
+			{
+				if (var->type->basic_type == enum_basic_type::tp_sampler)
+				{
+					// todo only supports static sampler
+					current_archive->add_sampler(var);
+				}
+				else
 				{
 					current_archive->add_uniform_buffer_parameter(text.text, var);
 				}
-			}
-			else
-			{
-                TAssert(false, "Unknown uniform buffer type : \"%s\".", buffer_name.c_str());
 			}
 		}
 		else

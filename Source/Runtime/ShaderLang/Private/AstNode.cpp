@@ -294,6 +294,18 @@ namespace Thunder
             obj->type->generate_hlsl(outResult, state);
             outResult += " " + obj->name + " : register(t" + std::to_string(object_index++) + ");\n";
         }
+
+        // custom sampler
+        for (size_t i = 0; i < sampler_parameters.size(); i++)
+        {
+            outResult += "SamplerState " + sampler_parameters[i]->name + " : register(s" + std::to_string(i) + ", space0);\n";
+        }
+        // static sampler
+        for (size_t i = 0; i < GStaticSamplerNames.size(); i++)
+        {
+            outResult += "SamplerState " + GStaticSamplerNames[i].ToString() + " : register(s" + std::to_string(i) + ", space1000);\n";
+        }
+
         outResult += "\n";
 
         bool find_valid_pass = false;

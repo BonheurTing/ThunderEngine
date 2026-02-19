@@ -189,6 +189,7 @@ namespace Thunder
     	TArray<ShaderPropertyMeta> PropertyMeta; // visible
     	TArray<ShaderVariantMeta> VariantMeta; // partially visible
     	TMap<String, TArray<ShaderParameterMeta>> UniformParameterMeta; // global pass material primitive + subshader
+    	TArray<NameHandle> SamplerMeta; // static sampler name
 
     	RenderStateMeta RenderState {};
     	THashMap<NameHandle, ShaderPassRef> SubShaders;

@@ -167,7 +167,8 @@ namespace Thunder
 
 	void ShaderArchive::CalcRegisterCounts(NameHandle passName, TShaderRegisterCounts& outCount)
     {
-    	outCount.SamplerCount = 6;
+		// Static Sampler is managed by the Root Signature and does not occupy the dynamic sampler table.
+    	outCount.SamplerCount = 0;
     	outCount.ConstantBufferCount = static_cast<uint8>(GUniformBufferDefinitions.size());
     	outCount.ShaderResourceCount = 0;
     	outCount.UnorderedAccessCount = 0;
@@ -186,7 +187,7 @@ namespace Thunder
     {
     	// Root signatures are fixed for now, maybe deal with this later.
     	TAssert(outCount.ConstantBufferCount <= MAX_CBS, "Too many constant buffers are used, max allowed count is 16.");
-		outCount.SamplerCount = MAX_SAMPLERS; // outCount.SamplerCount > 0 ? MAX_SAMPLERS : 0;
+		outCount.SamplerCount = 0;
 		outCount.ShaderResourceCount = MAX_SRVS; // outCount.ShaderResourceCount > 0 ? MAX_SRVS : 0;
 		outCount.UnorderedAccessCount = MAX_UAVS; // (outCount.UnorderedAccessCount > 0) ? MAX_UAVS : 0;
     }
@@ -380,6 +381,12 @@ namespace Thunder
     			meta.Default = uniformBufferParameter->default_value;
     			metaList.push_back(meta);
     		}
+    	}
+
+    	// Reflect sampler parameters.
+    	for (auto const* sampler : node->sampler_parameters)
+    	{
+    		archive->SamplerMeta.emplace_back(sampler->name);
     	}
 
     	// Reflect pass parameter
@@ -676,6 +683,17 @@ namespace Thunder
     	uint16 currentSRVIndex = 0;
     	uint16 currentUAVIndex = 0;
     	BindingsLayout = new ShaderBindingsLayout{ this };
+
+    	// Build Static Sampler bindings.
+    	for (uint16 i = 0; i < static_cast<uint16>(SamplerMeta.size()); i++ )
+    	{
+    		BindingsLayout->AddBinding(
+    		{
+    			.Name = SamplerMeta[i],
+    			.Index = i,
+    			.Type = EShaderParameterType::Sampler,
+    		});
+    	}
 
     	// Build uniform buffers.
     	for (auto& uniformBufferNames : UniformParameterMeta | std::views::keys)

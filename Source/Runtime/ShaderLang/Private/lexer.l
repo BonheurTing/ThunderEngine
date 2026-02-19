@@ -78,10 +78,7 @@ DMATRIX					double[1-4]x[1-4]
 MATRIX					{BMATRIX}|{IMATRIX}|{UMATRIX}|{HMATRIX}|{FMATRIX}|{DMATRIX}
 
 TEXTURE_TAIL			((1D)(Array)?)|((2D)(MS)?(Array)?)|(3D)|((Cube)(Array)?)
-SAMPLER_TAIL			(1D)|(2D)|(3D)|(CUBE)|(_state)|(State)|(ComparisonState)
-
 TEXTURE					(t|T)exture{TEXTURE_TAIL}
-SAMPLER					(s|S)ampler{SAMPLER_TAIL}
 
 TEXCOORD				TEXCOORD[N|0-9]
 Texcoord				Texcoord[N|0-9]
@@ -119,7 +116,7 @@ SV_Target				SV_Target{TARGETS}?
 {VECTOR}		{ return TOKENIZE(TYPE_VECTOR); }
 {MATRIX}		{ return TOKENIZE(TYPE_MATRIX); }
 {TEXTURE}		{ return TOKENIZE(TYPE_TEXTURE); }
-{SAMPLER}		{ return TOKENIZE(TYPE_SAMPLER); }
+"SamplerState"	{ return TOKENIZE(TYPE_SAMPLER); }
 
 POSITION[0-7]?	{ return TOKENIZE(TOKEN_SV); }
 SV_POSITION		{ return TOKENIZE(TOKEN_SV); }

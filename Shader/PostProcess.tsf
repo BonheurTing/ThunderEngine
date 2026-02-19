@@ -16,7 +16,7 @@ Shader "PostProcess"
         int PassParameters3;
 
         Texture2D SceneTexture;
-        //SamplerState SceneSampler;
+        SamplerState SceneSampler;
     }
     #define BLOCK_SIZE 16
     #include "TestInclude1/TestInclude2/test_include_common.tsh"
@@ -59,7 +59,8 @@ Shader "PostProcess"
 
         float4 MainPS(VSOutput input) : SV_Target
         {
-            return float4(1.0, 0.0, 0.0, 1.0) * PassParameters0;
+            float4 color = SceneTexture.Sample(PointWrappedSampler, input.UV);
+            return color * PassParameters0;
         }
     }
 

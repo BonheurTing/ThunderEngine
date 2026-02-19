@@ -62,6 +62,7 @@ namespace Thunder
         {
             return;
         }
+        TAssertf(GStaticSamplerNames.size() == GStaticSamplerDefinitions.size(), "Inconsistent sampler counts");
         std::cout << IRHIModule::GetModule()->GetName().c_str() << std::endl;
 
         RHICreateDevice();

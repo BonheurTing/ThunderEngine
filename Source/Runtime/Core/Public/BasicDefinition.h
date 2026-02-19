@@ -8,6 +8,8 @@
 #define THUNDER_ENGINE_VERSION 123
 #define WITH_EDITOR 1
 
+#define FLOAT_MAX 3.402823466e+38f
+
 namespace Thunder
 {
 	template <bool Predicate, typename Result = void>

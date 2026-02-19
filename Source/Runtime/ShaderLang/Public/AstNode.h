@@ -460,13 +460,17 @@ namespace Thunder
         {
             passes.push_back(pass);
         }
-        void add_variant(class ast_node_variable* var)
+        void add_variant(ast_node_variable* var)
         {
             variants.push_back(var);
         }
         void add_uniform_buffer_parameter(String const& buffer_name, ast_node_variable* var)
         {
             uniform_buffer_parameters[buffer_name].push_back(var);
+        }
+        void add_sampler(ast_node_variable* var)
+        {
+            sampler_parameters.push_back(var);
         }
         void push_symbol(const String& text, enum_symbol_type type, ast_node* node) const
         {
@@ -487,8 +491,9 @@ namespace Thunder
         scope_ref global_scope;
         TArray<ast_node_variable*> properties;
         TArray<ast_node_variable*> variants;
-        TMap<String, TArray<ast_node_variable*>> uniform_buffer_parameters;
+        TMap<String, TArray<ast_node_variable*>> uniform_buffer_parameters; // All Parameters "" : cb + texture + buffer + sampler
         TMap<String, TArray<ast_node_variable*>> pass_cb_parameters;
+        TArray<ast_node_variable*> sampler_parameters;
         TArray<ast_node_pass*> passes;
     };
 

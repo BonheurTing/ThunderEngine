@@ -45,6 +45,8 @@ namespace Thunder
 	};
 	SHADERLANG_API extern TMap<String, uniform_buffer_definition> GUniformBufferDefinitions;
 
+	SHADERLANG_API extern const TArray<NameHandle> GStaticSamplerNames;
+
 	/* Shader parsing state.
 	 * 核心功能：
 	* 1，符号表管理（变量、函数、类型等）

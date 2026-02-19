@@ -169,17 +169,18 @@ namespace Thunder
 
 	struct RHISamplerDescriptor
 	{
-		ERHIFilter Filter;
-		ERHITextureAddressMode AddressU;
-		ERHITextureAddressMode AddressV;
-		ERHITextureAddressMode AddressW;
-		float MipLODBias;
-		UINT MaxAnisotropy;
-		ERHICompareFunction ComparisonFunc;
-		float BorderColor[4];
-		float MinLOD;
-		float MaxLOD;
+		ERHIFilter Filter = ERHIFilter::MinMagMipPoint;
+		ERHITextureAddressMode AddressU = ERHITextureAddressMode::Wrap;
+		ERHITextureAddressMode AddressV = ERHITextureAddressMode::Wrap;
+		ERHITextureAddressMode AddressW = ERHITextureAddressMode::Wrap;
+		float MipLODBias = 0.f;
+		UINT MaxAnisotropy = 8;
+		ERHICompareFunction ComparisonFunc = ERHICompareFunction::Never;
+		float BorderColor[4] = {};
+		float MinLOD = 0.f;
+		float MaxLOD = FLOAT_MAX;
 	};
+    RHI_API extern const TArray<RHISamplerDescriptor> GStaticSamplerDefinitions;
     
     struct RHIResourceFlags
     {

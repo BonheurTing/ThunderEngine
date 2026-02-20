@@ -38,6 +38,10 @@ namespace Thunder
             RenderMaterial* material = meshBatchElement.Material;
             SubMesh* subMesh = meshBatchElement.SubMesh;
 
+            // vb ib
+            newCommand->VBToSet = subMesh->GetVerticesBuffer();
+            newCommand->IBToSet = subMesh->GetIndicesBuffer();
+
             // Get shader variant first.
             ShaderCombination* shaderVariant = GetShaderCombination(meshPassType, material);
             if (!shaderVariant) [[unlikely]]

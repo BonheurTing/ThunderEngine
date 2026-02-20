@@ -93,6 +93,10 @@ namespace Thunder
         auto subMesh = GProceduralGeometryManager->GetGeometry(EProceduralGeometry::Triangle);
         newCommand->GraphicsPSO = RenderModule::GetPipelineState(context, PassName_Blur, archive, newCommand->Shader, subMesh);
 
+        // vb ib
+        newCommand->VBToSet = subMesh->GetVerticesBuffer();
+        newCommand->IBToSet = subMesh->GetIndicesBuffer();
+
         // Apply shader bindings.
         newCommand->Bindings.SetTransientAllocated(true);
         SingleShaderBindings* bindings = newCommand->Bindings.GetSingleShaderBindings();

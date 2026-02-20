@@ -73,6 +73,57 @@ namespace Thunder
         return GetVertexDeclaration(outDeclarations.Elements);
     }
 
+    void SubMesh::InitRHI()
+    {
+        // vb
+        {
+            uint32 vertexStride = static_cast<uint32>(Vertices->GetStride());
+
+            VerticesBuffer = RHICreateVertexBuffer(
+                static_cast<uint32>(Vertices->GetTotalSize()),
+                vertexStride,
+                EBufferCreateFlags::Static
+            );
+
+            VerticesBuffer->SetBinaryData(Vertices);
+        }
+        // ib
+        {
+            uint32 indexDataSize = static_cast<uint32>(Indices->GetTotalSize());
+            ERHIIndexBufferType indexType = ERHIIndexBufferType::Uint32; // todo
+
+            IndicesBuffer = RHICreateIndexBuffer(
+                indexDataSize,
+                indexType,
+                EBufferCreateFlags::Static
+            );
+            IndicesBuffer->SetBinaryData(Indices);
+        }
+    }
+
+    void SubMesh::ReleaseRHI()
+    {
+        VerticesBuffer.SafeRelease();
+        IndicesBuffer.SafeRelease();
+    }
+
+    RenderMesh::RenderMesh(const TArray<SubMesh*>& subMeshes)
+    {
+        SubMeshes = subMeshes;
+        bDynamic = false;
+    }
+
+    RenderMesh::~RenderMesh()
+    {
+        for (auto subMesh : SubMeshes)
+        {
+            if (subMesh)
+            {
+                TMemory::Destroy(subMesh);
+            }
+        }
+    }
+
     void RenderMesh::InitRHI()
     {
         CreateMesh_RenderThread();
@@ -80,77 +131,35 @@ namespace Thunder
 
     void RenderMesh::ReleaseRHI()
     {
-        for (auto vertex : VBs)
+        for (auto subMesh : SubMeshes)
         {
-            vertex.SafeRelease();
-        }
-        for (auto index : IBs)
-        {
-            index.SafeRelease();
+            subMesh->ReleaseRHI();
         }
     }
 
-    RenderStaticMesh::RenderStaticMesh(const TArray<SubMesh*>& subMeshes)
-    {
-        NumSubMeshes = static_cast<uint32>(subMeshes.size());
-        for (auto& subMesh : subMeshes)
-        {
-            RawVerticesData.push_back(subMesh->Vertices);
-            RawIndicesData.push_back(subMesh->Indices);
-        }
-        bDynamic = false;
-    }
-
-    void RenderStaticMesh::CreateMesh_RenderThread()
+    void RenderMesh::CreateMesh_RenderThread()
     {
         //check(bRenderThread)
         TAssert(bDynamic == false);
-        VBs.resize(NumSubMeshes);
-        IBs.resize(NumSubMeshes);
-        for (uint32 i = 0; i < NumSubMeshes; i++)
+
+        for (auto subMesh : SubMeshes)
         {
-            // vb
-            {
-                const auto& vertices = RawVerticesData[i];
-                uint32 vertexStride = static_cast<uint32>(vertices->GetStride());
-
-                RHIVertexBufferRef renderThreadVertexBuffer = RHICreateVertexBuffer(
-                    static_cast<uint32>(vertices->GetTotalSize()),
-                    vertexStride,
-                    EBufferCreateFlags::Static
-                );
-                VBs[i] = renderThreadVertexBuffer;
-            }
-            // ib
-            {
-                const auto& indices = RawIndicesData[i];
-                uint32 indexDataSize = static_cast<uint32>(indices->GetTotalSize());
-                ERHIIndexBufferType indexType = ERHIIndexBufferType::Uint32; //temp
-
-                RHIIndexBufferRef renderThreadIndexBuffer = RHICreateIndexBuffer(
-                    indexDataSize,
-                    indexType,
-                    EBufferCreateFlags::Static
-                );
-                IBs[i] = renderThreadIndexBuffer;
-            }
+            subMesh->InitRHI();
         }
 
-        GRHIScheduler->PushTask([num = NumSubMeshes, binVertex = RawVerticesData, binIndex = RawIndicesData, rhiResVB = VBs, rhiResIB = IBs, bAsync = isDoubleBuffered() || (!isDynamic())]()
+        GRHIScheduler->PushTask([num = static_cast<uint32>(SubMeshes.size()), subMeshes = SubMeshes, bAsync = isDoubleBuffered() || (!isDynamic())]()
         {
             for (uint32 i = 0; i < num; i++)
             {
-                rhiResVB[i]->SetBinaryData(binVertex[i]);
-                rhiResIB[i]->SetBinaryData(binIndex[i]);
                 if (bAsync)
                 {
-                    GRHIUpdateAsyncQueue.push_back(rhiResVB[i]);
-                    GRHIUpdateAsyncQueue.push_back(rhiResIB[i]);
+                    GRHIUpdateAsyncQueue.push_back(subMeshes[i]->GetVerticesBuffer());
+                    GRHIUpdateAsyncQueue.push_back(subMeshes[i]->GetIndicesBuffer());
                 }
                 else
                 {
-                    GRHIUpdateSyncQueue.push_back(rhiResVB[i]);
-                    GRHIUpdateSyncQueue.push_back(rhiResIB[i]);
+                    GRHIUpdateSyncQueue.push_back(subMeshes[i]->GetVerticesBuffer());
+                    GRHIUpdateSyncQueue.push_back(subMeshes[i]->GetIndicesBuffer());
                 }
             }
         });
@@ -235,7 +244,7 @@ namespace Thunder
             indexBuffer->Initialize();
             indexBuffer->SetComponentData("Index", indices);
 
-            SubMeshes[EProceduralGeometry::Cube] = new SubMesh{ vertexBuffer, indexBuffer };
+            SubMeshes[EProceduralGeometry::Cube] = new SubMesh( std::move(vertexBuffer), std::move(indexBuffer) );
         }
 
         // Init quad (XY plane, facing Z+)
@@ -268,7 +277,7 @@ namespace Thunder
             indexBuffer->Initialize();
             indexBuffer->SetComponentData("Index", indices);
 
-            SubMeshes[EProceduralGeometry::Quad] = new SubMesh{ vertexBuffer, indexBuffer };
+            SubMeshes[EProceduralGeometry::Quad] = new SubMesh( std::move(vertexBuffer), std::move(indexBuffer) );
         }
 
         // Init triangle (XY plane, facing Z+)
@@ -299,7 +308,7 @@ namespace Thunder
             indexBuffer->Initialize();
             indexBuffer->SetComponentData("Index", indices);
 
-            SubMeshes[EProceduralGeometry::Triangle] = new SubMesh{ vertexBuffer, indexBuffer };
+            SubMeshes[EProceduralGeometry::Triangle] = new SubMesh( std::move(vertexBuffer), std::move(indexBuffer) );
         }
     }
 

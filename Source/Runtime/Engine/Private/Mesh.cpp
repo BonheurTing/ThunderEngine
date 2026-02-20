@@ -51,19 +51,12 @@ namespace Thunder
 
 	RenderMesh* StaticMesh::CreateResource_GameThread()
 	{
-		auto renderMesh = new RenderStaticMesh(SubMeshes);
+		auto renderMesh = new RenderMesh(SubMeshes);
 		return renderMesh;
 	}
 
 	StaticMesh::~StaticMesh()
 	{
-		for (auto subMesh : SubMeshes)
-		{
-			if (subMesh)
-			{
-				TMemory::Destroy(subMesh);
-			}
-		}
 	}
 
 	void StaticMesh::Serialize(MemoryWriter& archive)
@@ -73,9 +66,9 @@ namespace Thunder
 		archive << subMeshCount;
 		for(const auto& subMesh : SubMeshes)
 		{
-			subMesh->Vertices.Get()->Serialize(archive);
-			subMesh->Indices.Get()->Serialize(archive);
-			subMesh->BoundingBox.Serialize(archive);
+			subMesh->GetVertices()->Serialize(archive);
+			subMesh->GetIndices()->Serialize(archive);
+			subMesh->GetBoundingBox().Serialize(archive);
 		}
 	}
 
@@ -93,17 +86,16 @@ namespace Thunder
 		{
 			const auto subMesh = new (TMemory::Malloc<SubMesh>()) SubMesh(i);
 
-			// 反序列化顶点缓冲区
-			subMesh->Vertices = MakeRefCount<ReflectiveContainer>();
-			subMesh->Vertices->DeSerialize(archive);
+			auto vertices = MakeRefCount<ReflectiveContainer>();
+			vertices->DeSerialize(archive);
 
-			// 反序列化索引缓冲区
-			subMesh->Indices = MakeRefCount<ReflectiveContainer>();
-			subMesh->Indices->DeSerialize(archive);
+			auto indices = MakeRefCount<ReflectiveContainer>();
+			indices->DeSerialize(archive);
 
-			// 反序列化包围盒
-			subMesh->BoundingBox.DeSerialize(archive);
+			AABB boundingBox;
+			boundingBox.DeSerialize(archive);
 
+			subMesh->SetContents(vertices, indices, boundingBox);
 			SubMeshes[i] = subMesh;
 		}
 	}

@@ -46,8 +46,8 @@ namespace Thunder
 
 		RenderMesh* CreateResource_GameThread() override;
 
-	public:
-		TArray<SubMesh*> SubMeshes {}; //Serialize
-		TArray<IMaterial*> DefaultMaterials {}; // Dependencies guid //12.28todo: material slot
+	private:
+		TArray<SubMesh*> SubMeshes {}; // only Serialize, RenderMesh is the actual owner of it
+		TArray<IMaterial*> DefaultMaterials {};
 	};
 }

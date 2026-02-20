@@ -7,7 +7,7 @@
 namespace Thunder
 {
     StaticMeshBatch::StaticMeshBatch(PrimitiveSceneInfo* sceneInfo, SubMesh* const& subMesh, RenderMaterial* const& material, uint32 lodLevel)
-        : MeshBatch{ sceneInfo, MeshBatchKey{ lodLevel, subMesh->SubMeshIndex } }
+        : MeshBatch{ sceneInfo, MeshBatchKey{ .LodLevel = lodLevel, .SubMeshIndex = subMesh->GetSubMeshIndex() } }
     {
         Elements.push_back(MeshBatchElement{
             .SubMesh = subMesh,

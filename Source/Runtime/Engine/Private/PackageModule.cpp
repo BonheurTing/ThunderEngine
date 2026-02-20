@@ -606,14 +606,14 @@ namespace Thunder
 				LOG("Mesh %d: %d vertices\n", i, mesh->mNumVertices);
 
 				const auto subMesh = new (TMemory::Malloc<SubMesh>()) SubMesh(i);
-
-				subMesh->Vertices = GenerateVertexBuffer(mesh);
-				subMesh->Indices = GenerateIndicesBuffer(mesh);
-				subMesh->BoundingBox = AABB(
+				auto vertices = GenerateVertexBuffer(mesh);
+				auto indices = GenerateIndicesBuffer(mesh);
+				AABB bb = AABB(
 					TVector3f(mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z),
 					TVector3f(mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z)
 				);
-				newStaticMesh->SubMeshes.push_back(subMesh);
+				subMesh->SetContents(vertices, indices, bb);
+				newStaticMesh->GetSubMeshes().push_back(subMesh);
 			}
 
 			// 4. 注册到资源管理器

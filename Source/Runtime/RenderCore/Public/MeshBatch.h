@@ -8,7 +8,7 @@
 
 namespace Thunder
 {
-    struct SubMesh;
+    class SubMesh;
     class RenderMaterial;
 
     struct MeshBatchKey

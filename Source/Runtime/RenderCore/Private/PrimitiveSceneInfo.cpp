@@ -151,7 +151,7 @@ namespace Thunder
         {
             SubMesh* subMesh = subMeshes[subMeshIndex];
             RenderMaterial* material = materials[subMeshIndex];
-            AddStaticMesh(MeshBatchKey{ .LodLevel = 0, .SubMeshIndex = subMesh->SubMeshIndex }, subMesh, material);
+            AddStaticMesh(MeshBatchKey{ .LodLevel = 0, .SubMeshIndex = subMesh->GetSubMeshIndex() }, subMesh, material);
         }
     }
 

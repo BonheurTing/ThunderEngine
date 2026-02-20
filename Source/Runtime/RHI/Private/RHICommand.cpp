@@ -24,8 +24,6 @@ namespace Thunder
 
         BindCBV(cmdList);
 
-        return;
-
         // Set vertex buffer
         if (VBToSet)
         {
@@ -37,6 +35,8 @@ namespace Thunder
         {
             cmdList->SetIndexBuffer(IBToSet);
         }
+
+        return;
 
         // Execute the draw call
         if (IBToSet)

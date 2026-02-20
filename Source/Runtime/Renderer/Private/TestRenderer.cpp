@@ -3,6 +3,7 @@
 
 #include "CoreModule.h"
 #include "FrameGraph.h"
+#include "FrameGraphUtils.h"
 #include "MeshPass.h"
 #include "MeshPassProcessor.h"
 #include "PlatformProcess.h"
@@ -146,7 +147,7 @@ namespace Thunder
     void DeferredShadingRenderer::Setup()
     {
         // GBuffer pass.
-        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM, TVector4f(1, 1, 0, 1) };
         static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
         static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{ 1920, 1080, RHIFormat::D32_FLOAT_S8X24_UINT };
 
@@ -161,7 +162,7 @@ namespace Thunder
 
             PassOperations operations;
             operations.Write(DummyRT);
-            operations.Write(GBufferSceneDepth);
+            operations.Write(GBufferSceneDepth, 1.f, 0);
             mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this]()
             {
                 // Set pass parameters and update uniform buffer.

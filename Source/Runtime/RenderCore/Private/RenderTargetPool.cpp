@@ -7,7 +7,12 @@ namespace Thunder
     {
     }
 
-    RenderTextureRef RenderTargetPool::AcquireRenderTarget(const FGRenderTargetDesc& desc)
+    FGRenderTarget::FGRenderTarget(uint32 width, uint32 height, RHIFormat format, const TVector4f& clearValue)
+        : Desc(width, height, format, clearValue)
+    {
+    }
+
+    RenderTextureRef RenderTargetPool::AcquireRenderTarget(FGRenderTargetDesc& desc)
     {
         // Find compatible render target in available pool
         for (auto it = AvailableTargets.begin(); it != AvailableTargets.end(); ++it)
@@ -49,7 +54,21 @@ namespace Thunder
                 static_cast<uint32>(flags) | static_cast<uint32>(ETextureCreateFlags::RenderTargetable));
         }
 
-        RenderTextureRef newTarget = new RenderTexture2D(desc.Width, desc.Height, desc.Format, nullptr, flags);
+        RenderTexture2D* newTarget2D = new RenderTexture2D(desc.Width, desc.Height, desc.Format, nullptr, flags);
+        if (desc.bHasClearValue)
+        {
+            TOptimizedClearValue clearValue;
+            clearValue.bIsValid  = true;
+            clearValue.Color[0]  = desc.ClearValue.X;
+            clearValue.Color[1]  = desc.ClearValue.Y;
+            clearValue.Color[2]  = desc.ClearValue.Z;
+            clearValue.Color[3]  = desc.ClearValue.W;
+            clearValue.Depth     = desc.ClearDepth;
+            clearValue.Stencil   = desc.ClearStencil;
+            newTarget2D->SetOptimizedClearValue(clearValue);
+            desc.bHasClearValue = false;
+        }
+        RenderTextureRef newTarget = newTarget2D;
         newTarget->InitRHI();
 
         UsedTargets.push_back(newTarget);

@@ -430,7 +430,7 @@ namespace Thunder
 		}
 	}
 
-	void D3D12CommandContext::EmitTransitionBarrier(RHIResource* res, ERHIResourceState newState, uint32 subResource)
+	void D3D12CommandContext::TransitionBarrier(RHIResource* res, ERHIResourceState newState, uint32 subResource)
 	{
 		if (res->GetCurrentState() == newState)
 			return;

@@ -46,7 +46,7 @@ namespace Thunder
     	
 		// Misc
 		void Reset(uint32 index) override {}
-    	void EmitTransitionBarrier(RHIResource* res, ERHIResourceState newState, uint32 subResource) override {}
+    	void TransitionBarrier(RHIResource* res, ERHIResourceState newState, uint32 subResource) override {}
 		
 	private:
 		ComPtr<ID3D11DeviceContext> DeferredContext;

@@ -734,11 +734,32 @@ namespace Thunder
             return nullptr;
         }
 
+        D3D12_CLEAR_VALUE  optimizedClearValue{};
+        D3D12_CLEAR_VALUE* pOptimizedClearValue = nullptr;
+        if (desc.bHasOptimizedClearValue && (desc.Flags.NeedRTV || desc.Flags.NeedDSV))
+        {
+            if (desc.Flags.NeedDSV)
+            {
+                optimizedClearValue.Format               = ConvertRHIFormatToD3DFormat(desc.Format);
+                optimizedClearValue.DepthStencil.Depth   = desc.OptimizedClearDepth;
+                optimizedClearValue.DepthStencil.Stencil = desc.OptimizedClearStencil;
+            }
+            else
+            {
+                optimizedClearValue.Format   = ConvertRHIFormatToD3DFormat(desc.Format);
+                optimizedClearValue.Color[0] = desc.OptimizedClearColor[0];
+                optimizedClearValue.Color[1] = desc.OptimizedClearColor[1];
+                optimizedClearValue.Color[2] = desc.OptimizedClearColor[2];
+                optimizedClearValue.Color[3] = desc.OptimizedClearColor[3];
+            }
+            pOptimizedClearValue = &optimizedClearValue;
+        }
+
         HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                D3D12_HEAP_FLAG_NONE,
                                                &d3d12Desc,
                                                D3D12_RESOURCE_STATE_COMMON,
-                                               nullptr,
+                                               pOptimizedClearValue,
                                                IID_PPV_ARGS(&texture));
         
         if(SUCCEEDED(hr))

@@ -104,13 +104,35 @@ namespace Thunder
         uint64 CachedCommandIndex = 0;
     };
 
+    enum class ELoadOp : uint8
+    {
+        Load,     // Preserve existing contents
+        Clear,    // Clear to the specified clear value
+        DontCare, // Contents are undefined; driver may do anything
+    };
+
     constexpr uint32 kMaxRTVCount = MAX_RTVS;
     struct RHIBeginPassCommand : public IRHICommand
     {
         RHI_API void Execute(RHICommandContext* cmdList) override;
 
-        RHITextureRef RenderTargets[kMaxRTVCount];
-        RHITextureRef DepthStencil;
+        struct TRenderTargetBinding
+        {
+            RHITextureRef Texture;
+            ELoadOp       LoadOp     = ELoadOp::Load;
+            TVector4f     ClearColor = { 0.f, 0.f, 0.f, 1.f };
+        };
+
+        struct TDepthStencilBinding
+        {
+            RHITextureRef Texture;
+            ELoadOp       LoadOp       = ELoadOp::Load;
+            float         ClearDepth   = 1.f;
+            uint8         ClearStencil = 0;
+        };
+
+        TRenderTargetBinding RenderTargets[kMaxRTVCount];
+        TDepthStencilBinding DepthStencil;
         uint32 RenderTargetCount = 0;
 
         TArray<RHITextureRef> ReadRenderTargets;

@@ -49,7 +49,7 @@ namespace Thunder
     	
     	// Misc
     	virtual void Reset(uint32 index) = 0;
-    	virtual void EmitTransitionBarrier(RHIResource* res, ERHIResourceState newState, uint32 subResource = 0xffffffff) = 0;
+    	virtual void TransitionBarrier(RHIResource* res, ERHIResourceState newState, uint32 subResource = 0xffffffff) = 0;
     };
 
 	using RHICommandContextRef = TRefCountPtr<RHICommandContext>;

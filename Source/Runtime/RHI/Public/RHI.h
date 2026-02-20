@@ -250,6 +250,13 @@ namespace Thunder
     	RHIResourceSampleDescriptor SampleDesc;
     	ERHITextureLayout Layout;
     	RHIResourceFlags Flags;
+
+    	// Optional optimized clear value. Only meaningful for RTV/DSV resources.
+    	// When bHasOptimizedClearValue is true the driver can perform fast clears.
+    	bool  bHasOptimizedClearValue = false;
+    	float OptimizedClearColor[4]  = { 0.f, 0.f, 0.f, 1.f }; // used when NeedRTV
+    	float OptimizedClearDepth     = 1.f;                      // used when NeedDSV
+    	uint8 OptimizedClearStencil   = 0;                        // used when NeedDSV
     };
 	
 	/**

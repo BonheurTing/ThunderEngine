@@ -42,6 +42,17 @@ namespace Thunder
         desc.Flags.NeedRTV = bNeedRTV;
         desc.Flags.NeedDSV = bNeedDSV;
 
+        if (OptimizedClear.bIsValid && (bNeedRTV || bNeedDSV))
+        {
+            desc.bHasOptimizedClearValue    = true;
+            desc.OptimizedClearColor[0]     = OptimizedClear.Color[0];
+            desc.OptimizedClearColor[1]     = OptimizedClear.Color[1];
+            desc.OptimizedClearColor[2]     = OptimizedClear.Color[2];
+            desc.OptimizedClearColor[3]     = OptimizedClear.Color[3];
+            desc.OptimizedClearDepth        = OptimizedClear.Depth;
+            desc.OptimizedClearStencil      = OptimizedClear.Stencil;
+        }
+
         TextureRHI = RHICreateTexture(desc, CreationFlags);
 
         RHICreateShaderResourceView(*TextureRHI, {

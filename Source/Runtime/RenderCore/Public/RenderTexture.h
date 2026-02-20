@@ -37,6 +37,14 @@ namespace Thunder
     };
     using RenderTextureRef = TRefCountPtr<RenderTexture>;
 
+    struct TOptimizedClearValue
+    {
+        bool  bIsValid    = false;
+        float Color[4]    = { 0.f, 0.f, 0.f, 1.f };
+        float Depth       = 1.f;
+        uint8 Stencil     = 0;
+    };
+
     class RenderTexture2D : public RenderTexture
     {
     public:
@@ -50,9 +58,12 @@ namespace Thunder
             CreationFlags = flags;
         }
 
+        void SetOptimizedClearValue(const TOptimizedClearValue& clearValue) { OptimizedClear = clearValue; }
+
         uint32 GetSizeX() const override { return SizeX; }
         uint32 GetSizeY() const override { return SizeY; }
     private:
         void CreateTexture_RenderThread() final;
+        TOptimizedClearValue OptimizedClear;
     };
 }

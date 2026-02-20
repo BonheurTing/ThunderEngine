@@ -7,6 +7,7 @@
 #include "RenderContext.h"
 #include "RenderPass.h"
 #include "RHI.h"
+#include "RHICommand.h"
 #include "SceneView.h"
 
 namespace Thunder
@@ -16,6 +17,15 @@ namespace Thunder
     class RHIUniformBuffer;
     struct ShaderParameterMap;
 
+    struct TWriteTargetInfo
+    {
+        NameHandle Name;
+        ELoadOp    LoadOp     = ELoadOp::Load;
+        TVector4f  ClearColor = { 0.f, 0.f, 0.f, 1.f };
+        float      ClearDepth   = 1.f;
+        uint8      ClearStencil = 0;
+    };
+
     class RENDERCORE_API PassOperations
     {
     public:
@@ -23,13 +33,22 @@ namespace Thunder
         void Read(FGRenderTargetRef const& renderTarget, NameHandle rtName = NameHandle());
         void Write(const FGRenderTarget* renderTarget, NameHandle rtName = NameHandle());
         void Write(FGRenderTargetRef const& renderTarget, NameHandle rtName = NameHandle());
+        // Write with explicit LoadOp::Clear and a custom clear color / depth-stencil value.
+        void Write(const FGRenderTarget* renderTarget, const TVector4f& clearColor, NameHandle rtName = NameHandle());
+        void Write(FGRenderTargetRef const& renderTarget, const TVector4f& clearColor, NameHandle rtName = NameHandle());
+        void Write(const FGRenderTarget* renderTarget, float clearDepth, uint8 clearStencil, NameHandle rtName = NameHandle());
+        void Write(FGRenderTargetRef const& renderTarget, float clearDepth, uint8 clearStencil, NameHandle rtName = NameHandle());
 
         const TMap<uint32, NameHandle>& GetReadTargets() { return ReadTargets; }
-        const TMap<uint32, NameHandle>& GetWriteTargets() { return WriteTargets; }
+        const TMap<uint32, TWriteTargetInfo>& GetWriteTargets() { return WriteTargets; }
+
+        // Called by FrameGraph compile phase to mark a write target as first-use clear
+        // using the clear value stored in the FGRenderTarget descriptor.
+        void SetWriteTargetLoadOp(uint32 rtId, ELoadOp loadOp, const TVector4f& clearColor, float clearDepth = 1.f, uint8 clearStencil = 0);
 
     private:
         TMap<uint32, NameHandle> ReadTargets;
-        TMap<uint32, NameHandle> WriteTargets;
+        TMap<uint32, TWriteTargetInfo> WriteTargets;
     };
 
     using PassExecutionFunction = TFunction<void()>;

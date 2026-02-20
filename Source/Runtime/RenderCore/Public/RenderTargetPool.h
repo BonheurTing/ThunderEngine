@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "RenderTexture.h"
+#include "Vector.h"
 
 namespace Thunder
 {
@@ -11,9 +12,24 @@ namespace Thunder
         RHIFormat Format = RHIFormat::UNKNOWN;
         bool bIsDepthStencil = false;
 
+        bool bHasClearValue = false;
+        TVector4f ClearValue = TVector4f(0.f, 0.f, 0.f, 1.f);
+        float ClearDepth = 1.f;
+        uint8 ClearStencil = 0;
+
         FGRenderTargetDesc() = default;
         FGRenderTargetDesc(uint32 inWidth, uint32 inHeight, RHIFormat inFormat, bool bInIsDepthStencil = false)
             : Width(inWidth), Height(inHeight), Format(inFormat), bIsDepthStencil(bInIsDepthStencil)
+        {
+            bIsDepthStencil = IsDepthStencilFormat(inFormat);
+        }
+        FGRenderTargetDesc(uint32 inWidth, uint32 inHeight, RHIFormat inFormat, const TVector4f& inClearValue)
+            : Width(inWidth), Height(inHeight), Format(inFormat), bHasClearValue(true), ClearValue(inClearValue)
+        {
+            bIsDepthStencil = IsDepthStencilFormat(inFormat);
+        }
+        FGRenderTargetDesc(uint32 inWidth, uint32 inHeight, RHIFormat inFormat, float inClearDepth, uint8 inClearStencil)
+            : Width(inWidth), Height(inHeight), Format(inFormat), bHasClearValue(true), ClearDepth(inClearDepth), ClearStencil(inClearStencil)
         {
             bIsDepthStencil = IsDepthStencilFormat(inFormat);
         }
@@ -30,8 +46,9 @@ namespace Thunder
     public:
         FGRenderTarget() = default;
         FGRenderTarget(uint32 width, uint32 height, RHIFormat format);
+        FGRenderTarget(uint32 width, uint32 height, RHIFormat format, const TVector4f& clearValue);
 
-        const FGRenderTargetDesc& GetDesc() const { return Desc; }
+        FGRenderTargetDesc& GetDesc() { return Desc; }
         uint32 GetWidth() const { return Desc.Width; }
         uint32 GetHeight() const { return Desc.Height; }
         RHIFormat GetFormat() const { return Desc.Format; }
@@ -62,7 +79,7 @@ namespace Thunder
     class RENDERCORE_API RenderTargetPool
     {
     public:
-        RenderTextureRef AcquireRenderTarget(const FGRenderTargetDesc& desc);
+        RenderTextureRef AcquireRenderTarget(FGRenderTargetDesc& desc);
         void ReleaseRenderTarget(const RenderTextureRef& renderTarget);
         void TickUnusedFrameCounters();
         void ReleaseLongUnusedTargets();

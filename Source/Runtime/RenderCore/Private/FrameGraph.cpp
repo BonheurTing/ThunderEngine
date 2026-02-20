@@ -33,29 +33,72 @@ namespace Thunder
 
     void PassOperations::Write(const FGRenderTarget* renderTarget, NameHandle rtName)
     {
-        WriteTargets.emplace(renderTarget->GetID(), rtName);
+        WriteTargets.emplace(renderTarget->GetID(), TWriteTargetInfo{ .Name = rtName });
     }
 
     void PassOperations::Write(const FGRenderTargetRef& renderTarget, NameHandle rtName)
     {
-        WriteTargets.emplace(renderTarget->GetID(), rtName);
+        WriteTargets.emplace(renderTarget->GetID(), TWriteTargetInfo{ .Name = rtName });
+    }
+
+    void PassOperations::Write(const FGRenderTarget* renderTarget, const TVector4f& clearColor, NameHandle rtName)
+    {
+        TWriteTargetInfo info;
+        info.Name = rtName;
+        info.LoadOp = ELoadOp::Clear;
+        info.ClearColor = clearColor;
+        WriteTargets.emplace(renderTarget->GetID(), info);
+    }
+
+    void PassOperations::Write(const FGRenderTargetRef& renderTarget, const TVector4f& clearColor, NameHandle rtName)
+    {
+        Write(renderTarget.Get(), clearColor, rtName);
+    }
+
+    void PassOperations::Write(const FGRenderTarget* renderTarget, float clearDepth, uint8 clearStencil, NameHandle rtName)
+    {
+        TWriteTargetInfo info;
+        info.Name = rtName;
+        info.LoadOp = ELoadOp::Clear;
+        info.ClearDepth = clearDepth;
+        info.ClearStencil = clearStencil;
+        WriteTargets.emplace(renderTarget->GetID(), info);
+    }
+
+    void PassOperations::Write(const FGRenderTargetRef& renderTarget, float clearDepth, uint8 clearStencil, NameHandle rtName)
+    {
+        Write(renderTarget.Get(), clearDepth, clearStencil, rtName);
+    }
+
+    void PassOperations::SetWriteTargetLoadOp(uint32 rtId, ELoadOp loadOp, const TVector4f& clearColor, float clearDepth, uint8 clearStencil)
+    {
+        auto it = WriteTargets.find(rtId);
+        if (it == WriteTargets.end()) [[unlikely]]
+        {
+            TAssertf(false, "SetWriteTargetLoadOp: render target id %u is not in WriteTargets.", rtId);
+            return;
+        }
+        it->second.LoadOp = loadOp;
+        it->second.ClearColor = clearColor;
+        it->second.ClearDepth = clearDepth;
+        it->second.ClearStencil = clearStencil;
     }
 
     TMap<NameHandle, uint32> FrameGraphPass::GetFGTextures()
     {
         TMap<NameHandle, uint32> usedTextures;
-        for (auto texPair : Operations.GetReadTargets())
+        for (auto& texPair : Operations.GetReadTargets())
         {
             if (!texPair.second.IsEmpty())
             {
                 usedTextures.emplace(texPair.second, texPair.first);
             }
         }
-        for (auto texPair : Operations.GetWriteTargets())
+        for (auto& texPair : Operations.GetWriteTargets())
         {
-            if (!texPair.second.IsEmpty())
+            if (!texPair.second.Name.IsEmpty())
             {
-                usedTextures.emplace(texPair.second, texPair.first);
+                usedTextures.emplace(texPair.second.Name, texPair.first);
             }
         }
         return usedTextures;
@@ -167,6 +210,37 @@ namespace Thunder
 
         // Allocate render targets with lifetime-based reuse
         AllocateRenderTargets();
+
+        // Auto-set LoadOp::Clear for render targets that are written for the first time
+        // and have a clear value defined in their descriptor. Explicit WriteClear() calls
+        // are already recorded in the pass operations, so only override targets that are
+        // still using the default ELoadOp::Load.
+        for (size_t execIndex = 0; execIndex < ExecutionOrder.size(); ++execIndex)
+        {
+            NameHandle passName = ExecutionOrder[execIndex];
+            auto& pass = Passes[passName];
+            if (pass->bCulled) continue;
+
+            for (auto& [rtId, writeInfo] : pass->Operations.GetWriteTargets())
+            {
+                // Only promote to Clear if the caller hasn't already set an explicit LoadOp.
+                if (writeInfo.LoadOp != ELoadOp::Load) continue;
+
+                // Check this is the first use (first_use == current execIndex).
+                auto lifetimeIt = RenderTargetLifetimes.find(rtId);
+                if (lifetimeIt == RenderTargetLifetimes.end()) continue;
+                if (lifetimeIt->second.first != execIndex) continue;
+
+                // Only auto-clear when the FGRenderTarget descriptor carries a clear value.
+                auto rtIt = RenderTargets.find(rtId);
+                if (rtIt == RenderTargets.end()) continue;
+                const FGRenderTargetDesc& desc = rtIt->second->GetDesc();
+                if (!desc.bHasClearValue) continue;
+
+                pass->Operations.SetWriteTargetLoadOp(rtId, ELoadOp::Clear,
+                    desc.ClearValue, desc.ClearDepth, desc.ClearStencil);
+            }
+        }
     }
 
     void FrameGraph::IntegrateCommands(uint32 frameIndex)
@@ -192,11 +266,11 @@ namespace Thunder
     {
         // Begin pass.
         RHIBeginPassCommand* newBeginCommand = new (MainContext->Allocate<RHIBeginPassCommand>()) RHIBeginPassCommand;
-        auto writeRTs = MainContext->GetCurrentPass()->GetOperations().GetWriteTargets();
+        auto& writeRTs = MainContext->GetCurrentPass()->GetOperations().GetWriteTargets();
         uint32 rtIndex = 0;
-        for (const auto& rtId : writeRTs | std::views::keys)
+        for (const auto& [rtId, writeInfo] : writeRTs)
         {
-            RenderTextureRef texture =  GetAllocatedRenderTarget(rtId);
+            RenderTextureRef texture = GetAllocatedRenderTarget(rtId);
             if (!texture.IsValid())
             {
                 TAssertf(false, "RenderTexture does not exist");
@@ -204,11 +278,17 @@ namespace Thunder
             }
             if (texture->IsDepthStencilTargetable())
             {
-                newBeginCommand->DepthStencil = texture->GetTextureRHI();
+                newBeginCommand->DepthStencil.Texture      = texture->GetTextureRHI();
+                newBeginCommand->DepthStencil.LoadOp       = writeInfo.LoadOp;
+                newBeginCommand->DepthStencil.ClearDepth   = writeInfo.ClearDepth;
+                newBeginCommand->DepthStencil.ClearStencil = writeInfo.ClearStencil;
             }
             else if (texture->IsRenderTargetable())
             {
-                newBeginCommand->RenderTargets[rtIndex++] = texture->GetTextureRHI();
+                auto& binding       = newBeginCommand->RenderTargets[rtIndex++];
+                binding.Texture     = texture->GetTextureRHI();
+                binding.LoadOp      = writeInfo.LoadOp;
+                binding.ClearColor  = writeInfo.ClearColor;
             }
             else
             {

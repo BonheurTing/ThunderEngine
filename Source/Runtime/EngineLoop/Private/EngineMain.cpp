@@ -68,6 +68,8 @@ namespace Thunder
         RHICreateDevice();
         IRHIModule::GetModule()->InitCommandContext();
 
+        GDynamicRHI->SetViewportResolution(1920, 1080); // Todo : Get resolution.
+
         // setup task scheduler: parallel render thread, worker thread
         TaskSchedulerManager::StartUp();
 

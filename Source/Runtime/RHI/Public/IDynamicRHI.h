@@ -64,8 +64,14 @@ namespace Thunder
         virtual void RHISignalFence(uint32 frameIndex) = 0;
         virtual void RHIWaitForFrame(uint32 frameIndex) = 0;
 
+        void SetViewportResolution(uint32 width, uint32 height) { ViewportResolution.X = width; ViewportResolution.Y = height; }
+        TVector2u GetViewportResolution() const { return ViewportResolution; }
+        uint32 GetViewportWidth() const { return ViewportResolution.X; }
+        uint32 GetViewportHeight() const { return ViewportResolution.Y; }
+
     protected:
         TArray<TRefCountPtr<RHIResource>> DeferredDeleteQueue[MAX_FRAME_LAG] {};
+        TVector2u ViewportResolution{ 1920, 1080 };
     };
     
     extern RHI_API IDynamicRHI* GDynamicRHI;

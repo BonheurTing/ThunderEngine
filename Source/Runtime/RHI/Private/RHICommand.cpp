@@ -36,8 +36,6 @@ namespace Thunder
             cmdList->SetIndexBuffer(IBToSet);
         }
 
-        return;
-
         // Execute the draw call
         if (IBToSet)
         {

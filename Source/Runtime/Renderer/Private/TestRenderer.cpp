@@ -28,9 +28,12 @@ namespace Thunder
 
     void TestRenderer::Setup()
     {
+        uint32 const resolutionWidth = GDynamicRHI->GetViewportWidth();
+        uint32 const resolutionHeight = GDynamicRHI->GetViewportHeight();
+        
         // GBuffer pass.
-        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
-        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
 
         // Register render targets
         mFrameGraph->RegisterRenderTarget(GBufferRT0);
@@ -63,7 +66,7 @@ namespace Thunder
         }
 
         // Lighting pass.
-        static FGRenderTargetRef LightingRT = new FGRenderTarget{ 1920, 1080, RHIFormat::R16G16B16A16_FLOAT };
+        static FGRenderTargetRef LightingRT = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(LightingRT);
 
         {
@@ -98,7 +101,7 @@ namespace Thunder
         }
 
         // PostProcess2 pass.
-        static FGRenderTargetRef postProcessRT2 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef postProcessRT2 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
         mFrameGraph->RegisterRenderTarget(postProcessRT2);
 
         {
@@ -146,10 +149,13 @@ namespace Thunder
 
     void DeferredShadingRenderer::Setup()
     {
+        uint32 const resolutionWidth = GDynamicRHI->GetViewportWidth();
+        uint32 const resolutionHeight = GDynamicRHI->GetViewportHeight();
+
         // GBuffer pass.
-        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM, TVector4f(1, 1, 0, 1) };
-        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
-        static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{ 1920, 1080, RHIFormat::D32_FLOAT_S8X24_UINT };
+        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(1, 1, 0, 1) };
+        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
 
         // Register render targets
         mFrameGraph->RegisterRenderTarget(GBufferRT0);
@@ -157,7 +163,7 @@ namespace Thunder
         mFrameGraph->RegisterRenderTarget(GBufferSceneDepth);
 
         {
-            static FGRenderTargetRef DummyRT = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
+            static FGRenderTargetRef DummyRT = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
             mFrameGraph->RegisterRenderTarget(DummyRT);
 
             PassOperations operations;
@@ -194,9 +200,9 @@ namespace Thunder
         }
 
         {
-            static FGRenderTargetRef DummyRT = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
+            static FGRenderTargetRef DummyRT = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
             mFrameGraph->RegisterRenderTarget(DummyRT);
-            static FGRenderTargetRef ShadowDepth = new FGRenderTarget{ 1920, 1080, RHIFormat::D32_FLOAT_S8X24_UINT };
+            static FGRenderTargetRef ShadowDepth = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
             mFrameGraph->RegisterRenderTarget(ShadowDepth);
 
             PassOperations operations;
@@ -286,7 +292,7 @@ namespace Thunder
         }
 
         // Lighting pass.
-        static FGRenderTargetRef LightingRT = new FGRenderTarget{ 1920, 1080, RHIFormat::R16G16B16A16_FLOAT };
+        static FGRenderTargetRef LightingRT = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(LightingRT);
 
         {
@@ -323,7 +329,7 @@ namespace Thunder
         }
 
         // PostProcess2 pass.
-        static FGRenderTargetRef postProcessRT2 = new FGRenderTarget{ 1920, 1080, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef postProcessRT2 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
         mFrameGraph->RegisterRenderTarget(postProcessRT2);
 
         {

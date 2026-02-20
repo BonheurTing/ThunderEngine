@@ -425,6 +425,15 @@ namespace Thunder
 		hr = CommandList->Reset(CommandAllocator[index].Get(), nullptr);
 		TAssertf(SUCCEEDED(hr), "Failed to reset command list");
 
+		// Set viewport and topology.
+		uint32 viewportWidth = GDynamicRHI->GetViewportWidth();
+		uint32 viewportHeight = GDynamicRHI->GetViewportHeight();
+		CD3DX12_VIEWPORT Viewport(0.0f, 0.0f, static_cast<float>(viewportWidth), static_cast<float>(viewportHeight));
+		CD3DX12_RECT ScissorRect(0, 0, static_cast<LONG>(viewportWidth), static_cast<LONG>(viewportHeight));
+		CommandList->RSSetViewports(1, &Viewport);
+		CommandList->RSSetScissorRects(1, &ScissorRect);
+		CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
 		if (StateCache)
 		{
 			StateCache->Reset();

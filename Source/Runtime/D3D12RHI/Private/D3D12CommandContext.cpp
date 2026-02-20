@@ -7,6 +7,7 @@
 #include "D3D12RHIModule.h"
 #include "D3D12RootSignature.h"
 #include "IDynamicRHI.h"
+#include "Misc/CoreGlabal.h"
 
 namespace Thunder
 {
@@ -430,11 +431,8 @@ namespace Thunder
 		}
 	}
 
-	void D3D12CommandContext::TransitionBarrier(RHIResource* res, ERHIResourceState newState, uint32 subResource)
+	void D3D12CommandContext::TransitionBarrier(RHIResource* res, ERHIResourceState oldState, ERHIResourceState newState, uint32 subResource)
 	{
-		if (res->GetCurrentState() == newState)
-			return;
-
 		void* resource = res->GetResource();
 		if (resource == nullptr)
 		{
@@ -448,13 +446,11 @@ namespace Thunder
 		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 
 		barrier.Transition.pResource   = d3d12Resource;
-		barrier.Transition.StateBefore = static_cast<D3D12_RESOURCE_STATES>(res->GetCurrentState());
+		barrier.Transition.StateBefore = static_cast<D3D12_RESOURCE_STATES>(oldState);
 		barrier.Transition.StateAfter  = static_cast<D3D12_RESOURCE_STATES>(newState);
 		barrier.Transition.Subresource = subResource;
 
 		CommandList->ResourceBarrier(1, &barrier);
-
-		res->SetState(newState);
 	}
 
 	TD3D12RootSignature* D3D12CommandContext::BindRootSignature(TShaderRegisterCounts const& shaderRC) const

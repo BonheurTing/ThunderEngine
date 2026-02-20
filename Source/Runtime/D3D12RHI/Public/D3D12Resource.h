@@ -54,7 +54,6 @@ namespace Thunder
     private:
         ComPtr<ID3D12Resource> VertexBuffer;
         D3D12_VERTEX_BUFFER_VIEW VertexBufferView{};
-        D3D12_RESOURCE_STATES ResourceState = D3D12_RESOURCE_STATE_COMMON;
     };
 
     class D3D12RHIIndexBuffer : public RHIIndexBuffer
@@ -75,7 +74,6 @@ namespace Thunder
     private:
         ComPtr<ID3D12Resource> IndexBuffer;
         D3D12_INDEX_BUFFER_VIEW IndexBufferView{};
-        D3D12_RESOURCE_STATES ResourceState = D3D12_RESOURCE_STATE_COMMON;
     };
     
     class D3D12RHIStructuredBuffer : public RHIStructuredBuffer
@@ -87,7 +85,6 @@ namespace Thunder
         _NODISCARD_ void * GetResource() const override { return StructuredBuffer.Get(); }
     private:
         ComPtr<ID3D12Resource> StructuredBuffer;
-        D3D12_RESOURCE_STATES ResourceState = D3D12_RESOURCE_STATE_COMMON;
     };
     
     class D3D12RHIConstantBuffer : public RHIConstantBuffer
@@ -99,7 +96,6 @@ namespace Thunder
         _NODISCARD_ void * GetResource() const override { return ConstantBuffer.Get(); }
     private:
         ComPtr<ID3D12Resource> ConstantBuffer;
-        D3D12_RESOURCE_STATES ResourceState = D3D12_RESOURCE_STATE_COMMON;
     };
     
     class D3D12RHITexture : public RHITexture
@@ -114,7 +110,6 @@ namespace Thunder
         _NODISCARD_ void * GetResource() const override { return Texture.Get(); }
     private:
         ComPtr<ID3D12Resource> Texture;
-        D3D12_RESOURCE_STATES ResourceState = D3D12_RESOURCE_STATE_COMMON;
     };
 
     class D3D12UniformBuffer : public RHIUniformBuffer

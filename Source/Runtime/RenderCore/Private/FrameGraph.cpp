@@ -241,6 +241,11 @@ namespace Thunder
                     desc.ClearValue, desc.ClearDepth, desc.ClearStencil);
             }
         }
+
+        // Add present command
+        NameHandle presentPassName = ExecutionOrder[ExecutionOrder.size() - 1];
+        auto& pass = Passes[presentPassName];
+        pass->bLastPass = true;
     }
 
     void FrameGraph::IntegrateCommands(uint32 frameIndex)
@@ -264,9 +269,10 @@ namespace Thunder
 
     void FrameGraph::FlushCommands(uint32 frameIndex)
     {
+        auto curPass = MainContext->GetCurrentPass();
         // Begin pass.
         RHIBeginPassCommand* newBeginCommand = new (MainContext->Allocate<RHIBeginPassCommand>()) RHIBeginPassCommand;
-        auto& writeRTs = MainContext->GetCurrentPass()->GetOperations().GetWriteTargets();
+        auto& writeRTs = curPass->GetOperations().GetWriteTargets();
         uint32 rtIndex = 0;
         for (const auto& [rtId, writeInfo] : writeRTs)
         {
@@ -282,6 +288,12 @@ namespace Thunder
                 newBeginCommand->DepthStencil.LoadOp       = writeInfo.LoadOp;
                 newBeginCommand->DepthStencil.ClearDepth   = writeInfo.ClearDepth;
                 newBeginCommand->DepthStencil.ClearStencil = writeInfo.ClearStencil;
+                newBeginCommand->DepthStencil.OldState = texture->GetTextureRHI()->GetState_RenderThread();
+                newBeginCommand->DepthStencil.bNeedBarrier = newBeginCommand->DepthStencil.OldState != ERHIResourceState::DepthWrite;
+                if (newBeginCommand->DepthStencil.bNeedBarrier)
+                {
+                    texture->GetTextureRHI()->SetState_RenderThread(ERHIResourceState::DepthWrite);
+                }
             }
             else if (texture->IsRenderTargetable())
             {
@@ -289,6 +301,12 @@ namespace Thunder
                 binding.Texture     = texture->GetTextureRHI();
                 binding.LoadOp      = writeInfo.LoadOp;
                 binding.ClearColor  = writeInfo.ClearColor;
+                binding.OldState = texture->GetTextureRHI()->GetState_RenderThread();
+                binding.bNeedBarrier = binding.OldState != ERHIResourceState::RenderTarget;
+                if (binding.bNeedBarrier)
+                {
+                    texture->GetTextureRHI()->SetState_RenderThread(ERHIResourceState::RenderTarget);
+                }
             }
             else
             {
@@ -296,7 +314,7 @@ namespace Thunder
             }
         }
         newBeginCommand->RenderTargetCount = rtIndex;
-        auto readRTs = MainContext->GetCurrentPass()->GetOperations().GetReadTargets();
+        auto readRTs = curPass->GetOperations().GetReadTargets();
         for (const auto& rtId : readRTs | std::views::keys)
         {
             RenderTextureRef texture =  GetAllocatedRenderTarget(rtId);
@@ -307,24 +325,56 @@ namespace Thunder
             }
             if (texture->IsDepthStencilTargetable())
             {
-                newBeginCommand->ReadDepthStencil = texture->GetTextureRHI();
+                newBeginCommand->ReadDepthStencil.Texture = texture->GetTextureRHI();
+                newBeginCommand->ReadDepthStencil.OldState = texture->GetTextureRHI()->GetState_RenderThread();
+                newBeginCommand->ReadDepthStencil.bNeedBarrier = newBeginCommand->ReadDepthStencil.OldState != ERHIResourceState::DepthRead;
+                if (newBeginCommand->ReadDepthStencil.bNeedBarrier)
+                {
+                    texture->GetTextureRHI()->SetState_RenderThread(ERHIResourceState::DepthRead);
+                }
             }
             else if (texture->IsRenderTargetable())
             {
-                newBeginCommand->ReadRenderTargets.push_back(texture->GetTextureRHI());
+                ERHIResourceState oldState = texture->GetTextureRHI()->GetState_RenderThread();
+                bool bNeedBarrier = oldState != ERHIResourceState::AllShaderResource;
+                newBeginCommand->ReadRenderTargets.push_back(TReadTextureBinding{.Texture = texture->GetTextureRHI(), .bNeedBarrier = bNeedBarrier, .OldState = oldState});
+                if (bNeedBarrier)
+                {
+                    texture->GetTextureRHI()->SetState_RenderThread(ERHIResourceState::AllShaderResource);
+                }
             }
             else
             {
                 TAssertf(false, "RenderTexture does not have valid view");
             }
         }
-        
+
         AllCommands[frameIndex].push_back(newBeginCommand);
 
         IntegrateCommands(frameIndex);
 
         // End pass.
         RHIEndPassCommand* newEndCommand = new (MainContext->Allocate<RHIEndPassCommand>()) RHIEndPassCommand;
+        if (curPass->bLastPass)
+        {
+            RenderTextureRef texture = GetAllocatedRenderTarget(PresentTargetID);
+            if (!texture.IsValid())
+            {
+                TAssertf(false, "RenderTexture does not exist");
+            }
+            else
+            {
+                newEndCommand->bPresentPass = true;
+                newEndCommand->PresentTexture.Texture = texture->GetTextureRHI();
+                newEndCommand->PresentTexture.OldState = texture->GetTextureRHI()->GetState_RenderThread();
+                newEndCommand->PresentTexture.bNeedBarrier = newEndCommand->PresentTexture.OldState != ERHIResourceState::Present;
+                if (newEndCommand->PresentTexture.bNeedBarrier)
+                {
+                    newEndCommand->PresentTexture.Texture->SetState_RenderThread(ERHIResourceState::Present);
+                }
+            }
+        }
+
         AllCommands[frameIndex].push_back(newEndCommand);
     }
 

@@ -56,9 +56,15 @@ namespace Thunder
 
 			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI()))
 			{
+				// sync update resource update in render thread, async update resource has double buffer so has no issues.
+				D3D12_RESOURCE_STATES oldState = static_cast<D3D12_RESOURCE_STATES>(GetState_RenderThread());
+				if (oldState != D3D12_RESOURCE_STATE_COPY_DEST)
+				{
+					CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(VertexBuffer.Get(), oldState, D3D12_RESOURCE_STATE_COPY_DEST);
+					dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
+					SetState_RenderThread(static_cast<ERHIResourceState>(D3D12_RESOURCE_STATE_COPY_DEST));
+				}
 				UpdateSubresources<1>(dx12Context->GetCommandList().Get(), VertexBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &vertexData);
-				CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(VertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-				dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
 			}
 
 			dx12RHI->AddReleaseObject(uploadBuffer);
@@ -107,9 +113,15 @@ namespace Thunder
 
 			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI()))
 			{
+				// sync update resource update in render thread, async update resource has double buffer so has no issues.
+				D3D12_RESOURCE_STATES oldState = static_cast<D3D12_RESOURCE_STATES>(GetState_RenderThread());
+				if (oldState != D3D12_RESOURCE_STATE_COPY_DEST)
+				{
+					CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(IndexBuffer.Get(), oldState, D3D12_RESOURCE_STATE_COPY_DEST);
+					dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
+					SetState_RenderThread(static_cast<ERHIResourceState>(D3D12_RESOURCE_STATE_COPY_DEST));
+				}
 				UpdateSubresources<1>(dx12Context->GetCommandList().Get(), IndexBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &indexData);
-				CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(IndexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
-				dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
 			}
 
 			dx12RHI->AddReleaseObject(uploadBuffer);
@@ -126,7 +138,7 @@ namespace Thunder
 
 	    if (isDynamic)
 	    {
-	        // 动态纹理可直接 Map 修改，不赘述
+	        // dynamic texture use map unmap
 	    	TAssertf(false, "todo");
 	        return;
 	    }
@@ -177,9 +189,15 @@ namespace Thunder
 	    // 4. Use UpdateSubresources to copy data from CPU to GPU
 	    if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI()))
 	    {
+			// sync update resource update in render thread, async update resource has double buffer so has no issues.
+	    	D3D12_RESOURCE_STATES oldState = static_cast<D3D12_RESOURCE_STATES>(GetState_RenderThread());
+	    	if (oldState != D3D12_RESOURCE_STATE_COPY_DEST)
+	    	{
+	    		CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(Texture.Get(), oldState, D3D12_RESOURCE_STATE_COPY_DEST);
+	    		dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
+	    		SetState_RenderThread(static_cast<ERHIResourceState>(D3D12_RESOURCE_STATE_COPY_DEST));
+	    	}
 	        UpdateSubresources(dx12Context->GetCommandList().Get(), Texture.Get(), uploadBuffer.Get(), 0, 0, subresourceCount, subresourceData.data());
-	    	CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(Texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	    	dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
 	    }
 	    else
 	    {

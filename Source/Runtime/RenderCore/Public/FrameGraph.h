@@ -60,6 +60,7 @@ namespace Thunder
         PassOperations Operations;
         PassExecutionFunction ExecuteFunction;
         bool bCulled = false;
+        bool bLastPass = false;
 
         // Shader bindings
         TRefCountPtr<ShaderBindingsLayout> BindingLayout;

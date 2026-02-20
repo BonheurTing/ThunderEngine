@@ -758,7 +758,7 @@ namespace Thunder
         HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                D3D12_HEAP_FLAG_NONE,
                                                &d3d12Desc,
-                                               D3D12_RESOURCE_STATE_COMMON,
+                                               D3D12_RESOURCE_STATE_GENERIC_READ,
                                                pOptimizedClearValue,
                                                IID_PPV_ARGS(&texture));
         

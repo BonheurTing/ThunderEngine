@@ -111,6 +111,13 @@ namespace Thunder
         DontCare, // Contents are undefined; driver may do anything
     };
 
+    struct TReadTextureBinding
+    {
+        RHITextureRef Texture;
+        bool bNeedBarrier = false;
+        ERHIResourceState OldState;
+    };
+
     constexpr uint32 kMaxRTVCount = MAX_RTVS;
     struct RHIBeginPassCommand : public IRHICommand
     {
@@ -121,6 +128,8 @@ namespace Thunder
             RHITextureRef Texture;
             ELoadOp       LoadOp     = ELoadOp::Load;
             TVector4f     ClearColor = { 0.f, 0.f, 0.f, 1.f };
+            bool bNeedBarrier = false;
+            ERHIResourceState OldState;
         };
 
         struct TDepthStencilBinding
@@ -129,18 +138,24 @@ namespace Thunder
             ELoadOp       LoadOp       = ELoadOp::Load;
             float         ClearDepth   = 1.f;
             uint8         ClearStencil = 0;
+            bool bNeedBarrier = false;
+            ERHIResourceState OldState;
         };
 
+        
         TRenderTargetBinding RenderTargets[kMaxRTVCount];
         TDepthStencilBinding DepthStencil;
         uint32 RenderTargetCount = 0;
 
-        TArray<RHITextureRef> ReadRenderTargets;
-        RHITextureRef ReadDepthStencil;
+        TArray<TReadTextureBinding> ReadRenderTargets;
+        TReadTextureBinding ReadDepthStencil;
     };
 
     struct RHIEndPassCommand : public IRHICommand
     {
-        RHI_API void Execute(RHICommandContext* cmdList) override {}
+        RHI_API void Execute(RHICommandContext* cmdList) override;
+
+        TReadTextureBinding PresentTexture;
+        bool bPresentPass = false;
     };
 }

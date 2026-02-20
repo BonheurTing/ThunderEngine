@@ -138,22 +138,31 @@ namespace Thunder
     {
         for (auto& readRes : ReadRenderTargets)
         {
-            if (!readRes.IsValid())
+            if (!readRes.Texture.IsValid())
             {
                 TAssertf(false, "Read RTs is invalid.");
                 continue;
             }
-            cmdList->TransitionBarrier(readRes.Get(), ERHIResourceState::AllShaderResource);
+            if (readRes.bNeedBarrier)
+            {
+                cmdList->TransitionBarrier(readRes.Texture.Get(), readRes.OldState, ERHIResourceState::AllShaderResource);
+            }
         }
-        if (ReadDepthStencil.IsValid())
+        if (ReadDepthStencil.Texture.IsValid())
         {
-            cmdList->TransitionBarrier(ReadDepthStencil.Get(), ERHIResourceState::DepthRead);
+            if (ReadDepthStencil.bNeedBarrier)
+            {
+                cmdList->TransitionBarrier(ReadDepthStencil.Texture.Get(),ReadDepthStencil.OldState, ERHIResourceState::DepthRead);
+            }
         }
 
         TArray<RHIRenderTargetView*> rtvPtrs(RenderTargetCount);
         for (uint32 i = 0; i < RenderTargetCount; i++)
         {
-            cmdList->TransitionBarrier(RenderTargets[i].Texture.Get(), ERHIResourceState::RenderTarget);
+            if (RenderTargets[i].bNeedBarrier)
+            {
+                cmdList->TransitionBarrier(RenderTargets[i].Texture.Get(), RenderTargets[i].OldState, ERHIResourceState::RenderTarget);
+            }
             rtvPtrs[i] = RenderTargets[i].Texture->GetRTV();
             if (RenderTargets[i].LoadOp == ELoadOp::Clear)
             {
@@ -163,7 +172,10 @@ namespace Thunder
         RHIDepthStencilView* dsv = nullptr;
         if (DepthStencil.Texture.IsValid())
         {
-            cmdList->TransitionBarrier(DepthStencil.Texture.Get(), ERHIResourceState::DepthWrite);
+            if (DepthStencil.bNeedBarrier)
+            {
+                cmdList->TransitionBarrier(DepthStencil.Texture.Get(), DepthStencil.OldState, ERHIResourceState::DepthWrite);
+            }
             dsv = DepthStencil.Texture->GetDSV();
             if (DepthStencil.LoadOp == ELoadOp::Clear)
             {
@@ -172,5 +184,19 @@ namespace Thunder
         }
 
         cmdList->SetRenderTarget(RenderTargetCount, rtvPtrs, dsv);
+    }
+
+    void RHIEndPassCommand::Execute(RHICommandContext* cmdList)
+    {
+        if (!bPresentPass) return;
+        if (!PresentTexture.Texture.IsValid())
+        {
+            TAssertf(false, "PresentTexture is invalid.");
+            return;
+        }
+        if (PresentTexture.bNeedBarrier)
+        {
+            cmdList->TransitionBarrier(PresentTexture.Texture.Get(), PresentTexture.OldState, ERHIResourceState::Present);
+        }
     }
 }

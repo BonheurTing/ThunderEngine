@@ -133,4 +133,20 @@ namespace Thunder
             cmdList->BindCBVs(shaderRC, cbvGpuAddresses, cbvCount);
         }
     }
+
+    void RHIBeginPassCommand::Execute(RHICommandContext* cmdList)
+    {
+        TArray<RHIRenderTargetView*> rtvPtrs(RenderTargetCount);
+        for (uint32 i = 0; i < RenderTargetCount; i++)
+        {
+            rtvPtrs[i] = RenderTargets[i]->GetRTV();
+        }
+        RHIDepthStencilView* dsv = nullptr;
+        if (DepthStencil.IsValid())
+        {
+            dsv = DepthStencil->GetDSV();
+        }
+        // Bind.
+        cmdList->SetRenderTarget(RenderTargetCount, rtvPtrs, dsv);
+    }
 }

@@ -188,6 +188,43 @@ namespace Thunder
         }
     }
 
+    void FrameGraph::FlushCommands(uint32 frameIndex)
+    {
+        // Begin pass.
+        RHIBeginPassCommand* newBeginCommand = new (MainContext->Allocate<RHIBeginPassCommand>()) RHIBeginPassCommand;
+        auto rts = MainContext->GetCurrentPass()->GetOperations().GetWriteTargets();
+        uint32 rtIndex = 0;
+        for (const auto& key : rts | std::views::keys)
+        {
+            RenderTextureRef texture =  GetAllocatedRenderTarget(key);
+            if (!texture.IsValid())
+            {
+                TAssertf(false, "RenderTexture does not exist");
+                continue;
+            }
+            if (texture->IsDepthStencilTargetable())
+            {
+                newBeginCommand->DepthStencil = texture->GetTextureRHI();
+            }
+            else if (texture->IsRenderTargetable())
+            {
+                newBeginCommand->RenderTargets[rtIndex++] = texture->GetTextureRHI();
+            }
+            else
+            {
+                TAssertf(false, "RenderTexture does not have valid view");
+            }
+        }
+        newBeginCommand->RenderTargetCount = rtIndex;
+        AllCommands[frameIndex].push_back(newBeginCommand);
+
+        IntegrateCommands(frameIndex);
+
+        // End pass.
+        RHIEndPassCommand* newEndCommand = new (MainContext->Allocate<RHIEndPassCommand>()) RHIEndPassCommand;
+        AllCommands[frameIndex].push_back(newEndCommand);
+    }
+
     void FrameGraph::Execute()
     {
         uint32 frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
@@ -210,7 +247,7 @@ namespace Thunder
                 SetCurrentPass(pass.Get());
                 pass->ExecuteFunction();
 
-                IntegrateCommands(frameIndex);
+                FlushCommands(frameIndex);
             }
 
             // After pass execution, release render targets that are no longer needed

@@ -127,6 +127,7 @@ namespace Thunder
 
         // Excute
         void IntegrateCommands(uint32 frameIndex);
+        void FlushCommands(uint32 frameIndex);
 
         // Passes.
         

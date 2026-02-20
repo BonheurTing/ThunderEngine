@@ -12,6 +12,7 @@ namespace Thunder
 	#define MAX_SAMPLERS	8
 	#define MAX_UAVS		8
 	#define MAX_CBS			8
+	#define MAX_RTVS			8
 
 	enum class EShaderStageType : uint8
     {

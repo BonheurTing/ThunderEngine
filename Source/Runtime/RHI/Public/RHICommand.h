@@ -103,4 +103,19 @@ namespace Thunder
         RHICachedDrawCommand() : CachedCommandIndex(RHIAllocateCachedMeshDrawCommandIndex()) { IsCached = true; }
         uint64 CachedCommandIndex = 0;
     };
+
+    constexpr uint32 kMaxRTVCount = MAX_RTVS;
+    struct RHIBeginPassCommand : public IRHICommand
+    {
+        RHI_API void Execute(RHICommandContext* cmdList) override;
+
+        RHITextureRef RenderTargets[kMaxRTVCount];
+        RHITextureRef DepthStencil;
+        uint32 RenderTargetCount = 0;
+    };
+
+    struct RHIEndPassCommand : public IRHICommand
+    {
+        RHI_API void Execute(RHICommandContext* cmdList) override {}
+    };
 }

@@ -153,6 +153,10 @@ namespace Thunder
             // Bind.
             bindings->SetSRV(pass->BindingLayout, sceneTextureName, { .Handle = srv->GetOfflineHandle() });
         }
+        // Bind Rtv
+        {
+            
+        }
 
         context->AddCommand(newCommand);
         Print("Execute postprocess2");

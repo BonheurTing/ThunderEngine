@@ -112,6 +112,9 @@ namespace Thunder
         RHITextureRef RenderTargets[kMaxRTVCount];
         RHITextureRef DepthStencil;
         uint32 RenderTargetCount = 0;
+
+        TArray<RHITextureRef> ReadRenderTargets;
+        RHITextureRef ReadDepthStencil;
     };
 
     struct RHIEndPassCommand : public IRHICommand

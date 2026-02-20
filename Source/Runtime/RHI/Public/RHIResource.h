@@ -32,16 +32,22 @@ namespace Thunder
         {
             UAV = view;
         }
+        void SetState(ERHIResourceState state)
+        {
+            State = state;
+        }
 
         virtual void Update(/*RHICommandList* commandList*/) {}
 
         _NODISCARD_ RHIShaderResourceViewRef GetSRV() const { return SRV; }
         _NODISCARD_ RHIUnorderedAccessViewRef GetUAV() const { return UAV; }
+        _NODISCARD_ ERHIResourceState GetCurrentState() const { return State; }
 
     protected:
         RHIResourceDescriptor Desc = {};
         RHIShaderResourceViewRef SRV;
         RHIUnorderedAccessViewRef UAV;
+        ERHIResourceState State = ERHIResourceState::Common;
     };
     
     class RHIBuffer : public RHIResource

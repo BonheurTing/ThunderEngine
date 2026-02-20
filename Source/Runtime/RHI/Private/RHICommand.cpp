@@ -136,17 +136,33 @@ namespace Thunder
 
     void RHIBeginPassCommand::Execute(RHICommandContext* cmdList)
     {
+        for (auto& readRes : ReadRenderTargets)
+        {
+            if (!readRes.IsValid())
+            {
+                TAssertf(false, "Read RTs is invalid.");
+                continue;
+            }
+            cmdList->EmitTransitionBarrier(readRes.Get(), ERHIResourceState::PixelShaderResource);
+        }
+        if (ReadDepthStencil.IsValid())
+        {
+            cmdList->EmitTransitionBarrier(ReadDepthStencil.Get(), ERHIResourceState::DepthRead);
+        }
+
         TArray<RHIRenderTargetView*> rtvPtrs(RenderTargetCount);
         for (uint32 i = 0; i < RenderTargetCount; i++)
         {
+            cmdList->EmitTransitionBarrier(RenderTargets[i].Get(), ERHIResourceState::RenderTarget);
             rtvPtrs[i] = RenderTargets[i]->GetRTV();
         }
         RHIDepthStencilView* dsv = nullptr;
         if (DepthStencil.IsValid())
         {
+            cmdList->EmitTransitionBarrier(DepthStencil.Get(), ERHIResourceState::DepthWrite);
             dsv = DepthStencil->GetDSV();
         }
-        // Bind.
+
         cmdList->SetRenderTarget(RenderTargetCount, rtvPtrs, dsv);
     }
 }

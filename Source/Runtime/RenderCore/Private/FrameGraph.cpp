@@ -192,11 +192,11 @@ namespace Thunder
     {
         // Begin pass.
         RHIBeginPassCommand* newBeginCommand = new (MainContext->Allocate<RHIBeginPassCommand>()) RHIBeginPassCommand;
-        auto rts = MainContext->GetCurrentPass()->GetOperations().GetWriteTargets();
+        auto writeRTs = MainContext->GetCurrentPass()->GetOperations().GetWriteTargets();
         uint32 rtIndex = 0;
-        for (const auto& key : rts | std::views::keys)
+        for (const auto& rtId : writeRTs | std::views::keys)
         {
-            RenderTextureRef texture =  GetAllocatedRenderTarget(key);
+            RenderTextureRef texture =  GetAllocatedRenderTarget(rtId);
             if (!texture.IsValid())
             {
                 TAssertf(false, "RenderTexture does not exist");
@@ -216,6 +216,29 @@ namespace Thunder
             }
         }
         newBeginCommand->RenderTargetCount = rtIndex;
+        auto readRTs = MainContext->GetCurrentPass()->GetOperations().GetReadTargets();
+        for (const auto& rtId : readRTs | std::views::keys)
+        {
+            RenderTextureRef texture =  GetAllocatedRenderTarget(rtId);
+            if (!texture.IsValid())
+            {
+                TAssertf(false, "RenderTexture does not exist");
+                continue;
+            }
+            if (texture->IsDepthStencilTargetable())
+            {
+                newBeginCommand->ReadDepthStencil = texture->GetTextureRHI();
+            }
+            else if (texture->IsRenderTargetable())
+            {
+                newBeginCommand->ReadRenderTargets.push_back(texture->GetTextureRHI());
+            }
+            else
+            {
+                TAssertf(false, "RenderTexture does not have valid view");
+            }
+        }
+        
         AllCommands[frameIndex].push_back(newBeginCommand);
 
         IntegrateCommands(frameIndex);

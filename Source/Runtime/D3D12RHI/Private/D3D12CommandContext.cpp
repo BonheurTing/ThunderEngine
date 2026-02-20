@@ -430,6 +430,33 @@ namespace Thunder
 		}
 	}
 
+	void D3D12CommandContext::EmitTransitionBarrier(RHIResource* res, ERHIResourceState newState, uint32 subResource)
+	{
+		if (res->GetCurrentState() == newState)
+			return;
+
+		void* resource = res->GetResource();
+		if (resource == nullptr)
+		{
+			TAssertf(false, "Resource is null");
+			return;
+		}
+		auto d3d12Resource = static_cast<ID3D12Resource*>(resource);
+
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+		barrier.Transition.pResource   = d3d12Resource;
+		barrier.Transition.StateBefore = static_cast<D3D12_RESOURCE_STATES>(res->GetCurrentState());
+		barrier.Transition.StateAfter  = static_cast<D3D12_RESOURCE_STATES>(newState);
+		barrier.Transition.Subresource = subResource;
+
+		CommandList->ResourceBarrier(1, &barrier);
+
+		res->SetState(newState);
+	}
+
 	TD3D12RootSignature* D3D12CommandContext::BindRootSignature(TShaderRegisterCounts const& shaderRC) const
 	{
 		TD3D12RootSignature* rootSignature;

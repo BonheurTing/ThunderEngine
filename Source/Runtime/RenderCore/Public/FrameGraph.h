@@ -60,7 +60,9 @@ namespace Thunder
         PassOperations Operations;
         PassExecutionFunction ExecuteFunction;
         bool bCulled = false;
-        bool bLastPass = false;
+        // When true, this pass renders directly into the swapchain backbuffer.
+        // No pool render target is written; the backbuffer is bound automatically.
+        bool bIsPresentPass = false;
 
         // Shader bindings
         ShaderArchive* Archive = nullptr;
@@ -102,8 +104,7 @@ namespace Thunder
 
         // Internal methods used by FrameGraphBuilder
         void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction);
-        void SetPresentTarget(const FGRenderTarget* renderTarget);
-        FORCEINLINE void SetPresentTarget(FGRenderTargetRef const& renderTarget) { SetPresentTarget(renderTarget.Get()); }
+        FORCEINLINE void SetPresentPass(NameHandle passName) { PresentPassName = passName; }
         void RegisterRenderTarget(FGRenderTarget* renderTarget);
         FORCEINLINE void RegisterRenderTarget(FGRenderTargetRef const& renderTarget) { RegisterRenderTarget(renderTarget.Get()); }
         void ClearRenderTargetPool();
@@ -160,6 +161,7 @@ namespace Thunder
 
         // Passes.
         TSet<NameHandle> CurrentFramePasses;
+        NameHandle PresentPassName;
         TMap<NameHandle, TRefCountPtr<FrameGraphPass>> Passes;
 
         TArray<NameHandle> ExecutionOrder;
@@ -168,8 +170,6 @@ namespace Thunder
         THashMap<uint32, FGRenderTargetRef> RenderTargets;
         THashMap<uint32, TRefCountPtr<RenderTexture>> AllocatedRenderTargets;
         THashMap<uint32, std::pair<size_t, size_t>> RenderTargetLifetimes; // target -> (first_use, last_use)
-        uint32 PresentTargetID = 0;
-        bool bHasPresentTarget = false;
         RenderTargetPool Pool;
 
         // Renderer.

@@ -55,6 +55,11 @@ namespace Thunder
 		void BeginFrame() override;
     	void TransitionBarrier(RHIResource* res, ERHIResourceState oldState, ERHIResourceState newState, uint32 subResource) override;
 
+        // Backbuffer operations (for present pass)
+        void TransitionBackBufferToRenderTarget() override;
+        void TransitionBackBufferToPresent() override;
+        void SetBackBufferAsRenderTarget() override;
+
 		class TD3D12RootSignature* BindRootSignature(TShaderRegisterCounts const& shaderRC) const;
 
 	private:

@@ -51,6 +51,11 @@ namespace Thunder
     	virtual void Reset(uint32 index) = 0;
     	virtual void BeginFrame() = 0;
     	virtual void TransitionBarrier(RHIResource* res, ERHIResourceState oldState, ERHIResourceState newState, uint32 subResource = 0xffffffff) = 0;
+
+        // Backbuffer operations (for present pass)
+        virtual void TransitionBackBufferToRenderTarget() {}
+        virtual void TransitionBackBufferToPresent() {}
+        virtual void SetBackBufferAsRenderTarget() {}
     };
 
 	using RHICommandContextRef = TRefCountPtr<RHICommandContext>;

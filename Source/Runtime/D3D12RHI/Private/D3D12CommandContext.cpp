@@ -474,6 +474,53 @@ namespace Thunder
 		CommandList->ResourceBarrier(1, &barrier);
 	}
 
+	void D3D12CommandContext::TransitionBackBufferToRenderTarget()
+	{
+		auto* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
+		ID3D12Resource* backBuffer = dx12RHI->GetCurrentBackBuffer();
+		if (backBuffer == nullptr) [[unlikely]]
+		{
+			TAssertf(false, "Back buffer is null.");
+			return;
+		}
+
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource   = backBuffer;
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		CommandList->ResourceBarrier(1, &barrier);
+	}
+
+	void D3D12CommandContext::TransitionBackBufferToPresent()
+	{
+		auto* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
+		ID3D12Resource* backBuffer = dx12RHI->GetCurrentBackBuffer();
+		if (backBuffer == nullptr) [[unlikely]]
+		{
+			TAssertf(false, "Back buffer is null.");
+			return;
+		}
+
+		D3D12_RESOURCE_BARRIER barrier = {};
+		barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		barrier.Transition.pResource   = backBuffer;
+		barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_PRESENT;
+		barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		CommandList->ResourceBarrier(1, &barrier);
+	}
+
+	void D3D12CommandContext::SetBackBufferAsRenderTarget()
+	{
+		auto* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12RHI->GetCurrentBackBufferRTV();
+		CommandList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+	}
+
 	TD3D12RootSignature* D3D12CommandContext::BindRootSignature(TShaderRegisterCounts const& shaderRC) const
 	{
 		TD3D12RootSignature* rootSignature;

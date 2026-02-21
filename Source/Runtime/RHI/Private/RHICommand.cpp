@@ -18,6 +18,13 @@ namespace Thunder
 
     void RHIBeginCommandListCommand::Execute(RHICommandContext* cmdList)
     {
+        if (PassState->bIsBackBufferPass)
+        {
+            // Present pass: restore the backbuffer as the render target for this command list.
+            cmdList->SetBackBufferAsRenderTarget();
+            return;
+        }
+
         uint32 const rtCount = PassState->RenderTargetCount;
         if (rtCount == 0)
         {
@@ -158,6 +165,7 @@ namespace Thunder
 
     void RHIBeginPassCommand::Execute(RHICommandContext* cmdList)
     {
+        // Transition read targets to shader-readable states.
         for (auto& readRes : ReadRenderTargets)
         {
             if (!readRes.Texture.IsValid())
@@ -174,8 +182,16 @@ namespace Thunder
         {
             if (ReadDepthStencil.bNeedBarrier)
             {
-                cmdList->TransitionBarrier(ReadDepthStencil.Texture.Get(),ReadDepthStencil.OldState, ERHIResourceState::DepthRead);
+                cmdList->TransitionBarrier(ReadDepthStencil.Texture.Get(), ReadDepthStencil.OldState, ERHIResourceState::DepthRead);
             }
+        }
+
+        if (bIsBackBufferPass)
+        {
+            // Present pass: transition backbuffer from Present -> RenderTarget and bind it.
+            cmdList->TransitionBackBufferToRenderTarget();
+            cmdList->SetBackBufferAsRenderTarget();
+            return;
         }
 
         TArray<RHIRenderTargetView*> rtvPtrs(RenderTargetCount);
@@ -210,15 +226,10 @@ namespace Thunder
 
     void RHIEndPassCommand::Execute(RHICommandContext* cmdList)
     {
-        if (!bPresentPass) return;
-        if (!PresentTexture.Texture.IsValid())
+        if (bIsBackBufferPass)
         {
-            TAssertf(false, "PresentTexture is invalid.");
-            return;
-        }
-        if (PresentTexture.bNeedBarrier)
-        {
-            cmdList->TransitionBarrier(PresentTexture.Texture.Get(), PresentTexture.OldState, ERHIResourceState::Present);
+            // Present pass: transition backbuffer from RenderTarget -> Present.
+            cmdList->TransitionBackBufferToPresent();
         }
     }
 }

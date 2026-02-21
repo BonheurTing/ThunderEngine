@@ -97,23 +97,18 @@ namespace Thunder
             });
         }
 
-        // PostProcess2 pass.
-        static FGRenderTargetRef postProcessRT2 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-        mFrameGraph->RegisterRenderTarget(postProcessRT2);
-
         {
+            // PostProcess2 (present pass): reads LightingRT, renders directly to the swapchain backbuffer.
             PassOperations operations;
             operations.Read(LightingRT);
-            operations.Write(postProcessRT2);
             mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this]()
             {
                 auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
             });
+            mFrameGraph->SetPresentPass("PostProcess2");
         }
-
-        mFrameGraph->SetPresentTarget(postProcessRT2);
     }
 
     void TestRenderer::Tick_RenderThread()
@@ -317,14 +312,11 @@ namespace Thunder
             });
         }
 
-        // PostProcess2 pass.
-        static FGRenderTargetRef postProcessRT2 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-        mFrameGraph->RegisterRenderTarget(postProcessRT2);
-
         {
+            // Blur (present pass): reads LightingRT and renders directly to the swapchain backbuffer.
+            // No write target is declared; the framegraph binds the backbuffer automatically.
             PassOperations operations;
             operations.Read(LightingRT, "SceneTexture"); //todo bind
-            operations.Write(postProcessRT2);
 
             static PostProcessManager* ppRenderer = nullptr;
             if (ppRenderer == nullptr)
@@ -333,9 +325,8 @@ namespace Thunder
             }
 
             ppRenderer->Setup(operations);
+            mFrameGraph->SetPresentPass("Blur");
         }
-
-        mFrameGraph->SetPresentTarget(postProcessRT2);
     }
 
     void DeferredShadingRenderer::UpdateAllPrimitiveSceneInfos()

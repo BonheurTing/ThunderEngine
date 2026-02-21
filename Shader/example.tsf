@@ -139,8 +139,8 @@ Shader "TestShader"
 
             ps_out out_;
             float3 test_return_value = test_function(1)[2 * 5 * 0 * x].xxx;
-            out_.color0 = test_return_value.xxxx;
-            out_.color1 = test_return_value.rrrr;
+            out_.color0 = float4(0, 1, 0, 1);
+            out_.color1 = float4(0, 0, 1, 1);
             return out_;
         }
     }

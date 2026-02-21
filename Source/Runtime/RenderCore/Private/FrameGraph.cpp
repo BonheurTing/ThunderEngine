@@ -134,6 +134,7 @@ namespace Thunder
     RHIPassState::RHIPassState(const RHIBeginPassCommand* beginCommand, uint32 commandId)
         : BeginCommandIndex(commandId)
     {
+        bIsBackBufferPass = beginCommand->bIsBackBufferPass;
         RenderTargetCount = beginCommand->RenderTargetCount;
         for (uint32 i = 0; i < RenderTargetCount; ++i)
         {
@@ -215,13 +216,12 @@ namespace Thunder
             }
         }
         CurrentFramePasses.clear();
+        PresentPassName = "";
 
         ExecutionOrder.clear();
         RenderTargets.clear();
         AllocatedRenderTargets.clear();
         RenderTargetLifetimes.clear();
-        PresentTargetID = 0;
-        bHasPresentTarget = false;
 
         // Clear commands from previous frame
         uint32 frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
@@ -290,6 +290,54 @@ namespace Thunder
     {
         // Begin pass.
         RHIBeginPassCommand* newBeginCommand = new (MainContext->Allocate<RHIBeginPassCommand>()) RHIBeginPassCommand;
+
+        // Handle read targets first (same for both regular and present passes).
+        auto readRTs = curPass->GetOperations().GetReadTargets();
+        for (const auto& rtId : readRTs | std::views::keys)
+        {
+            RenderTextureRef texture = GetAllocatedRenderTarget(rtId);
+            if (!texture.IsValid())
+            {
+                TAssertf(false, "RenderTexture does not exist");
+                continue;
+            }
+            if (texture->IsDepthStencilTargetable())
+            {
+                newBeginCommand->ReadDepthStencil.Texture   = texture->GetTextureRHI();
+                newBeginCommand->ReadDepthStencil.OldState  = texture->GetTextureRHI()->GetState_RenderThread();
+                newBeginCommand->ReadDepthStencil.bNeedBarrier = newBeginCommand->ReadDepthStencil.OldState != ERHIResourceState::DepthRead;
+                if (newBeginCommand->ReadDepthStencil.bNeedBarrier)
+                {
+                    texture->GetTextureRHI()->SetState_RenderThread(ERHIResourceState::DepthRead);
+                }
+            }
+            else if (texture->IsRenderTargetable())
+            {
+                ERHIResourceState oldState  = texture->GetTextureRHI()->GetState_RenderThread();
+                bool bNeedBarrier           = oldState != ERHIResourceState::AllShaderResource;
+                newBeginCommand->ReadRenderTargets.push_back(TReadTextureBinding{ .Texture = texture->GetTextureRHI(), .bNeedBarrier = bNeedBarrier, .OldState = oldState });
+                if (bNeedBarrier)
+                {
+                    texture->GetTextureRHI()->SetState_RenderThread(ERHIResourceState::AllShaderResource);
+                }
+            }
+            else
+            {
+                TAssertf(false, "RenderTexture does not have valid view");
+            }
+        }
+
+        if (curPass->bIsPresentPass)
+        {
+            // Present pass writes directly to the swapchain backbuffer.
+            // The actual barrier and RT binding are handled at execute time via bIsBackBufferPass.
+            newBeginCommand->bIsBackBufferPass   = true;
+            newBeginCommand->RenderTargetCount   = 0;
+            AllCommands[frameIndex].push_back(newBeginCommand);
+            return;
+        }
+
+        // Regular pass: bind pool render targets.
         auto& writeRTs = curPass->GetOperations().GetWriteTargets();
         uint32 rtIndex = 0;
         for (const auto& [rtId, writeInfo] : writeRTs)
@@ -306,7 +354,7 @@ namespace Thunder
                 newBeginCommand->DepthStencil.LoadOp       = writeInfo.LoadOp;
                 newBeginCommand->DepthStencil.ClearDepth   = writeInfo.ClearDepth;
                 newBeginCommand->DepthStencil.ClearStencil = writeInfo.ClearStencil;
-                newBeginCommand->DepthStencil.OldState = texture->GetTextureRHI()->GetState_RenderThread();
+                newBeginCommand->DepthStencil.OldState     = texture->GetTextureRHI()->GetState_RenderThread();
                 newBeginCommand->DepthStencil.bNeedBarrier = newBeginCommand->DepthStencil.OldState != ERHIResourceState::DepthWrite;
                 if (newBeginCommand->DepthStencil.bNeedBarrier)
                 {
@@ -315,11 +363,11 @@ namespace Thunder
             }
             else if (texture->IsRenderTargetable())
             {
-                auto& binding       = newBeginCommand->RenderTargets[rtIndex++];
-                binding.Texture     = texture->GetTextureRHI();
-                binding.LoadOp      = writeInfo.LoadOp;
-                binding.ClearColor  = writeInfo.ClearColor;
-                binding.OldState = texture->GetTextureRHI()->GetState_RenderThread();
+                auto& binding        = newBeginCommand->RenderTargets[rtIndex++];
+                binding.Texture      = texture->GetTextureRHI();
+                binding.LoadOp       = writeInfo.LoadOp;
+                binding.ClearColor   = writeInfo.ClearColor;
+                binding.OldState     = texture->GetTextureRHI()->GetState_RenderThread();
                 binding.bNeedBarrier = binding.OldState != ERHIResourceState::RenderTarget;
                 if (binding.bNeedBarrier)
                 {
@@ -332,40 +380,6 @@ namespace Thunder
             }
         }
         newBeginCommand->RenderTargetCount = rtIndex;
-        auto readRTs = curPass->GetOperations().GetReadTargets();
-        for (const auto& rtId : readRTs | std::views::keys)
-        {
-            RenderTextureRef texture =  GetAllocatedRenderTarget(rtId);
-            if (!texture.IsValid())
-            {
-                TAssertf(false, "RenderTexture does not exist");
-                continue;
-            }
-            if (texture->IsDepthStencilTargetable())
-            {
-                newBeginCommand->ReadDepthStencil.Texture = texture->GetTextureRHI();
-                newBeginCommand->ReadDepthStencil.OldState = texture->GetTextureRHI()->GetState_RenderThread();
-                newBeginCommand->ReadDepthStencil.bNeedBarrier = newBeginCommand->ReadDepthStencil.OldState != ERHIResourceState::DepthRead;
-                if (newBeginCommand->ReadDepthStencil.bNeedBarrier)
-                {
-                    texture->GetTextureRHI()->SetState_RenderThread(ERHIResourceState::DepthRead);
-                }
-            }
-            else if (texture->IsRenderTargetable())
-            {
-                ERHIResourceState oldState = texture->GetTextureRHI()->GetState_RenderThread();
-                bool bNeedBarrier = oldState != ERHIResourceState::AllShaderResource;
-                newBeginCommand->ReadRenderTargets.push_back(TReadTextureBinding{.Texture = texture->GetTextureRHI(), .bNeedBarrier = bNeedBarrier, .OldState = oldState});
-                if (bNeedBarrier)
-                {
-                    texture->GetTextureRHI()->SetState_RenderThread(ERHIResourceState::AllShaderResource);
-                }
-            }
-            else
-            {
-                TAssertf(false, "RenderTexture does not have valid view");
-            }
-        }
 
         AllCommands[frameIndex].push_back(newBeginCommand);
     }
@@ -384,24 +398,11 @@ namespace Thunder
     {
         // End pass.
         RHIEndPassCommand* newEndCommand = new (MainContext->Allocate<RHIEndPassCommand>()) RHIEndPassCommand;
-        if (curPass->bLastPass)
+
+        if (curPass->bIsPresentPass)
         {
-            RenderTextureRef texture = GetAllocatedRenderTarget(PresentTargetID);
-            if (!texture.IsValid())
-            {
-                TAssertf(false, "RenderTexture does not exist");
-            }
-            else
-            {
-                newEndCommand->bPresentPass = true;
-                newEndCommand->PresentTexture.Texture = texture->GetTextureRHI();
-                newEndCommand->PresentTexture.OldState = texture->GetTextureRHI()->GetState_RenderThread();
-                newEndCommand->PresentTexture.bNeedBarrier = newEndCommand->PresentTexture.OldState != ERHIResourceState::Present;
-                if (newEndCommand->PresentTexture.bNeedBarrier)
-                {
-                    newEndCommand->PresentTexture.Texture->SetState_RenderThread(ERHIResourceState::Present);
-                }
-            }
+            // Present pass: transition the backbuffer from RenderTarget -> Present at execute time.
+            newEndCommand->bIsBackBufferPass = true;
         }
 
         AllCommands[frameIndex].push_back(newEndCommand);
@@ -435,20 +436,15 @@ namespace Thunder
                 AddEndPassCommand(pass, frameIndex);
             }
 
-            // After pass execution, release render targets that are no longer needed
+            // After pass execution, release render targets that are no longer needed.
             for (const auto& [rtID, lifetime] : RenderTargetLifetimes)
             {
-                if (lifetime.second == i) // This is the last use of the render target
+                if (lifetime.second != i) continue; // Not the last use yet.
+
+                auto it = AllocatedRenderTargets.find(rtID);
+                if (it != AllocatedRenderTargets.end())
                 {
-                    // Don't release the present target as it might be needed later
-                    if (rtID != PresentTargetID)
-                    {
-                        auto it = AllocatedRenderTargets.find(rtID);
-                        if (it != AllocatedRenderTargets.end())
-                        {
-                            Pool.ReleaseRenderTarget(it->second);
-                        }
-                    }
+                    Pool.ReleaseRenderTarget(it->second);
                 }
             }
         }
@@ -748,13 +744,6 @@ namespace Thunder
         }
     }
 
-    void FrameGraph::SetPresentTarget(const FGRenderTarget* renderTarget)
-    {
-        TAssertf(renderTarget->GetID() != 0xFFFFFFFF, "Present target is not registered yet.");
-        PresentTargetID = renderTarget->GetID();
-        bHasPresentTarget = true;
-    }
-
     void FrameGraph::RegisterRenderTarget(FGRenderTarget* renderTarget)
     {
         uint32 id = static_cast<uint32>(RenderTargets.size());
@@ -770,31 +759,47 @@ namespace Thunder
 
     void FrameGraph::CullUnusedPasses() const
     {
-        if (!bHasPresentTarget)
-        {
-            return;
-        }
-
-        // Mark all current passes as culled initially
+        // Mark all current passes as culled initially.
         for (const auto& pass : Passes | std::views::values)
         {
             pass->bCulled = true;
         }
 
-        // Use a queue to traverse from present target backwards
         TQueue<uint32> targetQueue;
         THashSet<uint32> neededTargets;
 
-        targetQueue.push(PresentTargetID);
-        neededTargets.insert(PresentTargetID);
+        if (PresentPassName.IsEmpty()) [[unlikely]]
+        {
+            TAssertf(false, "Present pass is not set. Call SetPresentPass() before Compile().");
+            return;
+        }
 
-        // Backwards traversal to find needed passes
+        auto presentPassIt = Passes.find(PresentPassName);
+        if (presentPassIt == Passes.end()) [[unlikely]]
+        {
+            TAssertf(false, "Present pass \"%s\" not found in frame graph.", PresentPassName.c_str());
+            return;
+        }
+
+        // The present pass itself is always needed.
+        presentPassIt->second->bCulled = false;
+
+        for (uint32 readTarget : presentPassIt->second->Operations.GetReadTargets() | std::views::keys)
+        {
+            if (!neededTargets.contains(readTarget))
+            {
+                neededTargets.insert(readTarget);
+                targetQueue.push(readTarget);
+            }
+        }
+
+        // Backwards traversal to find passes that produce the needed render targets.
         while (!targetQueue.empty())
         {
             uint32 currentTarget = targetQueue.front();
             targetQueue.pop();
 
-            // Find passes that write to this target
+            // Find passes that write to this target.
             for (auto& pass : Passes)
             {
                 if (!CurrentFramePasses.contains(pass.first))
@@ -806,7 +811,7 @@ namespace Thunder
                 {
                     pass.second->bCulled = false;
 
-                    // Add read targets to the queue
+                    // Add read targets of this pass to the queue.
                     for (uint32 readTarget : pass.second->Operations.GetReadTargets() | std::views::keys)
                     {
                         if (!neededTargets.contains(readTarget))
@@ -1029,8 +1034,12 @@ namespace Thunder
 
     void FrameGraph::SetPresentCommand()
     {
-        NameHandle presentPassName = ExecutionOrder[ExecutionOrder.size() - 1];
-        auto& pass = Passes[presentPassName];
-        pass->bLastPass = true;
+        auto passIt = Passes.find(PresentPassName);
+        if (passIt == Passes.end()) [[unlikely]]
+        {
+            TAssertf(false, "Present pass \"%s\" not found.", PresentPassName.c_str());
+            return;
+        }
+        passIt->second->bIsPresentPass = true;
     }
 }

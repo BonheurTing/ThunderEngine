@@ -155,21 +155,25 @@ namespace Thunder
             ERHIResourceState OldState;
         };
 
-        
+
         TRenderTargetBinding RenderTargets[kMaxRTVCount];
         TDepthStencilBinding DepthStencil;
         uint32 RenderTargetCount = 0;
 
         TArray<TReadTextureBinding> ReadRenderTargets;
         TReadTextureBinding ReadDepthStencil;
+
+        // When true, this pass renders directly to the swapchain backbuffer.
+        // No pool render targets are bound; the backbuffer is bound instead.
+        bool bIsBackBufferPass = false;
     };
 
     struct RHIEndPassCommand : public IRHICommand
     {
         RHI_API void Execute(RHICommandContext* cmdList) override;
 
-        TReadTextureBinding PresentTexture;
-        bool bPresentPass = false;
+        // When true, transitions the swapchain backbuffer to Present state.
+        bool bIsBackBufferPass = false;
     };
 
     struct RHIPassState
@@ -180,6 +184,10 @@ namespace Thunder
         RHITextureRef RenderTargets[kMaxRTVCount];
         RHITextureRef DepthStencil;
         uint32 RenderTargetCount = 0;
+
+        // When true, this pass renders to the swapchain backbuffer.
+        // RHIBeginCommandListCommand will call SetBackBufferAsRenderTarget() instead of restoring pool RTs.
+        bool bIsBackBufferPass = false;
 
         uint32 BeginCommandIndex = 0;
     };

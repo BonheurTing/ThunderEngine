@@ -3,10 +3,32 @@
 #include "HAL/Event.h"
 #include "GameWindow.h"
 
+#if THUNDER_WINDOWS
+#include <Windows.h>
+#endif
+
 using namespace Thunder;
 
-int main()
+int main(int argc, char* argv[])
 {
+    // Handle -waitfordebugger: spin until a debugger attaches
+#if THUNDER_WINDOWS
+    for (int i = 1; i < argc; ++i)
+    {
+        if (_stricmp(argv[i], "-waitfordebugger") == 0)
+        {
+            LOG("Waiting for debugger to attach (PID: %lu)...", GetCurrentProcessId());
+            while (!IsDebuggerPresent())
+            {
+                Sleep(100);
+            }
+            DebugBreak();
+            break;
+        }
+    }
+#endif
+
+
     // 1. Create the window
     GameWindow window;
     GameWindowDesc desc;

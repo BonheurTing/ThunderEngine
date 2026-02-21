@@ -69,6 +69,10 @@ namespace Thunder
         uint32 GetViewportWidth() const { return ViewportResolution.X; }
         uint32 GetViewportHeight() const { return ViewportResolution.Y; }
 
+        // Window presentation
+        virtual void RHICreateSwapChain(void* hwnd, uint32 width, uint32 height) {}
+        virtual void RHIPresent() {}
+
     protected:
         TArray<TRefCountPtr<RHIResource>> DeferredDeleteQueue[MAX_FRAME_LAG] {};
         TVector2u ViewportResolution{ 1920, 1080 };
@@ -204,6 +208,16 @@ namespace Thunder
     FORCEINLINE void RHIWaitForFrame(uint32 frameIndex)
     {
         return GDynamicRHI->RHIWaitForFrame(frameIndex);
+    }
+
+    FORCEINLINE void RHICreateSwapChain(void* hwnd, uint32 width, uint32 height)
+    {
+        GDynamicRHI->RHICreateSwapChain(hwnd, width, height);
+    }
+
+    FORCEINLINE void RHIPresent()
+    {
+        GDynamicRHI->RHIPresent();
     }
 
     RHI_API extern std::atomic_uint64_t GCachedMeshDrawCommandIndex;

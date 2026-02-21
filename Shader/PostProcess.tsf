@@ -59,8 +59,9 @@ Shader "PostProcess"
 
         float4 MainPS(VSOutput input) : SV_Target
         {
-            float4 color = SceneTexture.Sample(PointWrappedSampler, input.UV);
-            return color * PassParameters0;
+            //float4 color = SceneTexture.Sample(PointWrappedSampler, input.UV);
+            //return color * PassParameters0;
+            return float4(1, 0, 0, 1);
         }
     }
 

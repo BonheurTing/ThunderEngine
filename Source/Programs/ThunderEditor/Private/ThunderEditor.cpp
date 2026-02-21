@@ -1,8 +1,6 @@
-#pragma optimize("", off)
 #include "CoreMinimal.h"
 #include "EngineMain.h"
 #include "HAL/Event.h"
-
 
 namespace Thunder
 {

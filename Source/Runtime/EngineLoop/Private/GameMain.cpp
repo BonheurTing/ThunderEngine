@@ -15,11 +15,60 @@
 #include "StreamableManager.h"
 #include "TestRenderer.h"
 #include "FileSystem/FileModule.h"
+#include "InputState.h"
+
+#include <cmath>
+#include <algorithm>
 
 #define EXIT_FRAME_THRESHOLD 10000
 
 namespace Thunder
 {
+    static Entity* GFPSCameraEntity = nullptr;
+
+    static void TickFPSCamera(float dt)
+    {
+        if (!GFPSCameraEntity || !GInputState.RightButtonDown)
+        {
+            GInputState.MouseDelta = { 0.f, 0.f };
+            return;
+        }
+
+        auto* tr = GFPSCameraEntity->GetTransform();
+        TVector3f pos = tr->GetPosition();
+        TVector3f rot = tr->GetRotation();  // Pitch / Yaw / Roll in degrees
+
+        // Mouse rotation
+        const float mouseSens = 0.1f;
+        rot.Y += GInputState.MouseDelta.X * mouseSens;  // Yaw
+        rot.X += GInputState.MouseDelta.Y * mouseSens;  // Pitch
+        rot.X = std::clamp(rot.X, -89.f, 89.f);
+
+        // WASD movement along Yaw direction
+        const float speed = 5.f * dt;
+        float yawRad = rot.Y * 3.14159f / 180.f;
+        float fwdX  =  sinf(yawRad);
+        float fwdZ  =  cosf(yawRad);
+        float rightX =  cosf(yawRad);
+        float rightZ = -sinf(yawRad);
+
+        if (GInputState.IsKeyDown('W')) { pos.X += fwdX * speed;   pos.Z += fwdZ * speed; }
+        if (GInputState.IsKeyDown('S')) { pos.X -= fwdX * speed;   pos.Z -= fwdZ * speed; }
+        if (GInputState.IsKeyDown('A')) { pos.X -= rightX * speed; pos.Z -= rightZ * speed; }
+        if (GInputState.IsKeyDown('D')) { pos.X += rightX * speed; pos.Z += rightZ * speed; }
+        if (GInputState.IsKeyDown('E')) pos.Y += speed;
+        if (GInputState.IsKeyDown('Q')) pos.Y -= speed;
+
+        tr->SetPosition(pos);
+        tr->SetRotation(rot);
+
+        LOG("FPS Camera pos=(%.2f, %.2f, %.2f) rot=(%.2f, %.2f, %.2f)",
+            pos.X, pos.Y, pos.Z, rot.X, rot.Y, rot.Z);
+
+        // Clear per-frame delta after game thread has consumed it
+        GInputState.MouseDelta = { 0.f, 0.f };
+    }
+
     Scene* SimulateGenerateExampleSceneWithEditor()
     {
         // Create a new scene
@@ -116,6 +165,34 @@ namespace Thunder
         }
         // game thread
         LOG("Execute game thread in frame: %d with thread: %lu", frameNum, __threadid());
+
+        // First frame: create FPS camera entity
+        if (frameNum == 1)
+        {
+            auto& viewports = GameModule::GetViewports();
+            if (!viewports.empty())
+            {
+                auto* viewport = viewports[0];
+                if (viewport)
+                {
+                    // Create a scene if none exists, or get the first scene from the viewport
+                    // For now, create a standalone scene for the camera entity
+                    TFunction<class IRenderer*()> defaultRendererFactory = []() -> IRenderer*
+                    {
+                        return new (TMemory::Malloc<DeferredShadingRenderer>()) DeferredShadingRenderer;
+                    };
+                    Scene* cameraScene = new Scene(defaultRendererFactory);
+                    cameraScene->SetSceneName("FPSCameraScene");
+                    Entity* cameraEntity = cameraScene->CreateEntity("FPSCamera");
+                    cameraEntity->GetTransform()->SetPosition(TVector3f(0.f, 0.f, -5.f));
+                    cameraScene->AddRootEntity(cameraEntity);
+                    GFPSCameraEntity = cameraEntity;
+                }
+            }
+        }
+
+        // Tick camera every frame (fixed dt=1/60)
+        TickFPSCamera(1.f / 60.f);
 
         // Tick.
         auto const& tickables = GameModule::GetTickables();

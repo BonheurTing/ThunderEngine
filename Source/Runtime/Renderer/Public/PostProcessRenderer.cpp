@@ -61,6 +61,5 @@ namespace Thunder
 
         auto subMesh = GProceduralGeometryManager->GetGeometry(EProceduralGeometry::Triangle);
         RenderModule::BuildDrawCommand(Owner, pass, subMesh);
-        Print("Execute postprocess2");
     }
 }

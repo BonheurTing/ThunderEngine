@@ -158,7 +158,6 @@ namespace Thunder
 
 			void DoWork() override
 			{
-				LOG("Execute Parallel Task Bundle");
 				(*Function)(Head, Size, ThreadId);
 			}
 		private:
@@ -191,12 +190,11 @@ namespace Thunder
 
 			void DoWork() override
 			{
-				LOG("Execute Parallel Task Bundle");
 				Function(Head, Size, ThreadId);
 			}
 		private:
 
-			TFunction<void(uint32, uint32, uint32)> Function; //存Function值而不是指针，免不了构造
+			TFunction<void(uint32, uint32, uint32)> Function;
 			uint32 Head;
 			uint32 Size;
 			uint32 ThreadId;
@@ -205,7 +203,6 @@ namespace Thunder
 		uint32 bundleSize = (NumTask + NumThread - 1) / NumThread;
 		for (uint32 i = 0; i < NumTask; i += bundleSize)
 		{
-			//右值，此处是消亡值，直接传给构造函数
 			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(Body, i, bundleSize, i/bundleSize);
 			PushTask(bundleTask);
 		}
@@ -215,7 +212,7 @@ namespace Thunder
 	{
 		TAssert(GGameScheduler == nullptr && GRenderScheduler == nullptr && GRHIScheduler == nullptr);
 
-		//todo 线程释放
+		// todo : destroy threads
 		const auto gameThreadProxy = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(4096, "GameThread");
 		const auto renderThreadProxy = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(4096, "RenderThread");
 		const auto rhiThreadProxy = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(4096, "RHIThread");

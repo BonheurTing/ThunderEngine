@@ -42,20 +42,16 @@ namespace Thunder
 
         RHIBeginFrame(currentFrameIndex);
 
-        std::cout << "!!!D3D12CommandContext::Reset Copy_RHI with frame index : " << frameNum << std::endl << std::flush;
         IRHIModule::GetModule()->ResetCopyCommandContext_RHI(currentFrameIndex);
         for (auto res : GRHIUpdateAsyncQueue)
         {
             res->Update();
         }
         GRHIUpdateAsyncQueue.clear();
-        std::cout << "!!!D3D12CommandContext::Execute Copy_RHI with frame index : " << frameNum << std::endl << std::flush;
         IRHIModule::GetModule()->GetCopyCommandContext_RHI()->Execute();
 
         // Parallel recording of rendering commands
-        std::cout << "!!!D3D12CommandContext::Reset with frame index : " << frameNum << std::endl << std::flush;
         IRHIModule::GetModule()->ResetCommandContext(currentFrameIndex);
-        std::cout << "!!!D3D12CommandContext::Execute with frame index : " << frameNum << std::endl << std::flush;
         for (auto renderer : Renderers)
         {
             CommitRendererCommands(renderer);
@@ -75,7 +71,7 @@ namespace Thunder
         FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
         TMemory::Destroy(dispatcher);
 
-        LOG("Present");
+        RHIPresent();
 
         RHIReleaseResource_RHIThread();
     }

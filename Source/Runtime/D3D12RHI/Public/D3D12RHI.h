@@ -5,6 +5,7 @@
 #include "D3D12DescriptorHeap.h"
 #include "Concurrent/Lock.h"
 #include "HAL/Event.h"
+#include <dxgi1_4.h>
 
 namespace Thunder
 {
@@ -69,6 +70,12 @@ namespace Thunder
         void RHISignalFence(uint32 frameIndex) override;
         void RHIWaitForFrame(uint32 frameIndex) override;
 
+        void RHICreateSwapChain(void* hwnd, uint32 width, uint32 height) override;
+        void RHIPresent() override;
+
+        ID3D12Resource*             GetCurrentBackBuffer() const { return SwapChainBuffers[CurrentBackBufferIndex].Get(); }
+        D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferRTV() const { return BackBufferRTVs[CurrentBackBufferIndex].Handle; }
+
         // Online descriptor manager for global heap (GPU-visible, transient)
         class D3D12OnlineDescriptorManager* GetOnlineDescriptorManager() const { return OnlineDescriptorManager; }
 
@@ -117,6 +124,12 @@ namespace Thunder
         D3D12_CPU_DESCRIPTOR_HANDLE NullSRV = {};
         D3D12_CPU_DESCRIPTOR_HANDLE NullUAV = {};
         D3D12_CPU_DESCRIPTOR_HANDLE NullCBV = {};
+
+        // SwapChain
+        ComPtr<IDXGISwapChain3>  SwapChain;
+        ComPtr<ID3D12Resource>   SwapChainBuffers[2];
+        uint32                   CurrentBackBufferIndex = 0;
+        D3D12OfflineDescriptor   BackBufferRTVs[2];
 
         //
         TArray<ComPtr<ID3D12Object>> GReleaseQueue[MAX_FRAME_LAG] {};

@@ -1,0 +1,3 @@
+set(ModuleName ApplicationWindow)
+set(LinkMode SHARED)
+set(PublicDependencyModuleList Core)

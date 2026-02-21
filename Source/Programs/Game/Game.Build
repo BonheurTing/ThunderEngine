@@ -6,8 +6,10 @@ set(PublicDependencyModuleList
     Core
     D3D12RHI
     EngineLoop
+    ApplicationWindow
 )
 set(PrecompileHeaderImportList
     Runtime/RHI/Public/RHI.export.h
     Runtime/D3D12RHI/Public/D3D12RHI.export.h
+    Runtime/ApplicationWindow/Public/ApplicationWindow.export.h
 )

@@ -61,7 +61,6 @@ namespace Thunder
                 newCommand->StartInstanceLocation = 0;
 
                 context->AddCommand(newCommand);
-                Print("Execute gbuffer");
             });
         }
 
@@ -79,7 +78,6 @@ namespace Thunder
                 auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
-                Print("Execute lighting");
             });
         }
 
@@ -96,7 +94,6 @@ namespace Thunder
                 auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
-                Print("Execute postprocess1");
             });
         }
 
@@ -113,7 +110,6 @@ namespace Thunder
                 auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
-                Print("Execute postprocess2");
             });
         }
 
@@ -194,8 +190,6 @@ namespace Thunder
                         processor->AddMeshBatch(mainContext, batch, EMeshPass::PrePass);
                     }
                 }
-
-                Print("Execute PrePass");
             });
         }
 
@@ -226,7 +220,6 @@ namespace Thunder
                         processor->AddMeshBatch(context, batch, EMeshPass::ShadowPass);
                     }
                 }
-                Print("Execute ShaderDepth");
             });
         }
 
@@ -286,8 +279,6 @@ namespace Thunder
                     FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
                     TMemory::Destroy(dispatcher);
                 }
-
-                Print("Execute GBufferPass");
             });
         }
 
@@ -305,7 +296,6 @@ namespace Thunder
                 auto context = mFrameGraph->GetMainContext();
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
-                Print("Execute lighting");
             });
         }
 
@@ -324,7 +314,6 @@ namespace Thunder
                 
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
                 context->AddCommand(newCommand);
-                Print("Execute postprocess1");
             });
         }
 

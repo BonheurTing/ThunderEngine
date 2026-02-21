@@ -951,4 +951,52 @@ namespace Thunder
     {
         return Fence->GetCompletedValue() >= fenceValue;
     }
+
+    void D3D12DynamicRHI::RHICreateSwapChain(void* hwnd, uint32 width, uint32 height)
+    {
+        TAssertf(CommandQueue != nullptr, "CommandQueue must be created before SwapChain.");
+
+        HWND nativeHwnd = static_cast<HWND>(hwnd);
+
+        ComPtr<IDXGIFactory4> factory;
+        ThrowIfFailed(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)));
+
+        DXGI_SWAP_CHAIN_DESC1 desc = {};
+        desc.Width       = width;
+        desc.Height      = height;
+        desc.Format      = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.BufferCount = 2;
+        desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        desc.SwapEffect  = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        desc.SampleDesc  = { 1, 0 };
+
+        ComPtr<IDXGISwapChain1> swapChain1;
+        ThrowIfFailed(factory->CreateSwapChainForHwnd(
+            CommandQueue.Get(), nativeHwnd, &desc, nullptr, nullptr, &swapChain1));
+
+        // Disable Alt+Enter fullscreen toggle
+        factory->MakeWindowAssociation(nativeHwnd, DXGI_MWA_NO_ALT_ENTER);
+
+        ThrowIfFailed(swapChain1.As(&SwapChain));
+        CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
+
+        // Create RTVs for both back buffers
+        auto* rtvManager = GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        for (uint32 i = 0; i < 2; ++i)
+        {
+            ThrowIfFailed(SwapChain->GetBuffer(i, IID_PPV_ARGS(&SwapChainBuffers[i])));
+            BackBufferRTVs[i] = rtvManager->AllocateHeapSlot();
+            Device->CreateRenderTargetView(SwapChainBuffers[i].Get(), nullptr, BackBufferRTVs[i].Handle);
+        }
+    }
+
+    void D3D12DynamicRHI::RHIPresent()
+    {
+        if (!SwapChain)
+        {
+            return;
+        }
+        ThrowIfFailed(SwapChain->Present(1, 0));  // vsync=1
+        CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
+    }
 }

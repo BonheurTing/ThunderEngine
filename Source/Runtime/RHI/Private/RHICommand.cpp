@@ -9,13 +9,10 @@ namespace Thunder
 {
     void RHIDummyCommand::Execute(RHICommandContext* cmdList)
     {
-        LOG("execute dummy command");
     }
 
     void RHIDrawCommand::Execute(RHICommandContext* cmdList)
     {
-        LOG("Execute draw command.");
-
         // Set pipeline state.
         BindPSO(cmdList);
 

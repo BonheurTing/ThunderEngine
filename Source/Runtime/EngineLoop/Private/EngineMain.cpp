@@ -1,5 +1,6 @@
 #pragma optimize("", off)
 #include "EngineMain.h"
+#include "IDynamicRHI.h"
 #include "CoreModule.h"
 #include "D3D12RHIModule.h"
 #include "D3D11RHIModule.h"
@@ -83,6 +84,13 @@ namespace Thunder
         GameModule::GetModule()->InitGameThread(defaultRendererFactory); //bonheur test
     }
 
+    void EngineMain::InitWindow(void* hwnd)
+    {
+        uint32 w = GDynamicRHI->GetViewportWidth();
+        uint32 h = GDynamicRHI->GetViewportHeight();
+        RHICreateSwapChain(hwnd, w, h);
+    }
+
     bool EngineMain::RHIInit(EGfxApiType type)
     {
         ShaderModule::GetModule()->InitShaderCompiler(type);
@@ -120,17 +128,18 @@ namespace Thunder
          *      while the "while expression" needs to wait for the completion of the game task before responding.
         **/
 
-        // may be handle IO operations (such as keyboard and mouse input)
-
-        GGameScheduler->WaitForCompletionAndThreadExit();
-        GRenderScheduler->WaitForCompletionAndThreadExit();
-        GRHIScheduler->WaitForCompletionAndThreadExit();
-
+        // Main thread returns immediately so the caller can run a message pump.
+        // Call Exit() to wait for all schedulers to finish.
         return 0;
     }
 
     void EngineMain::Exit()
     {
+        // Wait for all engine threads to complete before shutting down
+        GGameScheduler->WaitForCompletionAndThreadExit();
+        GRenderScheduler->WaitForCompletionAndThreadExit();
+        GRHIScheduler->WaitForCompletionAndThreadExit();
+
         TaskSchedulerManager::ShutDown();
         ModuleManager::GetInstance()->UnloadModule<GameModule>();
         ModuleManager::GetInstance()->UnloadModule<PackageModule>();

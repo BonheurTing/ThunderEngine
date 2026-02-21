@@ -75,30 +75,30 @@ namespace Thunder
 
     void SubMesh::InitRHI()
     {
-        // vb
+        // Create VB on default heap (render thread)
         {
             uint32 vertexStride = static_cast<uint32>(Vertices->GetStride());
+            uint32 vertexDataSize = static_cast<uint32>(Vertices->GetTotalSize());
 
-            VerticesBuffer = RHICreateVertexBuffer(
-                static_cast<uint32>(Vertices->GetTotalSize()),
-                vertexStride,
-                EBufferCreateFlags::Static
-            );
-
-            VerticesBuffer->SetBinaryData(Vertices);
+            VerticesBuffer = RHICreateVertexBuffer(vertexDataSize, vertexStride, EBufferCreateFlags::Static);
         }
-        // ib
+        // Create IB on default heap (render thread)
         {
             uint32 indexDataSize = static_cast<uint32>(Indices->GetTotalSize());
             ERHIIndexBufferType indexType = ERHIIndexBufferType::Uint32; // todo
 
-            IndicesBuffer = RHICreateIndexBuffer(
-                indexDataSize,
-                indexType,
-                EBufferCreateFlags::Static
-            );
-            IndicesBuffer->SetBinaryData(Indices);
+            IndicesBuffer = RHICreateIndexBuffer(indexDataSize, indexType, EBufferCreateFlags::Static);
         }
+
+        // Push to RHI thread: set binary data and enqueue for upload
+        GRHIScheduler->PushTask([vb = VerticesBuffer, ib = IndicesBuffer,
+                                  verts = Vertices, indices = Indices]()
+        {
+            vb->SetBinaryData(verts->MoveData());
+            ib->SetBinaryData(indices->MoveData());
+            GRHIUpdateAsyncQueue.push_back(vb);
+            GRHIUpdateAsyncQueue.push_back(ib);
+        });
     }
 
     void SubMesh::ReleaseRHI()
@@ -144,25 +144,9 @@ namespace Thunder
 
         for (auto subMesh : SubMeshes)
         {
+            // InitRHI creates the default-heap buffers and schedules the upload to RHI thread internally.
             subMesh->InitRHI();
         }
-
-        GRHIScheduler->PushTask([num = static_cast<uint32>(SubMeshes.size()), subMeshes = SubMeshes, bAsync = isDoubleBuffered() || (!isDynamic())]()
-        {
-            for (uint32 i = 0; i < num; i++)
-            {
-                if (bAsync)
-                {
-                    GRHIUpdateAsyncQueue.push_back(subMeshes[i]->GetVerticesBuffer());
-                    GRHIUpdateAsyncQueue.push_back(subMeshes[i]->GetIndicesBuffer());
-                }
-                else
-                {
-                    GRHIUpdateSyncQueue.push_back(subMeshes[i]->GetVerticesBuffer());
-                    GRHIUpdateSyncQueue.push_back(subMeshes[i]->GetIndicesBuffer());
-                }
-            }
-        });
     }
 
     ProceduralGeometryManager::~ProceduralGeometryManager()
@@ -309,6 +293,12 @@ namespace Thunder
             indexBuffer->SetComponentData("Index", indices);
 
             SubMeshes[EProceduralGeometry::Triangle] = new SubMesh( std::move(vertexBuffer), std::move(indexBuffer) );
+        }
+
+        // Init rhi
+        for (auto& subMesh : SubMeshes | std::views::values)
+        {
+            subMesh->InitRHI();
         }
     }
 

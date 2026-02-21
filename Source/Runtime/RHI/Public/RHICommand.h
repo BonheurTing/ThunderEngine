@@ -65,6 +65,20 @@ namespace Thunder
         RHI_API void Execute(RHICommandContext* cmdList) override;
     };
 
+    struct RHIBeginFrameCommand : public IRHICommand
+    {
+        RHI_API void Execute(RHICommandContext* cmdList) override;
+    };
+
+    struct RHIBeginCommandListCommand : public IRHICommand
+    {
+        RHI_API void Execute(RHICommandContext* cmdList) override;
+
+        RHIBeginCommandListCommand(struct RHIPassState* state) : PassState(state) {}
+
+        RHIPassState* PassState;
+    };
+
     /**
      * Complete draw command that includes all necessary render state
      * This is a consolidated draw command rather than many small commands like UE
@@ -95,7 +109,6 @@ namespace Thunder
         uint32 StartIndexLocation = 0;
         int32 BaseVertexLocation = 0;
         uint32 StartInstanceLocation = 0;
-        uint32 StartVertexLocation = 0;
     };
 
     struct RHICachedDrawCommand : public RHIDrawCommand
@@ -157,5 +170,17 @@ namespace Thunder
 
         TReadTextureBinding PresentTexture;
         bool bPresentPass = false;
+    };
+
+    struct RHIPassState
+    {
+        RHIPassState(const RHIBeginPassCommand* beginCommand, uint32 commandId);
+        ~RHIPassState() = default;
+
+        RHITextureRef RenderTargets[kMaxRTVCount];
+        RHITextureRef DepthStencil;
+        uint32 RenderTargetCount = 0;
+
+        uint32 BeginCommandIndex = 0;
     };
 }

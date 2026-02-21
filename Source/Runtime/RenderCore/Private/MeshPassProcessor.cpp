@@ -41,6 +41,8 @@ namespace Thunder
             // vb ib
             newCommand->VBToSet = subMesh->GetVerticesBuffer();
             newCommand->IBToSet = subMesh->GetIndicesBuffer();
+            newCommand->VertexCount = static_cast<uint32>(subMesh->GetVertices()->GetDataNum());
+            newCommand->IndexCount = static_cast<uint32>(subMesh->GetIndices()->GetDataNum());
 
             // Get shader variant first.
             ShaderCombination* shaderVariant = GetShaderCombination(meshPassType, material);

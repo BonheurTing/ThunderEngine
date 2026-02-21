@@ -11,6 +11,33 @@ namespace Thunder
     {
     }
 
+    void RHIBeginFrameCommand::Execute(RHICommandContext* cmdList)
+    {
+        cmdList->BeginFrame();
+    }
+
+    void RHIBeginCommandListCommand::Execute(RHICommandContext* cmdList)
+    {
+        uint32 const rtCount = PassState->RenderTargetCount;
+        if (rtCount == 0)
+        {
+            return;
+        }
+
+        TArray<RHIRenderTargetView*> rtvPtrs(rtCount);
+        for (uint32 i = 0; i < rtCount; i++)
+        {
+            rtvPtrs[i] = PassState->RenderTargets[i]->GetRTV();
+        }
+        RHIDepthStencilView* dsv = nullptr;
+        if (PassState->DepthStencil.IsValid())
+        {
+            dsv = PassState->DepthStencil->GetDSV();
+        }
+
+        cmdList->SetRenderTarget(rtCount, rtvPtrs, dsv);
+    }
+
     void RHIDrawCommand::Execute(RHICommandContext* cmdList)
     {
         // Set pipeline state.
@@ -40,7 +67,7 @@ namespace Thunder
         }
         else
         {
-            cmdList->DrawInstanced(VertexCount, InstanceCount, StartVertexLocation, StartInstanceLocation);
+            cmdList->DrawInstanced(VertexCount, InstanceCount, BaseVertexLocation, StartInstanceLocation);
         }
     }
 

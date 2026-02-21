@@ -64,7 +64,7 @@ namespace Thunder
         {
             IndexBufferView.BufferLocation = IndexBuffer->GetGPUVirtualAddress();
             IndexBufferView.Format = type == ERHIIndexBufferType::Uint16 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
-            IndexBufferView.SizeInBytes = static_cast<UINT>(desc.Width) * (type == ERHIIndexBufferType::Uint16 ? 2 : 4);
+            IndexBufferView.SizeInBytes = static_cast<UINT>(desc.Width);
         }
 
         void Update() override;

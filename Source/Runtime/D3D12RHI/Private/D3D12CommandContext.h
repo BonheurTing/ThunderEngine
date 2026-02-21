@@ -52,6 +52,7 @@ namespace Thunder
     	
 		// Misc
 		void Reset(uint32 index) override;
+		void BeginFrame() override;
     	void TransitionBarrier(RHIResource* res, ERHIResourceState oldState, ERHIResourceState newState, uint32 subResource) override;
 
 		class TD3D12RootSignature* BindRootSignature(TShaderRegisterCounts const& shaderRC) const;

@@ -479,8 +479,9 @@ namespace Thunder
     RHIVertexBufferRef D3D12DynamicRHI::RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes,  EBufferCreateFlags usage, void *resourceData)
     {
         ID3D12Resource* vertexBuffer;
+        const bool bDynamic = EnumHasAnyFlags(usage, EBufferCreateFlags::AnyDynamic);
         const D3D12_HEAP_PROPERTIES heapType = {
-            (EnumHasAnyFlags(usage, EBufferCreateFlags::AnyDynamic) ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT),
+            bDynamic ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT,
             D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 1, 1
         };
 
@@ -488,26 +489,17 @@ namespace Thunder
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                            D3D12_HEAP_FLAG_NONE,
                                                            &desc,
-                                                           D3D12_RESOURCE_STATE_GENERIC_READ,
+                                                           D3D12_RESOURCE_STATE_COMMON,
                                                            nullptr,
                                                            IID_PPV_ARGS(&vertexBuffer));
 
         if (SUCCEEDED(hr))
         {
-            RHIVertexBufferRef vertexBufferRef = MakeRefCount<D3D12RHIVertexBuffer>(sizeInBytes, strideInBytes, RHIResourceDescriptor::Buffer(sizeInBytes), usage, vertexBuffer);
-            if (RHIUpdateSharedMemoryResource(vertexBufferRef.Get(), resourceData, sizeInBytes, 0))
-            {
-                return vertexBufferRef;
-            }
-            else
-            {
-                TAssertf(false, "Fail to update vertex buffer");
-                return nullptr;
-            }
+            return MakeRefCount<D3D12RHIVertexBuffer>(sizeInBytes, strideInBytes, RHIResourceDescriptor::Buffer(sizeInBytes), usage, vertexBuffer);
         }
         else
         {
-            TAssertf(false, "Fail to create vertex buffer");
+            TAssertf(false, "Fail to create vertex buffer (size: %u, dynamic: %d, HRESULT: 0x%08X).", sizeInBytes, bDynamic, static_cast<uint32>(hr));
             return nullptr;
         }
     }
@@ -523,7 +515,7 @@ namespace Thunder
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                            D3D12_HEAP_FLAG_NONE,
                                                            &desc,
-                                                           D3D12_RESOURCE_STATE_GENERIC_READ,
+                                                           D3D12_RESOURCE_STATE_COMMON,
                                                            nullptr,
                                                            IID_PPV_ARGS(&indexBuffer));
 
@@ -550,7 +542,7 @@ namespace Thunder
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                             D3D12_HEAP_FLAG_NONE,
                                                             &desc,
-                                                            D3D12_RESOURCE_STATE_GENERIC_READ,
+                                                            D3D12_RESOURCE_STATE_COMMON,
                                                             nullptr,
                                                             IID_PPV_ARGS(&structuredBuffer));
 
@@ -576,7 +568,7 @@ namespace Thunder
         const HRESULT hr = Device->CreateCommittedResource(&heapType,
                                                             D3D12_HEAP_FLAG_NONE,
                                                             &desc, //todo: D3D12_HEAP_FLAG_NONE
-                                                            D3D12_RESOURCE_STATE_GENERIC_READ,
+                                                            D3D12_RESOURCE_STATE_COMMON,
                                                             nullptr,
                                                             IID_PPV_ARGS(&constantBuffer));
     

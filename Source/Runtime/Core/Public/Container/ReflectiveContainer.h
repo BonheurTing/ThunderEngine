@@ -85,6 +85,7 @@ namespace Thunder
 		void Initialize();
 
 		void CopyData(const void* src, size_t offset, size_t size) const;
+		byte* MoveData();
 
 		// Get/Set component values
 		template<typename T>

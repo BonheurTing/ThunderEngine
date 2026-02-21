@@ -88,15 +88,22 @@ namespace Thunder
 
         uint32 frontFrameGraphIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
         auto consolidatedCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(static_cast<int>(frontFrameGraphIndex));
+        auto passStates = renderer->GetFrameGraph()->GetCurrentPassStates(static_cast<int>(frontFrameGraphIndex));
         int commandNum = static_cast<int>(consolidatedCommands.size());
         if (commandNum > 0)
         {
             const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
             auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
             dispatcher->Promise(commandNum);
-            GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 threadId) mutable
+            GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, passStates, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 threadId) mutable
             {
                 RHICommandContext* commandList = rhiCommandContexts[threadId];
+
+                if (threadId > 0)
+                {
+                    ExecuteBeginCommandListCommand(passStates, commandList, bundleBegin);
+                }
+
                 for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
                 {
                     if (index < static_cast<uint32>(commandNum))
@@ -122,5 +129,34 @@ namespace Thunder
         }
         uint32 fenceIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % MAX_FRAME_LAG;
         GDynamicRHI->RHISignalFence(fenceIndex);
+    }
+
+    void RHITask::ExecuteBeginCommandListCommand(const TArray<RHIPassState*>& passStates, RHICommandContext* commandList, uint32 firstCommandId)
+    {
+        if (passStates.empty())
+        {
+            return;
+        }
+        // find pass, set render targets
+        uint32 passStatIndex = 0;
+        // Binary search
+        int32 lo = 0;
+        int32 hi = static_cast<int32>(passStates.size()) - 1;
+        while (lo <= hi)
+        {
+            int32 mid = lo + (hi - lo) / 2;
+            if (passStates[mid]->BeginCommandIndex <= firstCommandId)
+            {
+                passStatIndex = static_cast<uint32>(mid);
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+        auto passStat = passStates[passStatIndex];
+        RHIBeginCommandListCommand command(passStat);
+        command.Execute(commandList);
     }
 }

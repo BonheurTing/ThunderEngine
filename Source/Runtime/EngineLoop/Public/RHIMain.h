@@ -40,6 +40,7 @@ namespace Thunder
         void RHIMain();
         void CommitRendererCommands(const IRenderer* renderer);
         void ExecuteRendererCommands();
+        static void ExecuteBeginCommandListCommand(const TArray<struct RHIPassState*>& passStates, class RHICommandContext* commandList, uint32 firstCommandId);
 
         TArray<IRenderer*> Renderers;
     };

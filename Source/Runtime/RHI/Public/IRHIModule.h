@@ -22,6 +22,7 @@ namespace Thunder
 		RHICommandContext* GetCopyCommandContext_Render() const { return CopyCommandContext_Render; }
 		RHICommandContext* GetCopyCommandContext_RHI() const { return CopyCommandContext_RHI; }
 		const TArray<RHICommandContextRef>& GetRHICommandContexts() const { return CommandContexts; }
+		RHICommandContextRef GetRHICommandContext(uint32 index) const { return CommandContexts[index]; }
 
 		static IRHIModule* GetModule()
 		{

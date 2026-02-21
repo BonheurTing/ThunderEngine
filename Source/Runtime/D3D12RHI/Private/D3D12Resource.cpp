@@ -16,116 +16,168 @@ namespace Thunder
 
 	void D3D12RHIVertexBuffer::Update(/*RHICommandList* commandList*/)
 	{
-		ComPtr<ID3D12Resource> uploadBuffer = VertexBuffer;
-		const UINT subresourceCount = Desc.DepthOrArraySize * Desc.MipLevels;
-		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(VertexBuffer.Get(), 0, subresourceCount);
+		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(VertexBuffer.Get(), 0, 1);
 		bool isDynamic = EnumHasAnyFlags(CreateFlags, EBufferCreateFlags::AnyDynamic);
 		D3D12DynamicRHI* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
-		if (!isDynamic)
-		{
-			TAssertf(dx12RHI, "fail to get dx12rhi");
-			ComPtr<ID3D12Device> d3dDevice = dx12RHI->GetDevice();
-
-			const D3D12_HEAP_PROPERTIES heapType = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-			const CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-			ThrowIfFailed(d3dDevice->CreateCommittedResource(
-				&heapType,
-				D3D12_HEAP_FLAG_NONE,
-				&bufferDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&uploadBuffer)));
-		}
+		TAssertf(dx12RHI, "fail to get dx12rhi");
 
 		if (isDynamic)
 		{
+			// Dynamic buffer lives on upload heap, map directly.
 			void* mappedData = nullptr;
-			HRESULT hr = uploadBuffer->Map(0, nullptr, &mappedData);
-			TAssertf(SUCCEEDED(hr), "Map failed");
-			const uint8* srcData = static_cast<const uint8*>(Data->GetData());
-			memcpy(mappedData, srcData, uploadBufferSize);
-			uploadBuffer->Unmap(0, nullptr);
-		}
-		else
-		{
-			// Prepare subresource data for UpdateSubresources
-			D3D12_SUBRESOURCE_DATA vertexData = {};
-			vertexData.pData = Data->GetData();
-			vertexData.RowPitch = uploadBufferSize;
-			vertexData.SlicePitch = vertexData.RowPitch;
-
-			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI()))
+			HRESULT hr = VertexBuffer->Map(0, nullptr, &mappedData);
+			if (hr != S_OK) [[unlikely]]
 			{
-				// sync update resource update in render thread, async update resource has double buffer so has no issues.
-				D3D12_RESOURCE_STATES oldState = static_cast<D3D12_RESOURCE_STATES>(GetState_RenderThread());
-				if (oldState != D3D12_RESOURCE_STATE_COPY_DEST)
-				{
-					CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(VertexBuffer.Get(), oldState, D3D12_RESOURCE_STATE_COPY_DEST);
-					dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
-					SetState_RenderThread(static_cast<ERHIResourceState>(D3D12_RESOURCE_STATE_COPY_DEST));
-				}
-				UpdateSubresources<1>(dx12Context->GetCommandList().Get(), VertexBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &vertexData);
+				TAssertf(false, "D3D12RHIVertexBuffer::Update: Map failed (HRESULT: 0x%08X).", static_cast<uint32>(hr));
+				return;
 			}
-
-			dx12RHI->AddReleaseObject(uploadBuffer);
+			memcpy(mappedData, Data, uploadBufferSize);
+			VertexBuffer->Unmap(0, nullptr);
+			return;
 		}
+
+		// Static buffer: create a temporary upload heap buffer, memcpy into it,
+		// then CopyBufferRegion to the default heap buffer with the correct barriers.
+		ComPtr<ID3D12Device> d3dDevice = dx12RHI->GetDevice();
+
+		ComPtr<ID3D12Resource> uploadBuffer;
+		const D3D12_HEAP_PROPERTIES uploadHeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		const CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+		HRESULT hr = d3dDevice->CreateCommittedResource(
+			&uploadHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&bufferDesc,
+			D3D12_RESOURCE_STATE_COMMON,
+			nullptr,
+			IID_PPV_ARGS(&uploadBuffer));
+		if (hr != S_OK) [[unlikely]]
+		{
+			TAssertf(false, "D3D12RHIVertexBuffer::Update: Failed to create upload buffer (HRESULT: 0x%08X).", static_cast<uint32>(hr));
+			return;
+		}
+
+		// Map upload buffer and copy CPU data into it.
+		void* mappedData = nullptr;
+		const D3D12_RANGE readRange = { 0, 0 };
+		hr = uploadBuffer->Map(0, &readRange, &mappedData);
+		if (hr != S_OK) [[unlikely]]
+		{
+			TAssertf(false, "D3D12RHIVertexBuffer::Update: Failed to map upload buffer (HRESULT: 0x%08X).", static_cast<uint32>(hr));
+			return;
+		}
+		memcpy(mappedData, Data, uploadBufferSize);
+		uploadBuffer->Unmap(0, nullptr);
+
+		auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI());
+		if (!dx12Context) [[unlikely]]
+		{
+			TAssertf(false, "D3D12RHIVertexBuffer::Update: Failed to get copy command context.");
+			return;
+		}
+
+		auto* cmdList = dx12Context->GetCommandList().Get();
+
+		// Barrier: COMMON -> COPY_DEST
+		D3D12_RESOURCE_STATES oldState = static_cast<D3D12_RESOURCE_STATES>(GetState_RenderThread());
+		if (oldState != D3D12_RESOURCE_STATE_COPY_DEST)
+		{
+			CD3DX12_RESOURCE_BARRIER toCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+				VertexBuffer.Get(), oldState, D3D12_RESOURCE_STATE_COPY_DEST);
+			cmdList->ResourceBarrier(1, &toCopyDest);
+		}
+
+		cmdList->CopyBufferRegion(VertexBuffer.Get(), 0, uploadBuffer.Get(), 0, uploadBufferSize);
+
+		// Barrier: COPY_DEST -> VERTEX_AND_CONSTANT_BUFFER
+		CD3DX12_RESOURCE_BARRIER toVBState = CD3DX12_RESOURCE_BARRIER::Transition(
+			VertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+		cmdList->ResourceBarrier(1, &toVBState);
+		SetState_RenderThread(static_cast<ERHIResourceState>(D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+		dx12RHI->AddReleaseObject(uploadBuffer);
 	}
 
 	void D3D12RHIIndexBuffer::Update()
 	{
-		ComPtr<ID3D12Resource> uploadBuffer = IndexBuffer;
-		const UINT subresourceCount = Desc.DepthOrArraySize * Desc.MipLevels;
-		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(IndexBuffer.Get(), 0, subresourceCount);
+		const UINT64 uploadBufferSize = GetRequiredIntermediateSize(IndexBuffer.Get(), 0, 1);
 		bool isDynamic = EnumHasAnyFlags(CreateFlags, EBufferCreateFlags::AnyDynamic);
 		D3D12DynamicRHI* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
-		if (!isDynamic)
-		{
-			TAssertf(dx12RHI, "fail to get dx12rhi");
-			ComPtr<ID3D12Device> d3dDevice = dx12RHI->GetDevice();
-
-			const D3D12_HEAP_PROPERTIES heapType = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
-			const CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-			ThrowIfFailed(d3dDevice->CreateCommittedResource(
-				&heapType,
-				D3D12_HEAP_FLAG_NONE,
-				&bufferDesc,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&uploadBuffer)));
-		}
+		TAssertf(dx12RHI, "fail to get dx12rhi");
 
 		if (isDynamic)
 		{
+			// Dynamic buffer lives on upload heap, map directly.
 			void* mappedData = nullptr;
-			HRESULT hr = uploadBuffer->Map(0, nullptr, &mappedData);
-			TAssertf(SUCCEEDED(hr), "Map failed");
-			const uint8* srcData = static_cast<const uint8*>(Data->GetData());
-			memcpy(mappedData, srcData, uploadBufferSize);
-			uploadBuffer->Unmap(0, nullptr);
-		}
-		else
-		{
-			// Prepare subresource data for UpdateSubresources
-			D3D12_SUBRESOURCE_DATA indexData = {};
-			indexData.pData = Data->GetData();
-			indexData.RowPitch = uploadBufferSize;
-			indexData.SlicePitch = indexData.RowPitch;
-
-			if (auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI()))
+			HRESULT hr = IndexBuffer->Map(0, nullptr, &mappedData);
+			if (hr != S_OK) [[unlikely]]
 			{
-				// sync update resource update in render thread, async update resource has double buffer so has no issues.
-				D3D12_RESOURCE_STATES oldState = static_cast<D3D12_RESOURCE_STATES>(GetState_RenderThread());
-				if (oldState != D3D12_RESOURCE_STATE_COPY_DEST)
-				{
-					CD3DX12_RESOURCE_BARRIER barrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(IndexBuffer.Get(), oldState, D3D12_RESOURCE_STATE_COPY_DEST);
-					dx12Context->GetCommandList()->ResourceBarrier(1, &barrierDesc);
-					SetState_RenderThread(static_cast<ERHIResourceState>(D3D12_RESOURCE_STATE_COPY_DEST));
-				}
-				UpdateSubresources<1>(dx12Context->GetCommandList().Get(), IndexBuffer.Get(), uploadBuffer.Get(), 0, 0, 1, &indexData);
+				TAssertf(false, "D3D12RHIIndexBuffer::Update: Map failed (HRESULT: 0x%08X).", static_cast<uint32>(hr));
+				return;
 			}
-
-			dx12RHI->AddReleaseObject(uploadBuffer);
+			memcpy(mappedData, Data, uploadBufferSize);
+			IndexBuffer->Unmap(0, nullptr);
+			return;
 		}
+
+		// Static buffer: create a temporary upload heap buffer, memcpy into it,
+		// then CopyBufferRegion to the default heap buffer with the correct barriers.
+		ComPtr<ID3D12Device> d3dDevice = dx12RHI->GetDevice();
+
+		ComPtr<ID3D12Resource> uploadBuffer;
+		const D3D12_HEAP_PROPERTIES uploadHeapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		const CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
+		HRESULT hr = d3dDevice->CreateCommittedResource(
+			&uploadHeapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&bufferDesc,
+			D3D12_RESOURCE_STATE_COMMON,
+			nullptr,
+			IID_PPV_ARGS(&uploadBuffer));
+		if (hr != S_OK) [[unlikely]]
+		{
+			TAssertf(false, "D3D12RHIIndexBuffer::Update: Failed to create upload buffer (HRESULT: 0x%08X).", static_cast<uint32>(hr));
+			return;
+		}
+
+		// Map upload buffer and copy CPU data into it.
+		void* mappedData = nullptr;
+		const D3D12_RANGE readRange = { 0, 0 };
+		hr = uploadBuffer->Map(0, &readRange, &mappedData);
+		if (hr != S_OK) [[unlikely]]
+		{
+			TAssertf(false, "D3D12RHIIndexBuffer::Update: Failed to map upload buffer (HRESULT: 0x%08X).", static_cast<uint32>(hr));
+			return;
+		}
+		memcpy(mappedData, Data, uploadBufferSize);
+		uploadBuffer->Unmap(0, nullptr);
+
+		auto dx12Context = static_cast<D3D12CommandContext*>(IRHIModule::GetModule()->GetCopyCommandContext_RHI());
+		if (!dx12Context) [[unlikely]]
+		{
+			TAssertf(false, "D3D12RHIIndexBuffer::Update: Failed to get copy command context.");
+			return;
+		}
+
+		auto* cmdList = dx12Context->GetCommandList().Get();
+
+		// Barrier: COMMON -> COPY_DEST
+		D3D12_RESOURCE_STATES oldState = static_cast<D3D12_RESOURCE_STATES>(GetState_RenderThread());
+		if (oldState != D3D12_RESOURCE_STATE_COPY_DEST)
+		{
+			CD3DX12_RESOURCE_BARRIER toCopyDest = CD3DX12_RESOURCE_BARRIER::Transition(
+				IndexBuffer.Get(), oldState, D3D12_RESOURCE_STATE_COPY_DEST);
+			cmdList->ResourceBarrier(1, &toCopyDest);
+		}
+
+		cmdList->CopyBufferRegion(IndexBuffer.Get(), 0, uploadBuffer.Get(), 0, uploadBufferSize);
+
+		// Barrier: COPY_DEST -> INDEX_BUFFER
+		CD3DX12_RESOURCE_BARRIER toIBState = CD3DX12_RESOURCE_BARRIER::Transition(
+			IndexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER);
+		cmdList->ResourceBarrier(1, &toIBState);
+		SetState_RenderThread(static_cast<ERHIResourceState>(D3D12_RESOURCE_STATE_INDEX_BUFFER));
+
+		dx12RHI->AddReleaseObject(uploadBuffer);
 	}
 
 	void D3D12RHITexture::Update(/*RHICommandList* commandList*/)

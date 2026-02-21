@@ -219,6 +219,13 @@ namespace Thunder
 		memcpy(static_cast<uint8*>(Data) + offset, src, size);
 	}
 
+	byte* ReflectiveContainer::MoveData()
+	{
+		byte* data = static_cast<byte*>(Data);
+		Data = nullptr;
+		return data;
+	}
+
 	template<typename T>
 	T* ReflectiveContainer::GetComponent(const String& name)
 	{

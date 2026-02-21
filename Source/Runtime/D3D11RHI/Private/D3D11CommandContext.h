@@ -46,6 +46,7 @@ namespace Thunder
     	
 		// Misc
 		void Reset(uint32 index) override {}
+    	void BeginFrame() override {}
     	void TransitionBarrier(RHIResource* res, ERHIResourceState oldState, ERHIResourceState newState, uint32 subResource) override {}
 		
 	private:

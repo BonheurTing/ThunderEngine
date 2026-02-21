@@ -20,7 +20,6 @@ namespace Thunder
 	void RenderModule::StartUp()
 	{
 		GProceduralGeometryManager = new ProceduralGeometryManager();
-		GProceduralGeometryManager->InitBasicGeometrySubMeshes();
 	}
 
 	void RenderModule::ShutDown()
@@ -386,7 +385,9 @@ namespace Thunder
 
         // vb ib
         newCommand->VBToSet = geometry->GetVerticesBuffer();
-        newCommand->IBToSet = geometry->GetIndicesBuffer();
+		newCommand->IBToSet = geometry->GetIndicesBuffer();
+		newCommand->VertexCount = static_cast<uint32>(geometry->GetVertices()->GetDataNum());
+		newCommand->IndexCount = static_cast<uint32>(geometry->GetIndices()->GetDataNum());
 
         // Apply shader bindings.
         newCommand->Bindings.SetTransientAllocated(true);

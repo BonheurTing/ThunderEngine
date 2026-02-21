@@ -112,6 +112,7 @@ namespace Thunder
         RenderContext* GetMainContext() const { return MainContext; }
         const TArray<RenderContext*>& GetRenderContexts() const { return RenderContexts; }
         TArray<IRHICommand*>& GetCurrentAllCommands(int frontIndex) { return AllCommands[frontIndex]; }
+        TArray<RHIPassState*>& GetCurrentPassStates(int frontIndex) { return AllPassStates[frontIndex]; }
 
         FORCEINLINE void SetCurrentPass(FrameGraphPass* pass) const
         {
@@ -147,13 +148,17 @@ namespace Thunder
         void TopologicalSort();
         void ScheduleRenderTargetLifetime();
         void AllocateRenderTargets();
+        void AddRenderTargetClearOp();
+        void SetPresentCommand();
 
         // Excute
-        void IntegrateCommands(uint32 frameIndex);
-        void FlushCommands(uint32 frameIndex);
+        void AggregateContextCommands(uint32 frameIndex);
+        void AddBeginFrameCommand(uint32 frameIndex);
+        void AddBeginPassCommand(FrameGraphPass* pass, uint32 frameIndex);
+        void AddPassState(uint32 frameIndex);
+        void AddEndPassCommand(FrameGraphPass* pass, uint32 frameIndex);
 
         // Passes.
-        
         TSet<NameHandle> CurrentFramePasses;
         TMap<NameHandle, TRefCountPtr<FrameGraphPass>> Passes;
 
@@ -182,6 +187,7 @@ namespace Thunder
         RenderContext* MainContext = nullptr;  // Main render thread context
         TArray<RenderContext*> RenderContexts; // Worker thread contexts
         TArray<IRHICommand*> AllCommands[2];       // Consolidated commands for execution
+        TArray<RHIPassState*> AllPassStates[2];
 
         // Mesh-draw.
         TMap<EMeshPass, CachedPassMeshDrawList> CachedDrawLists;

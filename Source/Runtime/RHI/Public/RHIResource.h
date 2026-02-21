@@ -108,12 +108,12 @@ namespace Thunder
     public:
         RHIVertexBuffer(RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags) : RHIBuffer(desc, flags) {}
 
-        void SetBinaryData(TReflectiveContainerRef src)
+        void SetBinaryData(byte* src)
         {
             Data = src;
         }
     protected:
-        TReflectiveContainerRef Data;
+        byte* Data;
     };
     
     class RHIIndexBuffer : public RHIBuffer
@@ -121,12 +121,12 @@ namespace Thunder
     public:
         RHIIndexBuffer(RHIResourceDescriptor const& desc, EBufferCreateFlags const& flags) : RHIBuffer(desc, flags) {}
 
-        void SetBinaryData(TReflectiveContainerRef src)
+        void SetBinaryData(byte* src)
         {
             Data = src;
         }
     protected:
-        TReflectiveContainerRef Data;
+        byte* Data;
     };
     
     class RHIStructuredBuffer : public RHIBuffer

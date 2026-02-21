@@ -440,6 +440,18 @@ namespace Thunder
 		}
 	}
 
+	void D3D12CommandContext::BeginFrame()
+	{
+		// Set viewport and topology.
+		uint32 viewportWidth = GDynamicRHI->GetViewportWidth();
+		uint32 viewportHeight = GDynamicRHI->GetViewportHeight();
+		CD3DX12_VIEWPORT Viewport(0.0f, 0.0f, static_cast<float>(viewportWidth), static_cast<float>(viewportHeight));
+		CD3DX12_RECT ScissorRect(0, 0, static_cast<LONG>(viewportWidth), static_cast<LONG>(viewportHeight));
+		CommandList->RSSetViewports(1, &Viewport);
+		CommandList->RSSetScissorRects(1, &ScissorRect);
+		CommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	}
+
 	void D3D12CommandContext::TransitionBarrier(RHIResource* res, ERHIResourceState oldState, ERHIResourceState newState, uint32 subResource)
 	{
 		void* resource = res->GetResource();

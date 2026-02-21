@@ -131,6 +131,17 @@ namespace Thunder
         return true;
     }
 
+    RHIPassState::RHIPassState(const RHIBeginPassCommand* beginCommand, uint32 commandId)
+        : BeginCommandIndex(commandId)
+    {
+        RenderTargetCount = beginCommand->RenderTargetCount;
+        for (uint32 i = 0; i < RenderTargetCount; ++i)
+        {
+            RenderTargets[i] = beginCommand->RenderTargets[i].Texture;
+        }
+        DepthStencil = beginCommand->DepthStencil.Texture;
+    }
+
     FrameGraph::FrameGraph(IRenderer* owner, int contextNum) : OwnerRenderer(owner)
     {
         InitializeRenderContexts(contextNum);
@@ -215,6 +226,7 @@ namespace Thunder
         // Clear commands from previous frame
         uint32 frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
         AllCommands[frameIndex].clear();
+        AllPassStates[frameIndex].clear();
         for (auto& context : RenderContexts)
         {
             context->ClearCommands();
@@ -238,44 +250,14 @@ namespace Thunder
         // Allocate render targets with lifetime-based reuse
         AllocateRenderTargets();
 
-        // Auto-set LoadOp::Clear for render targets that are written for the first time
-        // and have a clear value defined in their descriptor. Explicit WriteClear() calls
-        // are already recorded in the pass operations, so only override targets that are
-        // still using the default ELoadOp::Load.
-        for (size_t execIndex = 0; execIndex < ExecutionOrder.size(); ++execIndex)
-        {
-            NameHandle passName = ExecutionOrder[execIndex];
-            auto& pass = Passes[passName];
-            if (pass->bCulled) continue;
-
-            for (auto& [rtId, writeInfo] : pass->Operations.GetWriteTargets())
-            {
-                // Only promote to Clear if the caller hasn't already set an explicit LoadOp.
-                if (writeInfo.LoadOp != ELoadOp::Load) continue;
-
-                // Check this is the first use (first_use == current execIndex).
-                auto lifetimeIt = RenderTargetLifetimes.find(rtId);
-                if (lifetimeIt == RenderTargetLifetimes.end()) continue;
-                if (lifetimeIt->second.first != execIndex) continue;
-
-                // Only auto-clear when the FGRenderTarget descriptor carries a clear value.
-                auto rtIt = RenderTargets.find(rtId);
-                if (rtIt == RenderTargets.end()) continue;
-                const FGRenderTargetDesc& desc = rtIt->second->GetDesc();
-                if (!desc.bHasClearValue) continue;
-
-                pass->Operations.SetWriteTargetLoadOp(rtId, ELoadOp::Clear,
-                    desc.ClearValue, desc.ClearDepth, desc.ClearStencil);
-            }
-        }
+        // Auto-set render targets LoadOp
+        AddRenderTargetClearOp();
 
         // Add present command
-        NameHandle presentPassName = ExecutionOrder[ExecutionOrder.size() - 1];
-        auto& pass = Passes[presentPassName];
-        pass->bLastPass = true;
+        SetPresentCommand();
     }
 
-    void FrameGraph::IntegrateCommands(uint32 frameIndex)
+    void FrameGraph::AggregateContextCommands(uint32 frameIndex)
     {
         // Add main context commands.
         const auto& mainCommands = MainContext->GetCommands();
@@ -294,9 +276,18 @@ namespace Thunder
         }
     }
 
-    void FrameGraph::FlushCommands(uint32 frameIndex)
+    void FrameGraph::AddBeginFrameCommand(uint32 frameIndex)
     {
-        auto curPass = MainContext->GetCurrentPass();
+        // Add begin frame command
+        RHIBeginFrameCommand* beginFrameCommand = new (MainContext->Allocate<RHIBeginFrameCommand>()) RHIBeginFrameCommand;
+        MainContext->AddCommand(beginFrameCommand);
+
+        // Execute command before passes
+        AggregateContextCommands(frameIndex);
+    }
+
+    void FrameGraph::AddBeginPassCommand(FrameGraphPass* curPass, uint32 frameIndex)
+    {
         // Begin pass.
         RHIBeginPassCommand* newBeginCommand = new (MainContext->Allocate<RHIBeginPassCommand>()) RHIBeginPassCommand;
         auto& writeRTs = curPass->GetOperations().GetWriteTargets();
@@ -377,9 +368,20 @@ namespace Thunder
         }
 
         AllCommands[frameIndex].push_back(newBeginCommand);
+    }
 
-        IntegrateCommands(frameIndex);
+    void FrameGraph::AddPassState(uint32 frameIndex)
+    {
+        uint32 commandId = static_cast<uint32>(AllCommands[frameIndex].size()) - 1;
+        auto const lastCommand = AllCommands[frameIndex][commandId];
+        if (auto const beginCommand = dynamic_cast<RHIBeginPassCommand*>(lastCommand)) // todo dynamic_cast
+        {
+            AllPassStates[frameIndex].push_back(new RHIPassState(beginCommand, commandId));
+        }
+    }
 
+    void FrameGraph::AddEndPassCommand(FrameGraphPass* curPass, uint32 frameIndex)
+    {
         // End pass.
         RHIEndPassCommand* newEndCommand = new (MainContext->Allocate<RHIEndPassCommand>()) RHIEndPassCommand;
         if (curPass->bLastPass)
@@ -408,9 +410,9 @@ namespace Thunder
     void FrameGraph::Execute()
     {
         uint32 frameIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
-        // Execute command before passes
-        IntegrateCommands(frameIndex);
+        AggregateContextCommands(frameIndex);
 
+        AllPassStates[frameIndex].reserve(ExecutionOrder.size());
         // Execute passes in order.
         for (size_t i = 0; i < ExecutionOrder.size(); ++i)
         {
@@ -427,7 +429,10 @@ namespace Thunder
                 SetCurrentPass(pass.Get());
                 pass->ExecuteFunction();
 
-                FlushCommands(frameIndex);
+                AddBeginPassCommand(pass, frameIndex);
+                AddPassState(frameIndex);
+                AggregateContextCommands(frameIndex);
+                AddEndPassCommand(pass, frameIndex);
             }
 
             // After pass execution, release render targets that are no longer needed
@@ -986,5 +991,46 @@ namespace Thunder
             // Keep availableTargets sorted by end time
             std::sort(availableTargets.begin(), availableTargets.end());
         }
+    }
+
+    void FrameGraph::AddRenderTargetClearOp()
+    {
+        // Auto-set LoadOp::Clear for render targets that are written for the first time
+        // and have a clear value defined in their descriptor. Explicit WriteClear() calls
+        // are already recorded in the pass operations, so only override targets that are
+        // still using the default ELoadOp::Load.
+        for (size_t execIndex = 0; execIndex < ExecutionOrder.size(); ++execIndex)
+        {
+            NameHandle passName = ExecutionOrder[execIndex];
+            auto& pass = Passes[passName];
+            if (pass->bCulled) continue;
+
+            for (auto& [rtId, writeInfo] : pass->Operations.GetWriteTargets())
+            {
+                // Only promote to Clear if the caller hasn't already set an explicit LoadOp.
+                if (writeInfo.LoadOp != ELoadOp::Load) continue;
+
+                // Check this is the first use (first_use == current execIndex).
+                auto lifetimeIt = RenderTargetLifetimes.find(rtId);
+                if (lifetimeIt == RenderTargetLifetimes.end()) continue;
+                if (lifetimeIt->second.first != execIndex) continue;
+
+                // Only auto-clear when the FGRenderTarget descriptor carries a clear value.
+                auto rtIt = RenderTargets.find(rtId);
+                if (rtIt == RenderTargets.end()) continue;
+                const FGRenderTargetDesc& desc = rtIt->second->GetDesc();
+                if (!desc.bHasClearValue) continue;
+
+                pass->Operations.SetWriteTargetLoadOp(rtId, ELoadOp::Clear,
+                    desc.ClearValue, desc.ClearDepth, desc.ClearStencil);
+            }
+        }
+    }
+
+    void FrameGraph::SetPresentCommand()
+    {
+        NameHandle presentPassName = ExecutionOrder[ExecutionOrder.size() - 1];
+        auto& pass = Passes[presentPassName];
+        pass->bLastPass = true;
     }
 }

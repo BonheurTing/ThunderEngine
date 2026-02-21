@@ -7,6 +7,7 @@
 #include "GameMain.h"
 #include "GameModule.h"
 #include "PackageModule.h"
+#include "RenderMesh.h"
 #include "RenderModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
@@ -76,6 +77,9 @@ namespace Thunder
 
         // setup shader archive
         ShaderModule::InitShaderMap();
+
+        // setup base geometries
+        GProceduralGeometryManager->InitBasicGeometrySubMeshes();
 
         TFunction<class IRenderer*()> defaultRendererFactory = [this]() -> IRenderer*
         {

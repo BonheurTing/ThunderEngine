@@ -10,6 +10,11 @@
 namespace Thunder
 {
     class RenderTexture;
+	class UniformBufferLayout;
+	class FrameGraph;
+	struct FrameGraphPass;
+	struct ShaderParameterMap;
+	class ShaderArchive;
 
     class RENDERCORE_API RenderModule : public IModule
     {
@@ -29,12 +34,12 @@ namespace Thunder
     	static void UpdateTextureRegistry_RenderThread();
     	static RenderTexture* GetTextureResource_RenderThread(const TGuid& guid);
 
-    	// Uniform buffer.
-    	static byte* SetupUniformBufferParameters(const RenderContext* context, const class UniformBufferLayout* layout
-			, const struct ShaderParameterMap* parameterMap, const String& ubName);
-
-		// Set up pso
-    	static TRHIGraphicsPipelineState* GetPipelineState(const RenderContext* context, NameHandle subShaderName, class ShaderArchive* archive, ShaderCombination* shaderCombination, const SubMesh* subMesh);
+    	// Draw
+    	static byte* SetupUniformBufferParameters(const RenderContext* context, const UniformBufferLayout* layout
+			, const ShaderParameterMap* parameterMap, const String& ubName);
+    	static TRHIGraphicsPipelineState* GetPipelineState(const RenderContext* context, NameHandle subShaderName,
+    		ShaderArchive* archive, ShaderCombination* shaderCombination, const SubMesh* subMesh);
+    	static void BuildDrawCommand(FrameGraph* graphBuilder, FrameGraphPass* pass, SubMesh* geometry);
 
     private:
     	std::array<MeshPassProcessorRef, static_cast<size_t>(EMeshPass::Num)> MeshPassProcessors;

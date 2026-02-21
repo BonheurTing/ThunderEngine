@@ -1,5 +1,7 @@
 
 #include "RenderModule.h"
+
+#include "FrameGraph.h"
 #include "Misc/CoreGlabal.h"
 #include "MeshPassProcessor.h"
 #include "RenderTexture.h"
@@ -336,5 +338,114 @@ namespace Thunder
 
 		auto pipelineStateObject = RHICreateGraphicsPipelineState(psoDesc);
 		return pipelineStateObject;
+	}
+
+	void RenderModule::BuildDrawCommand(FrameGraph* graphBuilder, FrameGraphPass* pass, SubMesh* geometry)
+	{
+		TAssertf(graphBuilder, "graphBuilder is null");
+		auto archive = pass->Archive;
+		auto context = graphBuilder->GetMainContext();
+		if (context == nullptr) [[unlikely]]
+		{
+			TAssertf(false, "Context is null");
+			return;
+		}
+		if (pass == nullptr) [[unlikely]]
+		{
+			TAssertf(false, "CurrentPass is null");
+			return;
+		}
+		if (archive == nullptr)
+		{
+			TAssertf(false, "Shader is not ready.");
+			return;
+		}
+		NameHandle passName = pass->GetName();
+
+		// update pass uniform buffer
+        byte* constantData = SetupUniformBufferParameters(context, pass->PassUBLayout, pass->PassParameters, passName.ToString());
+        if (pass->bLayoutNeedsUpdate)
+        {
+            if (pass->PassUniformBuffer.IsValid())
+            {
+                RHIDeferredDeleteResource(std::move(pass->PassUniformBuffer));
+            }
+            pass->PassUniformBuffer = RHICreateUniformBuffer(pass->PassUBLayout->GetTotalSize(), EUniformBufferFlags::UniformBuffer_SingleFrame, constantData);
+        }
+        else
+        {
+            RHIUpdateUniformBuffer(context, pass->PassUniformBuffer, constantData);
+        }
+        pass->bLayoutNeedsUpdate = false;
+
+        // Dispatch command
+        RHIDrawCommand* newCommand = new (context->Allocate<RHIDrawCommand>()) RHIDrawCommand;
+        uint64 shaderVariantMask = ShaderModule::GetVariantMask(pass->Archive, pass->PassParameters->StaticSwitchParameters);
+        newCommand->Shader = ShaderModule::GetShaderCombination(archive, passName, shaderVariantMask);
+        newCommand->GraphicsPSO = GetPipelineState(context, passName, archive, newCommand->Shader, geometry);
+
+        // vb ib
+        newCommand->VBToSet = geometry->GetVerticesBuffer();
+        newCommand->IBToSet = geometry->GetIndicesBuffer();
+
+        // Apply shader bindings.
+        newCommand->Bindings.SetTransientAllocated(true);
+        SingleShaderBindings* bindings = newCommand->Bindings.GetSingleShaderBindings();
+        size_t const bindingSize = pass->BindingLayout->GetTotalSize();
+        byte* bindingData = static_cast<byte*>(context->Allocate<byte>(bindingSize));
+        memset(bindingData, 0, bindingSize);
+        bindings->SetData(bindingData);
+        // Bind Constant Buffer
+        {
+            // Global uniform buffer.
+            auto globalUB = graphBuilder->GetGlobalUniformBuffer(); // todo : no need ?
+            if (globalUB == nullptr || globalUB->GetResource() == nullptr) [[unlikely]]
+            {
+                TAssertf(false, "Failed to get global CBV binding : buffer resource is invalid.");
+            }
+
+            static NameHandle globalUBName = "Global";
+            bindings->SetUniformBuffer(pass->BindingLayout, globalUBName, { .Handle = reinterpret_cast<uint64>(globalUB) });
+
+            // Pass uniform buffer.
+            static NameHandle passUBName = "Pass";
+            bindings->SetUniformBuffer(pass->BindingLayout, passUBName, { .Handle = reinterpret_cast<uint64>(pass->PassUniformBuffer.Get()) });
+        }
+        // Bind FGTexture SRV
+        {
+            auto readFGTextures = pass->GetOperations().GetReadTargets(); // FGTextureID -> Name
+            
+            for (auto fgTexture : readFGTextures)
+            {
+                RenderTextureRef rtTexture = graphBuilder->GetAllocatedRenderTarget(fgTexture.first);
+                if (!rtTexture.IsValid()) [[unlikely]]
+                {
+                    TAssertf(false, "Failed to get FGTexture binding : \"%s\", texture resource is invalid.", fgTexture.second.c_str());
+                    return;
+                }
+
+                // Get resource.
+                RHITexture* textureResource = rtTexture->GetTextureRHI();
+                if (!textureResource) [[unlikely]]
+                {
+                    TAssertf(false, "Failed to get SRV binding : \"%s\", texture resource is invalid.", fgTexture.second.c_str());
+                    return;
+                }
+
+                // Get SRV.
+                RHIShaderResourceView* srv = textureResource->GetSRV();
+                if (!srv) [[unlikely]]
+                {
+                    TAssertf(false, "Failed to get SRV binding : \"%s\", SRV is invalid.", fgTexture.second.c_str());
+                    return;
+                }
+
+                // Bind.
+                bindings->SetSRV(pass->BindingLayout, fgTexture.second, { .Handle = srv->GetOfflineHandle() });
+            }
+            // todo : bind PassParameters->TextureParameters,
+        }
+
+        context->AddCommand(newCommand);
 	}
 }

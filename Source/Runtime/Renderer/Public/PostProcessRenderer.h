@@ -1,14 +1,21 @@
 ﻿#pragma once
+#include "NameHandle.h"
 #include "Vector.h"
 
 namespace Thunder
 {
     class FrameGraph;
-    class PostProcessRenderer
+    struct FrameGraphPass;
+    class PassOperations;
+
+    class PostProcessManager
     {
     public:
-        void Setup(FrameGraph* frameGraph, class PassOperations& operations);
-
+        PostProcessManager(FrameGraph* frameGraph)
+            : Owner(frameGraph)
+        {
+        }
+        void Setup(PassOperations& operations);
         void Execute();
     private:
         float Parameter0 = 0.f;

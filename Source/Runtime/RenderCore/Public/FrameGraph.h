@@ -63,6 +63,7 @@ namespace Thunder
         bool bLastPass = false;
 
         // Shader bindings
+        ShaderArchive* Archive = nullptr;
         TRefCountPtr<ShaderBindingsLayout> BindingLayout;
         TRefCountPtr<UniformBufferLayout> PassUBLayout;
         ShaderParameterMap* PassParameters = nullptr;
@@ -72,8 +73,10 @@ namespace Thunder
         FrameGraphPass() = delete;
         FrameGraphPass(class FrameGraph* graph, const String& inName, PassOperations&& inOperations, PassExecutionFunction&& inExecuteFunction)
             : FrameGraph(graph), Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)) {}
+        NameHandle GetName() { return Name; }
         PassOperations& GetOperations() { return Operations; }
         RENDERCORE_API TMap<NameHandle, uint32> GetFGTextures();
+        bool SetShader(NameHandle archiveName);
     };
 
     class RENDERCORE_API FrameGraph : public RefCountedObject

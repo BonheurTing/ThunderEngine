@@ -337,13 +337,13 @@ namespace Thunder
             operations.Read(LightingRT, "SceneTexture"); //todo bind
             operations.Write(postProcessRT2);
 
-            static PostProcessRenderer* ppRenderer = nullptr;
+            static PostProcessManager* ppRenderer = nullptr;
             if (ppRenderer == nullptr)
             {
-                ppRenderer = new PostProcessRenderer();
+                ppRenderer = new PostProcessManager(mFrameGraph);
             }
 
-            ppRenderer->Setup(mFrameGraph.Get(), operations);
+            ppRenderer->Setup(operations);
         }
 
         mFrameGraph->SetPresentTarget(postProcessRT2);

@@ -8,6 +8,7 @@
 #include "PlatformProcess.h"
 #include "PrimitiveSceneInfo.h"
 #include "RenderModule.h"
+#include "ShaderArchive.h"
 #include "ShaderModule.h"
 #include "ShaderParameterMap.h"
 #include "Concurrent/ConcurrentBase.h"
@@ -102,6 +103,32 @@ namespace Thunder
             }
         }
         return usedTextures;
+    }
+
+    bool FrameGraphPass::SetShader(NameHandle archiveName)
+    {
+        Archive = ShaderModule::GetShaderArchive(archiveName);
+        if (Archive == nullptr) [[unlikely]]
+        {
+            TAssertf(false, "Shader is not ready.");
+            return false;
+        }
+
+        if (bLayoutNeedsUpdate)
+        {
+            BindingLayout = Archive->GetBindingsLayout();
+            PassUBLayout = Archive->GetUniformBufferLayout(GetName());
+            if (PassParameters == nullptr)
+            {
+                PassParameters = new ShaderParameterMap;
+            }
+            else
+            {
+                PassParameters->Reset();
+            }
+        }
+
+        return true;
     }
 
     FrameGraph::FrameGraph(IRenderer* owner, int contextNum) : OwnerRenderer(owner)

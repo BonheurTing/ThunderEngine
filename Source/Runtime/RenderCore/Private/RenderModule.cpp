@@ -157,6 +157,9 @@ namespace Thunder
         memset(packedData, 0, bufferSize);
 
         // Pack parameters into the buffer according to layout.
+		constexpr int32 defaultInt32 = 0;
+		constexpr float defaultFloat = 0.0f;
+		TVector4f defaultVector = TVector4f();
         auto const& memberMap = layout->GetMemberMap();
         for (auto const& [paramName, memberEntry] : memberMap)
         {
@@ -168,43 +171,44 @@ namespace Thunder
             {
             case EUniformBufferMemberType::Int:
             {
+                valueSize = sizeof(int32);
                 auto it = parameterMap->IntParameters.find(paramName);
                 if (it != parameterMap->IntParameters.end()) [[likely]]
                 {
                     valuePtr = &it->second;
-                    valueSize = sizeof(int32);
                 }
                 else
                 {
-                    TAssertf(false, "Parameter \"%s\" not found in IntParameters for \"%s\".", paramName.c_str(), ubName);
+                	// todo : default value
+                	valuePtr = &defaultInt32;
                 }
                 break;
             }
             case EUniformBufferMemberType::Float:
             {
+                valueSize = sizeof(float);
                 auto it = parameterMap->FloatParameters.find(paramName);
                 if (it != parameterMap->FloatParameters.end()) [[likely]]
                 {
                     valuePtr = &it->second;
-                    valueSize = sizeof(float);
                 }
                 else
                 {
-                    TAssertf(false, "Parameter \"%s\" not found in FloatParameters for \"%s\".", paramName.c_str(), ubName);
+                	valuePtr = &defaultFloat;
                 }
                 break;
             }
             case EUniformBufferMemberType::Float4:
             {
+                valueSize = sizeof(TVector4f);
                 auto it = parameterMap->VectorParameters.find(paramName);
                 if (it != parameterMap->VectorParameters.end()) [[likely]]
                 {
                     valuePtr = &it->second;
-                    valueSize = sizeof(TVector4f);
                 }
                 else
                 {
-                    TAssertf(false, "Parameter \"%s\" not found in VectorParameters for \"%s\".", paramName.c_str(), ubName);
+					valuePtr = &defaultVector;
                 }
                 break;
             }

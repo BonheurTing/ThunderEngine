@@ -100,7 +100,7 @@ namespace Thunder
 			fflush(stdout);
 
 			TAssertf( st->ast_root != nullptr, "Parse Error");
-			DebugCodeGen(st, metaFileName);
+			//DebugCodeGen(st, metaFileName);
 
 			ShaderAST* newAst = new (TMemory::Malloc<ShaderAST>()) ShaderAST(st->ast_root, std::move(st->custom_types));
 			ShaderArchive* newArchive = new (TMemory::Malloc<ShaderArchive>()) ShaderArchive(metaFileName, st->shader_name);

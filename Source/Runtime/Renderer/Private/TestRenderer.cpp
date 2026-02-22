@@ -10,6 +10,7 @@
 #include "PostProcessRenderer.h"
 #include "RHICommand.h"
 #include "PrimitiveSceneInfo.h"
+#include "RenderMesh.h"
 #include "RenderModule.h"
 #include "ShaderParameterMap.h"
 #include "Concurrent/ConcurrentBase.h"
@@ -32,8 +33,8 @@ namespace Thunder
         uint32 const resolutionHeight = GDynamicRHI->GetViewportHeight();
         
         // GBuffer pass.
-        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{"GBufferA", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{"GBufferB", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
 
         // Register render targets
         mFrameGraph->RegisterRenderTarget(GBufferRT0);
@@ -65,7 +66,7 @@ namespace Thunder
         }
 
         // Lighting pass.
-        static FGRenderTargetRef LightingRT = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
+        static FGRenderTargetRef LightingRT = new FGRenderTarget{"SceneTexture", resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(LightingRT);
 
         {
@@ -82,7 +83,7 @@ namespace Thunder
         }
 
         // PostProcess1 pass.
-        static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{ 1280, 720, RHIFormat::R16G16B16A16_FLOAT };
+        static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{"SceneTexture1", 1280, 720, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(PostProcessRT1);
 
         {
@@ -133,11 +134,8 @@ namespace Thunder
         // Set global parameters and update uniform buffer.
         auto globalParameters = mFrameGraph->GetGlobalParameters();
         globalParameters->SetIntParameter("RenderQuality", 2);
-        // set up view parameters
-        
-        
-        mFrameGraph->InitGlobalUniformBuffer();
 
+        mFrameGraph->InitGlobalUniformBuffer();
         UpdateAllPrimitiveSceneInfos();
     }
 
@@ -147,9 +145,9 @@ namespace Thunder
         uint32 const resolutionHeight = GDynamicRHI->GetViewportHeight();
 
         // GBuffer pass.
-        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(1, 1, 0, 1) };
-        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-        static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
+        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{"GBufferA", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(1, 1, 0, 1) };
+        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ "GBufferB", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{"SceneDepth",  resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
 
         // Register render targets
         mFrameGraph->RegisterRenderTarget(GBufferRT0);
@@ -157,7 +155,7 @@ namespace Thunder
         mFrameGraph->RegisterRenderTarget(GBufferSceneDepth);
 
         {
-            static FGRenderTargetRef DummyRT = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
+            static FGRenderTargetRef DummyRT = new FGRenderTarget{"SceneDepth1", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
             mFrameGraph->RegisterRenderTarget(DummyRT);
 
             PassOperations operations;
@@ -192,9 +190,9 @@ namespace Thunder
         }
 
         {
-            static FGRenderTargetRef DummyRT = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
+            static FGRenderTargetRef DummyRT = new FGRenderTarget{"Dummy", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
             mFrameGraph->RegisterRenderTarget(DummyRT);
-            static FGRenderTargetRef ShadowDepth = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
+            static FGRenderTargetRef ShadowDepth = new FGRenderTarget{"ShadowDepth", resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
             mFrameGraph->RegisterRenderTarget(ShadowDepth);
 
             PassOperations operations;
@@ -281,7 +279,7 @@ namespace Thunder
         }
 
         // Lighting pass.
-        static FGRenderTargetRef LightingRT = new FGRenderTarget{ resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
+        static FGRenderTargetRef LightingRT = new FGRenderTarget{"SceneTexture", resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(LightingRT);
 
         {
@@ -289,16 +287,28 @@ namespace Thunder
             operations.Read(GBufferRT0);
             operations.Read(GBufferRT1);
             operations.Write(LightingRT);
-            mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this]()
+            mFrameGraph->AddPass(EVENT_NAME("Lighting"), std::move(operations), [this]()
             {
-                auto context = mFrameGraph->GetMainContext();
-                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
-                context->AddCommand(newCommand);
+                auto pass = mFrameGraph->GetMainContext()->GetCurrentPass();
+                bool success = pass->SetShader("Lighting");
+                if (!success) [[unlikely]]
+                {
+                    TAssertf(false, "Failed to set shader.");
+                    return;
+                }
+
+                pass->PassParameters->SetFloatParameter("PassParameters0", 0);
+                pass->PassParameters->SetVectorParameter("PassParameters1", TVector4f(0.f, 0.f, 0.f, 1.f));
+                pass->PassParameters->SetVectorParameter("PassParameters2", TVector4f(0.f, 0.f, 0.f, 1.f));
+                pass->PassParameters->SetIntParameter("PassParameters3", 1);
+
+                auto subMesh = GProceduralGeometryManager->GetGeometry(EProceduralGeometry::Triangle);
+                RenderModule::BuildDrawCommand(mFrameGraph, pass, subMesh);
             });
         }
 
         // PostProcess1 pass.
-        static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{ 1280, 720, RHIFormat::R16G16B16A16_FLOAT };
+        static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{"PostProcessRT1", 1280, 720, RHIFormat::R16G16B16A16_FLOAT };
         mFrameGraph->RegisterRenderTarget(PostProcessRT1);
 
         {

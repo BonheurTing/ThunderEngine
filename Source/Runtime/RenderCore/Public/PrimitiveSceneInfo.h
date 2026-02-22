@@ -35,7 +35,7 @@ namespace Thunder
         }
 
         RENDERCORE_API void CreateUniformBuffer();
-        RENDERCORE_API void UpdatePrimitiveUniformBuffer(RenderContext* context) const;
+        RENDERCORE_API void UpdatePrimitiveUniformBuffer(RenderContext* context);
         const RHIUniformBuffer* GetPrimitiveUniformBuffer() const { return PrimitiveUniformBuffer.IsValid() ? PrimitiveUniformBuffer.Get() : nullptr; }
         RENDERCORE_API bool CacheMeshDrawCommand(RenderContext* context, EMeshPass meshPassType);
         RENDERCORE_API bool IsMeshDrawCacheSupported() const  { return MeshDrawCacheSupported; }

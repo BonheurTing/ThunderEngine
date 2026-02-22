@@ -2,13 +2,13 @@
 
 namespace Thunder
 {
-    FGRenderTarget::FGRenderTarget(uint32 width, uint32 height, RHIFormat format)
-        : Desc(width, height, format)
+    FGRenderTarget::FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format)
+        : Name(name), Desc(width, height, format)
     {
     }
 
-    FGRenderTarget::FGRenderTarget(uint32 width, uint32 height, RHIFormat format, const TVector4f& clearValue)
-        : Desc(width, height, format, clearValue)
+    FGRenderTarget::FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format, const TVector4f& clearValue)
+        : Name(name), Desc(width, height, format, clearValue)
     {
     }
 

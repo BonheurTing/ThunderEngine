@@ -1,4 +1,4 @@
-Shader "PostProcess"
+Shader "Lighting"
 {
     Properties
     {
@@ -15,11 +15,11 @@ Shader "PostProcess"
         float4 PassParameters2;
         int PassParameters3;
 
-        Texture2D SceneTexture;
-        SamplerState SceneSampler;
+        Texture2D GBufferA;
+        Texture2D GBufferB;
     }
     #include "Common/Global.tsh"
-    SubShader "Blur"
+    SubShader "Lighting"
     {
         Attributes
         {
@@ -58,49 +58,9 @@ Shader "PostProcess"
 
         float4 MainPS(VSOutput input) : SV_Target
         {
-            float4 color = SceneTexture.Sample(PointWrappedSampler, input.UV);
+            float4 color = GBufferA.Sample(BilinearWrappedSampler, input.UV);
             //return color * PassParameters0;
             return float4(color.xyz, 1);
-        }
-    }
-
-    SubShader "ToneMapping"
-    {
-        Attributes
-        {
-            DepthTest : "Near",
-            BlendMode : "Opaque"
-        }
-
-        using VertexEntry = MainVS2;
-        using PixelEntry = MainPS2;
-
-        struct VSInput
-        {
-            float3 Position : POSITION;
-            float2 UV       : TEXCOORD0;
-        };
-
-        struct VSOutput2
-        {
-            float4 Position : SV_POSITION;
-            float2 UV       : TEXCOORD0;
-        };
-
-        VSOutput2 MainVS2(VSInput input)
-        {
-            VSOutput2 output;
-
-            output.Position = float4(input.Position, 1.0);
-            output.UV = input.UV;
-
-            return output;
-        }
-
-        float4 MainPS2(VSOutput2 input) : SV_Target
-        {
-            float4 color = SceneTexture.Sample(input.UV);
-            return color * PassParameters3;
         }
     }
 }

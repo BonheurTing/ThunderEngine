@@ -196,7 +196,7 @@ namespace Thunder
 		float NearPlane { 10.0f };
 		float FarPlane  { 100000.0f };
 		// When true the far plane is at infinity (UE deferred renderer default)
-		bool  bInfiniteFar { true };
+		bool  bInfiniteFar { false };
 
 		EViewType OwnerView { EViewType::MainView };
 	};

@@ -45,9 +45,10 @@ namespace Thunder
     {
     public:
         FGRenderTarget() = default;
-        FGRenderTarget(uint32 width, uint32 height, RHIFormat format);
-        FGRenderTarget(uint32 width, uint32 height, RHIFormat format, const TVector4f& clearValue);
+        FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format);
+        FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format, const TVector4f& clearValue);
 
+        NameHandle GetName() const { return Name; }
         FGRenderTargetDesc& GetDesc() { return Desc; }
         uint32 GetWidth() const { return Desc.Width; }
         uint32 GetHeight() const { return Desc.Height; }
@@ -59,6 +60,7 @@ namespace Thunder
         bool IsSame(const FGRenderTarget* other) const { return Desc == other->Desc; }
 
     private:
+        NameHandle Name;
         FGRenderTargetDesc Desc;
         uint32 CurrentFrameTargetId = 0xFFFFFFFF;
     };

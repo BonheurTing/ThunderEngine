@@ -84,7 +84,7 @@ namespace Thunder
 
         // Add a transform component
         TransformComponent* transform = rootEntity->GetTransformComponent();
-        transform->SetPosition(TVector3f(10.0f, 10.0f, 10.0f));
+        transform->SetPosition(TVector3f(2.0f, 2.0f, 2.0f));
         transform->SetRotation(TVector3f(0.0f, 0.0f, 0.0f));
         transform->SetScale(TVector3f(1.0f, 1.0f, 1.0f));
 

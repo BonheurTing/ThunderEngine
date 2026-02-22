@@ -116,20 +116,54 @@ namespace Thunder
         /**
          * Build a perspective projection matrix matching Unreal Engine's coordinate conventions.
          *
-         * Coordinate system: left-handed, Z-up (X forward, Y right, Z up).
-         * Depth range: Reverse-Z, NDC Z in [0, 1] where near plane maps to 1 and far plane maps to 0.
-         * Transform convention: column vector, row-major storage (v' = M * v, same as UE FPerspectiveMatrix).
+         * === Coordinate system ===
+         *   Left-handed, Z-up: X=Forward, Y=Right, Z=Up.
+         *
+         * === Pipeline transform convention ===
+         *   CPU matrices are row-major (M[row][col]), translation in row 3.
+         *   GPU upload: each matrix is decomposed by GetColumn() and reassembled in HLSL as
+         *   float4x4(col0,col1,col2,col3), which transposes the matrix on the way to the GPU.
+         *   HLSL shaders therefore use column-vector multiply: p_clip = M_gpu * p_view.
+         *   Net result: p_clip = M_cpu^T * p_view  (column-vector, X-forward).
+         *
+         * === Projection mapping (column-vector, X-forward, reverse-Z) ===
+         *   w_clip  = X_view              (X is the forward / depth axis)
+         *   NDC_x   = Y_view * cotX / w   (Y=Right  → screen horizontal)
+         *   NDC_y   = Z_view * cotY / w   (Z=Up     → screen vertical)
+         *   NDC_z   = (A*X_view + B) / w  (reverse-Z: near→1, far→0)
+         *
+         * The GPU-side matrix M_gpu that achieves this is:
+         *
+         *              col_x  col_y  col_z  col_w
+         *   row_0   [   0,    cotX,   0,     0  ]   p_clip.x = cotX * Y_view
+         *   row_1   [   0,     0,    cotY,   0  ]   p_clip.y = cotY * Z_view
+         *   row_2   [   A,     0,     0,     B  ]   p_clip.z = A*X + B
+         *   row_3   [   1,     0,     0,     0  ]   p_clip.w = X_view
+         *
+         * Transposing back gives the CPU-side layout stored in M[row][col]:
+         *
+         *              col 0  col 1  col 2  col 3
+         *   row 0   [   0,     0,     A,     1  ]
+         *   row 1   [  cotX,   0,     0,     0  ]
+         *   row 2   [   0,    cotY,   0,     0  ]
+         *   row 3   [   0,     0,     B,     0  ]
+         *
+         * Finite far:
+         *   A = InNear / (InNear - InFar)     (positive, reverse-Z)
+         *   B = InNear * InFar / (InFar - InNear)
+         *
+         * Infinite far (InFar -> infinity):
+         *   A = 0,  B = InNear
          *
          * When bInfiniteFar is true the far plane is pushed to infinity, which eliminates far-plane
-         * clipping artefacts and is the default used by UE's deferred renderer.  In that case the
-         * InFar parameter is ignored.
+         * clipping artefacts and is the default used by UE's deferred renderer.  InFar is ignored.
          *
          * @param InFovY         Vertical full field-of-view in radians.
          * @param InAspect       Viewport aspect ratio: width / height.
          * @param InNear         Distance to the near clip plane (must be > 0).
          * @param InFar          Distance to the far clip plane (ignored when bInfiniteFar is true).
          * @param bInfiniteFar   When true, produce an infinite-far reverse-Z projection.
-         * @return               Row-major 4x4 perspective projection matrix.
+         * @return               CPU-side row-major matrix (transposed on GPU upload for column-vector HLSL).
          */
         FORCEINLINE TMatrix44f PerspectiveProjectionMatrix(
             float InFovY,
@@ -142,34 +176,37 @@ namespace Thunder
             const float cotY    = std::cos(halfFov) / std::sin(halfFov);  // cot(halfFov)
             const float cotX    = cotY / InAspect;
 
-            // Reverse-Z: near -> 1, far -> 0.
-            // Column-vector convention, row-major storage.
+            // CPU-side layout. The upload path calls GetColumn() and HLSL reconstructs with
+            // float4x4(col0,col1,col2,col3) treating them as rows, which is a transpose.
+            // So M_gpu = M_cpu^T, and we must store the transpose of the desired GPU matrix here.
             //
-            // Finite far:
-            //   M[2][2] = -InNear / (InFar - InNear)          (== near/(near-far) since reverse-Z)
-            //   M[2][3] =  InNear * InFar / (InFar - InNear)
+            // Desired GPU matrix (column-vector, X-forward):
+            //   row 0: [ 0,    cotX,  0,    0 ]   → p_clip.x = cotX * Y_view
+            //   row 1: [ 0,    0,    cotY,  0 ]   → p_clip.y = cotY * Z_view
+            //   row 2: [ A,    0,    0,     B ]   → p_clip.z = A*X_view + B
+            //   row 3: [ 1,    0,    0,     0 ]   → p_clip.w = X_view
             //
-            // Infinite far (InFar -> infinity):
-            //   M[2][2] = 0
-            //   M[2][3] = InNear
+            // CPU storage M_cpu = M_gpu^T:
+            //   M[0][2] = A      M[0][3] = 1
+            //   M[1][0] = cotX
+            //   M[2][1] = cotY
+            //   M[3][2] = B
 
             TMatrix44f result(0.f);
-            result.M[0][0] = cotX;
-            result.M[1][1] = cotY;
+            result.M[0][3] = 1.f;   // w_clip = X_view  (column of M_gpu^T)
+            result.M[1][0] = cotX;  // p_clip.x = cotX * Y_view
+            result.M[2][1] = cotY;  // p_clip.y = cotY * Z_view
 
             if (bInfiniteFar)
             {
-                result.M[2][2] = 0.f;
-                result.M[2][3] = InNear;
+                result.M[0][2] = 0.f;
+                result.M[3][2] = InNear;
             }
             else
             {
-                const float invRange = 1.f / (InFar - InNear);
-                result.M[2][2] = -InNear * invRange;           // near / (near - far)
-                result.M[2][3] =  InNear * InFar * invRange;   // near*far / (far - near)
+                result.M[0][2] = InNear / (InNear - InFar);             // A
+                result.M[3][2] = InNear * InFar / (InFar - InNear);     // B
             }
-
-            result.M[3][2] = 1.f;  // pass-through w = z (left-handed, z forward)
 
             return result;
         }

@@ -49,7 +49,7 @@ namespace Thunder
         }
     }
 
-    void PrimitiveSceneInfo::UpdatePrimitiveUniformBuffer(RenderContext* context) const
+    void PrimitiveSceneInfo::UpdatePrimitiveUniformBuffer(RenderContext* context)
     {
         const auto layout = ShaderModule::GetPrimitiveUniformBufferLayout();
         if (!layout) [[unlikely]]
@@ -68,11 +68,18 @@ namespace Thunder
         byte* packedData = static_cast<byte*>(TMemory::Malloc(bufferSize, 16));
         memset(packedData, 0, bufferSize);
 
-        SetPrimitiveParameter(layout, "LocalToWorld0", Transform.GetRow(0), packedData);
-        SetPrimitiveParameter(layout, "LocalToWorld1", Transform.GetRow(1), packedData);
-        SetPrimitiveParameter(layout, "LocalToWorld2", Transform.GetRow(2), packedData);
+        SetPrimitiveParameter(layout, "LocalToWorld0", Transform.GetColumn(0), packedData);
+        SetPrimitiveParameter(layout, "LocalToWorld1", Transform.GetColumn(1), packedData);
+        SetPrimitiveParameter(layout, "LocalToWorld2", Transform.GetColumn(2), packedData);
 
-        RHIUpdateUniformBuffer(context, PrimitiveUniformBuffer, packedData);
+        if (PrimitiveUniformBuffer.IsValid())
+        {
+            RHIUpdateUniformBuffer(context, PrimitiveUniformBuffer, packedData);
+        }
+        else
+        {
+            PrimitiveUniformBuffer = RHICreateUniformBuffer(layout->GetTotalSize(), EUniformBufferFlags::UniformBuffer_MultiFrame, packedData);
+        }
 
         TMemory::Free(packedData);
     }

@@ -73,10 +73,23 @@ Shader "PBR"
             );
         }
 
+        float4x4 GetLocalToWorldMatrix()
+        {
+            return float4x4(
+                LocalToWorld0,
+                LocalToWorld1,
+                LocalToWorld2,
+                float4(0,0,0,1)
+            );
+        }
+
         v2f vert(vs_input v)
         {
             v2f o;
-            o.pos = mul(v.position, GetViewProjectionMatrix());
+            float4x4 worldMat = GetLocalToWorldMatrix();
+            float4 worldPos = mul(worldMat, v.position);
+            float4x4 vpMat = GetViewProjectionMatrix();
+            o.pos = mul(vpMat, worldPos);
             o.uv = v.uv;
             return o;
         }

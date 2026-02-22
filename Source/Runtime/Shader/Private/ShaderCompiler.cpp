@@ -201,7 +201,6 @@ namespace Thunder
     	}
     	else
     	{
-    		
     		const std::wstring wSource = std::wstring(inSource.begin(), inSource.end());
     		ComPtr<IDxcBlobEncoding> pBlobEncoding;
     		HRESULT hr = ShaderUtils->CreateBlob(wSource.c_str(), inSource.size(), 0, &pBlobEncoding);
@@ -276,7 +275,8 @@ namespace Thunder
     		if (debug)
     		{
     			args.push_back(L"-Zi");
-    			args.push_back(L"-O3"); // "-Od" to disable optimization.
+    			args.push_back(L"-Qembed_debug");
+    			args.push_back(L"-Od"); // "-Od" to disable optimization.
     		}
     		else
     		{

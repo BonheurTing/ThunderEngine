@@ -19,7 +19,6 @@ namespace Thunder
 
     struct TWriteTargetInfo
     {
-        NameHandle Name;
         ELoadOp    LoadOp     = ELoadOp::Load;
         TVector4f  ClearColor = { 0.f, 0.f, 0.f, 1.f };
         float      ClearDepth   = 1.f;
@@ -29,15 +28,11 @@ namespace Thunder
     class RENDERCORE_API PassOperations
     {
     public:
-        void Read(const FGRenderTarget* renderTarget, NameHandle rtName = NameHandle());
-        void Read(FGRenderTargetRef const& renderTarget, NameHandle rtName = NameHandle());
-        void Write(const FGRenderTarget* renderTarget, NameHandle rtName = NameHandle());
-        void Write(FGRenderTargetRef const& renderTarget, NameHandle rtName = NameHandle());
+        void Read(const FGRenderTarget* renderTarget, NameHandle overrideRTName = NameHandle());
+        void Write(const FGRenderTarget* renderTarget);
         // Write with explicit LoadOp::Clear and a custom clear color / depth-stencil value.
-        void Write(const FGRenderTarget* renderTarget, const TVector4f& clearColor, NameHandle rtName = NameHandle());
-        void Write(FGRenderTargetRef const& renderTarget, const TVector4f& clearColor, NameHandle rtName = NameHandle());
-        void Write(const FGRenderTarget* renderTarget, float clearDepth, uint8 clearStencil, NameHandle rtName = NameHandle());
-        void Write(FGRenderTargetRef const& renderTarget, float clearDepth, uint8 clearStencil, NameHandle rtName = NameHandle());
+        void Write(const FGRenderTarget* renderTarget, const TVector4f& clearColor);
+        void Write(const FGRenderTarget* renderTarget, float clearDepth, uint8 clearStencil);
 
         const TMap<uint32, NameHandle>& GetReadTargets() { return ReadTargets; }
         const TMap<uint32, TWriteTargetInfo>& GetWriteTargets() { return WriteTargets; }
@@ -77,7 +72,6 @@ namespace Thunder
             : FrameGraph(graph), Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)) {}
         NameHandle GetName() { return Name; }
         PassOperations& GetOperations() { return Operations; }
-        RENDERCORE_API TMap<NameHandle, uint32> GetFGTextures();
         bool SetShader(NameHandle archiveName);
     };
 

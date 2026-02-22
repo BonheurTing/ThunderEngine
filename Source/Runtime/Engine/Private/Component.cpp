@@ -282,6 +282,7 @@ namespace Thunder
 
 		UpdateTransform();
 		MarkPrimitiveUniformBufferDirty();
+		OnLoaded();
 	}
 
 	void TransformComponent::SetPosition(const TVector3f& inPosition)
@@ -370,6 +371,8 @@ namespace Thunder
 		{
 			bInfiniteFar = jsonValue["InfiniteFar"].GetBool();
 		}
+
+		OnLoaded();
 	}
 
 	void CameraComponent::SetFovY(float inFovYDegrees)
@@ -417,9 +420,9 @@ namespace Thunder
 
 	void CameraComponent::Tick()
 	{
-		TMatrix44f viewMatrix = Owner->GetTransform();
+		TMatrix44f viewMatrix = Owner->GetTransform().Inverse();
 		TMatrix44f projectionMatrix = GetProjectionMatrix();
-		TMatrix44f vpMatrix = projectionMatrix * viewMatrix;
+		TMatrix44f vpMatrix = viewMatrix * projectionMatrix;
 
 		GRenderScheduler->PushTask([this, vpMatrix]()
 		{

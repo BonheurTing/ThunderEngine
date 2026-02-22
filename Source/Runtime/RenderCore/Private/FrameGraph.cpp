@@ -22,53 +22,38 @@ namespace Thunder
 {
     class TaskDispatcher;
 
-    void PassOperations::Read(const FGRenderTarget* renderTarget, NameHandle rtName)
+    void PassOperations::Read(const FGRenderTarget* renderTarget, NameHandle overrideRTName)
     {
-        ReadTargets.emplace(renderTarget->GetID(), rtName);
+        if (overrideRTName.IsEmpty())
+        {
+            ReadTargets.emplace(renderTarget->GetID(),renderTarget->GetName());
+        }
+        else
+        {
+            ReadTargets.emplace(renderTarget->GetID(), overrideRTName);
+        }
     }
 
-    void PassOperations::Read(const FGRenderTargetRef& renderTarget, NameHandle rtName)
+    void PassOperations::Write(const FGRenderTarget* renderTarget)
     {
-        ReadTargets.emplace(renderTarget->GetID(), rtName);
+        WriteTargets.emplace(renderTarget->GetID(), TWriteTargetInfo{});
     }
 
-    void PassOperations::Write(const FGRenderTarget* renderTarget, NameHandle rtName)
-    {
-        WriteTargets.emplace(renderTarget->GetID(), TWriteTargetInfo{ .Name = rtName });
-    }
-
-    void PassOperations::Write(const FGRenderTargetRef& renderTarget, NameHandle rtName)
-    {
-        WriteTargets.emplace(renderTarget->GetID(), TWriteTargetInfo{ .Name = rtName });
-    }
-
-    void PassOperations::Write(const FGRenderTarget* renderTarget, const TVector4f& clearColor, NameHandle rtName)
+    void PassOperations::Write(const FGRenderTarget* renderTarget, const TVector4f& clearColor)
     {
         TWriteTargetInfo info;
-        info.Name = rtName;
         info.LoadOp = ELoadOp::Clear;
         info.ClearColor = clearColor;
         WriteTargets.emplace(renderTarget->GetID(), info);
     }
 
-    void PassOperations::Write(const FGRenderTargetRef& renderTarget, const TVector4f& clearColor, NameHandle rtName)
-    {
-        Write(renderTarget.Get(), clearColor, rtName);
-    }
-
-    void PassOperations::Write(const FGRenderTarget* renderTarget, float clearDepth, uint8 clearStencil, NameHandle rtName)
+    void PassOperations::Write(const FGRenderTarget* renderTarget, float clearDepth, uint8 clearStencil)
     {
         TWriteTargetInfo info;
-        info.Name = rtName;
         info.LoadOp = ELoadOp::Clear;
         info.ClearDepth = clearDepth;
         info.ClearStencil = clearStencil;
         WriteTargets.emplace(renderTarget->GetID(), info);
-    }
-
-    void PassOperations::Write(const FGRenderTargetRef& renderTarget, float clearDepth, uint8 clearStencil, NameHandle rtName)
-    {
-        Write(renderTarget.Get(), clearDepth, clearStencil, rtName);
     }
 
     void PassOperations::SetWriteTargetLoadOp(uint32 rtId, ELoadOp loadOp, const TVector4f& clearColor, float clearDepth, uint8 clearStencil)
@@ -83,26 +68,6 @@ namespace Thunder
         it->second.ClearColor = clearColor;
         it->second.ClearDepth = clearDepth;
         it->second.ClearStencil = clearStencil;
-    }
-
-    TMap<NameHandle, uint32> FrameGraphPass::GetFGTextures()
-    {
-        TMap<NameHandle, uint32> usedTextures;
-        for (auto& texPair : Operations.GetReadTargets())
-        {
-            if (!texPair.second.IsEmpty())
-            {
-                usedTextures.emplace(texPair.second, texPair.first);
-            }
-        }
-        for (auto& texPair : Operations.GetWriteTargets())
-        {
-            if (!texPair.second.Name.IsEmpty())
-            {
-                usedTextures.emplace(texPair.second.Name, texPair.first);
-            }
-        }
-        return usedTextures;
     }
 
     bool FrameGraphPass::SetShader(NameHandle archiveName)
@@ -453,10 +418,10 @@ namespace Thunder
     {
         // Render thread.
         auto globalParameters = GetGlobalParameters();
-        globalParameters->SetVectorParameter("ViewProjectionMatrix0", matrix.GetRow(0));
-        globalParameters->SetVectorParameter("ViewProjectionMatrix1", matrix.GetRow(1));
-        globalParameters->SetVectorParameter("ViewProjectionMatrix2", matrix.GetRow(2));
-        globalParameters->SetVectorParameter("ViewProjectionMatrix3", matrix.GetRow(3));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix0", matrix.GetColumn(0));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix1", matrix.GetColumn(1));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix2", matrix.GetColumn(2));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix3", matrix.GetColumn(3));
     }
 
     // Called on game thread.
@@ -488,7 +453,7 @@ namespace Thunder
         auto const& registerRequests = SceneInfoRegistrationSet[renderThreadIndex];
         for (auto const& registerRequest : registerRequests)
         {
-            registerRequest->CreateUniformBuffer();
+            //registerRequest->CreateUniformBuffer();
             SceneInfos.insert(registerRequest);
         }
 

@@ -512,7 +512,7 @@ namespace Thunder
     void binary_expression::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
         TAssertf(left != nullptr && right != nullptr, "Binary operation left or right is null");
-        //outResult += "(";
+        outResult += "(";
         left->generate_hlsl(outResult, state);
         switch (op) {
         case enum_binary_op::add: outResult += " + "; break;
@@ -520,16 +520,13 @@ namespace Thunder
         case enum_binary_op::mul: outResult += " * "; break;
         case enum_binary_op::div: outResult += " / "; break;
         case enum_binary_op::mod: outResult += " % "; break;
-        // 位运算
         case enum_binary_op::bit_and: outResult += " & "; break;
         case enum_binary_op::bit_or: outResult += " | "; break;
         case enum_binary_op::bit_xor: outResult += " ^ "; break;
         case enum_binary_op::left_shift: outResult += " << "; break;
         case enum_binary_op::right_shift: outResult += " >> "; break;
-        // 逻辑运算
         case enum_binary_op::logical_and: outResult += " && "; break;
         case enum_binary_op::logical_or: outResult += " || "; break;
-        // 比较运算
         case enum_binary_op::equal: outResult += " == "; break;
         case enum_binary_op::not_equal: outResult += " != "; break;
         case enum_binary_op::less: outResult += " < "; break;
@@ -539,7 +536,7 @@ namespace Thunder
         case enum_binary_op::undefined: break;
         }
         right->generate_hlsl(outResult, state);
-        //outResult += ")";
+        outResult += ")";
     }
 
     void shuffle_expression::generate_hlsl(String& outResult, shader_codegen_state& state)

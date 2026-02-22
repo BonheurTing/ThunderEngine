@@ -142,7 +142,7 @@ namespace Thunder
         FORCEINLINE TVector<T> GetScaledAxis(int32 Axis) const;
 
         /** Get a column as a 3D vector (from rows 0-2). */
-        FORCEINLINE TVector<T> GetColumn(int32 Col) const;
+        FORCEINLINE TVector4<T> GetColumn(int32 Col) const;
 
         /** Get a row as a vector4. */
         FORCEINLINE TVector4<T> GetRow(int32 Row) const;
@@ -512,9 +512,9 @@ namespace Thunder
     }
 
     template<typename T>
-    FORCEINLINE TVector<T> TMatrix<T>::GetColumn(int32 Col) const
+    FORCEINLINE TVector4<T> TMatrix<T>::GetColumn(int32 Col) const
     {
-        return TVector<T>(M[0][Col], M[1][Col], M[2][Col]);
+        return TVector4<T>(M[0][Col], M[1][Col], M[2][Col], M[3][Col]);
     }
 
     template <typename T>
@@ -529,6 +529,7 @@ namespace Thunder
         M[Axis][0] = Value.X;
         M[Axis][1] = Value.Y;
         M[Axis][2] = Value.Z;
+        M[Axis][3] = Value.W;
     }
 
     template<typename T>
@@ -537,6 +538,7 @@ namespace Thunder
         M[0][Col] = Value.X;
         M[1][Col] = Value.Y;
         M[2][Col] = Value.Z;
+        M[3][Col] = Value.W;
     }
 
     // ----- Scale -----

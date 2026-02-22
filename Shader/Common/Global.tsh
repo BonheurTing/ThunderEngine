@@ -1,0 +1,9 @@
+Parameters "Global"
+{
+    int RenderQuality = 1;
+
+    float4 ViewProjectionMatrix0;
+    float4 ViewProjectionMatrix1;
+    float4 ViewProjectionMatrix2;
+    float4 ViewProjectionMatrix3;
+}

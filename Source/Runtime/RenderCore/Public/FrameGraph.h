@@ -91,6 +91,9 @@ namespace Thunder
         void Compile();
         void Execute();
 
+        // game
+        void SetViewProjectionMatrix(EViewType type, const TMatrix44f& matrix) const;
+
         // render
         const IRenderer* GetRenderer() const { return OwnerRenderer; }
         SceneView* GetSceneView(EViewType type) const { return Views[static_cast<int>(type)]; }

@@ -55,7 +55,8 @@ namespace Thunder
 		// Entity identification
 		void SetEntityName(const NameHandle& inName) { EntityName = inName; }
 		const NameHandle& GetEntityName() const { return EntityName; }
-		TransformComponent* GetTransform() const { return Transform; }
+		TransformComponent* GetTransformComponent() const;
+		TMatrix44f GetTransform() const;
 
 		void Load();
 		void OnLoaded();

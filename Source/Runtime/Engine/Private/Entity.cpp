@@ -202,6 +202,33 @@ namespace Thunder
 		}
 	}
 
+	TransformComponent* Entity::GetTransformComponent() const
+	{
+		if (Transform == nullptr)
+		{
+			if (Owner != nullptr)
+			{
+				return Owner->GetTransformComponent();
+			}
+		}
+		else
+		{
+			return Transform;
+		}
+		return nullptr;
+	}
+
+	TMatrix44f Entity::GetTransform() const
+	{
+		auto comp = GetTransformComponent();
+		if (comp == nullptr)
+		{
+			TAssertf(false, "TransformComponent is invalid.");
+			return {};
+		}
+		return comp->GetTransform();
+	}
+
 	void Entity::Load()
 	{
 		auto curStatus = Status.load(std::memory_order_acquire);

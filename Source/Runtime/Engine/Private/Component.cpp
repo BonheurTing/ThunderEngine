@@ -8,6 +8,7 @@
 #include "IRenderer.h"
 #include "PrimitiveSceneProxy.h"
 #include "Scene.h"
+#include "MathUtilities.h"
 
 namespace Thunder
 {
@@ -43,6 +44,10 @@ namespace Thunder
 		else if (componentName == "TransformComponent")
 		{
 			return new TransformComponent(inOwner);
+		}
+		else if (componentName == "CameraComponent")
+		{
+			return new CameraComponent(inOwner);
 		}
 		// Add more component types as needed
 		return nullptr;
@@ -194,9 +199,9 @@ namespace Thunder
 		LOG("------------ StaticMeshComponent loaded successfully");
 
 		TMatrix44f transform = TMatrix44f::Identity();
-		if (Owner && Owner->GetTransform())
+		if (Owner)
 		{
-			transform = Owner->GetTransform()->GetTransform();
+			transform = Owner->GetTransform();
 		}
 		SceneProxy = new (TMemory::Malloc<StaticMeshSceneProxy>()) StaticMeshSceneProxy(this, transform);
 		Owner->GetScene()->GetRenderer()->RegisterSceneInfo(SceneProxy->GetSceneInfo());
@@ -326,6 +331,102 @@ namespace Thunder
 		}
 	}
 
+	// CameraComponent implementation
+	void CameraComponent::SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const
+	{
+		writer.StartObject();
+		writer.Key("FovY");        writer.Double(FovY);
+		writer.Key("Aspect");      writer.Double(Aspect);
+		writer.Key("NearPlane");   writer.Double(NearPlane);
+		writer.Key("FarPlane");    writer.Double(FarPlane);
+		writer.Key("InfiniteFar"); writer.Bool(bInfiniteFar);
+		writer.EndObject();
+	}
+
+	void CameraComponent::DeserializeJson(const rapidjson::Value& jsonValue)
+	{
+		if (!jsonValue.IsObject())
+		{
+			return;
+		}
+
+		if (jsonValue.HasMember("FovY") && jsonValue["FovY"].IsNumber())
+		{
+			FovY = static_cast<float>(jsonValue["FovY"].GetDouble());
+		}
+		if (jsonValue.HasMember("Aspect") && jsonValue["Aspect"].IsNumber())
+		{
+			Aspect = static_cast<float>(jsonValue["Aspect"].GetDouble());
+		}
+		if (jsonValue.HasMember("NearPlane") && jsonValue["NearPlane"].IsNumber())
+		{
+			NearPlane = static_cast<float>(jsonValue["NearPlane"].GetDouble());
+		}
+		if (jsonValue.HasMember("FarPlane") && jsonValue["FarPlane"].IsNumber())
+		{
+			FarPlane = static_cast<float>(jsonValue["FarPlane"].GetDouble());
+		}
+		if (jsonValue.HasMember("InfiniteFar") && jsonValue["InfiniteFar"].IsBool())
+		{
+			bInfiniteFar = jsonValue["InfiniteFar"].GetBool();
+		}
+	}
+
+	void CameraComponent::SetFovY(float inFovYDegrees)
+	{
+		TAssertf(inFovYDegrees > 0.0f && inFovYDegrees < 180.0f,
+			"CameraComponent::SetFovY: FovY must be in range (0, 180), got %.2f.", inFovYDegrees);
+		FovY = inFovYDegrees;
+	}
+
+	void CameraComponent::SetAspect(float inAspect)
+	{
+		TAssertf(inAspect > 0.0f,
+			"CameraComponent::SetAspect: Aspect must be positive, got %.4f.", inAspect);
+		Aspect = inAspect;
+	}
+
+	void CameraComponent::SetNearPlane(float inNear)
+	{
+		TAssertf(inNear > 0.0f,
+			"CameraComponent::SetNearPlane: NearPlane must be > 0, got %.4f.", inNear);
+		NearPlane = inNear;
+	}
+
+	void CameraComponent::SetFarPlane(float inFar)
+	{
+		TAssertf(inFar > NearPlane,
+			"CameraComponent::SetFarPlane: FarPlane (%.4f) must be greater than NearPlane (%.4f).", inFar, NearPlane);
+		FarPlane = inFar;
+	}
+
+	void CameraComponent::SetInfiniteFar(bool bInInfiniteFar)
+	{
+		bInfiniteFar = bInInfiniteFar;
+	}
+
+	TMatrix44f CameraComponent::GetProjectionMatrix() const
+	{
+		return Math::PerspectiveProjectionMatrix(
+			FovY * DEG_TO_RAD,
+			Aspect,
+			NearPlane,
+			FarPlane,
+			bInfiniteFar);
+	}
+
+	void CameraComponent::Tick()
+	{
+		TMatrix44f viewMatrix = Owner->GetTransform();
+		TMatrix44f projectionMatrix = GetProjectionMatrix();
+		TMatrix44f vpMatrix = projectionMatrix * viewMatrix;
+
+		GRenderScheduler->PushTask([this, vpMatrix]()
+		{
+			Owner->GetScene()->GetRenderer()->GetFrameGraph()->SetViewProjectionMatrix(OwnerView, vpMatrix);
+		});
+	}
+
 	void TransformComponent::UpdateTransform()
 	{
 		// Left-handed coordinate system (UE convention): X=Forward, Y=Right, Z=Up
@@ -333,7 +434,7 @@ namespace Thunder
 		// Application order: Yaw(Z) -> Pitch(Y) -> Roll(X)
 		// R = RotZ * RotY * RotX (row-vector convention: p' = p * R)
 
-		constexpr float DegToRad = 3.14159265358979323846f / 180.0f;
+		constexpr float DegToRad = DEG_TO_RAD;
 		const float pitchRad = Rotation.X * DegToRad;
 		const float yawRad   = Rotation.Y * DegToRad;
 		const float rollRad  = Rotation.Z * DegToRad;

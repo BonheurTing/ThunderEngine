@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Vector.h"
+#include "Matrix.h"
 #include "FileSystem/MemoryArchive.h"
 #include <cmath>
 
+#define DEG_TO_RAD 0.0174532925f
 
 namespace Thunder
 {
@@ -110,5 +112,67 @@ namespace Thunder
             Bits = (Bits + (Bits >> 4)) & 0x0f0f0f0f0f0f0f0full;
             return (Bits * 0x0101010101010101) >> 56;
         }
+
+        /**
+         * Build a perspective projection matrix matching Unreal Engine's coordinate conventions.
+         *
+         * Coordinate system: left-handed, Z-up (X forward, Y right, Z up).
+         * Depth range: Reverse-Z, NDC Z in [0, 1] where near plane maps to 1 and far plane maps to 0.
+         * Transform convention: column vector, row-major storage (v' = M * v, same as UE FPerspectiveMatrix).
+         *
+         * When bInfiniteFar is true the far plane is pushed to infinity, which eliminates far-plane
+         * clipping artefacts and is the default used by UE's deferred renderer.  In that case the
+         * InFar parameter is ignored.
+         *
+         * @param InFovY         Vertical full field-of-view in radians.
+         * @param InAspect       Viewport aspect ratio: width / height.
+         * @param InNear         Distance to the near clip plane (must be > 0).
+         * @param InFar          Distance to the far clip plane (ignored when bInfiniteFar is true).
+         * @param bInfiniteFar   When true, produce an infinite-far reverse-Z projection.
+         * @return               Row-major 4x4 perspective projection matrix.
+         */
+        FORCEINLINE TMatrix44f PerspectiveProjectionMatrix(
+            float InFovY,
+            float InAspect,
+            float InNear,
+            float InFar,
+            bool  bInfiniteFar = false)
+        {
+            const float halfFov = InFovY * 0.5f;
+            const float cotY    = std::cos(halfFov) / std::sin(halfFov);  // cot(halfFov)
+            const float cotX    = cotY / InAspect;
+
+            // Reverse-Z: near -> 1, far -> 0.
+            // Column-vector convention, row-major storage.
+            //
+            // Finite far:
+            //   M[2][2] = -InNear / (InFar - InNear)          (== near/(near-far) since reverse-Z)
+            //   M[2][3] =  InNear * InFar / (InFar - InNear)
+            //
+            // Infinite far (InFar -> infinity):
+            //   M[2][2] = 0
+            //   M[2][3] = InNear
+
+            TMatrix44f result(0.f);
+            result.M[0][0] = cotX;
+            result.M[1][1] = cotY;
+
+            if (bInfiniteFar)
+            {
+                result.M[2][2] = 0.f;
+                result.M[2][3] = InNear;
+            }
+            else
+            {
+                const float invRange = 1.f / (InFar - InNear);
+                result.M[2][2] = -InNear * invRange;           // near / (near - far)
+                result.M[2][3] =  InNear * InFar * invRange;   // near*far / (far - near)
+            }
+
+            result.M[3][2] = 1.f;  // pass-through w = z (left-handed, z forward)
+
+            return result;
+        }
+
     }
 }

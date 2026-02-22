@@ -153,7 +153,6 @@ namespace Thunder
             Views[i] = new (TMemory::Malloc<SceneView>()) SceneView(this, static_cast<EViewType>(i));
         }
         CachedGlobalParameters = new ShaderParameterMap;
-        //GlobalUniformBuffer = new RHIUniformBuffer(EUniformBufferFlags::UniformBuffer_SingleFrame);
     }
 
     FrameGraph::~FrameGraph()
@@ -448,6 +447,16 @@ namespace Thunder
                 }
             }
         }
+    }
+
+    void FrameGraph::SetViewProjectionMatrix(EViewType type, const TMatrix44f& matrix) const
+    {
+        // Render thread.
+        auto globalParameters = GetGlobalParameters();
+        globalParameters->SetVectorParameter("ViewProjectionMatrix0", matrix.GetRow(0));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix1", matrix.GetRow(1));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix2", matrix.GetRow(2));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix3", matrix.GetRow(3));
     }
 
     // Called on game thread.

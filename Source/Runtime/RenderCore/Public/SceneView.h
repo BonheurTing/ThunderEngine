@@ -45,18 +45,6 @@ namespace Thunder
             return VisibleStaticSceneInfos;
         }
 
-    public:
-        
-        // camera info
-        //FViewMatrices ViewMatrices;
-        //FIntRect ViewRect;
-        //TVector3d ViewLocation;
-        //FRotator ViewRotation;
-        //float FOV;
-
-        // render info
-
-        
     private:
         FrameGraph* OwnerFrameGraph;
         EViewType ViewType = EViewType::Num;

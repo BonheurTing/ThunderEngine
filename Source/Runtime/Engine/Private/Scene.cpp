@@ -187,7 +187,7 @@ namespace Thunder
 		TVector3f cameraLocation { TVector3f(0.f, 0.f, 0.f) };
 		for (Entity* rootEntity : RootEntities)
 		{
-			if (Math::Distance(cameraLocation, rootEntity->GetTransform()->GetPosition()) > 0.5f)
+			if (Math::Distance(cameraLocation, rootEntity->GetTransformComponent()->GetPosition()) > 0.5f)
 			{
 				rootEntity->Load();
 			}

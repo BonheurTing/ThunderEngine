@@ -1,4 +1,4 @@
-Shader "TestShader"
+Shader "PBR"
 {
     Properties
     {
@@ -24,11 +24,11 @@ Shader "TestShader"
         float4 PassParameters2;
         int PassParameters3;
     }
-    #include "test_include_primitive.tsh"
-    #include "TestInclude1/TestInclude2/test_include_common.tsh"
+    #include "Common/Primitive.tsh"
+    #include "Common/Global.tsh"
     #define ENABLE_UV0 1
     #define ENABLE_UV1 0
-    SubShader "MySubShaderName"
+    SubShader "BasePass"
     {
         Attributes
         {
@@ -42,7 +42,7 @@ Shader "TestShader"
 
         struct vs_input
         {
-            float4 vertex : POSITION;
+            float4 position : POSITION;
         #if ENABLE_UV0
             float2 uv : TEXCOORD0;
         #endif
@@ -62,83 +62,28 @@ Shader "TestShader"
             float4 color0 : SV_Target0;
             float4 color1 : SV_TARGET1;
         };
-        
+
+        float4x4 GetViewProjectionMatrix()
+        {
+            return float4x4(
+                ViewProjectionMatrix0,
+                ViewProjectionMatrix1,
+                ViewProjectionMatrix2,
+                ViewProjectionMatrix3
+            );
+        }
+
         v2f vert(vs_input v)
         {
             v2f o;
-            o.pos = v.vertex.wwxy;
+            o.pos = mul(v.position, GetViewProjectionMatrix());
             o.uv = v.uv;
             return o;
-        }
-        
-        float3 test_function(int x) : SV_Target
-        {
-            return float3(0.5f, 0.5f, 1.0f);
         }
 
         ps_out frag(in v2f v)
         {
-            int x = 0;
-            int y = PassParameters1.x;
-            for (int i = 0; i < 10; i++)
-            {
-                x += y;
-                if (x > 0)
-                {
-                    break;
-                }
-                continue;
-            }
-            if (x+y > 100)
-            {
-                y = 100;
-                if (x > 50)
-                {
-                    x = 50;
-                }
-                else
-                {
-                    x = 0;
-                }
-            }
-            if (5 < 9)
-            {
-                x = y;
-            }
-            
-            if (x > 10)
-            {
-                y = 20;
-            }
-            
-            // Variants.
-            if constexpr (_Variant1 && _Variant0)
-            {
-                y = 30;
-            }
-            if constexpr (_Variant1)
-            {
-                x = 20;
-            }
-            
-            // 测试注释
-            float3 test_vector = float3(3, /*7*/4, 5);
-            /*测试
-            多行注释
-            */
-            float test_float_component = (float)(test_vector[2]);
-            int to_convert = x > 1 ? 3: 5;
-            float converted = float(to_convert);
-            float3 test_float3 = float3(1, 2, 3);
-            float4 test_initialize = float4(1, 1, 1, 1);
-            test_initialize = float4(test_float3, 1);
-            
-            converted = (float)(to_convert);
-            converted = (float)to_convert;
-            ps_out test_out = (ps_out)0;
-
             ps_out out_;
-            float3 test_return_value = test_function(1)[2 * 5 * 0 * x].xxx;
             out_.color0 = float4(0, 1, 0, 1);
             out_.color1 = float4(0, 0, 1, 1);
             return out_;

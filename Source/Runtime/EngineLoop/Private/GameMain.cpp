@@ -34,7 +34,7 @@ namespace Thunder
             return;
         }
 
-        auto* tr = GFPSCameraEntity->GetTransform();
+        auto* tr = GFPSCameraEntity->GetTransformComponent();
         TVector3f pos = tr->GetPosition();
         TVector3f rot = tr->GetRotation();  // Pitch / Yaw / Roll in degrees
 
@@ -46,7 +46,7 @@ namespace Thunder
 
         // WASD movement along Yaw direction
         const float speed = 5.f * dt;
-        float yawRad = rot.Y * 3.14159f / 180.f;
+        float yawRad = rot.Y * DEG_TO_RAD;
         float fwdX  =  sinf(yawRad);
         float fwdZ  =  cosf(yawRad);
         float rightX =  cosf(yawRad);
@@ -83,7 +83,7 @@ namespace Thunder
         Entity* rootEntity = newScene->CreateEntity("PlayerCharacter");
 
         // Add a transform component
-        TransformComponent* transform = rootEntity->GetTransform();
+        TransformComponent* transform = rootEntity->GetTransformComponent();
         transform->SetPosition(TVector3f(10.0f, 10.0f, 10.0f));
         transform->SetRotation(TVector3f(0.0f, 0.0f, 0.0f));
         transform->SetScale(TVector3f(1.0f, 1.0f, 1.0f));
@@ -97,7 +97,7 @@ namespace Thunder
 
         // Create a child entity
         Entity* childEntity = newScene->CreateEntity("Weapon");
-        TransformComponent* childTransform = childEntity->GetTransform();
+        TransformComponent* childTransform = childEntity->GetTransformComponent();
         childTransform->SetPosition(TVector3f(1.0f, 0.0f, 0.5f));
         rootEntity->AddChild(childEntity);
 
@@ -184,7 +184,7 @@ namespace Thunder
                     Scene* cameraScene = new Scene(defaultRendererFactory);
                     cameraScene->SetSceneName("FPSCameraScene");
                     Entity* cameraEntity = cameraScene->CreateEntity("FPSCamera");
-                    cameraEntity->GetTransform()->SetPosition(TVector3f(0.f, 0.f, -5.f));
+                    cameraEntity->GetTransformComponent()->SetPosition(TVector3f(0.f, 0.f, -5.f));
                     cameraScene->AddRootEntity(cameraEntity);
                     GFPSCameraEntity = cameraEntity;
                 }

@@ -64,8 +64,25 @@ namespace Thunder
 		}
 	}
 
+	namespace
+	{
+		void DebugCodeGen(const shader_lang_state* st, const String& metaFileName)
+		{
+			printf("\n");
+			String outHlsl;
+			shader_codegen_state temp_state
+			{
+				.sub_shader_name = metaFileName.find("PBR") != String::npos ? "BasePass" : "Blur",
+				.custom_types = st->custom_types
+			};
+			st->ast_root->generate_hlsl(outHlsl, temp_state);
+			printf("------------ Generate HLSL ------------\n%s", outHlsl.c_str());
+			printf("------------ Generate HLSL End ------------\n\n");
+			fflush(stdout);
+		}
+	}
+
 	// load all shader archive
-	
 	void ShaderModule::InitShaderMap()
 	{
 		TArray<String> shaderNameList;
@@ -83,18 +100,7 @@ namespace Thunder
 			fflush(stdout);
 
 			TAssertf( st->ast_root != nullptr, "Parse Error");
-
-			printf("\n");
-			String outHlsl;
-			shader_codegen_state temp_state
-			{
-				.sub_shader_name = metaFileName.find("example") != String::npos ? "MySubShaderName" : "ToneMapping",
-				.custom_types = st->custom_types
-			};
-			st->ast_root->generate_hlsl(outHlsl, temp_state);
-			printf("------------ Generate HLSL ------------\n%s", outHlsl.c_str());
-			printf("------------ Generate HLSL End ------------\n\n");
-			fflush(stdout);
+			DebugCodeGen(st, metaFileName);
 
 			ShaderAST* newAst = new (TMemory::Malloc<ShaderAST>()) ShaderAST(st->ast_root, std::move(st->custom_types));
 			ShaderArchive* newArchive = new (TMemory::Malloc<ShaderArchive>()) ShaderArchive(metaFileName, st->shader_name);

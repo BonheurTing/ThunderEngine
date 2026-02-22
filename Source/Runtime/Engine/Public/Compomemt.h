@@ -5,6 +5,7 @@
 #include "Guid.h"
 #include "Vector.h"
 #include "Matrix.h"
+#include "SceneView.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/document.h"
@@ -152,5 +153,51 @@ namespace Thunder
 		TVector3f Scale { 1.0f, 1.0f, 1.0f };
 
 		TMatrix44f Transform { TMatrix44f::Identity() };
+	};
+
+	class CameraComponent : public IComponent
+	{
+	public:
+		CameraComponent(Entity* inOwner) : IComponent(inOwner) {}
+		~CameraComponent() override = default;
+
+		NameHandle GetComponentName() const override { return "CameraComponent"; }
+
+		// JSON serialization
+		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const override;
+		void DeserializeJson(const rapidjson::Value& jsonValue) override;
+
+		// Camera parameter setters
+		void SetFovY(float inFovYDegrees);
+		void SetAspect(float inAspect);
+		void SetNearPlane(float inNear);
+		void SetFarPlane(float inFar);
+		void SetInfiniteFar(bool bInInfiniteFar);
+
+		// Camera parameter getters
+		float GetFovY() const { return FovY; }
+		float GetAspect() const { return Aspect; }
+		float GetNearPlane() const { return NearPlane; }
+		float GetFarPlane() const { return FarPlane; }
+		bool IsInfiniteFar() const { return bInfiniteFar; }
+
+		// Projection matrix
+		// Returns a reverse-Z perspective projection matrix matching UE conventions:
+		//   Left-handed, Z-up, column-vector row-major, near->1 far->0.
+		TMatrix44f GetProjectionMatrix() const;
+
+		void Tick() override;
+
+	private:
+		// Vertical full field-of-view in degrees
+		float FovY      { 90.0f };
+		// Viewport aspect ratio: width / height
+		float Aspect    { 16.0f / 9.0f };
+		float NearPlane { 10.0f };
+		float FarPlane  { 100000.0f };
+		// When true the far plane is at infinity (UE deferred renderer default)
+		bool  bInfiniteFar { true };
+
+		EViewType OwnerView { EViewType::MainView };
 	};
 }

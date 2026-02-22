@@ -75,27 +75,24 @@ namespace Thunder
 #if THUNDER_WINDOWS
         DWORD logicalProcessorCount = 0;
         DWORD physicalCoreCount = 0;
-        // 获取缓冲区大小
+
         DWORD bufferSize = 0;
         GetLogicalProcessorInformation(nullptr, &bufferSize);
 
-        // 分配缓冲区
         std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer(bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
         if (GetLogicalProcessorInformation(buffer.data(), &bufferSize)) {
             for (const auto& info : buffer) {
                 if (info.Relationship == RelationProcessorCore) {
-                    // 每个物理核可能支持多个逻辑处理器（超线程）
                     physicalCoreCount++;
                     logicalProcessorCount += CountSetBits(info.ProcessorMask);
                 }
             }
         } else {
-            std::cerr << "获取处理器信息失败！" << std::endl;
+            std::cerr << "Failed to get processor information.\n";
             return 8;
         }
         return static_cast<int32>(logicalProcessorCount);
 #elif THUNDER_POSIX
-        // POSIX系统使用sysconf获取逻辑处理器数量
         long logicalProcessorCount = sysconf(_SC_NPROCESSORS_ONLN);
         return static_cast<int32>(logicalProcessorCount > 0 ? logicalProcessorCount : 1);
 #endif
@@ -138,14 +135,15 @@ namespace Thunder
     void FPlatformProcess::BusyWaiting(int32 us)
     {
         auto start = std::chrono::high_resolution_clock::now();
-        volatile int x = 0; // 使用 volatile 防止优化
-        while (true) {
+        volatile int x = 0;
+        while (true)
+        {
             auto now = std::chrono::high_resolution_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - start).count();
             if (elapsed >= us) {
                 break;
             }
-            ++x; // 忙等待
+            ++x;
             FPlatformProcess::CoreYield();
         }
     }

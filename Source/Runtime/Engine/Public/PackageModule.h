@@ -27,6 +27,10 @@ namespace Thunder
 		uint32 PendingDependencyCount { 0 };
 		bool IsLoadCompletedAndWaitingForDependencies { false };  // LoadSync completed, but may be waiting for dependencies
 
+		// For incremental import.
+		int64 SrcFileLastWriteTime { 0 };
+		int64 SrcFileSize { 0 };
+
 		PackageEntry(const TGuid& inGuid, NameHandle inSoftPath) : Guid(inGuid), SoftPath(inSoftPath) {}
 
 		bool IsAcquiring() const
@@ -93,7 +97,9 @@ namespace Thunder
 		// editor fbx/png/tga -> uasset
 #if WITH_EDITOR
 		static bool ForceImport(const String& srcPath, const String& destPath);
-		void ImportAll(bool bForce = true);
+		static bool ReImport(const String& srcPath, const String& destPath, const TGuid& existingPakGuid);
+		static bool ImportTmap(const String& srcPath, const String& destPath);
+		void ImportAll(bool bForce = false);
 #endif
 
 		// runtime
@@ -112,6 +118,7 @@ namespace Thunder
 		static GameResource* TryGetLoadedResource(const TGuid& inGuid);
 #if WITH_EDITOR
 		static GameResource* GetResource(NameHandle softPath);
+		static TGuid GetGuidBySoftPath(NameHandle softPath);
 #endif
 		template<typename T>
 		static TArray<GameObject*> GetResourceByClass()
@@ -137,36 +144,29 @@ namespace Thunder
 			return result;
 		}
 		
+#if WITH_EDITOR
+		static void AddSoftPathToGuid(NameHandle softPath, const TGuid& inGuid) { GetModule()->SoftPathToGuidMap.emplace(softPath, inGuid); }
+#endif
+		
 	private:
 		void PackageAcquire(PackageEntry* entry);
 		TSet<TGuid> GetPackageDependencies(const TGuid& pakGuid);
 #if WITH_EDITOR
-		void RegisterPackage(Package* package);
+		void RegisterPackageSoftPathToGUID(Package* package);
 #endif
 
 	private:
 		// loading assistance
 		uint32 FrameMaxDelivering = 3;
-		TMap<TGuid, PackageEntry*> PackageMap {}; // 启动时扫描content目录建立guid到路径虚拟路径映射, 创建PackageEntry，Package为null
+		TMap<TGuid, PackageEntry*> PackageMap {};
 		TDeque<PackageEntry*> AcquireRequests;
 		TDeque<PackageEntry*> CompletionList;
 
-		// query
-		//TMap<TGuid, GameObject*> LoadedResources {}; // 已加载的资源(Package/GameResource)，使用 TGuid 作为键
 #if WITH_EDITOR
-		TMap<NameHandle, TGuid> LoadedResourcesByPath {}; // 使用虚拟路径作为键, 便于开发者使用，editor only
-#endif												// 导入资源和新建/生成时需要检查重名问题，package load原则上不用检查
+		TMap<NameHandle, TGuid> SoftPathToGuidMap{}; // A { Soft-path -> GUID } lookup for all resources and packages.
+#endif
 
-		//TMap<TGuid, NameHandle> ResourcePathMap {}; // 启动时扫描content目录建立guid到路径虚拟路径映射，world streaming等使用, 包含package和其中的game res
-
-		TMap<TGuid, TGuid> ResourceToPackage {}; // 启动时扫描content目录建立resourece guid到Package guid 的映射，辅助加载卸载功能使用
-
-		/* 虚拟路径检查
-		 * 1 导入时检查 (必然是editor)
-		 * 2 新建资源和修改资源原则上需要检查(必然是editor)，目前还没这个逻辑，先不写
-		 * 3 因为12，所以save时一定是unique
-		 * 4 load因为是save是unique，所以也是unique
-		 */
+		TMap<TGuid, TGuid> ResourceToPackage {}; // { ResourceGUID -> PackageGUID } lookup, PackageGUID -> PackageGUID is also contained.
 	};
 }
 

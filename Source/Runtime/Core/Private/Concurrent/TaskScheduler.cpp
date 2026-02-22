@@ -1,7 +1,6 @@
 
 #include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
-#include "Templates/FunctionMy.h"
 
 namespace Thunder
 {

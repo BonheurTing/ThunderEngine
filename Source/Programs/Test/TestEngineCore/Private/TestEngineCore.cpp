@@ -47,13 +47,7 @@ namespace Thunder
 
 	void TestImportResource()
 	{
-		
 		PackageModule::GetModule()->ImportAll(true);
-		/*const String fileName = FileModule::GetProjectRoot() + "\\Resource\\Mesh\\Cube.fbx";
-		const String destPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";*/
-		/*const String fileName = FileModule::GetProjectRoot() + "\\Resource\\TestPNG.png";
-		const String destPath = FileModule::GetProjectRoot() + "\\Content\\TestPNG.tasset";
-		ResourceModule::Import(fileName, destPath);*/
 	}
 
 	static bool NearlyEqual(float a, float b, float tolerance = 1e-5f)
@@ -61,7 +55,7 @@ namespace Thunder
 		return std::fabs(a - b) < tolerance;
 	}
 
-	static bool MatrixNearlyEqual(const TMatrix4f& A, const TMatrix4f& B, float tolerance = 1e-5f)
+	static bool MatrixNearlyEqual(const TMatrix44f& A, const TMatrix44f& B, float tolerance = 1e-5f)
 	{
 		for (int32 i = 0; i < 4; i++)
 			for (int32 j = 0; j < 4; j++)
@@ -76,7 +70,7 @@ namespace Thunder
 
 		// 1. Default constructor -> identity
 		{
-			TMatrix4f mat;
+			TMatrix44f mat;
 			TAssert(mat.M[0][0] == 1.0f && mat.M[1][1] == 1.0f && mat.M[2][2] == 1.0f && mat.M[3][3] == 1.0f);
 			TAssert(mat.M[0][1] == 0.0f && mat.M[0][2] == 0.0f && mat.M[0][3] == 0.0f);
 			TAssert(mat.M[1][0] == 0.0f && mat.M[2][0] == 0.0f && mat.M[3][0] == 0.0f);
@@ -85,7 +79,7 @@ namespace Thunder
 
 		// 2. Scalar constructor
 		{
-			TMatrix4f mat(0.0f);
+			TMatrix44f mat(0.0f);
 			for (int32 i = 0; i < 16; i++)
 				TAssert(mat.Raw[i] == 0.0f);
 			LOG("[PASS] Scalar constructor");
@@ -93,7 +87,7 @@ namespace Thunder
 
 		// 3. 16-value constructor
 		{
-			TMatrix4f mat(
+			TMatrix44f mat(
 				1, 2, 3, 4,
 				5, 6, 7, 8,
 				9, 10, 11, 12,
@@ -109,8 +103,8 @@ namespace Thunder
 			TVector4f r1(0, 1, 0, 0);
 			TVector4f r2(0, 0, 1, 0);
 			TVector4f r3(0, 0, 0, 1);
-			TMatrix4f mat(r0, r1, r2, r3);
-			TAssert(MatrixNearlyEqual(mat, TMatrix4f::Identity()));
+			TMatrix44f mat(r0, r1, r2, r3);
+			TAssert(MatrixNearlyEqual(mat, TMatrix44f::Identity()));
 			LOG("[PASS] TVector4 row constructor");
 		}
 
@@ -120,7 +114,7 @@ namespace Thunder
 			TVector3f y(0, 1, 0);
 			TVector3f z(0, 0, 1);
 			TVector3f w(5, 6, 7);
-			TMatrix4f mat(x, y, z, w);
+			TMatrix44f mat(x, y, z, w);
 			TAssert(mat.M[0][3] == 0.0f && mat.M[1][3] == 0.0f && mat.M[2][3] == 0.0f);
 			TAssert(mat.M[3][3] == 1.0f);
 			TAssert(mat.M[3][0] == 5.0f && mat.M[3][1] == 6.0f && mat.M[3][2] == 7.0f);
@@ -129,38 +123,38 @@ namespace Thunder
 
 		// 6. SetIdentity
 		{
-			TMatrix4f mat(0.0f);
+			TMatrix44f mat(0.0f);
 			mat.SetIdentity();
-			TAssert(MatrixNearlyEqual(mat, TMatrix4f::Identity()));
+			TAssert(MatrixNearlyEqual(mat, TMatrix44f::Identity()));
 			LOG("[PASS] SetIdentity");
 		}
 
 		// 7. Matrix multiplication (identity * A = A)
 		{
-			TMatrix4f A(
+			TMatrix44f A(
 				1, 2, 3, 4,
 				5, 6, 7, 8,
 				9, 10, 11, 12,
 				13, 14, 15, 16);
-			TMatrix4f I;
-			TMatrix4f Result = I * A;
+			TMatrix44f I;
+			TMatrix44f Result = I * A;
 			TAssert(MatrixNearlyEqual(Result, A));
 			LOG("[PASS] Matrix multiply identity * A == A");
 		}
 
 		// 8. Matrix multiplication (non-trivial)
 		{
-			TMatrix4f A(
+			TMatrix44f A(
 				1, 2, 0, 0,
 				0, 1, 0, 0,
 				0, 0, 1, 0,
 				0, 0, 0, 1);
-			TMatrix4f B(
+			TMatrix44f B(
 				1, 0, 0, 0,
 				3, 1, 0, 0,
 				0, 0, 1, 0,
 				0, 0, 0, 1);
-			TMatrix4f C = A * B;
+			TMatrix44f C = A * B;
 			// Row0: [1*1+2*3, 1*0+2*1, 0, 0] = [7, 2, 0, 0]
 			// Row1: [0*1+1*3, 0*0+1*1, 0, 0] = [3, 1, 0, 0]
 			TAssert(NearlyEqual(C.M[0][0], 7.0f));
@@ -172,17 +166,17 @@ namespace Thunder
 
 		// 9. Matrix addition
 		{
-			TMatrix4f A(
+			TMatrix44f A(
 				1, 2, 3, 4,
 				5, 6, 7, 8,
 				9, 10, 11, 12,
 				13, 14, 15, 16);
-			TMatrix4f B(
+			TMatrix44f B(
 				16, 15, 14, 13,
 				12, 11, 10, 9,
 				8, 7, 6, 5,
 				4, 3, 2, 1);
-			TMatrix4f C = A + B;
+			TMatrix44f C = A + B;
 			for (int32 i = 0; i < 16; i++)
 				TAssert(NearlyEqual(C.Raw[i], 17.0f));
 			LOG("[PASS] Matrix addition");
@@ -190,12 +184,12 @@ namespace Thunder
 
 		// 10. Scalar multiplication
 		{
-			TMatrix4f A(
+			TMatrix44f A(
 				1, 2, 3, 4,
 				5, 6, 7, 8,
 				9, 10, 11, 12,
 				13, 14, 15, 16);
-			TMatrix4f B = A * 2.0f;
+			TMatrix44f B = A * 2.0f;
 			TAssert(NearlyEqual(B.M[0][0], 2.0f));
 			TAssert(NearlyEqual(B.M[3][3], 32.0f));
 			LOG("[PASS] Scalar multiplication");
@@ -203,8 +197,8 @@ namespace Thunder
 
 		// 11. Equality / Inequality
 		{
-			TMatrix4f A;
-			TMatrix4f B;
+			TMatrix44f A;
+			TMatrix44f B;
 			TAssert(A == B);
 			B.M[1][2] = 99.0f;
 			TAssert(A != B);
@@ -213,31 +207,31 @@ namespace Thunder
 
 		// 12. Transpose
 		{
-			TMatrix4f A(
+			TMatrix44f A(
 				1, 2, 3, 4,
 				5, 6, 7, 8,
 				9, 10, 11, 12,
 				13, 14, 15, 16);
-			TMatrix4f T = A.GetTransposed();
+			TMatrix44f T = A.GetTransposed();
 			for (int32 i = 0; i < 4; i++)
 				for (int32 j = 0; j < 4; j++)
 					TAssert(NearlyEqual(T.M[i][j], A.M[j][i]));
 			// Double transpose should return original
-			TMatrix4f TT = T.GetTransposed();
+			TMatrix44f TT = T.GetTransposed();
 			TAssert(MatrixNearlyEqual(TT, A));
 			LOG("[PASS] Transpose");
 		}
 
 		// 13. Determinant of identity == 1
 		{
-			TMatrix4f I;
+			TMatrix44f I;
 			TAssert(NearlyEqual(I.Determinant(), 1.0f));
 			LOG("[PASS] Determinant of identity == 1");
 		}
 
 		// 14. Determinant non-trivial
 		{
-			TMatrix4f A(
+			TMatrix44f A(
 				1, 0, 0, 0,
 				0, 2, 0, 0,
 				0, 0, 3, 0,
@@ -248,51 +242,51 @@ namespace Thunder
 
 		// 15. RotDeterminant
 		{
-			TMatrix4f I;
+			TMatrix44f I;
 			TAssert(NearlyEqual(I.RotDeterminant(), 1.0f));
 			LOG("[PASS] RotDeterminant");
 		}
 
 		// 16. Inverse of identity == identity
 		{
-			TMatrix4f I;
-			TMatrix4f InvI = I.Inverse();
+			TMatrix44f I;
+			TMatrix44f InvI = I.Inverse();
 			TAssert(MatrixNearlyEqual(InvI, I));
 			LOG("[PASS] Inverse of identity == identity");
 		}
 
 		// 17. Inverse non-trivial: A * A^-1 == I
 		{
-			TMatrix4f A(
+			TMatrix44f A(
 				1, 2, 3, 0,
 				0, 1, 4, 0,
 				5, 6, 0, 0,
 				0, 0, 0, 1);
-			TMatrix4f InvA = A.Inverse();
-			TMatrix4f Result = A * InvA;
-			TAssert(MatrixNearlyEqual(Result, TMatrix4f::Identity(), 1e-4f));
+			TMatrix44f InvA = A.Inverse();
+			TMatrix44f Result = A * InvA;
+			TAssert(MatrixNearlyEqual(Result, TMatrix44f::Identity(), 1e-4f));
 			LOG("[PASS] Inverse: A * A^-1 == I");
 		}
 
 		// 18. Inverse of singular matrix -> identity
 		{
-			TMatrix4f Singular(0.0f);
-			TMatrix4f InvS = Singular.Inverse();
-			TAssert(MatrixNearlyEqual(InvS, TMatrix4f::Identity()));
+			TMatrix44f Singular(0.0f);
+			TMatrix44f InvS = Singular.Inverse();
+			TAssert(MatrixNearlyEqual(InvS, TMatrix44f::Identity()));
 			LOG("[PASS] Inverse of singular matrix -> identity");
 		}
 
 		// 19. TransposeAdjoint
 		{
-			TMatrix4f I;
-			TMatrix4f TA = I.TransposeAdjoint();
+			TMatrix44f I;
+			TMatrix44f TA = I.TransposeAdjoint();
 			TAssert(MatrixNearlyEqual(TA, I));
 			LOG("[PASS] TransposeAdjoint of identity");
 		}
 
 		// 20. TransformVector4
 		{
-			TMatrix4f I;
+			TMatrix44f I;
 			TVector4f v(1.0f, 2.0f, 3.0f, 1.0f);
 			TVector4f result = I.TransformVector4(v);
 			TAssert(NearlyEqual(result.X, 1.0f) && NearlyEqual(result.Y, 2.0f) && NearlyEqual(result.Z, 3.0f) && NearlyEqual(result.W, 1.0f));
@@ -305,7 +299,7 @@ namespace Thunder
 			TVector3f y(0, 1, 0);
 			TVector3f z(0, 0, 1);
 			TVector3f t(10, 20, 30);
-			TMatrix4f mat(x, y, z, t);
+			TMatrix44f mat(x, y, z, t);
 			TVector4f result = mat.TransformPosition(TVector3f(1.0f, 2.0f, 3.0f));
 			TAssert(NearlyEqual(result.X, 11.0f));
 			TAssert(NearlyEqual(result.Y, 22.0f));
@@ -320,7 +314,7 @@ namespace Thunder
 			TVector3f y(0, 1, 0);
 			TVector3f z(0, 0, 1);
 			TVector3f t(10, 20, 30);
-			TMatrix4f mat(x, y, z, t);
+			TMatrix44f mat(x, y, z, t);
 			TVector4f result = mat.TransformDirection(TVector3f(1.0f, 2.0f, 3.0f));
 			TAssert(NearlyEqual(result.X, 1.0f));
 			TAssert(NearlyEqual(result.Y, 2.0f));
@@ -331,7 +325,7 @@ namespace Thunder
 
 		// 23. GetOrigin / SetOrigin
 		{
-			TMatrix4f mat;
+			TMatrix44f mat;
 			mat.SetOrigin(TVector3f(7.0f, 8.0f, 9.0f));
 			TVector3f origin = mat.GetOrigin();
 			TAssert(NearlyEqual(origin.X, 7.0f) && NearlyEqual(origin.Y, 8.0f) && NearlyEqual(origin.Z, 9.0f));
@@ -344,8 +338,8 @@ namespace Thunder
 			TVector3f y(0, 1, 0);
 			TVector3f z(0, 0, 1);
 			TVector3f t(5, 6, 7);
-			TMatrix4f mat(x, y, z, t);
-			TMatrix4f noTrans = mat.RemoveTranslation();
+			TMatrix44f mat(x, y, z, t);
+			TMatrix44f noTrans = mat.RemoveTranslation();
 			TVector3f origin = noTrans.GetOrigin();
 			TAssert(NearlyEqual(origin.X, 0.0f) && NearlyEqual(origin.Y, 0.0f) && NearlyEqual(origin.Z, 0.0f));
 			// Upper 3x3 should remain unchanged
@@ -355,7 +349,7 @@ namespace Thunder
 
 		// 25. GetScaledAxis / SetAxis
 		{
-			TMatrix4f mat(
+			TMatrix44f mat(
 				2, 0, 0, 0,
 				0, 3, 0, 0,
 				0, 0, 4, 0,
@@ -374,7 +368,7 @@ namespace Thunder
 
 		// 26. GetColumn / SetColumn
 		{
-			TMatrix4f mat(
+			TMatrix44f mat(
 				1, 2, 3, 4,
 				5, 6, 7, 8,
 				9, 10, 11, 12,
@@ -391,7 +385,7 @@ namespace Thunder
 
 		// 27. GetScaleVector
 		{
-			TMatrix4f mat(
+			TMatrix44f mat(
 				2, 0, 0, 0,
 				0, 3, 0, 0,
 				0, 0, 4, 0,
@@ -405,8 +399,8 @@ namespace Thunder
 
 		// 28. ApplyScale
 		{
-			TMatrix4f I;
-			TMatrix4f Scaled = I.ApplyScale(5.0f);
+			TMatrix44f I;
+			TMatrix44f Scaled = I.ApplyScale(5.0f);
 			TAssert(NearlyEqual(Scaled.M[0][0], 5.0f));
 			TAssert(NearlyEqual(Scaled.M[1][1], 5.0f));
 			TAssert(NearlyEqual(Scaled.M[2][2], 5.0f));
@@ -416,7 +410,7 @@ namespace Thunder
 
 		// 29. ContainsNaN
 		{
-			TMatrix4f mat;
+			TMatrix44f mat;
 			TAssert(!mat.ContainsNaN());
 			mat.M[1][2] = std::numeric_limits<float>::quiet_NaN();
 			TAssert(mat.ContainsNaN());
@@ -425,7 +419,7 @@ namespace Thunder
 
 		// 30. To3x4MatrixTranspose
 		{
-			TMatrix4f mat(
+			TMatrix44f mat(
 				1, 2, 3, 4,
 				5, 6, 7, 8,
 				9, 10, 11, 12,
@@ -443,12 +437,12 @@ namespace Thunder
 
 		// 31. Type conversion (float -> double)
 		{
-			TMatrix4f matF(
+			TMatrix44f matF(
 				1, 2, 3, 4,
 				5, 6, 7, 8,
 				9, 10, 11, 12,
 				13, 14, 15, 16);
-			TMatrix4d matD(matF);
+			TMatrix44d matD(matF);
 			for (int32 i = 0; i < 4; i++)
 				for (int32 j = 0; j < 4; j++)
 					TAssert(std::fabs(matD.M[i][j] - (double)matF.M[i][j]) < 1e-10);
@@ -457,17 +451,17 @@ namespace Thunder
 
 		// 32. operator*= (matrix)
 		{
-			TMatrix4f A(
+			TMatrix44f A(
 				1, 2, 0, 0,
 				0, 1, 0, 0,
 				0, 0, 1, 0,
 				0, 0, 0, 1);
-			TMatrix4f B(
+			TMatrix44f B(
 				1, 0, 0, 0,
 				3, 1, 0, 0,
 				0, 0, 1, 0,
 				0, 0, 0, 1);
-			TMatrix4f Expected = A * B;
+			TMatrix44f Expected = A * B;
 			A *= B;
 			TAssert(MatrixNearlyEqual(A, Expected));
 			LOG("[PASS] operator*= (matrix)");
@@ -475,12 +469,12 @@ namespace Thunder
 
 		// 33. operator+= and operator*= (scalar)
 		{
-			TMatrix4f A(
+			TMatrix44f A(
 				1, 2, 3, 4,
 				5, 6, 7, 8,
 				9, 10, 11, 12,
 				13, 14, 15, 16);
-			TMatrix4f B = A;
+			TMatrix44f B = A;
 			A += B;
 			B *= 2.0f;
 			TAssert(MatrixNearlyEqual(A, B));
@@ -513,5 +507,7 @@ int main(int argc, char* argv[])
 	///Thunder::TestFileSystem();
 	//Thunder::TestImportResource();
 	//Thunder::TestLoadPackage();
+	
+	Thunder::PackageModule::GetModule()->ImportAll(true);
 }
 

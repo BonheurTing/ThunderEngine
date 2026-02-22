@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 
     // 2. Engine initialization
     EngineMain* GEngine = new EngineMain();
-    GEngine->FastInit();
+    GEngine->InitializeEngine();
 
     // 3. Pass HWND to RHI layer to create the swapchain
     GEngine->InitWindow(window.GetHWND());

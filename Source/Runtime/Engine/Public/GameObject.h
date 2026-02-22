@@ -117,9 +117,11 @@ namespace Thunder
 			LOG("success OnResourceLoaded");
 		}
 
+		void SetGuid(const TGuid& guid) { Guid = guid; }
+
 	private:
 		friend class Package;
-		void SetGuid(const TGuid& guid) { Guid = guid; }
+		friend class PackageModule;
 
 	private:
 		TGuid Guid {};

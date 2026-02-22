@@ -109,6 +109,7 @@ void TestTFunction()
 	// 目前来说根本没法用，问题太多了
 	// 测试1: Lambda表达式赋值给TFunction，然后调用
 	{
+		/*
 		TFunctionMy<int(float, std::string)> testFunction = [](float a, std::string b) -> int
 		{
 			LOG("a: %f, b: %s", a, b.c_str());
@@ -116,6 +117,7 @@ void TestTFunction()
 		};
 		const int dummy = testFunction(4.0f, "Hello World function");
 		Thunder::AsyncTask(testFunction, static_cast<float>(dummy), std::string("Hello World Invoke"));
+		*/
 	}
 	/*
 	// 测试2: 仿函数对象赋值给TFunction，然后调用

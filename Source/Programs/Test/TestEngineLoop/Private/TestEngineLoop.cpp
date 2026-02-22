@@ -18,7 +18,7 @@ int main()
     //Fast Init
     EngineMain* GEngine = new EngineMain();
 
-    GEngine->FastInit();
+    GEngine->InitializeEngine();
     GEngine->Run();
 
     EngineMain::EngineExitSignal->Wait();

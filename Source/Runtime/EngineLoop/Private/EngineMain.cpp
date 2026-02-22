@@ -32,7 +32,7 @@ namespace Thunder
         }
     }
 
-    void EngineMain::FastInit()
+    void EngineMain::InitializeEngine()
     {
         // setup module
         ModuleManager::GetInstance()->LoadModule<CoreModule>();
@@ -77,6 +77,10 @@ namespace Thunder
 
         // setup shader archive
         ShaderModule::InitShaderMap();
+
+#if WITH_EDITOR
+        PackageModule::GetModule()->ImportAll();
+#endif
 
         // setup base geometries
         GProceduralGeometryManager->InitBasicGeometrySubMeshes();
@@ -151,10 +155,5 @@ namespace Thunder
         ModuleManager::GetInstance()->UnloadModule<RenderModule>();
         ModuleManager::GetInstance()->UnloadModule<FileModule>();
         ModuleManager::GetInstance()->UnloadModule<CoreModule>();
-    }
-
-    void EngineMain::SimulateEditor()
-    {
-        GameModule::TestEditor();
     }
 }

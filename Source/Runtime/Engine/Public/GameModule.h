@@ -19,8 +19,6 @@ namespace Thunder
         static void UnregisterTickable(ITickable* tickable);
         static TArray<ITickable*> const& GetTickables() { return GetModule()->Tickables; }
 
-        static void TestEditor();
-
     private:
         friend class GameTask;
         static class TaskGraphProxy* GetGameThreadTaskGraph() { return GetModule()->GameThreadTaskGraph; }

@@ -1,4 +1,4 @@
-﻿#pragma optimize("", off) 
+﻿#pragma optimize("", off)
 #include "Package.h"
 #include "CRC.h"
 #include "Guid.h"
@@ -9,6 +9,7 @@
 #include "FileSystem/File.h"
 #include "FileSystem/FileModule.h"
 #include "FileSystem/FileSystem.h"
+#include <filesystem>
 
 namespace Thunder
 {
@@ -36,11 +37,14 @@ namespace Thunder
 		archive << Header.Guid;
 		const auto numGuids = static_cast<uint32>(Header.GuidList.size());
 		archive << numGuids;
-		
+
 		for (const TGuid& guid : Header.GuidList)
 		{
 			archive << guid;
 		}
+
+		archive << Header.SrcFileLastWriteTime;
+		archive << Header.SrcFileSize;
 	}
 
 	void Package::DeSerialize(MemoryReader& archive)
@@ -51,7 +55,7 @@ namespace Thunder
 		archive >> Header.Guid;
 		uint32 numGuids;
 		archive >> numGuids;
-		
+
 		Header.GuidList.resize(numGuids);
 		for (uint32 i = 0; i < numGuids; ++i)
 		{
@@ -59,6 +63,9 @@ namespace Thunder
 			archive >> guid;
 			Header.GuidList[i] = guid;
 		}
+
+		archive >> Header.SrcFileLastWriteTime;
+		archive >> Header.SrcFileSize;
 	}
 
 	bool Package::Save()
@@ -124,6 +131,9 @@ namespace Thunder
 		// Calculate and write checksum
 		Header.CheckSum = FCrc::BinaryCrc32(fileDataPtr + 12, fileSize - 12);
 		memcpy(fileDataPtr + 8, &Header.CheckSum, 4);
+
+		// Ensure the directory exists before writing.
+		std::filesystem::create_directories(std::filesystem::path(fullPath).parent_path());
 
 		// Write to .tmp file and rename it to the final path
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
@@ -199,10 +209,10 @@ namespace Thunder
 			TMemory::Destroy(fileData);
 			return false;
 		}
-		
-		// 验证校验和（跳过魔数和校验和本身）
+
+		// Verify checksum.
 		uint8* fileDataPtr = static_cast<uint8*>(fileData);
-		const uint32 calculatedChecksum = FCrc::BinaryCrc32(fileDataPtr + 12, fileSize - 12);
+		const uint32 calculatedChecksum = FCrc::BinaryCrc32(fileDataPtr + 12, fileSize - 12); // Skip magic number and checksum.
 		if (Header.CheckSum != calculatedChecksum)
 		{
 			TMemory::Destroy(fileData);
@@ -211,10 +221,9 @@ namespace Thunder
 
 		Objects.resize(numGuids);
 
-		// 反序列化每个对象
+		// Deserialize each object.
 		for (uint32 i = 0; i < numGuids; ++i)
 		{
-			// 创建BinaryData来包装对象数据
 			const void* objectDataStart = fileDataPtr + offsetList[i];
 			BinaryData objectBinaryData;
 			objectBinaryData.Data = const_cast<void*>(objectDataStart);
@@ -246,15 +255,14 @@ namespace Thunder
 			gameResource->SetResourceName(resourceName);
 			Objects[i] = gameResource;
 		}
-		
-		// 注册包本身到资源管理器
+
 		LOG("load package : %s complete, resource count: %llu", fullPath.c_str(), Objects.size());
 
 		TMemory::Destroy(fileData);
 		return true;
 	}
 
-	bool Package::TraverseGuidInPackage(const String& fullPath, TGuid& outGuid)
+	bool Package::BuildPackageEntry(const String& fullPath, TGuid& outGuid)
 	{
 		IFileSystem* fileSystem = FileModule::GetFileSystem("Content");
 		if (!fileSystem)
@@ -279,23 +287,25 @@ namespace Thunder
 		binaryData.Data = fileData;
 		binaryData.Size = needSize;
 
-		// 创建MemoryReader来反序列化头部
 		MemoryReader headerArchive(&binaryData);
 		uint32 magicNumber, checkSum, version;
-		headerArchive >> magicNumber; // 读取魔数
+		headerArchive >> magicNumber;
 		if (magicNumber != 0x50414745) // "PAGE"
 		{
 			file->Close();
 			TMemory::Destroy(fileData);
 			return false;
 		}
-		headerArchive >> checkSum; // 读取校验和
-		headerArchive >> version; // 读取版本号
-		headerArchive >> outGuid; // 读取GUID
+		headerArchive >> checkSum;
+		headerArchive >> version;
+		headerArchive >> outGuid;
 
 		String softPath = PackageModule::CovertFullPathToSoftPath(fullPath);
-		auto newEntry = PackageModule::AddPackageEntry(outGuid, softPath);
+		PackageEntry* newEntry = PackageModule::AddPackageEntry(outGuid, softPath);
 		PackageModule::AddResourceToPackage(outGuid, outGuid); // pak -> pak
+#if WITH_EDITOR
+		PackageModule::AddSoftPathToGuid(softPath, outGuid);
+#endif
 
 		uint32 numGuids;
 		headerArchive >> numGuids;
@@ -309,12 +319,29 @@ namespace Thunder
 
 			PackageModule::AddResourceToPackage(guid, outGuid); // res -> pak
 		}
+
+		// Read source file metadata (added after GuidList in Serialize)
+		int64 srcFileLastWriteTime = 0;
+		int64 srcFileSize = 0;
+		headerArchive >> srcFileLastWriteTime;
+		headerArchive >> srcFileSize;
+
+		// Read all resource suffix.
 		TArray<String> resourceSuffixList;
 		resourceSuffixList.resize(numGuids);
 		for (uint32 i = 0; i < numGuids; ++i)
 		{
 			headerArchive >> resourceSuffixList[i];
 		}
+
+		// Register soft-path to GUID lookup.
+#if WITH_EDITOR
+		for (uint32 i = 0; i < numGuids; ++i)
+		{
+			String resSoftPath = PackageModule::CovertFullPathToSoftPath(fullPath, resourceSuffixList[i]);
+			PackageModule::AddSoftPathToGuid(resSoftPath, guidList[i]);
+		}
+#endif
 
 		TArray<uint32> offsetList;
 		offsetList.resize(numGuids);
@@ -330,11 +357,9 @@ namespace Thunder
 			}
 		}
 
-		// 读取每个对象的依赖关系信息
+		// Read dependencies.
 		for (uint32 i = 0; i < numGuids; ++i)
 		{
-			// 使用 PRead 从 offsetList[i] 位置读取依赖数据，不改变文件指针
-			// 首先读取 dependencyCount (4 bytes)
 			uint32 dependencyCount = 0;
 			size_t readBytes = file->PRead(&dependencyCount, sizeof(uint32), offsetList[i]);
 			if (readBytes != sizeof(uint32))
@@ -344,7 +369,7 @@ namespace Thunder
 				return false;
 			}
 
-			// 读取所有依赖的 GUID
+			// Read dependency GUID.
 			TArray<TGuid> dependencies;
 			dependencies.resize(dependencyCount);
 			if (dependencyCount > 0)
@@ -362,6 +387,9 @@ namespace Thunder
 			newEntry->Dependencies.emplace(guidList[i], dependencies);
 		}
 
+		newEntry->SrcFileLastWriteTime = srcFileLastWriteTime;
+		newEntry->SrcFileSize = srcFileSize;
+
 		file->Close();
 		TMemory::Destroy(fileData);
 		return true;
@@ -371,7 +399,7 @@ namespace Thunder
 	{
 		if (!package)
 		{
-			return false; // 如果包为空，则不保存
+			return false;
 		}
 		return package->Save();
 	}

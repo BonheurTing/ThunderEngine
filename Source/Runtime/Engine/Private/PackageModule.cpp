@@ -8,6 +8,9 @@
 
 #include "GameModule.h"
 #include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
+#include "rapidjson/prettywriter.h"
 
 #include "Mesh.h"
 #include "Package.h"
@@ -17,6 +20,8 @@
 #include "FileSystem/FileModule.h"
 #include "Vector.h"
 #include "Concurrent/TaskScheduler.h"
+
+#include <filesystem>
 
 namespace Thunder
 {
@@ -358,11 +363,22 @@ namespace Thunder
 #if WITH_EDITOR
 	GameResource* PackageModule::GetResource(NameHandle softPath)
 	{
-		if (GetModule()->LoadedResourcesByPath.contains(softPath))
+		if (GetModule()->SoftPathToGuidMap.contains(softPath))
 		{
-			return TryGetLoadedResource(GetModule()->LoadedResourcesByPath[softPath]);
+			return TryGetLoadedResource(GetModule()->SoftPathToGuidMap[softPath]);
 		}
 		return nullptr;
+	}
+
+	TGuid PackageModule::GetGuidBySoftPath(NameHandle softPath)
+	{
+		auto const& softPathToGuidMap = GetModule()->SoftPathToGuidMap;
+		auto it = softPathToGuidMap.find(softPath);
+		if (it == softPathToGuidMap.end())
+		{
+			return TGuid();
+		}
+		return it->second;
 	}
 #endif
 
@@ -427,7 +443,7 @@ namespace Thunder
 			{
 				// only load guid
 				TGuid guid;
-				if (!Package::TraverseGuidInPackage(fileName, guid))
+				if (!Package::BuildPackageEntry(fileName, guid))
 				{
 					LOG("Failed to load package guid from %s", fileName.c_str());
 				}
@@ -549,7 +565,7 @@ namespace Thunder
 		int suffix = 1;
 		bool bUnique = true;
 #if WITH_EDITOR
-		while (GetModule()->LoadedResourcesByPath.contains(checkPath))
+		while (GetModule()->SoftPathToGuidMap.contains(checkPath))
 		{
 			bUnique = false;
 			checkPath = softPath + "_" + std::to_string(suffix);
@@ -563,48 +579,55 @@ namespace Thunder
 		return bUnique;
 	}
 
-	// todo: 导入还没处理重名的问题
 #if WITH_EDITOR
-	bool PackageModule::ForceImport(const String& srcPath, const String& destPath)
+	// Get last_write_time and file size as int64 values.
+	static std::pair<int64, int64> GetSrcFileInfo(const String& path)
 	{
-		// 先简单认为package重名就是覆盖，或者在import外面就解决destPath重名的问题
-		const String pacName = CovertFullPathToSoftPath(destPath); //已经是unique
-		auto* newPackage = new Package(pacName, {}); //需要区分这个path，有虚拟路径和绝对路径，暂时都用绝对路径
-		TGuid pakGuid = newPackage->GetGUID();
-		PackageEntry*  newEntry = AddPackageEntry(pakGuid, pacName);
-		AddResourceToPackage(pakGuid, pakGuid); // pak -> pak
+		std::error_code ec;
+		auto ftime = std::filesystem::last_write_time(path, ec);
+		int64 mtime = ec ? 0 : static_cast<int64>(ftime.time_since_epoch().count());
+		int64 fsize = 0;
+		if (!ec)
+		{
+			auto sz = std::filesystem::file_size(path, ec);
+			fsize = ec ? 0 : static_cast<int64>(sz);
+		}
+		return { mtime, fsize };
+	}
 
-		// 获取源文件类型
-		String fileExtension = FileModule::GetFileExtension(srcPath);
+	static bool ImportAssetIntoPackage(
+		const String& srcPath,
+		const String& destPath,
+		const TGuid& pakGuid,
+		Package* newPackage,
+		PackageEntry* newEntry,
+		const TGuid& existingResGuid,
+		bool bCheckUniqueName)
+	{
+		const String fileExtension = FileModule::GetFileExtension(srcPath);
+
 		if (fileExtension == "fbx")
 		{
-			// 1. 创建 Importer 对象
 			Assimp::Importer importer;
-
-			// 2. 加载模型文件（FBX/OBJ/glTF）
 			const aiScene* scene = importer.ReadFile(
 				srcPath,
-				aiProcess_Triangulate |          // 三角化
-				aiProcess_FlipUVs |              // 翻转 UV（可选）
-				aiProcess_GenNormals |           // 生成法线（如果没有）
-				aiProcess_OptimizeMeshes        // 优化网格
+				aiProcess_Triangulate |
+				aiProcess_FlipUVs |
+				aiProcess_GenNormals |
+				aiProcess_OptimizeMeshes
 			);
-
 			if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 			{
-				LOG("Assimp import error: %s", importer.GetErrorString());
+				TAssertf(false, "ImportAssetIntoPackage: Assimp failed on \"%s\": %s", srcPath.c_str(), importer.GetErrorString());
 				return false;
 			}
 
-			// 3. 遍历模型数据
-			LOG("The model contains %d meshes\n", scene->mNumMeshes);
-
+			LOG("The model contains %d meshes", scene->mNumMeshes);
 			const auto newStaticMesh = new StaticMesh();
 			for (unsigned int i = 0; i < scene->mNumMeshes; i++)
 			{
 				const aiMesh* mesh = scene->mMeshes[i];
-				LOG("Mesh %d: %d vertices\n", i, mesh->mNumVertices);
-
+				LOG("Mesh %d: %d vertices", i, mesh->mNumVertices);
 				const auto subMesh = new (TMemory::Malloc<SubMesh>()) SubMesh(i);
 				auto vertices = GenerateVertexBuffer(mesh);
 				auto indices = GenerateIndicesBuffer(mesh);
@@ -616,49 +639,53 @@ namespace Thunder
 				newStaticMesh->GetSubMeshes().push_back(subMesh);
 			}
 
-			// 4. 注册到资源管理器
+			if (existingResGuid.IsValid())
+			{
+				newStaticMesh->SetGuid(existingResGuid);
+			}
+
 			String resourceSuffix = scene->mName.length > 0 ? scene->mName.C_Str() : FileModule::GetFileName(destPath);
-			String resourceName = CovertFullPathToSoftPath(destPath, resourceSuffix);
-			CheckUniqueSoftPath(resourceName);
+			String resourceName = PackageModule::CovertFullPathToSoftPath(destPath, resourceSuffix);
+			if (bCheckUniqueName)
+			{
+				PackageModule::CheckUniqueSoftPath(resourceName);
+			}
 			newStaticMesh->SetResourceName(resourceName);
 			newStaticMesh->SetOuter(newPackage);
 			TGuid meshGuid = newStaticMesh->GetGUID();
-			AddResourceToPackage(meshGuid, pakGuid);
+			PackageModule::AddResourceToPackage(meshGuid, pakGuid);
 			newEntry->Dependencies.insert({meshGuid, {}});
-
-			// 5. 保存 package 文件
 			newPackage->AddResource(newStaticMesh);
 
-			LOG("Successfully import fbx file: %s", resourceName.c_str());
+			LOG("Imported fbx: %s", resourceName.c_str());
 		}
 		else if (fileExtension == "png" || fileExtension == "tga")
 		{
 			int width, height, channels;
 			unsigned char* data = stbi_load(srcPath.c_str(), &width, &height, &channels, 0);
-			if (data)
+			if (!data) [[unlikely]]
 			{
-				const auto newTexture = new Texture2D(data, width, height, channels);
-				stbi_image_free(data); // data在Texture2D中拷贝了一份，stbi管理的数据原地释放
-				
-				// 注册到资源管理器
-				const String resourceName = CovertFullPathToSoftPath(destPath, FileModule::GetFileName(destPath));
-				newTexture->SetResourceName(resourceName);
-				newTexture->SetOuter(newPackage);
-				TGuid texGuid = newTexture->GetGUID();
-				AddResourceToPackage(texGuid, pakGuid);
-				newEntry->Dependencies.insert({texGuid, {}});
-
-				// 保存 package 文件
-				newPackage->AddResource(newTexture);
-				
-				LOG("Successfully import %s file: %s", fileExtension.c_str(), resourceName.c_str());
-			}
-			else
-			{
-				// 处理加载失败的情况
-				std::cerr << "Failed to load image: " << srcPath << std::endl;
+				TAssertf(false, "ImportAssetIntoPackage: Failed to load image \"%s\".", srcPath.c_str());
 				return false;
 			}
+
+			const auto newTexture = new Texture2D(data, width, height, channels);
+			stbi_image_free(data);
+
+			if (existingResGuid.IsValid())
+			{
+				newTexture->SetGuid(existingResGuid);
+			}
+
+			const String resourceName = PackageModule::CovertFullPathToSoftPath(destPath, FileModule::GetFileName(destPath));
+			newTexture->SetResourceName(resourceName);
+			newTexture->SetOuter(newPackage);
+			TGuid texGuid = newTexture->GetGUID();
+			PackageModule::AddResourceToPackage(texGuid, pakGuid);
+			newEntry->Dependencies.insert({texGuid, {}});
+			newPackage->AddResource(newTexture);
+
+			LOG("Imported %s: %s", fileExtension.c_str(), resourceName.c_str());
 		}
 		else if (fileExtension == "mat")
 		{
@@ -667,29 +694,27 @@ namespace Thunder
 			String jsonString;
 			if (!FileModule::LoadFileToString(srcPath, jsonString))
 			{
-				LOG("Failed to load material file: %s", srcPath.c_str());
+				TAssertf(false, "ImportAssetIntoPackage: Failed to load material \"%s\".", srcPath.c_str());
 				return false;
 			}
 
 			Document document;
 			document.Parse(jsonString.c_str());
-			if (document.HasParseError())
+			if (document.HasParseError()) [[unlikely]]
 			{
-				LOG("Failed to parse material JSON: %s", srcPath.c_str());
+				TAssertf(false, "ImportAssetIntoPackage: Failed to parse material JSON \"%s\".", srcPath.c_str());
 				return false;
 			}
 
 			GameMaterial* material = new GameMaterial();
-			String shaderName;
 			if (document.HasMember("ShaderName") && document["ShaderName"].IsString())
 			{
-				shaderName = document["ShaderName"].GetString();
-				material->SetShaderArchive(NameHandle(shaderName));
+				material->SetShaderArchive(NameHandle(document["ShaderName"].GetString()));
 				material->ResetDefaultParameters();
 			}
 			else
 			{
-				LOG("Material file missing ShaderName: %s", srcPath.c_str());
+				TAssertf(false, "ImportAssetIntoPackage: Material missing ShaderName \"%s\".", srcPath.c_str());
 				delete material;
 				return false;
 			}
@@ -699,81 +724,304 @@ namespace Thunder
 				const auto& parameters = document["Parameters"].GetObject();
 				for (auto itr = parameters.MemberBegin(); itr != parameters.MemberEnd(); ++itr)
 				{
-					if (itr->value.IsString())
+					if (!itr->value.IsString())
 					{
-						String paramName = itr->name.GetString();
-						String paramSoftPath = itr->value.GetString();
-
-						GameResource* obj = GetResource(NameHandle(paramSoftPath));
-						if (obj && obj->GetResourceType() == ETempGameResourceReflective::Texture2D)
-						{
-							material->SetTextureParameter(NameHandle(paramName), obj->GetGUID());
-						}
-						else
-						{
-							LOG("Warning: Failed to load texture resource for parameter %s: %s",
-								paramName.c_str(), paramSoftPath.c_str());
-							delete material;
-							return false;
-						}
+						continue;
 					}
+					String paramName = itr->name.GetString();
+					String paramSoftPath = itr->value.GetString();
+					TGuid guid = PackageModule::GetGuidBySoftPath(NameHandle(paramSoftPath));
+					if (!guid.IsValid()) [[unlikely]]
+					{
+						TAssertf(false, "ImportAssetIntoPackage: Texture parameter \"%s\" path \"%s\" not found in material \"%s\".",
+							paramName.c_str(), paramSoftPath.c_str(), srcPath.c_str());
+						delete material;
+						return false;
+					}
+					material->SetTextureParameter(NameHandle(paramName), guid);
 				}
 			}
 
-			String matSoftPath = CovertFullPathToSoftPath(destPath, FileModule::GetFileName(destPath));
-			CheckUniqueSoftPath(matSoftPath);
+			if (existingResGuid.IsValid())
+			{
+				material->SetGuid(existingResGuid);
+			}
+
+			String matSoftPath = PackageModule::CovertFullPathToSoftPath(destPath, FileModule::GetFileName(destPath));
+			if (bCheckUniqueName)
+			{
+				PackageModule::CheckUniqueSoftPath(matSoftPath);
+			}
 			material->SetResourceName(matSoftPath);
 			material->SetOuter(newPackage);
-
 			TGuid materialGuid = material->GetGUID();
-			AddResourceToPackage(materialGuid, pakGuid);
+			PackageModule::AddResourceToPackage(materialGuid, pakGuid);
 			newEntry->Dependencies.insert({materialGuid, {}});
-
 			newPackage->AddResource(material);
-			
-			LOG("Successfully import material file: %s", matSoftPath.c_str());
+
+			LOG("Imported material: %s", matSoftPath.c_str());
 		}
-		if (GetModule()->SavePackage(newPackage))
+		else
 		{
-			LOG("Successfully import and save package: %s", pacName.c_str());
-			GetModule()->RegisterPackage(newPackage);
-			return true;
+			TAssertf(false, "ImportAssetIntoPackage: Unsupported file extension \"%s\" for \"%s\".", fileExtension.c_str(), srcPath.c_str());
+			return false;
 		}
-		return false;
+
+		return true;
+	}
+
+	bool PackageModule::ForceImport(const String& srcPath, const String& destPath)
+	{
+		const String packName = CovertFullPathToSoftPath(destPath);
+		auto* newPackage = new Package(packName, {});
+		TGuid pakGuid = newPackage->GetGUID();
+		PackageEntry* newEntry = AddPackageEntry(pakGuid, packName);
+		AddResourceToPackage(pakGuid, pakGuid);
+
+		auto [mtime, fsize] = GetSrcFileInfo(srcPath);
+		newPackage->SetSourceFileInfo(mtime, fsize);
+
+		if (!ImportAssetIntoPackage(srcPath, destPath, pakGuid, newPackage, newEntry, {}, /*bCheckUniqueName=*/true))
+		{
+			return false;
+		}
+
+		if (!GetModule()->SavePackage(newPackage))
+		{
+			return false;
+		}
+
+		LOG("ForceImport: saved package \"%s\".", packName.c_str());
+		GetModule()->RegisterPackageSoftPathToGUID(newPackage);
+		newEntry->SrcFileLastWriteTime = mtime;
+		newEntry->SrcFileSize = fsize;
+		return true;
+	}
+
+	bool PackageModule::ReImport(const String& srcPath, const String& destPath, const TGuid& existingPakGuid)
+	{
+		PackageModule* mod = GetModule();
+
+		// Find existing package entry and extract the resource GUID to reuse.
+		auto pakIt = mod->PackageMap.find(existingPakGuid);
+		if (pakIt == mod->PackageMap.end()) [[unlikely]]
+		{
+			TAssertf(false, "ReImport: PackageEntry not found for GUID \"%s\", srcPath=\"%s\".",
+				existingPakGuid.ToString().c_str(), srcPath.c_str());
+			return false;
+		}
+		TGuid existingResGuid;
+		for (auto& [resGuid, _] : pakIt->second->Dependencies)
+		{
+			if (resGuid != existingPakGuid)
+			{
+				existingResGuid = resGuid;
+				break;
+			}
+		}
+
+		auto [mtime, fsize] = GetSrcFileInfo(srcPath);
+
+		// Remove the stale entry so AddPackageEntry can re-insert with the same GUID.
+		TArray<TGuid> resToRemove;
+		for (auto& [resGuid, pakGuid] : mod->ResourceToPackage)
+		{
+			if (pakGuid == existingPakGuid)
+			{
+				resToRemove.push_back(resGuid);
+			}
+		}
+		for (const TGuid& g : resToRemove)
+		{
+			mod->ResourceToPackage.erase(g);
+		}
+		mod->PackageMap.erase(existingPakGuid);
+
+		const String packName = CovertFullPathToSoftPath(destPath);
+		auto* newPackage = new Package(packName, existingPakGuid);
+		newPackage->SetSourceFileInfo(mtime, fsize);
+
+		PackageEntry* newEntry = AddPackageEntry(existingPakGuid, packName);
+		AddResourceToPackage(existingPakGuid, existingPakGuid);
+
+		if (!ImportAssetIntoPackage(srcPath, destPath, existingPakGuid, newPackage, newEntry, existingResGuid, /*bCheckUniqueName=*/false))
+		{
+			return false;
+		}
+
+		if (!GetModule()->SavePackage(newPackage))
+		{
+			return false;
+		}
+
+		LOG("ReImport: saved package \"%s\".", packName.c_str());
+		GetModule()->RegisterPackageSoftPathToGUID(newPackage);
+		newEntry->SrcFileLastWriteTime = mtime;
+		newEntry->SrcFileSize = fsize;
+		return true;
+	}
+
+	bool PackageModule::ImportTmap(const String& srcPath, const String& destPath)
+	{
+		using namespace rapidjson;
+
+		String jsonString;
+		if (!FileModule::LoadFileToString(srcPath, jsonString))
+		{
+			TAssertf(false, "ImportTmap: Failed to load tmap file \"%s\".", srcPath.c_str());
+			return false;
+		}
+
+		Document document;
+		document.Parse(jsonString.c_str());
+		if (document.HasParseError()) [[unlikely]]
+		{
+			TAssertf(false, "ImportTmap: Failed to parse tmap JSON \"%s\".", srcPath.c_str());
+			return false;
+		}
+
+		// Recursively replace soft-path strings with GUIDs.
+		PackageModule* mod = GetModule();
+		std::function<void(Value&, Document::AllocatorType&)> replaceGuids =
+			[&](Value& val, Document::AllocatorType& allocator)
+		{
+			if (val.IsString())
+			{
+				String str = val.GetString();
+				if (str.size() >= 5 && str.substr(0, 5) == "/Game")
+				{
+					auto it = mod->SoftPathToGuidMap.find(NameHandle(str));
+					if (it != mod->SoftPathToGuidMap.end())
+					{
+						String guidStr = it->second.ToString();
+						val.SetString(guidStr.c_str(), static_cast<rapidjson::SizeType>(guidStr.size()), allocator);
+					}
+					else
+					{
+						LOG("ImportTmap: soft path \"%s\" not found in SoftPathToGuidMap, left as-is.", str.c_str());
+					}
+				}
+			}
+			else if (val.IsObject())
+			{
+				for (auto itr = val.MemberBegin(); itr != val.MemberEnd(); ++itr)
+				{
+					replaceGuids(itr->value, allocator);
+				}
+			}
+			else if (val.IsArray())
+			{
+				for (auto& elem : val.GetArray())
+				{
+					replaceGuids(elem, allocator);
+				}
+			}
+		};
+		replaceGuids(document, document.GetAllocator());
+
+		StringBuffer buffer;
+		PrettyWriter<StringBuffer> writer(buffer);
+		writer.SetIndent(' ', 4);
+		document.Accept(writer);
+
+		// Ensure the directory exists before writing.
+		std::filesystem::create_directories(std::filesystem::path(destPath).parent_path());
+
+		String outJson = buffer.GetString();
+		if (!FileModule::SaveFileFromString(destPath, outJson))
+		{
+			TAssertf(false, "ImportTmap: Failed to save tmap file \"%s\".", destPath.c_str());
+			return false;
+		}
+
+		LOG("ImportTmap: wrote \"%s\".", destPath.c_str());
+		return true;
 	}
 
 	void PackageModule::ImportAll(bool bForce)
 	{
-		if (bForce)
+		const String srcRoot = FileModule::GetProjectRoot() + "\\Resource\\";
+		const String destRoot = FileModule::GetResourceContentRoot();
+
+		TArray<String> allFiles;
+		FileModule::TraverseFileFromFolder(srcRoot, allFiles);
+
+		// Classify files by extension.
+		TArray<String> fbxFiles, texFiles, matFiles, tmapFiles;
+		for (const String& fileName : allFiles)
 		{
-			auto srcDict = FileModule::GetProjectRoot() + "\\Resource\\";
-			auto destDict = FileModule::GetResourceContentRoot();
-			TArray<String> fileNames;
-			FileModule::TraverseFileFromFolder(srcDict, fileNames);
-			for (const auto& fileName : fileNames)
-			{
-				String relativePath = fileName.substr(srcDict.length());
-				String destPath = destDict + relativePath;
-				destPath = FileModule::SwitchFileExtension(destPath, "tasset");
-				ForceImport(fileName, destPath);
-			}
+			String ext = FileModule::GetFileExtension(fileName);
+			if (ext == "fbx")
+				fbxFiles.push_back(fileName);
+			else if (ext == "png" || ext == "tga")
+				texFiles.push_back(fileName);
+			else if (ext == "mat")
+				matFiles.push_back(fileName);
+			else if (ext == "tmap")
+				tmapFiles.push_back(fileName);
 		}
-		else
+
+		// Look up the existing PackageEntry for a dest path via SoftPathToGuidMap (O(1)).
+		auto findExistingEntry = [&](const String& destPath) -> PackageEntry*
 		{
-			//todo 增量导入
+			NameHandle destSoftPath(CovertFullPathToSoftPath(destPath));
+			auto it = SoftPathToGuidMap.find(destSoftPath);
+			if (it == SoftPathToGuidMap.end())
+			{
+				return nullptr;
+			}
+			auto pakIt = PackageMap.find(it->second);
+			return pakIt != PackageMap.end() ? pakIt->second : nullptr;
+		};
+
+		auto doImport = [&](const String& srcPath)
+		{
+			String relativePath = srcPath.substr(srcRoot.length());
+			String destPath = destRoot + relativePath;
+			destPath = FileModule::SwitchFileExtension(destPath, "tasset");
+
+			PackageEntry* existingEntry = findExistingEntry(destPath);
+			if (existingEntry != nullptr)
+			{
+				auto [curMtime, curSize] = GetSrcFileInfo(srcPath);
+				if (!bForce && existingEntry->SrcFileLastWriteTime == curMtime && existingEntry->SrcFileSize == curSize)
+				{
+					LOG("ImportAll: skip (unchanged) \"%s\".", srcPath.c_str());
+					return;
+				}
+				ReImport(srcPath, destPath, existingEntry->Guid);
+				return;
+			}
+
+			ForceImport(srcPath, destPath);
+		};
+
+		// Meshes and textures first (no cross-asset dependencies).
+		for (const String& f : fbxFiles) doImport(f);
+		for (const String& f : texFiles) doImport(f);
+
+		// Materials depend on textures, so import them after.
+		for (const String& f : matFiles) doImport(f);
+
+		// Maps: always re-process (text replacement, negligible cost).
+		for (const String& srcPath : tmapFiles)
+		{
+			String relativePath = srcPath.substr(srcRoot.length());
+			String destPath = destRoot + relativePath;
+			ImportTmap(srcPath, destPath);
 		}
 	}
 
-	void PackageModule::RegisterPackage(Package* package)
+	void PackageModule::RegisterPackageSoftPathToGUID(Package* package)
 	{
 		TGuid pakGuid = package->GetGUID();
-		LoadedResourcesByPath.emplace(package->GetPackageName(), pakGuid);
+		SoftPathToGuidMap.emplace(package->GetPackageName(), pakGuid);
 
 		const TArray<GameResource*> objects = package->GetPackageObjects();
 		for (auto obj : objects)
 		{
 			TGuid objGuid = obj->GetGUID();
-			LoadedResourcesByPath.emplace(obj->GetResourceName(), objGuid);
+			SoftPathToGuidMap.emplace(obj->GetResourceName(), objGuid);
 		}
 	}
 #endif

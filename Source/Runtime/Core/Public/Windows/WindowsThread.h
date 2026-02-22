@@ -65,7 +65,6 @@ class ThreadWindows : public IThread
 	// thread handle
 	HANDLE Thread = 0;
 
-	// 创建线程后回调函数入口
 	static ::DWORD __stdcall ThreadProc(LPVOID pThis)
 	{
 		TAssert(pThis);
@@ -80,7 +79,6 @@ public:
 	{
 		if (Thread)
 		{
-			// 子类析构函数调用虚函数，很不推荐，一定要用的话，需要注意不能访问子类成员，子类此时可能已经析构了
 			ThreadWindows::Kill(true);
 		}
 	}

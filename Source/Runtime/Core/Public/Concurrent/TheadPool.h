@@ -39,9 +39,9 @@ namespace Thunder
 		bool NoWorkToRun();
 		
 	private:
-		IEvent* DoWorkEvent {}; //控制线程挂起唤醒等状态
-		std::atomic<bool> TimeToDie { false }; //线程结束标志
-		IThread* Thread {}; //实际物理线程
+		IEvent* DoWorkEvent {};
+		std::atomic<bool> TimeToDie { false };
+		IThread* Thread {};
 		ThreadPoolBase* ThreadPoolOwner {};
 		TSet<IScheduler*> AttachedSchedulers {};
 		SharedLock SchedulersSharedLock;

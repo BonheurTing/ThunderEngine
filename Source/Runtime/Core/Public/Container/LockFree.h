@@ -106,7 +106,7 @@ namespace Thunder
 
 	/*
 	 * FIndexedPointer
-	 * 支持原子操作的节点指针（64位，低26位表示指针索引，其他高位表示计数器或状态），最多支持2^26个节点
+	 * A pointer used for atomic operations (64 bits = 26 bits for index + 38 bits for stats), up to 2^26 nodes are supported.
 	 * no constructor, intentionally. We need to keep the ABA double counter in tact
 	 * This should only be used for FIndexedPointer's with no outstanding concurrency.
 	 * Not recycled links, for example.
@@ -123,12 +123,12 @@ namespace Thunder
 		FORCEINLINE void SetAllField(uint32 ptr, uint64 counterAndState)
 		{
 			checkLockFreePointerList(ptr < MAX_LOCK_FREE_NODES && counterAndState < (uint64(1) << (64 - MAX_LOCK_FREE_NODES_AS_BITS)));
-			Ptrs = (uint64(ptr) | (counterAndState << MAX_LOCK_FREE_NODES_AS_BITS)); // 64位，低26位表示指针索引，其他高位表示计数器或状态
+			Ptrs = (uint64(ptr) | (counterAndState << MAX_LOCK_FREE_NODES_AS_BITS));
 		}
 
 		FORCEINLINE uint32 GetPtr() const
 		{
-			return uint32(Ptrs & (MAX_LOCK_FREE_NODES - 1)); //低26位
+			return uint32(Ptrs & (MAX_LOCK_FREE_NODES - 1)); // Low 26 bits.
 		}
 
 		FORCEINLINE void SetPtr(uint32 in)
@@ -138,7 +138,7 @@ namespace Thunder
 
 		FORCEINLINE uint64 GetCounterAndState() const
 		{
-			return (Ptrs >> MAX_LOCK_FREE_NODES_AS_BITS); //高38位
+			return (Ptrs >> MAX_LOCK_FREE_NODES_AS_BITS); // High 38 bits.
 		}
 
 		FORCEINLINE void SetCounterAndState(uint64 in)
@@ -167,8 +167,8 @@ namespace Thunder
 		}
 
 		/*
-		* (GetCounterAndState() & ~(TABAInc - 1)): 获取干净的 高于26+ABA_Count_BitS后的bit数据
-		* | value: 设置ABA Data (27 ~ 26+ABA_Count_BitS)
+		* (GetCounterAndState() & ~(TABAInc - 1)): Mask ABA data out.
+		* | value: Set ABA Data (27 ~ 26+ABA_Count_BitS)
 		*/
 		template<uint64 TABAInc>
 		FORCEINLINE void SetState(uint64 value)
@@ -177,11 +177,6 @@ namespace Thunder
 			SetCounterAndState((GetCounterAndState() & ~(TABAInc - 1)) | value);
 		}
 
-		/*
-		* 把other的数据读到自己的Ptrs中
-		* AtomicRead主要是用的 InterlockedCompareExchange(ptr, 0, 0)的返回值，这个函数是ptr指向的值和参数三作比较，相同则赋值参数二，
-		* 另外无论如何都会返回ptr指向的原始值，所以需要的是这个返回值，随便写个交换值和比较值相同的参数即可
-		*/
 		FORCEINLINE void AtomicRead(const AtomicPointer& other)
 		{
 			checkLockFreePointerList(IsAligned(&Ptrs, 8) && IsAligned(&other.Ptrs, 8));
@@ -213,9 +208,9 @@ namespace Thunder
 	*/
 	struct IndexedLockFreeLink 
 	{
-		AtomicPointer DoubleNext; //是个uint64，是SingleNext的原子版本
-		void *Payload; // 实际要装载的数据
-		uint32 SingleNext; // 下个节点所在大块内存array的索引
+		AtomicPointer DoubleNext; // uint64, atomic version of SingleNext.
+		void *Payload;
+		uint32 SingleNext; // Index into next block array.
 	};
 
 	/*
@@ -227,34 +222,26 @@ namespace Thunder
 		{
 			MAX_BITS_IN_TLinkPtr = MAX_LOCK_FREE_NODES_AS_BITS
 		};
-		typedef AtomicPointer TDoublePtr; // 可以原子操作的指针，地26位地址是地址(其实就是分配的大块内存的索引TLinkPtr), 高位计数 // 作为head
-		typedef IndexedLockFreeLink TLink; // 队列的单个节点
-		typedef uint32 TLinkPtr; //分配的一大块内存array的索引
+		typedef AtomicPointer TDoublePtr; // Low 26 bits for address, high 38 bits are for ABA states.
+		typedef IndexedLockFreeLink TLink;
+		typedef uint32 TLinkPtr; // Index into a block array.
 		typedef TLockFreeAllocOnceIndexedAllocator<IndexedLockFreeLink, MAX_LOCK_FREE_NODES, 16384> TAllocator;
-		// 无锁队列的操作只对head，数据，next，head和next都保证原子性才能多线程安全，这俩都是指向node的指针，因此实现一个AtomicPointer来保证原子性
-		// IndexedLockFreeLink节点，todo: single next的用处
 
 		static FORCEINLINE IndexedLockFreeLink* DerefLink(uint32 Ptr) 
 		{
 			return LinkAllocator.GetItem(Ptr);
 		}
-		// 
+
 		static FORCEINLINE IndexedLockFreeLink* IndexToLink(uint32 Index)
 		{
 			return LinkAllocator.GetItem(Index);
 		}
-		// 
+
 		static FORCEINLINE uint32 IndexToPtr(uint32 Index)
 		{
 			return Index;
 		}
 
-		/*
-		 * 向队列申请分配一个Node来存储数据
-		 * 初始的时候申请一大块，来一个节点就分配一直地址，而不是每次新node都直接TMemory::Malloc
-		 * 因为现在的内存管理器虽然支持多线程，但是无锁队列要解决ABA问题需要计数，需要低26位是地址，高位是计数状态，内存管理器不能保证高位都是0
-		 * 因此先申请一大块再做映射
-		*/
 		CORE_API static uint32 AllocLockFreeLink();
 		CORE_API static void FreeLockFreeLink(uint32 Item);
 		CORE_API static TAllocator LinkAllocator;
@@ -287,15 +274,14 @@ namespace Thunder
 		{
 			while (true)
 			{
-				// 从内存中拿出Head指针
 				TDoublePtr LocalHead;
 				LocalHead.AtomicRead(Head);
 
 				TDoublePtr NewHead;
-				NewHead.AdvanceCounterAndState(LocalHead, TABAInc); //ABA计数+1
-				NewHead.SetPtr(Item); //设置节点
-				LockFreeLinkPolicy::DerefLink(Item)->SingleNext = LocalHead.GetPtr(); //设置next为原来的head指向的节点地址
-				if (Head.InterlockedCompareExchange(NewHead, LocalHead)) //Head和LocalHead比较，如果一致就赋值成NewHead；返回Head指向的内容和LocalHead做比较，如果相同就说明刚才交换成功了，break
+				NewHead.AdvanceCounterAndState(LocalHead, TABAInc);
+				NewHead.SetPtr(Item);
+				LockFreeLinkPolicy::DerefLink(Item)->SingleNext = LocalHead.GetPtr();
+				if (Head.InterlockedCompareExchange(NewHead, LocalHead))
 				{
 					break;
 				}
@@ -393,9 +379,8 @@ namespace Thunder
 
 		void Push(T* InPayload)
 		{
-			//向队列申请分配一个Node来存储数据
+			// Allocate a node.
 			TLinkPtr Item = LockFreeLinkPolicy::AllocLockFreeLink();
-			// TLinkPtr是映射后的索引，所以对node操作都要先解引用
 			LockFreeLinkPolicy::DerefLink(Item)->Payload = InPayload;
 			RootList.Push(Item);
 		}

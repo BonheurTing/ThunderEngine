@@ -180,17 +180,4 @@ namespace Thunder
             }
         }
     }
-
-
-    void GameModule::TestEditor()
-    {
-        // test png->material->mesh
-        {
-            //SimulateImportAsset();
-            //SimulateAddMaterialToMesh();
-        }
-
-        // print all resources
-        StreamableManager::ForceLoadAllResources();
-    }
 }

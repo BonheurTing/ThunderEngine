@@ -111,7 +111,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %type <token> primitive_types scalar_types
 %type <token> stage_token
 %type <node> definitions properties_definition variants_definition parameters_definition
-%type <token> inout_modifier type_qualification maybe_semantic
+%type <token> inout_modifier type_qualification maybe_semantic_postfix semantic_postfix
 %type <type> type variable_type type_qualifications maybe_type_qualifications
 %type <dimension> maybe_array array_dimensions
 %type <op_type> assignment_operator unary_operator
@@ -190,11 +190,18 @@ maybe_array:
 		}
 ;
 
-maybe_semantic:
+maybe_semantic_postfix:
 		{
 			$$ = token_data();
 		}
 | 	COLON TOKEN_SV
+		{
+			$$ = $2;
+		}
+;
+
+semantic_postfix:
+COLON TOKEN_SV
 		{
 			$$ = $2;
 		}
@@ -340,7 +347,11 @@ struct_members:
     ;
 
 struct_member:
-    type new_identifier maybe_semantic SEMICOLON {
+    type new_identifier SEMICOLON {
+        sl_state->add_struct_member($1, $2, $3, &yylloc);
+    }
+    ;
+|    type new_identifier semantic_postfix SEMICOLON {
         sl_state->apply_modifier($1, $3);
         sl_state->add_struct_member($1, $2, $3, &yylloc);
     }
@@ -350,7 +361,7 @@ function_definition:
     type new_identifier LPAREN {
         sl_state->parsing_function_begin($1, $2);
     }
-    param_list RPAREN maybe_semantic function_body {
+    param_list RPAREN maybe_semantic_postfix function_body {
         $$ = sl_state->parsing_function_end($7, $8);
     }
     ;
@@ -364,7 +375,7 @@ param_list:
     ;
 
 param:
-    maybe_type_qualifications type new_identifier maybe_semantic{
+    maybe_type_qualifications type new_identifier maybe_semantic_postfix{
         sl_state->combine_modifier($2,$1);
         sl_state->add_function_param($2, $3, $4, &yylloc);
     }

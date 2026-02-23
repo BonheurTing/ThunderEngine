@@ -15,7 +15,7 @@
 #include "Misc/CoreGlabal.h"
 #include "Misc/TraceProfile.h"
 #include "Module/ModuleManager.h"
-#include "TestRenderer.h"
+#include "DeferredRenderer.h"
 
 namespace Thunder
 {

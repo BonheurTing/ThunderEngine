@@ -19,7 +19,7 @@ Shader "PostProcess"
         SamplerState SceneSampler;
     }
     #include "Common/Global.tsh"
-    SubShader "Blur"
+    SubShader "ToneMapping"
     {
         Attributes
         {
@@ -35,6 +35,17 @@ Shader "PostProcess"
             float4 Position : SV_POSITION;
             float2 UV       : TEXCOORD0;
         };
+
+        // ACES Filmic Tone Mapping (Narkowicz 2015 fit)
+        float3 ACESFilm(float3 x)
+        {
+            float a = 2.51;
+            float b = 0.03;
+            float c = 2.43;
+            float d = 0.59;
+            float e = 0.14;
+            return saturate((x * (a * x + b)) / (x * (c * x + d) + e));
+        }
 
         VSOutput MainVS(uint VertexID : SV_VertexID)
         {
@@ -58,49 +69,19 @@ Shader "PostProcess"
 
         float4 MainPS(VSOutput input) : SV_Target
         {
-            float4 color = SceneTexture.Sample(PointWrappedSampler, input.UV);
-            //return color * PassParameters0;
-            return float4(color.xyz, 1);
-        }
-    }
+            float3 hdrColor = SceneTexture.Sample(PointWrappedSampler, input.UV).rgb;
 
-    SubShader "ToneMapping"
-    {
-        Attributes
-        {
-            DepthTest : "Near",
-            BlendMode : "Opaque"
-        }
+            // Exposure (adjust to taste, or pass via PassParameters0)
+            float exposure = 1.0;
+            hdrColor *= exposure;
 
-        using VertexEntry = MainVS2;
-        using PixelEntry = MainPS2;
+            // ACES tone mapping (HDR -> LDR)
+            float3 mapped = ACESFilm(hdrColor);
 
-        struct VSInput
-        {
-            float3 Position : POSITION;
-            float2 UV       : TEXCOORD0;
-        };
+            // Linear -> sRGB gamma correction
+            mapped = pow(mapped, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
 
-        struct VSOutput2
-        {
-            float4 Position : SV_POSITION;
-            float2 UV       : TEXCOORD0;
-        };
-
-        VSOutput2 MainVS2(VSInput input)
-        {
-            VSOutput2 output;
-
-            output.Position = float4(input.Position, 1.0);
-            output.UV = input.UV;
-
-            return output;
-        }
-
-        float4 MainPS2(VSOutput2 input) : SV_Target
-        {
-            float4 color = SceneTexture.Sample(input.UV);
-            return color * PassParameters3;
+            return float4(mapped, 1.0);
         }
     }
 }

@@ -1,10 +1,10 @@
 ﻿#include "Texture.h"
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
-#include "External/stb_image.h"		// 定义 stb_image 实现
+#include "External/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "Concurrent/TaskScheduler.h"
-#include "External/stb_image_write.h" // 定义 stb_image_write 实现
+#include "External/stb_image_write.h"
 #include "RenderModule.h"
 
 namespace Thunder
@@ -78,13 +78,13 @@ namespace Thunder
 		switch (Data->Channels)
 		{
 			case 1:
-			format = RHIFormat::R8_UINT;
+			format = RHIFormat::R8_UNORM;
 			break;
 			case 2:
-			format = RHIFormat::R8G8_UINT;
+			format = RHIFormat::R8G8_UNORM;
 			break;
 			case 4:
-			format = RHIFormat::R8G8B8A8_UINT;
+			format = RHIFormat::R8G8B8A8_UNORM;
 			break;
 			default:
 			TAssertf(false, "Invalid format");
@@ -112,11 +112,24 @@ namespace Thunder
 		else if (Channels == 3)
 		{
 			unsigned char * dstData = static_cast<unsigned char *>(ImgData->Data);
-			for (int i = 0; i < Width * Height; i++) {
+			for (int i = 0; i < Width * Height; i++)
+			{
 				dstData[i * 4 + 0] = inData[i * 3 + 0]; // R
 				dstData[i * 4 + 1] = inData[i * 3 + 1]; // G
 				dstData[i * 4 + 2] = inData[i * 3 + 2]; // B
-				dstData[i * 4 + 3] = 255; // A - 填充为不透明
+				dstData[i * 4 + 3] = 255; // A
+			}
+			Channels = 4;
+		}
+		else if (Channels == 1) // Todo : real single channel texture
+		{
+			unsigned char * dstData = static_cast<unsigned char *>(ImgData->Data);
+			for (int i = 0; i < Width * Height; i++)
+			{
+				dstData[i * 4 + 0] = inData[i]; // R
+				dstData[i * 4 + 1] = inData[i]; // G
+				dstData[i * 4 + 2] = inData[i]; // B
+				dstData[i * 4 + 3] = 255; // A
 			}
 			Channels = 4;
 		}
@@ -133,33 +146,30 @@ namespace Thunder
 		archive << Data->Height;
 		archive << Data->Channels;
 
-		// 使用stb_image_write将原始图像数据压缩为TGA格式
 		int compressed_size;
 		unsigned char* compressed_data = nullptr;
-		
-		// 定义回调函数将TGA数据写入内存
+
 		struct WriteContext {
 			std::vector<unsigned char>* buffer;
 		};
 		WriteContext context;
 		std::vector<unsigned char> tga_buffer;
 		context.buffer = &tga_buffer;
-		
-		// 使用stb_image_write的回调函数
+
 		auto write_callback = [](void* context_ptr, void* data, int size) {
 			WriteContext* ctx = static_cast<WriteContext*>(context_ptr);
 			unsigned char* bytes = static_cast<unsigned char*>(data);
 			ctx->buffer->insert(ctx->buffer->end(), bytes, bytes + size);
 		};
-		
-		// 将原始数据压缩为TGA格式
-		if (stbi_write_tga_to_func(write_callback, &context, Data->Width, Data->Height, Data->Channels, Data->ImgData->Data)) {
-			// 序列化压缩后的数据大小和数据
+
+		if (stbi_write_tga_to_func(write_callback, &context, Data->Width, Data->Height, Data->Channels, Data->ImgData->Data))
+		{
 			compressed_size = static_cast<int>(tga_buffer.size());
 			archive << compressed_size;
 			archive.WriteRaw(tga_buffer.data(), compressed_size);
-		} else {
-			// 压缩失败，写入0表示无数据
+		}
+		else
+		{
 			compressed_size = 0;
 			archive << compressed_size;
 		}
@@ -172,16 +182,14 @@ namespace Thunder
 		archive >> Data->Height;
 		archive >> Data->Channels;
 
-		// 读取压缩数据的大小
 		int compressed_size;
 		archive >> compressed_size;
 		
-		if (compressed_size > 0) {
-			// 读取压缩的TGA数据
+		if (compressed_size > 0)
+		{
 			std::vector<unsigned char> compressed_data(compressed_size);
 			archive.ReadRaw(compressed_data.data(), compressed_size);
-			
-			// 使用stb_image从TGA数据解压缩为原始图像数据
+
 			int loaded_width, loaded_height, loaded_channels;
 			unsigned char* raw_data = stbi_load_from_memory(
 				compressed_data.data(),
@@ -189,23 +197,25 @@ namespace Thunder
 				&loaded_width,
 				&loaded_height,
 				&loaded_channels,
-				Data->Channels  // 强制使用存储的通道数
+				Data->Channels
 			);
 			
-			if (raw_data) {
-				// 验证解压后的图像尺寸是否匹配
-				if (loaded_width == Data->Width && loaded_height == Data->Height) {
+			if (raw_data)
+			{
+				if (loaded_width == Data->Width && loaded_height == Data->Height)
+				{
 					Data->SetData(raw_data);
 				}
 				
-				// 释放stb_image分配的内存
 				stbi_image_free(raw_data);
-			} else {
-				// 解压失败，创建空的数据缓冲区
+			}
+			else
+			{
 				Data->ImgData = {};
 			}
-		} else {
-			// 没有压缩数据，创建空的数据缓冲区
+		}
+		else
+		{
 			Data->ImgData = {};
 		}
 	}

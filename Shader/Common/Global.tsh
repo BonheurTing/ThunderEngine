@@ -6,4 +6,12 @@ Parameters "Global"
     float4 ViewProjectionMatrix1;
     float4 ViewProjectionMatrix2;
     float4 ViewProjectionMatrix3;
+
+    // xyz = camera world position, w = unused
+    float4 CameraPosition;
+
+    float4 InvViewProjectionMatrix0;
+    float4 InvViewProjectionMatrix1;
+    float4 InvViewProjectionMatrix2;
+    float4 InvViewProjectionMatrix3;
 }

@@ -11,7 +11,7 @@
 #include "RenderModule.h"
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
-#include "TestRenderer.h"
+#include "DeferredRenderer.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
 #include "Memory/MallocMinmalloc.h"
@@ -87,7 +87,7 @@ namespace Thunder
 
         TFunction<class IRenderer*()> defaultRendererFactory = [this]() -> IRenderer*
         {
-            return new (TMemory::Malloc<DeferredShadingRenderer>()) DeferredShadingRenderer; 
+            return new (TMemory::Malloc<DeferredRenderer>()) DeferredRenderer; 
         };
         GameModule::GetModule()->InitGameThread(defaultRendererFactory); //bonheur test
     }

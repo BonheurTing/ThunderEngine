@@ -14,7 +14,7 @@
 #include "Module/ModuleManager.h"
 #include "Scene.h"
 #include "StreamableManager.h"
-#include "TestRenderer.h"
+#include "DeferredRenderer.h"
 #include "FileSystem/FileModule.h"
 #include "InputState.h"
 
@@ -113,7 +113,7 @@ namespace Thunder
         // Create a new scene
         TFunction<class IRenderer*()> defaultRendererFactory = []() -> IRenderer*
         {
-            return new (TMemory::Malloc<DeferredShadingRenderer>()) DeferredShadingRenderer; 
+            return new (TMemory::Malloc<DeferredRenderer>()) DeferredRenderer; 
         };
         Scene* newScene = new Scene(defaultRendererFactory);
         newScene->SetSceneName("ExampleLevel");
@@ -204,35 +204,6 @@ namespace Thunder
         }
         // game thread
         LOG("Execute game thread in frame: %d with thread: %lu", frameNum, __threadid());
-
-        // First frame: create FPS camera entity
-        /*
-        if (frameNum == 1)
-        {
-            auto& viewports = GameModule::GetViewports();
-            if (!viewports.empty())
-            {
-                auto* viewport = viewports[0];
-                if (viewport)
-                {
-                    // Create a scene if none exists, or get the first scene from the viewport
-                    // For now, create a standalone scene for the camera entity
-                    TFunction<class IRenderer*()> defaultRendererFactory = []() -> IRenderer*
-                    {
-                        return new (TMemory::Malloc<DeferredShadingRenderer>()) DeferredShadingRenderer;
-                    };
-                    Scene* cameraScene = new Scene(defaultRendererFactory);
-                    cameraScene->SetSceneName("FPSCameraScene");
-                    Entity* cameraEntity = cameraScene->CreateEntity("FPSCamera");
-                    cameraEntity->GetTransformComponent()->SetPosition(TVector3f(0.f, 0.f, 0.f));
-                    cameraEntity->GetTransformComponent()->OnLoaded();
-                    cameraEntity->AddComponent<CameraComponent>()->OnLoaded();
-                    cameraScene->AddRootEntity(cameraEntity);
-                    GFPSCameraEntity = cameraEntity;
-                }
-            }
-        }
-        */
 
         // Tick camera every frame (fixed dt=1/60)
         TickFPSCamera(1.f / 60.f);

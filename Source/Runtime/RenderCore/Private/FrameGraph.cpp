@@ -414,14 +414,20 @@ namespace Thunder
         }
     }
 
-    void FrameGraph::SetViewProjectionMatrix(EViewType type, const TMatrix44f& matrix) const
+    void FrameGraph::SetViewParameters(EViewType type, TVector4f cameraPos, const TMatrix44f& vpMatrix) const
     {
         // Render thread.
         auto globalParameters = GetGlobalParameters();
-        globalParameters->SetVectorParameter("ViewProjectionMatrix0", matrix.GetColumn(0));
-        globalParameters->SetVectorParameter("ViewProjectionMatrix1", matrix.GetColumn(1));
-        globalParameters->SetVectorParameter("ViewProjectionMatrix2", matrix.GetColumn(2));
-        globalParameters->SetVectorParameter("ViewProjectionMatrix3", matrix.GetColumn(3));
+        globalParameters->SetVectorParameter("CameraPosition", cameraPos);
+        globalParameters->SetVectorParameter("ViewProjectionMatrix0", vpMatrix.GetColumn(0));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix1", vpMatrix.GetColumn(1));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix2", vpMatrix.GetColumn(2));
+        globalParameters->SetVectorParameter("ViewProjectionMatrix3", vpMatrix.GetColumn(3));
+        TMatrix44f invVPMatrix = vpMatrix.Inverse();
+        globalParameters->SetVectorParameter("InvViewProjectionMatrix0", invVPMatrix.GetColumn(0));
+        globalParameters->SetVectorParameter("InvViewProjectionMatrix1", invVPMatrix.GetColumn(1));
+        globalParameters->SetVectorParameter("InvViewProjectionMatrix2", invVPMatrix.GetColumn(2));
+        globalParameters->SetVectorParameter("InvViewProjectionMatrix3", invVPMatrix.GetColumn(3));
     }
 
     // Called on game thread.

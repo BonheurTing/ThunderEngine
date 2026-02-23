@@ -423,10 +423,11 @@ namespace Thunder
 		TMatrix44f viewMatrix = Owner->GetTransform().Inverse();
 		TMatrix44f projectionMatrix = GetProjectionMatrix();
 		TMatrix44f vpMatrix = viewMatrix * projectionMatrix;
+		TVector4f cameraPosition = Owner->GetTransformComponent()->GetPosition();
 
-		GRenderScheduler->PushTask([this, vpMatrix]()
+		GRenderScheduler->PushTask([this, type = OwnerView, cameraPosition, vpMatrix]()
 		{
-			Owner->GetScene()->GetRenderer()->GetFrameGraph()->SetViewProjectionMatrix(OwnerView, vpMatrix);
+			Owner->GetScene()->GetRenderer()->GetFrameGraph()->SetViewParameters(type, cameraPosition, vpMatrix);
 		});
 	}
 

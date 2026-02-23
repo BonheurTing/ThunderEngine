@@ -96,7 +96,7 @@ namespace Thunder
 		static bool CheckUniqueSoftPath(String& softPath);
 		// editor fbx/png/tga -> uasset
 #if WITH_EDITOR
-		static bool ForceImport(const String& srcPath, const String& destPath);
+		static bool Import(const String& srcPath, const String& destPath);
 		static bool ReImport(const String& srcPath, const String& destPath, const TGuid& existingPakGuid);
 		static bool ImportTmap(const String& srcPath, const String& destPath);
 		void ImportAll(bool bForce = false);

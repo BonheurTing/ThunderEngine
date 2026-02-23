@@ -96,11 +96,11 @@ namespace Thunder
     {
         String fileName = FileModule::GetProjectRoot() + "\\Resource\\Mesh\\Cube.fbx";
         String destPath = FileModule::GetProjectRoot() + "\\Content\\Mesh\\Cube.tasset";
-        PackageModule::ForceImport(fileName, destPath);
+        PackageModule::Import(fileName, destPath);
 
         fileName = FileModule::GetProjectRoot() + "\\Resource\\123.fbx";
         destPath = FileModule::GetProjectRoot() + "\\Content\\123.tasset";
-        PackageModule::ForceImport(fileName, destPath);
+        PackageModule::Import(fileName, destPath);
 
         String texFullPath = FileModule::GetProjectRoot() + "\\Content\\TestPNG.tasset";
         String texSoftPath = PackageModule::CovertFullPathToSoftPath(texFullPath, "TestPNG");
@@ -110,7 +110,7 @@ namespace Thunder
 
         fileName = FileModule::GetProjectRoot() + "\\Resource\\Material\\TestMaterial.mat";
         destPath = FileModule::GetProjectRoot() + "\\Content\\Material\\TestMaterial.tasset";
-        PackageModule::ForceImport(fileName, destPath);
+        PackageModule::Import(fileName, destPath);
     }
 
     static void SimulateAddMaterialToMesh()

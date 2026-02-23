@@ -24,3 +24,5 @@ echo -- End to generate the parser
 echo.
 
 python .\Tools\ShaderLang\GenerateShaderCompiler.py
+
+pause

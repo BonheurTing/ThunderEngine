@@ -149,6 +149,7 @@ namespace Thunder
 		uint32 const bufferSize = layout->GetTotalSize();
 		if (bufferSize == 0) [[unlikely]]
 		{
+			TAssertf(false, "Trying to update an empty uniform buffer \"%s\".", ubName);
 			return nullptr;
 		}
 

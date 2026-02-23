@@ -606,6 +606,10 @@ namespace Thunder
 
             memcpy(MappedData, Contents, alignedSize);
         }
+        else
+        {
+            TAssertf(false, "Fail to create uniform buffer.");
+        }
 
         return newUniformBuffer;
     }

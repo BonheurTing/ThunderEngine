@@ -240,7 +240,7 @@ namespace Thunder
 		}
 		else
 		{
-			debug_log("Unknown variable type: " + name.text);
+			output_parse_error_log("Unknown variable type: " + name.text);
 		}
 		current_variables.clear();
 	}
@@ -276,7 +276,7 @@ namespace Thunder
 			}
 			else
 			{
-				debug_log("Invalid definition type in add_definition_member.");
+				output_parse_error_log("Invalid definition type in add_definition_member.");
 			}
 		}
 	}
@@ -300,7 +300,7 @@ namespace Thunder
 			else if (value.text == "Near") current_attributes.depth_test = enum_depth_test::less;
 			else
 			{
-				debug_log("Unknown DepthTest value: " + value.text);
+				output_parse_error_log("Unknown DepthTest value: " + value.text);
 				current_attributes.depth_test = enum_depth_test::undefined;
 			}
 		}
@@ -310,13 +310,13 @@ namespace Thunder
 			else if (value.text == "Translucent") current_attributes.blend_mode = enum_blend_mode::translucent;
 			else
 			{
-				debug_log("Unknown BlendMode value: " + value.text);
+				output_parse_error_log("Unknown BlendMode value: " + value.text);
 				current_attributes.blend_mode = enum_blend_mode::undefined;
 			}
 		}
 		else
 		{
-			debug_log("Unknown attribute key in add_attribute_entry.");
+			output_parse_error_log("Unknown attribute key in add_attribute_entry.");
 		}
 	}
 
@@ -324,7 +324,7 @@ namespace Thunder
 	{
 		if (current_pass == nullptr)
 		{
-			debug_log("No current pass to add stage entry to.");
+			output_parse_error_log("No current pass to add stage entry to.");
 			return;
 		}
 
@@ -339,7 +339,7 @@ namespace Thunder
 		}
 		else
 		{
-			debug_log("Unknown stage token in add_stage_entry.");
+			output_parse_error_log("Unknown stage token in add_stage_entry.");
 			return;
 		}
 
@@ -385,7 +385,7 @@ namespace Thunder
 		}
 		else
 		{
-			debug_log("No current structure to add member to.", loc);
+			output_parse_error_log("No current structure to add member to.", loc);
 		}
 	}
 
@@ -430,7 +430,7 @@ namespace Thunder
 		}
 		else
 		{
-			debug_log("No current function to add parameter to.", loc);
+			output_parse_error_log("No current function to add parameter to.", loc);
 		}
 	}
 
@@ -458,7 +458,7 @@ namespace Thunder
 		}
 		else
 		{
-			debug_log("No current block to add statement to.", loc);
+			output_parse_error_log("No current block to add statement to.", loc);
 		}
 	}
 
@@ -474,7 +474,7 @@ namespace Thunder
 		{
 			String type_text;
 			ret.type->generate_hlsl(type_text, temp_state);
-			debug_log("Expected integer expression, but " + type_text, &loc);
+			output_parse_error_log("Expected integer expression, but " + type_text, &loc);
 			return 0;
 		}
 	}
@@ -634,6 +634,13 @@ namespace Thunder
 
 	void shader_lang_state::apply_modifier(ast_node_type_format* type, const token_data& modifier)
 	{
+		/*
+		if (modifier.text == "")
+		{
+			return;
+		}
+		else
+		*/
 		if (modifier.token_id == TOKEN_IN)
 		{
 			type->is_in = true;
@@ -660,7 +667,7 @@ namespace Thunder
 		}
 		else
 		{
-			debug_log("Unknown type qualifier: " + modifier.text);
+			output_parse_error_log("Unknown type qualifier: " + modifier.text);
 		}
 	}
 
@@ -888,19 +895,32 @@ namespace Thunder
 		return "";
 	}
 
-	void shader_lang_state::debug_log(const String& msg, const parse_location* loc) const
+	void shader_lang_state::output_parse_log(const String& msg, const parse_location* loc) const
 	{
-		if (loc == nullptr)
+		// if (loc == nullptr)
+		{
 			loc = current_location;
+		}
 
 		printf("Message : %s : line %d col %d \n", msg.c_str(), loc->first_line, loc->first_column);
+	}
+
+	void shader_lang_state::output_parse_error_log(const String& msg, const parse_location* loc) const
+	{
+		// if (loc == nullptr)
+		{
+			loc = current_location;
+		}
+
+		TAssertf(false, "Parse error, AST name : %s, message : %s : line %d col %d, current text : %s \n", shader_name.c_str(), msg.c_str(), loc->first_line, loc->first_column, current_text.c_str());
+		printf("Parse error, AST name : %s, message : %s : line %d col %d, current text : %s \n", shader_name.c_str(), msg.c_str(), loc->first_line, loc->first_column, current_text.c_str());
 	}
 
 	void shader_lang_state::post_process_ast() const
 	{
 		if (ast_root == nullptr)
 		{
-			debug_log("Parse Error, current text : " + sl_state->current_text);
+			output_parse_error_log("Parse Error, current text : " + sl_state->current_text);
 			return;
 		}
 		printf("\n");

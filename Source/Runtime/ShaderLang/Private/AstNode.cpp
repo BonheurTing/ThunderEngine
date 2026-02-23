@@ -2197,7 +2197,7 @@ namespace Thunder
                 else if (symbol_node->node_type == enum_ast_node_type::type_format ||
                     symbol_node->node_type == enum_ast_node_type::structure)
                 {
-                    sl_state->debug_log("TYPE_ID : " + sl_state->current_text, loc);
+                    sl_state->output_parse_log("TYPE_ID : " + sl_state->current_text, loc);
                     token = TYPE_ID;
                 }
                 break;

@@ -1,5 +1,5 @@
 #pragma optimize("", off)
-#include "TestRenderer.h"
+#include "DeferredRenderer.h"
 
 #include "CoreModule.h"
 #include "FrameGraph.h"
@@ -19,117 +19,17 @@
 
 namespace Thunder
 {
-    namespace
-    {
-        void Print(const std::string& message)
-        {
-            std::cout << message << '\n';
-        }
-    }
-
-    void TestRenderer::Setup()
-    {
-        uint32 const resolutionWidth = GDynamicRHI->GetViewportWidth();
-        uint32 const resolutionHeight = GDynamicRHI->GetViewportHeight();
-        
-        // GBuffer pass.
-        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{"GBufferA", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{"GBufferB", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-
-        // Register render targets
-        mFrameGraph->RegisterRenderTarget(GBufferRT0);
-        mFrameGraph->RegisterRenderTarget(GBufferRT1);
-
-        {
-            PassOperations operations;
-            operations.Write(GBufferRT0);
-            operations.Write(GBufferRT1);
-            mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
-            {
-                auto context = mFrameGraph->GetMainContext();
-                RHIDrawCommand* newCommand = new (context->Allocate<RHIDrawCommand>()) RHIDrawCommand;
-
-                // Set render resources
-                //Command->VBToSet = VB;
-                //Command->IBToSet = IB;
-                //Command->GraphicsPSO = PSO;
-
-                // Set draw parameters
-                newCommand->IndexCount = 36;      // Example for a cube
-                newCommand->InstanceCount = 1;
-                newCommand->StartIndexLocation = 0;
-                newCommand->BaseVertexLocation = 0;
-                newCommand->StartInstanceLocation = 0;
-
-                context->AddCommand(newCommand);
-            });
-        }
-
-        // Lighting pass.
-        static FGRenderTargetRef LightingRT = new FGRenderTarget{"SceneTexture", resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
-        mFrameGraph->RegisterRenderTarget(LightingRT);
-
-        {
-            PassOperations operations;
-            operations.Read(GBufferRT0);
-            operations.Read(GBufferRT1);
-            operations.Write(LightingRT);
-            mFrameGraph->AddPass(EVENT_NAME("LightingPass"), std::move(operations), [this]()
-            {
-                auto context = mFrameGraph->GetMainContext();
-                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
-                context->AddCommand(newCommand);
-            });
-        }
-
-        // PostProcess1 pass.
-        static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{"SceneTexture1", 1280, 720, RHIFormat::R16G16B16A16_FLOAT };
-        mFrameGraph->RegisterRenderTarget(PostProcessRT1);
-
-        {
-            PassOperations operations;
-            operations.Read(LightingRT);
-            operations.Write(PostProcessRT1);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this]()
-            {
-                auto context = mFrameGraph->GetMainContext();
-                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
-                context->AddCommand(newCommand);
-            });
-        }
-
-        {
-            // PostProcess2 (present pass): reads LightingRT, renders directly to the swapchain backbuffer.
-            PassOperations operations;
-            operations.Read(LightingRT);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess2"), std::move(operations), [this]()
-            {
-                auto context = mFrameGraph->GetMainContext();
-                RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
-                context->AddCommand(newCommand);
-            });
-            mFrameGraph->SetPresentPass("PostProcess2");
-        }
-    }
-
-    void TestRenderer::Tick_RenderThread()
-    {
-        mFrameGraph->UpdateSceneInfo_RenderThread();
-    }
-
-
-
-    DeferredShadingRenderer::DeferredShadingRenderer()
+    DeferredRenderer::DeferredRenderer()
     {
     }
 
-    void DeferredShadingRenderer::InitViews()
+    void DeferredRenderer::InitViews()
     {
         // todo The scene needs to build a PrimitiveSceneInfo list.
         // Each element is indexed by PrimitiveId and can be used to access its proxy.
     }
 
-    void DeferredShadingRenderer::Tick_RenderThread()
+    void DeferredRenderer::Tick_RenderThread()
     {
         // Set global parameters and update uniform buffer.
         auto globalParameters = mFrameGraph->GetGlobalParameters();
@@ -139,7 +39,7 @@ namespace Thunder
         UpdateAllPrimitiveSceneInfos();
     }
 
-    void DeferredShadingRenderer::Setup()
+    void DeferredRenderer::Setup()
     {
         uint32 const resolutionWidth = GDynamicRHI->GetViewportWidth();
         uint32 const resolutionHeight = GDynamicRHI->GetViewportHeight();
@@ -147,11 +47,15 @@ namespace Thunder
         // GBuffer pass.
         static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{"GBufferA", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(1, 1, 0, 1) };
         static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ "GBufferB", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferRT2 = new FGRenderTarget{ "GBufferC", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
+        static FGRenderTargetRef GBufferRT3 = new FGRenderTarget{ "GBufferD", resolutionWidth, resolutionHeight, RHIFormat::R32_FLOAT };
         static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{"SceneDepth",  resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
 
         // Register render targets
         mFrameGraph->RegisterRenderTarget(GBufferRT0);
         mFrameGraph->RegisterRenderTarget(GBufferRT1);
+        mFrameGraph->RegisterRenderTarget(GBufferRT2);
+        mFrameGraph->RegisterRenderTarget(GBufferRT3);
         mFrameGraph->RegisterRenderTarget(GBufferSceneDepth);
 
         {
@@ -223,6 +127,8 @@ namespace Thunder
             PassOperations operations;
             operations.Write(GBufferRT0, TVector4f(0, 0, 0, 1));
             operations.Write(GBufferRT1, TVector4f(0, 0, 0, 1));
+            operations.Write(GBufferRT2, TVector4f(0, 0, 0, 1));
+            operations.Write(GBufferRT3, TVector4f(0, 0, 0, 1));
             operations.Write(GBufferSceneDepth, 0, 0);
             mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
             {
@@ -286,6 +192,8 @@ namespace Thunder
             PassOperations operations;
             operations.Read(GBufferRT0);
             operations.Read(GBufferRT1);
+            operations.Read(GBufferRT2);
+            operations.Read(GBufferRT3);
             operations.Write(LightingRT);
             mFrameGraph->AddPass(EVENT_NAME("Lighting"), std::move(operations), [this]()
             {
@@ -326,7 +234,7 @@ namespace Thunder
         }
 
         {
-            // Blur (present pass): reads LightingRT and renders directly to the swapchain backbuffer.
+            // Post-process (present pass): reads LightingRT and renders directly to the swapchain backbuffer.
             // No write target is declared; the framegraph binds the backbuffer automatically.
             PassOperations operations;
             operations.Read(LightingRT, "SceneTexture"); //todo bind
@@ -338,11 +246,11 @@ namespace Thunder
             }
 
             ppRenderer->Setup(operations);
-            mFrameGraph->SetPresentPass("Blur");
+            mFrameGraph->SetPresentPass("ToneMapping");
         }
     }
 
-    void DeferredShadingRenderer::UpdateAllPrimitiveSceneInfos()
+    void DeferredRenderer::UpdateAllPrimitiveSceneInfos()
     {
         // Update scene info.
         mFrameGraph->UpdateSceneInfo_RenderThread();

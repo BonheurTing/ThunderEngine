@@ -31,7 +31,6 @@ namespace Thunder
 	{
 		auto vertexBuffer = MakeRefCount<ReflectiveContainer>();
 		vertexBuffer->SetDataNum(mesh->mNumVertices);
-		// 注册顶点数据 layout
 		vertexBuffer->AddComponent<TVector3f>("Position");
 		if (mesh->mNormals != nullptr)
 		{
@@ -43,7 +42,7 @@ namespace Thunder
 		}
 		if (mesh->mBitangents != nullptr)
 		{
-			vertexBuffer->AddComponent<TVector3f>("Bitangent");
+			vertexBuffer->AddComponent<TVector3f>("Binormal");
 		}
 		for (int j = 0; j < AI_MAX_NUMBER_OF_TEXTURECOORDS; j++)
 		{
@@ -69,7 +68,6 @@ namespace Thunder
 			}
 		}
 		vertexBuffer->Initialize();
-		// 提取顶点数据
 		const size_t compStride = vertexBuffer->GetStride();
 		for (size_t v = 0, offset = vertexBuffer->GetComponentOffset("Position"); v < mesh->mNumVertices; v++, offset += compStride)
 		{
@@ -94,7 +92,7 @@ namespace Thunder
 		}
 		if (mesh->mBitangents != nullptr)
 		{
-			for (size_t v = 0, offset = vertexBuffer->GetComponentOffset("Bitangent"); v < mesh->mNumVertices; v++, offset += compStride)
+			for (size_t v = 0, offset = vertexBuffer->GetComponentOffset("Binormal"); v < mesh->mNumVertices; v++, offset += compStride)
 			{
 				aiVector3D bitangent = mesh->mBitangents[v];
 				vertexBuffer->CopyData(&bitangent, offset, sizeof(TVector3f));
@@ -613,7 +611,8 @@ namespace Thunder
 				srcPath,
 				aiProcess_Triangulate |
 				aiProcess_FlipUVs |
-				aiProcess_GenNormals |
+				aiProcess_GenSmoothNormals |
+				aiProcess_CalcTangentSpace |
 				aiProcess_OptimizeMeshes
 			);
 			if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
@@ -770,7 +769,7 @@ namespace Thunder
 		return true;
 	}
 
-	bool PackageModule::ForceImport(const String& srcPath, const String& destPath)
+	bool PackageModule::Import(const String& srcPath, const String& destPath)
 	{
 		const String packName = CovertFullPathToSoftPath(destPath);
 		auto* newPackage = new Package(packName, {});
@@ -993,7 +992,7 @@ namespace Thunder
 				return;
 			}
 
-			ForceImport(srcPath, destPath);
+			Import(srcPath, destPath);
 		};
 
 		// Meshes and textures first (no cross-asset dependencies).

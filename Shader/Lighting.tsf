@@ -17,8 +17,11 @@ Shader "Lighting"
 
         Texture2D GBufferA;
         Texture2D GBufferB;
+        Texture2D GBufferC;
+        Texture2D GBufferD;
     }
     #include "Common/Global.tsh"
+    #define PI 3.14159265359
     SubShader "Lighting"
     {
         Attributes
@@ -36,6 +39,145 @@ Shader "Lighting"
             float2 UV       : TEXCOORD0;
         };
 
+        // =====================================================================
+        // Light definitions
+        // =====================================================================
+        #define LIGHT_DIRECTIONAL 0
+        #define LIGHT_POINT       1
+        #define NUM_LIGHTS        3
+
+        struct Light
+        {
+            float3 Position;
+            float3 Direction;
+            float3 Color;
+            float  Intensity;
+            float  Range;
+            int  Type;
+        };
+
+        // Hardcoded scene lights (classic 3-point lighting setup, cm units)
+        // Modify or add entries here to change the lighting.
+        Light GetLight(int index)
+        {
+            Light light;
+
+            if (index <= 0)
+            {
+                // Key light: warm directional sun (~55 deg elevation, from right-front)
+                light.Type      = LIGHT_DIRECTIONAL;
+                light.Direction = normalize(float3(-1.0, -1.5, -0.8));
+                light.Position  = float3(0, 0, 0);
+                light.Color     = float3(1.0, 0.75, 0.5);
+                light.Intensity = 6.0;
+                light.Range     = 0.0;
+            }
+            else if (index <= 1)
+            {
+                // Fill light: cool sky-blue point light, left side
+                light.Type      = LIGHT_POINT;
+                light.Direction = float3(0, 0, 0);
+                light.Position  = float3(-400.0, -250.0, 300.0);
+                light.Color     = float3(1.0, 0.75, 0.5);
+                light.Intensity = 5.0;
+                light.Range     = 1200.0;
+            }
+            else
+            {
+                // Rim light: warm orange point light, behind and above
+                light.Type      = LIGHT_POINT;
+                light.Direction = float3(0, 0, 0);
+                light.Position  = float3(200.0, 300.0, -400.0);
+                light.Color     = float3(1.0, 0.75, 0.5);
+                light.Intensity = 4.0;
+                light.Range     = 1000.0;
+            }
+
+            return light;
+        }
+
+        // =====================================================================
+        // PBR functions (Cook-Torrance)
+        // =====================================================================
+
+        // GGX / Trowbridge-Reitz Normal Distribution Function
+        float DistributionGGX(float3 N, float3 H, float roughness)
+        {
+            float a  = roughness * roughness;
+            float a2 = a * a;
+            float NdotH  = max(dot(N, H), 0.0);
+            float NdotH2 = NdotH * NdotH;
+
+            float denom = NdotH2 * (a2 - 1.0) + 1.0;
+            denom = PI * denom * denom;
+
+            return a2 / max(denom, 0.0000001);
+        }
+
+        // Schlick-GGX Geometry sub-term
+        float GeometrySchlickGGX(float NdotV, float roughness)
+        {
+            float r = roughness + 1.0;
+            float k = (r * r) / 8.0;
+            return NdotV / (NdotV * (1.0 - k) + k);
+        }
+
+        // Smith's Geometry Function (combines view and light masking)
+        float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
+        {
+            float NdotV = max(dot(N, V), 0.0);
+            float NdotL = max(dot(N, L), 0.0);
+            return GeometrySchlickGGX(NdotV, roughness) * GeometrySchlickGGX(NdotL, roughness);
+        }
+
+        // Fresnel-Schlick Approximation
+        float3 FresnelSchlick(float cosTheta, float3 F0)
+        {
+            return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
+        }
+
+        // =====================================================================
+        // World position reconstruction
+        // =====================================================================
+        float4x4 GetInvViewProjectionMatrix()
+        {
+            return float4x4(
+                InvViewProjectionMatrix0,
+                InvViewProjectionMatrix1,
+                InvViewProjectionMatrix2,
+                InvViewProjectionMatrix3
+            );
+        }
+
+        float3 ReconstructWorldPosition(float2 uv, float linearDepth)
+        {
+            // Screen UV -> NDC
+            float2 ndc = uv * 2.0 - 1.0;
+            ndc.y = -ndc.y;
+
+            // Unproject far-plane point to get view ray direction
+            float4 farClip = float4(ndc, 1.0, 1.0);
+            float4 farWorld = mul(GetInvViewProjectionMatrix(), farClip);
+            farWorld.xyz /= farWorld.w;
+
+            // Ray from camera through this pixel, scaled by linear depth (cm)
+            float3 rayDir = normalize(farWorld.xyz - CameraPosition.xyz);
+            return CameraPosition.xyz + rayDir * linearDepth;
+        }
+
+        // =====================================================================
+        // Attenuation
+        // =====================================================================
+        float ComputeAttenuation(float distance, float range)
+        {
+            float ratio = distance / range;
+            float att = saturate(1.0 - ratio * ratio);
+            return att * att;
+        }
+
+        // =====================================================================
+        // Vertex / Pixel shaders
+        // =====================================================================
         VSOutput MainVS(uint VertexID : SV_VertexID)
         {
             VSOutput output;
@@ -58,9 +200,81 @@ Shader "Lighting"
 
         float4 MainPS(VSOutput input) : SV_Target
         {
-            float4 color = GBufferA.Sample(BilinearWrappedSampler, input.UV);
-            //return color * PassParameters0;
-            return float4(color.xyz, 1);
+            // ---- Decode GBuffer ----
+            float4 gbufferA = GBufferA.Sample(PointClampedSampler, input.UV);
+            float4 gbufferB = GBufferB.Sample(PointClampedSampler, input.UV);
+            float4 gbufferC = GBufferC.Sample(PointClampedSampler, input.UV);
+
+            // Skip background pixels (GBufferA.a == 0 means unwritten)
+            if (gbufferA.a < 0.5)
+            {
+                return float4(0.0, 0.0, 0.0, 1.0);
+            }
+
+            float3 albedo    = gbufferA.rgb;
+            float3 N         = normalize(gbufferB.rgb * 2.0 - 1.0);
+            float  metallic  = gbufferC.r;
+            float  roughness = max(gbufferC.g, 0.04);
+
+            // Read linear depth from GBufferD (Euclidean distance from camera, cm)
+            float linearDepth = GBufferD.Sample(PointClampedSampler, input.UV).r;
+
+            // Reconstruct world position
+            float3 worldPos = ReconstructWorldPosition(input.UV, linearDepth);
+
+            // View direction
+            float3 V = normalize(CameraPosition.xyz - worldPos);
+
+            // F0: reflectance at normal incidence (dielectric = 0.04, metallic = albedo)
+            float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
+
+            // ---- Accumulate direct lighting ----
+            float3 Lo = float3(0.0, 0.0, 0.0);
+
+            // [unroll]
+            for (int i = 0; i < NUM_LIGHTS; i++)
+            {
+                Light light = GetLight(i);
+
+                float3 L;
+                float  attenuation = 1.0;
+
+                if (light.Type <= LIGHT_DIRECTIONAL)
+                {
+                    L = -light.Direction;
+                }
+                else
+                {
+                    float3 toLight = light.Position - worldPos;
+                    float  dist    = length(toLight);
+                    L = toLight / dist;
+                    attenuation = ComputeAttenuation(dist, light.Range);
+                }
+
+                float3 H = normalize(V + L);
+                float3 radiance = light.Color * light.Intensity * attenuation;
+
+                // Cook-Torrance specular BRDF
+                float  D = DistributionGGX(N, H, roughness);
+                float  G = GeometrySmith(N, V, L, roughness);
+                float3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+
+                float3 numerator   = D * G * F;
+                float  denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+                float3 specular    = numerator / denominator;
+
+                // Energy conservation: diffuse = (1 - Ks) * (1 - metallic)
+                float3 kD = (1.0 - F) * (1.0 - metallic);
+
+                float NdotL = max(dot(N, L), 0.0);
+                Lo += (kD * albedo / PI + specular) * radiance * NdotL;
+            }
+
+            // Simple constant ambient (placeholder for future IBL)
+            float3 ambient = float3(0.03, 0.03, 0.03) * albedo;
+            float3 color = ambient + Lo;
+
+            return float4(color, 1.0);
         }
     }
 }

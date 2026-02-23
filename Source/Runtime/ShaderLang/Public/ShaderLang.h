@@ -156,7 +156,8 @@ namespace Thunder
 		bool is_key_identifier(const String& name) const;
 
 		// error handle
-		void debug_log(const String& msg, const parse_location* loc = nullptr) const;
+		void output_parse_log(const String& msg, const parse_location* loc = nullptr) const;
+		void output_parse_error_log(const String& msg, const parse_location* loc = nullptr) const;
 		void post_process_ast() const;
 
 	};

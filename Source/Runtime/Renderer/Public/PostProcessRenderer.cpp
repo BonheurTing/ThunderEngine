@@ -24,7 +24,7 @@ namespace Thunder
         // set param case1
         Parameter0 = 5.0f;
 
-        Owner->AddPass(EVENT_NAME("Blur"), std::move(operations), [this]()
+        Owner->AddPass(EVENT_NAME("ToneMapping"), std::move(operations), [this]()
         {
             this->Execute();
         });

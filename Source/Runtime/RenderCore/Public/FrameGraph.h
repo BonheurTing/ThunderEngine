@@ -86,7 +86,7 @@ namespace Thunder
         void Execute();
 
         // game
-        void SetViewProjectionMatrix(EViewType type, const TMatrix44f& matrix) const;
+        void SetViewParameters(EViewType type, TVector4f cameraPos, const TMatrix44f& vpMatrix) const;
 
         // render
         const IRenderer* GetRenderer() const { return OwnerRenderer; }

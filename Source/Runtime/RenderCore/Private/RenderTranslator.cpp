@@ -5,36 +5,37 @@ namespace Thunder
 {
     ERHIVertexInputSemantic RenderTranslator::GetVertexSemanticFromName(const String& name)
     {
-        if (name.find("Position") != String::npos || name.find("position") != String::npos)
+        String littleName = name;
+        std::ranges::transform(littleName, littleName.begin(), ::tolower);
+        if (littleName.find("position") == 0)
         {
             return ERHIVertexInputSemantic::Position;
         }
-        else if (name.find("TexCoord") != String::npos || name.find("UV") != String::npos || 
-                 name.find("texcoord") != String::npos || name.find("uv") != String::npos)
+        else if (littleName.find("texcoord") == 0 || littleName.find("uv") == 0)
         {
             return ERHIVertexInputSemantic::TexCoord;
         }
-        else if (name.find("Normal") != String::npos || name.find("normal") != String::npos)
+        else if (littleName.find("normal") == 0)
         {
             return ERHIVertexInputSemantic::Normal;
         }
-        else if (name.find("Tangent") != String::npos || name.find("tangent") != String::npos)
+        else if (littleName.find("tangent") == 0)
         {
             return ERHIVertexInputSemantic::Tangent;
         }
-        else if (name.find("Color") != String::npos || name.find("color") != String::npos)
+        else if (littleName.find("color") == 0)
         {
             return ERHIVertexInputSemantic::Color;
         }
-        else if (name.find("BiNormal") != String::npos || name.find("binormal") != String::npos)
+        else if (littleName.find("binormal") == 0)
         {
             return ERHIVertexInputSemantic::BiNormal;
         }
-        else if (name.find("BlendIndices") != String::npos || name.find("blendindices") != String::npos)
+        else if (littleName.find("blendindices") == 0)
         {
             return ERHIVertexInputSemantic::BlendIndices;
         }
-        else if (name.find("BlendWeights") != String::npos || name.find("blendweights") != String::npos)
+        else if (littleName.find("blendweights") == 0)
         {
             return ERHIVertexInputSemantic::BlendWeights;
         }

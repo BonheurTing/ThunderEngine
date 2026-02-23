@@ -119,6 +119,9 @@ SV_Target				SV_Target{TARGETS}?
 "SamplerState"	{ return TOKENIZE(TYPE_SAMPLER); }
 
 POSITION[0-7]?	{ return TOKENIZE(TOKEN_SV); }
+NORMAL			{ return TOKENIZE(TOKEN_SV); }
+BINORMAL		{ return TOKENIZE(TOKEN_SV); }
+TANGENT			{ return TOKENIZE(TOKEN_SV); }
 SV_POSITION		{ return TOKENIZE(TOKEN_SV); }
 SV_Position		{ return TOKENIZE(TOKEN_SV); }
 SV_VertexID		{ return TOKENIZE(TOKEN_SV); }

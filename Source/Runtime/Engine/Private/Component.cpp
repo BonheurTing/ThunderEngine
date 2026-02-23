@@ -433,9 +433,16 @@ namespace Thunder
 	void TransformComponent::UpdateTransform()
 	{
 		// Left-handed coordinate system (UE convention): X=Forward, Y=Right, Z=Up
-		// Rotation stored as degrees: X=Pitch(around Y), Y=Yaw(around Z), Z=Roll(around X)
-		// Application order: Yaw(Z) -> Pitch(Y) -> Roll(X)
-		// R = RotZ * RotY * RotX (row-vector convention: p' = p * R)
+		// Rotation stored as degrees: X=Pitch, Y=Yaw, Z=Roll
+		//
+		// Matches Unreal Engine's FRotationMatrix convention.
+		// Key property: with Roll=0 the Right vector is always horizontal (Z=0),
+		// so the horizon stays level regardless of Pitch.
+		//
+		// R (row-major, row-vector convention: p' = p * R):
+		//   Row 0 (Forward): ( CP*CY,              CP*SY,              SP     )
+		//   Row 1 (Right):   ( SR*SP*CY - CR*SY,   SR*SP*SY + CR*CY, -SR*CP  )
+		//   Row 2 (Up):      (-(CR*SP*CY + SR*SY),  CY*SR - CR*SP*SY,  CR*CP )
 
 		constexpr float DegToRad = DEG_TO_RAD;
 		const float pitchRad = Rotation.X * DegToRad;
@@ -449,27 +456,17 @@ namespace Thunder
 		const float cr = std::cos(rollRad);
 		const float sr = std::sin(rollRad);
 
-		// Left-handed rotation matrices:
-		//   RotZ(yaw):  [ cy  sy  0 ]    RotY(pitch): [ cp  0 -sp ]    RotX(roll): [ 1   0   0 ]
-		//               [-sy  cy  0 ]                  [  0  1   0 ]                [ 0  cr  sr ]
-		//               [  0   0  1 ]                  [ sp  0  cp ]                [ 0 -sr  cr ]
-		//
-		// R = RotZ * RotY * RotX:
-		//   [ cy*cp,               sy*cr + cy*sp*sr,    sy*sr - cy*sp*cr ]
-		//   [-sy*cp,               cy*cr - sy*sp*sr,    cy*sr + sy*sp*cr ]
-		//   [ sp,                 -cp*sr,               cp*cr            ]
+		const float r00 =  cp * cy;
+		const float r01 =  cp * sy;
+		const float r02 =  sp;
 
-		const float r00 =  cy * cp;
-		const float r01 =  sy * cr + cy * sp * sr;
-		const float r02 =  sy * sr - cy * sp * cr;
+		const float r10 =  sr * sp * cy - cr * sy;
+		const float r11 =  sr * sp * sy + cr * cy;
+		const float r12 = -sr * cp;
 
-		const float r10 = -sy * cp;
-		const float r11 =  cy * cr - sy * sp * sr;
-		const float r12 =  cy * sr + sy * sp * cr;
-
-		const float r20 =  sp;
-		const float r21 = -cp * sr;
-		const float r22 =  cp * cr;
+		const float r20 = -(cr * sp * cy + sr * sy);
+		const float r21 =  cy * sr - cr * sp * sy;
+		const float r22 =  cr * cp;
 
 		// Combined Transform = S * R * T (row-vector convention: p' = p * S * R * T)
 		// Row i of rotation is scaled by Scale[i], translation in row 3.

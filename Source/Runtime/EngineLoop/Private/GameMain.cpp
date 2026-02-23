@@ -45,14 +45,14 @@ namespace Thunder
             const float mouseSens = 0.1f;
             const TVector2f mouseDelta = GInputState.MouseDelta;
             rot.Y += mouseDelta.X * mouseSens;  // Yaw
-            rot.X += mouseDelta.Y * mouseSens;  // Pitch
+            rot.X -= mouseDelta.Y * mouseSens;  // Pitch
             rot.X = std::clamp(rot.X, -89.f, 89.f);
         }
         rot.Z = 0.f;  // No roll, Z axis always points up
 
         // Compute forward and right vectors
         // Coordinate system: X=Forward, Y=Right, Z=Up (same as Unreal Engine)
-        constexpr float speed = 5.f;
+        constexpr float speed = 300.f;
         const float moveDistance = speed * dt;
         const float yawRad   = rot.Y * DEG_TO_RAD;
         const float pitchRad = rot.X * DEG_TO_RAD;

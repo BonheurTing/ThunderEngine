@@ -1,4 +1,5 @@
-﻿#include "GameMain.h"
+﻿#pragma optimize("", off)
+#include "GameMain.h"
 #include "EngineMain.h"
 #include "GameModule.h"
 #include "RenderMain.h"
@@ -24,7 +25,7 @@
 
 namespace Thunder
 {
-    static Entity* GFPSCameraEntity = nullptr;
+    ENGINE_API extern Entity* GFPSCameraEntity;
 
     static void TickFPSCamera(float dt)
     {
@@ -40,8 +41,9 @@ namespace Thunder
 
         // Mouse rotation
         const float mouseSens = 0.1f;
-        rot.Y += GInputState.MouseDelta.X * mouseSens;  // Yaw
-        rot.X += GInputState.MouseDelta.Y * mouseSens;  // Pitch
+        const TVector2f mouseDelta = GInputState.MouseDelta;
+        rot.Y += mouseDelta.X * mouseSens;  // Yaw
+        rot.X += mouseDelta.Y * mouseSens;  // Pitch
         rot.X = std::clamp(rot.X, -89.f, 89.f);
 
         // WASD movement along Yaw direction
@@ -52,12 +54,34 @@ namespace Thunder
         float rightX =  cosf(yawRad);
         float rightZ = -sinf(yawRad);
 
-        if (GInputState.IsKeyDown('W')) { pos.X += fwdX * speed;   pos.Z += fwdZ * speed; }
-        if (GInputState.IsKeyDown('S')) { pos.X -= fwdX * speed;   pos.Z -= fwdZ * speed; }
-        if (GInputState.IsKeyDown('A')) { pos.X -= rightX * speed; pos.Z -= rightZ * speed; }
-        if (GInputState.IsKeyDown('D')) { pos.X += rightX * speed; pos.Z += rightZ * speed; }
-        if (GInputState.IsKeyDown('E')) pos.Y += speed;
-        if (GInputState.IsKeyDown('Q')) pos.Y -= speed;
+        if (GInputState.IsKeyDown('W'))
+        {
+            pos.X += fwdX * speed;
+            pos.Z += fwdZ * speed;
+        }
+        if (GInputState.IsKeyDown('S'))
+        {
+            pos.X -= fwdX * speed;
+            pos.Z -= fwdZ * speed;
+        }
+        if (GInputState.IsKeyDown('A'))
+        {
+            pos.X -= rightX * speed;
+            pos.Z -= rightZ * speed;
+        }
+        if (GInputState.IsKeyDown('D'))
+        {
+            pos.X += rightX * speed;
+            pos.Z += rightZ * speed;
+        }
+        if (GInputState.IsKeyDown('E'))
+        {
+            pos.Y += speed;
+        }
+        if (GInputState.IsKeyDown('Q'))
+        {
+            pos.Y -= speed;
+        }
 
         tr->SetPosition(pos);
         tr->SetRotation(rot);
@@ -167,6 +191,7 @@ namespace Thunder
         LOG("Execute game thread in frame: %d with thread: %lu", frameNum, __threadid());
 
         // First frame: create FPS camera entity
+        /*
         if (frameNum == 1)
         {
             auto& viewports = GameModule::GetViewports();
@@ -184,12 +209,15 @@ namespace Thunder
                     Scene* cameraScene = new Scene(defaultRendererFactory);
                     cameraScene->SetSceneName("FPSCameraScene");
                     Entity* cameraEntity = cameraScene->CreateEntity("FPSCamera");
-                    cameraEntity->GetTransformComponent()->SetPosition(TVector3f(0.f, 0.f, -5.f));
+                    cameraEntity->GetTransformComponent()->SetPosition(TVector3f(0.f, 0.f, 0.f));
+                    cameraEntity->GetTransformComponent()->OnLoaded();
+                    cameraEntity->AddComponent<CameraComponent>()->OnLoaded();
                     cameraScene->AddRootEntity(cameraEntity);
                     GFPSCameraEntity = cameraEntity;
                 }
             }
         }
+        */
 
         // Tick camera every frame (fixed dt=1/60)
         TickFPSCamera(1.f / 60.f);

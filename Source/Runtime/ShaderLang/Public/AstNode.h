@@ -45,23 +45,23 @@ namespace Thunder
 
     enum class enum_expr_type : uint8
     {
-        binary_op, // 二元运算
-        unary_op,  // 一元运算
-        shuffle, // 向量分量重排
-        component, // 成员访问
-        index, // 数组索引
-        reference, // 出现过的
+        binary_op,
+        unary_op,
+        shuffle,
+        component,
+        index,
+        reference,
         integer,
         constant_float,
         constant_bool,
-        assignment, // 赋值表达式
-        conditional, // 条件表达式
-        function_call, // 函数调用
-        method_call, // 方法调用
-        constructor_call, // 构造函数调用
-        compound_assignment, // 复合赋值表达式
-        chain, // 链式表达式（逗号表达式）
-        cast, // 类型转换表达式
+        assignment,
+        conditional,
+        function_call,
+        method_call,
+        constructor_call,
+        compound_assignment,
+        chain,
+        cast,
         undefined
     };
 
@@ -162,16 +162,13 @@ namespace Thunder
         mul,
         div,
         mod,
-        // 位运算
         bit_and,
         bit_or,
         bit_xor,
         left_shift,
         right_shift,
-        // 逻辑运算
         logical_and,
         logical_or,
-        // 比较运算
         equal,
         not_equal,
         less,
@@ -251,19 +248,19 @@ namespace Thunder
 
     enum class enum_symbol_type : uint8
     {
-        variable,   // 变量 variable_declaration_statement
-        type_format, // 类型 ast_node_type_format
-        structure,  // 结构体
-        function,   // 函数 ast_node_function
-        //constant,   // 常量
-        undefined  // 未定义符号
+        variable,   // variable_declaration_statement
+        type_format, // ast_node_type_format
+        structure,
+        function,   // ast_node_function
+        //constant,
+        undefined
     };
 
     struct shader_lang_symbol
     {
         String name;
         enum_symbol_type type = enum_symbol_type::undefined;
-        class ast_node* owner = nullptr; //symbol所在的语法树节点
+        class ast_node* owner = nullptr; // ast note of symbol
     };
 
     struct shader_attributes
@@ -340,7 +337,7 @@ namespace Thunder
     private:
         TRefCountPtr<scope> m_outer;
         ast_node* m_owner;
-        TMap<String, shader_lang_symbol> m_symbols; // 当前作用域的符号表
+        TMap<String, shader_lang_symbol> m_symbols;
     };
 
     using scope_ref = TRefCountPtr<scope>;
@@ -375,7 +372,6 @@ namespace Thunder
         enum_ast_node_type node_type;
     };
 
-    // 类型基类，类型相关的用法都在这里 = type_spec
     class ast_node_type_format : public ast_node
     {
     public:
@@ -429,7 +425,6 @@ namespace Thunder
         void print_ast(int indent) override;
     };
 
-    // 变量基类，包含参数变量，局部变量，全局变量，shader semantic等 // Definition
     class ast_node_variable : public ast_node
     {
     public:
@@ -442,9 +437,9 @@ namespace Thunder
         void print_ast(int indent) override;
     public:
         ast_node_type_format* type = nullptr;
-        String name; // 用于存储变量名称
-        dimensions dimension; // 用于存储变量的维度信息
-        String semantic; // 用于存储shader语义
+        String name;
+        dimensions dimension;
+        String semantic;
         String default_value;
     };
 
@@ -567,10 +562,10 @@ namespace Thunder
             return name;
         }
     private:
-        scope_ref local_scope; // 作用域引用，用于符号表管理
+        scope_ref local_scope;
         ast_node_type_format* type = nullptr;
         TArray<ast_node_variable*> members;
-        String name; // 用于存储结构体名称
+        String name;
     };
 
     class ast_node_function : public ast_node
@@ -603,12 +598,12 @@ namespace Thunder
         void print_ast(int indent) override;
 
     private:
-        scope_ref local_scope; // 作用域引用，用于符号表管理
+        scope_ref local_scope;
         // func_signature
         ast_node_type_format* return_type = nullptr;
         NameHandle func_name = nullptr;
         TArray<ast_node_variable*> params;
-        String semantic; // 用于存储shader语义
+        String semantic;
         // body
         ast_node_block* body = nullptr;
     };
@@ -733,33 +728,33 @@ namespace Thunder
         void generate_hlsl(String& outResult, shader_codegen_state& state) override;
         void print_ast(int indent) override;
     private:
-        TArray<ast_node_statement*> statements; // 存储语句列表
-        scope_ref local_scope; // 作用域引用，用于符号表管理
+        TArray<ast_node_statement*> statements;
+        scope_ref local_scope;
     };
 
-    // 表达式求值结果类型
+    // The type of the result of expression evaluation
     enum class enum_eval_result_type : uint8
     {
-        undetermined,     // 未确定
-        constant_int,     // 常量整数
-        constant_float,   // 常量浮点数
-        constant_bool,    // 常量布尔值
-        variable,         // 变量
-        temp_var,         // 临时变量
-        object            // 对象
+        undetermined,
+        constant_int,
+        constant_float,
+        constant_bool,
+        variable,
+        temp_var,
+        object
     };
 
-    // 表达式求值结果
+    // The result of expression evaluation
     struct evaluate_expr_result  // NOLINT(cppcoreguidelines-pro-type-member-init)
     {
-        ast_node_type_format* type = nullptr;           // 表达式类型
+        ast_node_type_format* type = nullptr; // expression type
         enum_eval_result_type result_type = enum_eval_result_type::undetermined;
         union
         {
-            ast_node* result_node;     // 结果节点
-            int int_value;             // 整数值
-            float float_value;         // 浮点值
-            bool bool_value;           // 布尔值
+            ast_node* result_node;
+            int int_value;
+            float float_value;
+            bool bool_value;
         };
 
         evaluate_expr_result() noexcept = default;  // NOLINT(cppcoreguidelines-pro-type-member-init)
@@ -785,14 +780,13 @@ namespace Thunder
         ast_node_expression(enum_expr_type exprType)
             : ast_node(enum_ast_node_type::expression), expr_type(exprType) {}
 
-        // 表达式评估函数
         virtual evaluate_expr_result evaluate(shader_codegen_state& state);
 
         virtual String to_string() const;
 
     public:
         enum_expr_type expr_type;
-        ast_node* expr_data_type = nullptr; // 用于存储表达式的数据类型
+        ast_node* expr_data_type = nullptr;
     };
 
     class binary_expression : public ast_node_expression
@@ -856,11 +850,11 @@ namespace Thunder
         void print_ast(int indent) override;
         String to_string() const override;
     private:
-        ast_node_expression* target = nullptr; // 被索引的表达式
-        ast_node_expression* index = nullptr; // 索引表达式
+        ast_node_expression* target = nullptr;
+        ast_node_expression* index = nullptr;
     };
 
-    // 出现过的id
+    // The previously encountered ID
     class reference_expression : public ast_node_expression
     {
     public:
@@ -874,10 +868,9 @@ namespace Thunder
         String to_string() const override;
     private:
         String identifier;
-        ast_node* target = nullptr; // 指向符号表中的节点
+        ast_node* target = nullptr;
     };
 
-    // 整数常量表达式
     class constant_int_expression : public ast_node_expression
     {
     public:
@@ -892,7 +885,6 @@ namespace Thunder
         int value;
     };
 
-    // 浮点数常量表达式
     class constant_float_expression : public ast_node_expression
     {
     public:
@@ -907,7 +899,6 @@ namespace Thunder
         float value;
     };
 
-    // 布尔常量表达式
     class constant_bool_expression : public ast_node_expression
     {
     public:
@@ -1039,7 +1030,7 @@ namespace Thunder
         ast_node_expression* right_expr = nullptr;
     };
 
-    // 链式表达式（逗号表达式）
+    // Chain expression (comma expression)
     class chain_expression : public ast_node_expression
     {
     public:
@@ -1063,7 +1054,6 @@ namespace Thunder
         TArray<ast_node_expression*> expressions;
     };
 
-    // 类型转换表达式
     class cast_expression : public ast_node_expression
     {
     public:
@@ -1078,11 +1068,6 @@ namespace Thunder
     private:
         ast_node_type_format* cast_type = nullptr;
         ast_node_expression* operand = nullptr;
-    };
-
-    class custom_expression : public ast_node_expression
-    {
-        
     };
 
     //////////////////////////////////////////////////////////////////////////

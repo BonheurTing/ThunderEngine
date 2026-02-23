@@ -10,7 +10,9 @@ namespace Thunder
 {
     IMPLEMENT_MODULE(Game, GameModule)
 
-   void GameModule::StartUp()
+    ENGINE_API Entity* GFPSCameraEntity = nullptr;
+
+    void GameModule::StartUp()
     {
         // The InitGameThread() cannot be executed because the TaskSchedulerManager is not yet ready
     }
@@ -70,6 +72,14 @@ namespace Thunder
         String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
         scene->LoadAsync(fullPath);
         viewport->AddScene(scene);
+
+        // Init camera entity.
+        Entity* cameraEntity = scene->CreateEntity("FPSCamera");
+        cameraEntity->GetTransformComponent()->SetPosition(TVector3f(0.f, 0.f, 0.f));
+        cameraEntity->GetTransformComponent()->OnLoaded();
+        cameraEntity->AddComponent<CameraComponent>()->OnLoaded();
+        scene->AddRootEntity(cameraEntity);
+        GFPSCameraEntity = cameraEntity;
 
         // test two scene
         // auto scene2 = new Scene(renderFactory);

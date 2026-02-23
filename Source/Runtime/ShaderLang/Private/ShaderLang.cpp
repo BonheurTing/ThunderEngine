@@ -65,7 +65,6 @@ namespace Thunder
 		TAssert(current_variables.empty());
 	}
 
-	// 作用域管理实现
 	void shader_lang_state::push_scope(scope* in_scope)
 	{
 		symbol_scopes.push_back(in_scope);
@@ -115,13 +114,11 @@ namespace Thunder
 
 	enum_symbol_type shader_lang_state::get_symbol_type(const String& name) const
 	{
-		// 从最内层作用域向外层查找符号类型
 		for (auto it = symbol_scopes.rbegin(); it != symbol_scopes.rend(); ++it)
 		{
 			ast_node* node = (*it)->find_local_symbol(name);
 			if (node != nullptr)
 			{
-				// 根据AST节点类型推断符号类型
 				switch (node->node_type)
 				{
 				case enum_ast_node_type::type_format:
@@ -257,7 +254,6 @@ namespace Thunder
 
 	ast_node* shader_lang_state::parsing_pass_end()
 	{
-		// 将收集到的 attributes 设置到 current_pass
 		current_pass->set_attributes(current_attributes);
 		current_archive->add_pass(current_pass);
 		ast_node_pass* dummy = current_pass;
@@ -293,7 +289,6 @@ namespace Thunder
 		}
 		else if (key.token_id == TOKEN_DEPTHTEST)
 		{
-			// 解析 DepthTest 枚举值
 			if (value.text == "Never") current_attributes.depth_test = enum_depth_test::never;
 			else if (value.text == "Less") current_attributes.depth_test = enum_depth_test::less;
 			else if (value.text == "Equal") current_attributes.depth_test = enum_depth_test::equal;
@@ -311,7 +306,6 @@ namespace Thunder
 		}
 		else if (key.token_id == TOKEN_BLENDMODE)
 		{
-			// 解析 BlendMode 枚举值
 			if (value.text == "Opaque") current_attributes.blend_mode = enum_blend_mode::opaque;
 			else if (value.text == "Translucent") current_attributes.blend_mode = enum_blend_mode::translucent;
 			else
@@ -481,12 +475,10 @@ namespace Thunder
 			String type_text;
 			ret.type->generate_hlsl(type_text, temp_state);
 			debug_log("Expected integer expression, but " + type_text, &loc);
-			return 0; // 或者抛出异常
+			return 0;
 		}
 	}
 
-	
-	// 根据对象类型名称解析对象类型枚举
 	enum_object_type parse_object_type_from_name(const String& type_name)
 	{
 		LOG(type_name.c_str());
@@ -622,7 +614,7 @@ namespace Thunder
 		return node;
 	}
 
-	// 创建带模板参数的对象类型节点
+	// Create an object type node with template parameters
 	ast_node_type_format* shader_lang_state::create_object_type_node(const token_data& object, const token_data& content)
 	{
 		ast_node_type_format* node = new ast_node_type_format();
@@ -642,7 +634,6 @@ namespace Thunder
 
 	void shader_lang_state::apply_modifier(ast_node_type_format* type, const token_data& modifier)
 	{
-		// 根据token类型设置相应的限定符标志
 		if (modifier.token_id == TOKEN_IN)
 		{
 			type->is_in = true;
@@ -769,17 +760,14 @@ namespace Thunder
 
 	ast_node_expression* shader_lang_state::create_chain_expression(ast_node_expression* prev, ast_node_expression* next)
 	{
-		// 检查prev是否已经是链式表达式
 		chain_expression* chain_expr = dynamic_cast<chain_expression*>(prev);
 		if (chain_expr)
 		{
-			// 如果已经是链式表达式，直接添加新表达式
 			chain_expr->add_expression(next);
 			return chain_expr;
 		}
 		else
 		{
-			// 创建新的链式表达式
 			chain_expr = new chain_expression(prev);
 			chain_expr->add_expression(next);
 			return chain_expr;
@@ -879,7 +867,6 @@ namespace Thunder
 		return new index_expression(expr, index_expr);
 	}
 
-	// 常量表达式创建函数
 	ast_node_expression* shader_lang_state::create_constant_int_expression(int value)
 	{
 		return new constant_int_expression(value);
@@ -895,7 +882,7 @@ namespace Thunder
 		return new constant_bool_expression(value);
 	}
 
-	//todo 定位文件
+	//todo locating file
 	const char* get_file(int file_id) 
 	{
 		return "";

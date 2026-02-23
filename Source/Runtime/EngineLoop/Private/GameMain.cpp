@@ -29,7 +29,7 @@ namespace Thunder
 
     static void TickFPSCamera(float dt)
     {
-        if (!GFPSCameraEntity || !GInputState.RightButtonDown)
+        if (!GFPSCameraEntity)
         {
             GInputState.MouseDelta = { 0.f, 0.f };
             return;
@@ -37,50 +37,65 @@ namespace Thunder
 
         auto* tr = GFPSCameraEntity->GetTransformComponent();
         TVector3f pos = tr->GetPosition();
-        TVector3f rot = tr->GetRotation();  // Pitch / Yaw / Roll in degrees
+        TVector3f rot = tr->GetRotation();  // X=Pitch, Y=Yaw, Z=Roll in degrees
 
-        // Mouse rotation
-        const float mouseSens = 0.1f;
-        const TVector2f mouseDelta = GInputState.MouseDelta;
-        rot.Y += mouseDelta.X * mouseSens;  // Yaw
-        rot.X += mouseDelta.Y * mouseSens;  // Pitch
-        rot.X = std::clamp(rot.X, -89.f, 89.f);
+        // Mouse rotation (only when right button is held)
+        if (GInputState.RightButtonDown)
+        {
+            const float mouseSens = 0.1f;
+            const TVector2f mouseDelta = GInputState.MouseDelta;
+            rot.Y += mouseDelta.X * mouseSens;  // Yaw
+            rot.X += mouseDelta.Y * mouseSens;  // Pitch
+            rot.X = std::clamp(rot.X, -89.f, 89.f);
+        }
+        rot.Z = 0.f;  // No roll, Z axis always points up
 
-        // WASD movement along Yaw direction
-        const float speed = 5.f * dt;
-        float yawRad = rot.Y * DEG_TO_RAD;
-        float fwdX  =  sinf(yawRad);
-        float fwdZ  =  cosf(yawRad);
-        float rightX =  cosf(yawRad);
-        float rightZ = -sinf(yawRad);
+        // Compute forward and right vectors
+        // Coordinate system: X=Forward, Y=Right, Z=Up (same as Unreal Engine)
+        constexpr float speed = 5.f;
+        const float moveDistance = speed * dt;
+        const float yawRad   = rot.Y * DEG_TO_RAD;
+        const float pitchRad = rot.X * DEG_TO_RAD;
+        const float cosY = cosf(yawRad);
+        const float sinY = sinf(yawRad);
+        const float cosP = cosf(pitchRad);
+        const float sinP = sinf(pitchRad);
+
+        // Forward follows camera pitch and yaw
+        const TVector3f forward(cosP * cosY, cosP * sinY, sinP);
+        // Right is always horizontal (perpendicular to forward in XY plane)
+        const TVector3f right(-sinY, cosY, 0.f);
 
         if (GInputState.IsKeyDown('W'))
         {
-            pos.X += fwdX * speed;
-            pos.Z += fwdZ * speed;
+            // todo : TVector3f operator + - * 
+            pos.X += forward.X * moveDistance;
+            pos.Y += forward.Y * moveDistance;
+            pos.Z += forward.Z * moveDistance;
         }
         if (GInputState.IsKeyDown('S'))
         {
-            pos.X -= fwdX * speed;
-            pos.Z -= fwdZ * speed;
+            pos.X -= forward.X * moveDistance;
+            pos.Y -= forward.Y * moveDistance;
+            pos.Z -= forward.Z * moveDistance;
         }
         if (GInputState.IsKeyDown('A'))
         {
-            pos.X -= rightX * speed;
-            pos.Z -= rightZ * speed;
+            pos.X -= right.X * moveDistance;
+            pos.Y -= right.Y * moveDistance;
         }
         if (GInputState.IsKeyDown('D'))
         {
-            pos.X += rightX * speed;
-            pos.Z += rightZ * speed;
+            pos.X += right.X * moveDistance;
+            pos.Y += right.Y * moveDistance;
         }
         if (GInputState.IsKeyDown('E'))
         {
-            pos.Y += speed;
+            pos.Z += moveDistance;
         }
         if (GInputState.IsKeyDown('Q'))
         {
-            pos.Y -= speed;
+            pos.Z -= moveDistance;
         }
 
         tr->SetPosition(pos);

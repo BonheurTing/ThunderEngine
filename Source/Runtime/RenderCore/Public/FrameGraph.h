@@ -21,7 +21,7 @@ namespace Thunder
     {
         ELoadOp    LoadOp     = ELoadOp::Load;
         TVector4f  ClearColor = { 0.f, 0.f, 0.f, 1.f };
-        float      ClearDepth   = 1.f;
+        float      ClearDepth   = 0.f;
         uint8      ClearStencil = 0;
     };
 

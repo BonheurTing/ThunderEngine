@@ -193,7 +193,7 @@ namespace Thunder
 		float FovY      { 90.0f };
 		// Viewport aspect ratio: width / height
 		float Aspect    { 16.0f / 9.0f };
-		float NearPlane { 10.0f };
+		float NearPlane { 2.0f };
 		float FarPlane  { 100000.0f };
 		// When true the far plane is at infinity (UE deferred renderer default)
 		bool  bInfiniteFar { false };

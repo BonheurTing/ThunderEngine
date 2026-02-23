@@ -58,6 +58,7 @@ namespace Thunder
         // Backbuffer operations (for present pass)
         void TransitionBackBufferToRenderTarget() override;
         void TransitionBackBufferToPresent() override;
+		void ClearBackBuffer(TVector4f clearColor) override;
         void SetBackBufferAsRenderTarget() override;
 
 		class TD3D12RootSignature* BindRootSignature(TShaderRegisterCounts const& shaderRC) const;

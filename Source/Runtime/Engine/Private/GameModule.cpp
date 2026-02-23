@@ -1,7 +1,6 @@
 ﻿#include "GameModule.h"
 #include "PackageModule.h"
 #include "Scene.h"
-#include "StreamableManager.h"
 #include "FileSystem/FileModule.h"
 #include "Misc/CoreGlabal.h"
 #include "Concurrent/TaskGraph.h"
@@ -10,7 +9,7 @@ namespace Thunder
 {
     IMPLEMENT_MODULE(Game, GameModule)
 
-    ENGINE_API Entity* GFPSCameraEntity = nullptr;
+    Entity* GFPSCameraEntity = nullptr;
 
     void GameModule::StartUp()
     {
@@ -29,39 +28,6 @@ namespace Thunder
 
     void GameModule::InitGameThread(TFunction<IRenderer*()>& renderFactory)
     {
-        // 12.20 SimulateTest: load tassel in order：png->material->mesh
-        {/*
-            uint32 A, B, C, D;
-            TGuid resGuid;
-            if (sscanf("B6CCBDD4-4C54316D-7806F1A4-1ED0094F", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
-            {
-                resGuid = TGuid(A, B, C, D);
-            }
-            GameResource* tex = PackageModule::LoadSync(resGuid, true);
-            tex->OnResourceLoaded();
-
-            if (sscanf("BEF855D5-459251C5-CA0C088D-07658A28", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
-            {
-                resGuid = TGuid(A, B, C, D);
-            }
-            GameResource* mat = PackageModule::LoadSync(resGuid, true);
-            mat->OnResourceLoaded();
-            GameMaterial* gameMaterial = static_cast<GameMaterial*>(mat);
-            // gameMaterial->SetStaticParameter("_Variant0", true);
-            gameMaterial->SetStaticParameter("_Variant1", true);
-
-            if (sscanf("CFE86C56-4E01C23A-79A9038C-AC38BD89", "%08X-%08X-%08X-%08X", &A, &B, &C, &D) == 4)
-            {
-                resGuid = TGuid(A, B, C, D);
-            }
-            GameResource* mesh = PackageModule::LoadSync(resGuid, true);
-            mesh->OnResourceLoaded();
-            if (auto stMesh = static_cast<StaticMesh*>(mesh))
-            {
-                stMesh->AddMaterial(static_cast<IMaterial*>(mat));
-            }*/
-        }
-
         GameThreadTaskGraph = new (TMemory::Malloc<TaskGraphProxy>()) TaskGraphProxy(GSyncWorkers);
 
         GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
@@ -71,33 +37,20 @@ namespace Thunder
         auto scene = new Scene(renderFactory);
         String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
         scene->LoadAsync(fullPath);
-        viewport->AddScene(scene);
+        InitCameraEntity(scene);
 
-        // Init camera entity.
+        viewport->AddScene(scene);
+        Viewports.push_back(viewport);
+    }
+
+    void GameModule::InitCameraEntity(Scene* scene)
+    {
         Entity* cameraEntity = scene->CreateEntity("FPSCamera");
         cameraEntity->GetTransformComponent()->SetPosition(TVector3f(0.f, 0.f, 0.f));
         cameraEntity->GetTransformComponent()->OnLoaded();
         cameraEntity->AddComponent<CameraComponent>()->OnLoaded();
         scene->AddRootEntity(cameraEntity);
         GFPSCameraEntity = cameraEntity;
-
-        // test two scene
-        // auto scene2 = new Scene(renderFactory);
-        // String fullPath2 = FileModule::GetResourceContentRoot() + "Map/TestScene2.tmap";
-        // scene2->LoadAsync(fullPath2);
-        // viewport->AddScene(scene2);
-
-        Viewports.push_back(viewport);
-
-        // test two viewport
-        // BaseViewport* viewport2 = new BaseViewport();
-        // auto scene2 = new Scene(renderFactory);
-        // scene2->LoadAsync(fullPath);
-        // viewport2->AddScene(scene2);
-        // auto scene3 = new Scene(renderFactory);
-        // scene3->LoadAsync(fullPath);
-        // viewport2->AddScene(scene3);
-        // Viewports.push_back(viewport2);
     }
 
     void GameModule::GetProceduralScene(const Scene* inScene)

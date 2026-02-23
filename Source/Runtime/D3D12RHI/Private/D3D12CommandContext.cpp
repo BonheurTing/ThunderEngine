@@ -514,6 +514,13 @@ namespace Thunder
 		CommandList->ResourceBarrier(1, &barrier);
 	}
 
+	void D3D12CommandContext::ClearBackBuffer(TVector4f clearColor)
+	{
+		auto* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);
+		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = dx12RHI->GetCurrentBackBufferRTV();
+		CommandList->ClearRenderTargetView(rtvHandle, clearColor.XYZW, 0, nullptr);
+	}
+
 	void D3D12CommandContext::SetBackBufferAsRenderTarget()
 	{
 		auto* dx12RHI = static_cast<D3D12DynamicRHI*>(GDynamicRHI);

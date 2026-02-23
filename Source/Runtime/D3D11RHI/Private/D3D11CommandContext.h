@@ -48,6 +48,12 @@ namespace Thunder
 		void Reset(uint32 index) override {}
     	void BeginFrame() override {}
     	void TransitionBarrier(RHIResource* res, ERHIResourceState oldState, ERHIResourceState newState, uint32 subResource) override {}
+
+		// Backbuffer operations (for present pass)
+		void TransitionBackBufferToRenderTarget() override {}
+		void TransitionBackBufferToPresent() override {}
+		void ClearBackBuffer(TVector4f clearColor) override {}
+		void SetBackBufferAsRenderTarget() override {}
 		
 	private:
 		ComPtr<ID3D11DeviceContext> DeferredContext;

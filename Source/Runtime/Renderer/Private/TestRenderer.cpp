@@ -221,9 +221,9 @@ namespace Thunder
 
         {
             PassOperations operations;
-            operations.Write(GBufferRT0);
-            operations.Write(GBufferRT1);
-            operations.Write(GBufferSceneDepth);
+            operations.Write(GBufferRT0, TVector4f(0, 0, 0, 1));
+            operations.Write(GBufferRT1, TVector4f(0, 0, 0, 1));
+            operations.Write(GBufferSceneDepth, 0, 0);
             mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
             {
                 // Set pass parameters and update uniform buffer.

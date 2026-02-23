@@ -22,6 +22,7 @@ namespace Thunder
     private:
         friend class GameTask;
         static class TaskGraphProxy* GetGameThreadTaskGraph() { return GetModule()->GameThreadTaskGraph; }
+        static void InitCameraEntity(Scene* scene);
 
         TArray<ITickable*> Tickables;
         TaskGraphProxy* GameThreadTaskGraph { nullptr };

@@ -190,6 +190,7 @@ namespace Thunder
         {
             // Present pass: transition backbuffer from Present -> RenderTarget and bind it.
             cmdList->TransitionBackBufferToRenderTarget();
+            cmdList->ClearBackBuffer( TVector4f(0,0,0,1));
             cmdList->SetBackBufferAsRenderTarget();
             return;
         }

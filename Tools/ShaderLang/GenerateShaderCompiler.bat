@@ -17,7 +17,8 @@ echo -- Begin to generate the parser
     --defines=%SHADERLANG_WORKSPACE%\Generated\parser.tab.h ^
     %SHADERLANG_WORKSPACE%\Private\parser.y
 
-%FLEXBISON_BINARY_DIR%\win_flex.exe -d --debug ^
+rem %FLEXBISON_BINARY_DIR%\win_flex.exe -d --debug ^
+%FLEXBISON_BINARY_DIR%\win_flex.exe ^
     --outfile=%SHADERLANG_WORKSPACE%\Generated\lexer.tab.cpp ^
     %SHADERLANG_WORKSPACE%\Private\lexer.l
 echo -- End to generate the parser

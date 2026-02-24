@@ -40,7 +40,7 @@ shader_lang_state* ThunderParse(const char* text);
 
 int yylex(YYSTYPE *, parse_location*, void*);
 
-#define YYDEBUG 1
+#define YYDEBUG 0
 
 %}
 
@@ -987,7 +987,7 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg){
 
 shader_lang_state* ThunderParse(const char* text)
 {
-    yydebug = 1;
+    //yydebug = 1;
     if (sl_state == nullptr)
     {
         sl_state = new shader_lang_state();

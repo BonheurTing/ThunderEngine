@@ -24,11 +24,6 @@ namespace Thunder
 {
     D3D12DynamicRHI::D3D12DynamicRHI()
     {
-        for (auto& i : GReleaseQueue)
-        {
-            i = TArray<ComPtr<ID3D12Object>>();
-        }
-
         FenceEvent = nullptr;
         CurrentFenceValue = 0;
         for (unsigned long long& FenceValue : ExpectedFenceValues)
@@ -804,26 +799,25 @@ namespace Thunder
 
     void D3D12DynamicRHI::RHIReleaseResource_RHIThread()
     {
-        uint32 index = (GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) + 1) % MAX_FRAME_LAG;
-        /**
-         * GReleaseQueue存ComPre方便自己释放
-         * 1. 不能for array 中每一个元素，调push task，如果元素很多，task会慢
-         * 2. 不能copy array，很多个元素，如果元素很多，拷贝会慢
-         * 3. 最好就是整个array move给task，自己释放，为保险再调一次clear
-         **/
-        if (!GReleaseQueue[index].empty())
+        uint32 index = (GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) + 1) % ReleaseQueueLength;
+        if (!ReleaseQueue[index].empty())
         {
-            GAsyncWorkers->PushTask([releaseQueue = std::move(GReleaseQueue[index])]()
+            TArray<ComPtr<ID3D12Object>> releaseQueue;
+            releaseQueue.swap(ReleaseQueue[index]);
+            GAsyncWorkers->PushTask([releaseQueue = std::move(releaseQueue)]() mutable
             {
             });
-            GReleaseQueue[index].clear();
         }
     }
 
     void D3D12DynamicRHI::AddReleaseObject(ComPtr<ID3D12Object> object)
     {
-        uint32 index = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % MAX_FRAME_LAG;
-        GReleaseQueue[index].push_back(object);
+        GRHIScheduler->PushTask([this, object]()
+        {
+            uint32 const rhiFrameCount = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire);
+            uint32 index = rhiFrameCount % ReleaseQueueLength;
+            ReleaseQueue[index].push_back(object);
+        });
     }
 
     void D3D12DynamicRHI::RHISignalFence(uint32 frameIndex)

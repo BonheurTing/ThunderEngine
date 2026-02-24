@@ -790,10 +790,18 @@ namespace Thunder
 			return false;
 		}
 
-		LOG("ForceImport: saved package \"%s\".", packName.c_str());
+		LOG("Import: saved package \"%s\".", packName.c_str());
 		GetModule()->RegisterPackageSoftPathToGUID(newPackage);
 		newEntry->SrcFileLastWriteTime = mtime;
 		newEntry->SrcFileSize = fsize;
+
+		// Sync GameResource::Dependencies to PackageEntry::Dependencies.
+		for (auto res : newPackage->GetPackageObjects())
+		{
+			const TGuid resGuid = res->GetGUID();
+			newEntry->Dependencies[resGuid] = res->GetDependencies();
+		}
+
 		return true;
 	}
 
@@ -857,6 +865,14 @@ namespace Thunder
 		GetModule()->RegisterPackageSoftPathToGUID(newPackage);
 		newEntry->SrcFileLastWriteTime = mtime;
 		newEntry->SrcFileSize = fsize;
+
+		// Sync GameResource::Dependencies to PackageEntry::Dependencies.
+		for (auto res : newPackage->GetPackageObjects())
+		{
+			const TGuid resGuid = res->GetGUID();
+			newEntry->Dependencies[resGuid] = res->GetDependencies();
+		}
+
 		return true;
 	}
 

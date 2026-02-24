@@ -131,7 +131,8 @@ namespace Thunder
         uint32                   CurrentBackBufferIndex = 0;
         D3D12OfflineDescriptor   BackBufferRTVs[2];
 
-        //
-        TArray<ComPtr<ID3D12Object>> GReleaseQueue[MAX_FRAME_LAG] {};
+        // Release queue
+        static constexpr uint32 ReleaseQueueLength = MAX_FRAME_LAG + 1; // +1 allows render thread to release rhi at any time.
+        TArray<ComPtr<ID3D12Object>> ReleaseQueue[ReleaseQueueLength] {};
     };
 }

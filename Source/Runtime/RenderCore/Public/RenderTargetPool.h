@@ -47,6 +47,7 @@ namespace Thunder
         FGRenderTarget() = default;
         FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format);
         FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format, const TVector4f& clearValue);
+        FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format, float clearDepth, uint8 clearStencil);
 
         NameHandle GetName() const { return Name; }
         FGRenderTargetDesc& GetDesc() { return Desc; }

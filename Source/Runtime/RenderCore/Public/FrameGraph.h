@@ -72,7 +72,7 @@ namespace Thunder
             : FrameGraph(graph), Name(inName), Operations(std::move(inOperations)), ExecuteFunction(std::move(inExecuteFunction)) {}
         NameHandle GetName() { return Name; }
         PassOperations& GetOperations() { return Operations; }
-        bool SetShader(NameHandle archiveName);
+        void SetShader(NameHandle archiveName);
     };
 
     class RENDERCORE_API FrameGraph : public RefCountedObject
@@ -183,7 +183,7 @@ namespace Thunder
         // Command execution contexts.
         RenderContext* MainContext = nullptr;  // Main render thread context
         TArray<RenderContext*> RenderContexts; // Worker thread contexts
-        TArray<IRHICommand*> AllCommands[2];       // Consolidated commands for execution
+        TArray<IRHICommand*> AllCommands[2];       // All commands for execution
         TArray<RHIPassState*> AllPassStates[2];
 
         // Mesh-draw.

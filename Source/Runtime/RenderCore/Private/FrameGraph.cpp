@@ -70,13 +70,12 @@ namespace Thunder
         it->second.ClearStencil = clearStencil;
     }
 
-    bool FrameGraphPass::SetShader(NameHandle archiveName)
+    void FrameGraphPass::SetShader(NameHandle archiveName)
     {
         Archive = ShaderModule::GetShaderArchive(archiveName);
         if (Archive == nullptr) [[unlikely]]
         {
             TAssertf(false, "Shader is not ready.");
-            return false;
         }
 
         if (bLayoutNeedsUpdate)
@@ -92,8 +91,6 @@ namespace Thunder
                 PassParameters->Reset();
             }
         }
-
-        return true;
     }
 
     RHIPassState::RHIPassState(const RHIBeginPassCommand* beginCommand, uint32 commandId)
@@ -396,8 +393,8 @@ namespace Thunder
 
                 AddBeginPassCommand(pass, frameIndex);
                 AddPassState(frameIndex);
-                AggregateContextCommands(frameIndex);
                 AddEndPassCommand(pass, frameIndex);
+                AggregateContextCommands(frameIndex);
             }
 
             // After pass execution, release render targets that are no longer needed.
@@ -456,19 +453,21 @@ namespace Thunder
         uint32 const renderThreadIndex = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire) % 2;
 
         // Register.
-        auto const& registerRequests = SceneInfoRegistrationSet[renderThreadIndex];
+        auto& registerRequests = SceneInfoRegistrationSet[renderThreadIndex];
         for (auto const& registerRequest : registerRequests)
         {
             //registerRequest->CreateUniformBuffer();
             SceneInfos.insert(registerRequest);
         }
+        registerRequests.clear();
 
         // Unregister.
-        auto const& unregisterRequests = SceneInfoUnregistrationSet[renderThreadIndex];
+        auto& unregisterRequests = SceneInfoUnregistrationSet[renderThreadIndex];
         for (auto const& unregisterRequest : unregisterRequests)
         {
             SceneInfos.erase(unregisterRequest);
         }
+        unregisterRequests.clear();
 
         // Update.
         SceneInfoCurrentUpdateSet.clear();

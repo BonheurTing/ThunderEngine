@@ -47,8 +47,6 @@ namespace Thunder
             renderer->Setup();
             renderer->Compile();
             renderer->Execute();
-
-            SimulatingAddingMeshBatch();
         }
     }
 
@@ -64,9 +62,6 @@ namespace Thunder
         uint32 frameNum = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
         uint32 currentFrameIndex = frameNum % MAX_FRAME_LAG;
         GDynamicRHI->RHIWaitForFrame(currentFrameIndex);
-
-        // Wait for rhi thread.
-        WaitForLastRHIFrameEnd();
 
         // begin frame: reset allocator
         IRHIModule::GetModule()->ResetCopyCommandContext_Render(currentFrameIndex);

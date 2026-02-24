@@ -12,6 +12,11 @@ namespace Thunder
     {
     }
 
+    FGRenderTarget::FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format, float clearDepth, uint8 clearStencil)
+        : Name(name), Desc(width, height, format, clearDepth, clearStencil)
+    {
+    }
+
     RenderTextureRef RenderTargetPool::AcquireRenderTarget(FGRenderTargetDesc& desc)
     {
         // Find compatible render target in available pool

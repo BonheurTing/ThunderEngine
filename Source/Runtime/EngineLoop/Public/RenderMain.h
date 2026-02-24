@@ -34,6 +34,7 @@ namespace Thunder
 
         void DoWork()
         {
+            WaitForLastRHIFrameEnd();
             RenderMain();
             EndRenderer();
         }

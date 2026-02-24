@@ -23,6 +23,10 @@ namespace Thunder
     {
     }
 
+    DeferredRenderer::~DeferredRenderer()
+    {
+    }
+
     void DeferredRenderer::InitViews()
     {
         // todo The scene needs to build a PrimitiveSceneInfo list.
@@ -45,11 +49,11 @@ namespace Thunder
         uint32 const resolutionHeight = GDynamicRHI->GetViewportHeight();
 
         // GBuffer pass.
-        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{"GBufferA", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(1, 1, 0, 1) };
-        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ "GBufferB", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-        static FGRenderTargetRef GBufferRT2 = new FGRenderTarget{ "GBufferC", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-        static FGRenderTargetRef GBufferRT3 = new FGRenderTarget{ "GBufferD", resolutionWidth, resolutionHeight, RHIFormat::R32_FLOAT };
-        static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{"SceneDepth",  resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
+        static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{"GBufferA", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(0, 0, 0, 1) };
+        static FGRenderTargetRef GBufferRT1 = new FGRenderTarget{ "GBufferB", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(0, 0, 0, 1) };
+        static FGRenderTargetRef GBufferRT2 = new FGRenderTarget{ "GBufferC", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(0, 0, 0, 1) };
+        static FGRenderTargetRef GBufferRT3 = new FGRenderTarget{ "GBufferD", resolutionWidth, resolutionHeight, RHIFormat::R32_FLOAT, TVector4f(0, 0, 0, 1) };
+        static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{"SceneDepth",  resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT, 0.f, 0 };
 
         // Register render targets
         mFrameGraph->RegisterRenderTarget(GBufferRT0);
@@ -64,7 +68,7 @@ namespace Thunder
 
             PassOperations operations;
             operations.Write(DummyRT);
-            operations.Write(GBufferSceneDepth, 1.f, 0);
+            operations.Write(GBufferSceneDepth, 0.f, 0);
             mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this]()
             {
                 // Set pass parameters and update uniform buffer.
@@ -185,7 +189,7 @@ namespace Thunder
         }
 
         // Lighting pass.
-        static FGRenderTargetRef LightingRT = new FGRenderTarget{"SceneTexture", resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
+        static FGRenderTargetRef LightingRT = new FGRenderTarget{"SceneTexture", resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT, TVector4f(0, 0, 0, 1) };
         mFrameGraph->RegisterRenderTarget(LightingRT);
 
         {
@@ -198,12 +202,7 @@ namespace Thunder
             mFrameGraph->AddPass(EVENT_NAME("Lighting"), std::move(operations), [this]()
             {
                 auto pass = mFrameGraph->GetMainContext()->GetCurrentPass();
-                bool success = pass->SetShader("Lighting");
-                if (!success) [[unlikely]]
-                {
-                    TAssertf(false, "Failed to set shader.");
-                    return;
-                }
+                pass->SetShader("Lighting");
 
                 pass->PassParameters->SetFloatParameter("PassParameters0", 0);
                 pass->PassParameters->SetVectorParameter("PassParameters1", TVector4f(0.f, 0.f, 0.f, 1.f));
@@ -234,20 +233,14 @@ namespace Thunder
         }
 
         {
-            // Post-process (present pass): reads LightingRT and renders directly to the swapchain backbuffer.
-            // No write target is declared; the framegraph binds the backbuffer automatically.
-            PassOperations operations;
-            operations.Read(LightingRT, "SceneTexture"); //todo bind
-
-            static PostProcessManager* ppRenderer = nullptr;
-            if (ppRenderer == nullptr)
+            if (PostProcessManager == nullptr)
             {
-                ppRenderer = new PostProcessManager(mFrameGraph);
+                PostProcessManager = new class PostProcessManager(mFrameGraph);
             }
-
-            ppRenderer->Setup(operations);
-            mFrameGraph->SetPresentPass("ToneMapping");
+            PostProcessManager->Render(LightingRT.Get());
         }
+
+        mFrameGraph->SetPresentPass("ToneMapping");
     }
 
     void DeferredRenderer::UpdateAllPrimitiveSceneInfos()

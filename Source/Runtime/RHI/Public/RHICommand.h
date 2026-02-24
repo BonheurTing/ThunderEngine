@@ -79,10 +79,6 @@ namespace Thunder
         RHIPassState* PassState;
     };
 
-    /**
-     * Complete draw command that includes all necessary render state
-     * This is a consolidated draw command rather than many small commands like UE
-     */
     struct RHIDrawCommand : public IRHICommand
     {
         RHI_API void Execute(RHICommandContext* cmdList) override;

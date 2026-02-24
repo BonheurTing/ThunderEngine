@@ -101,9 +101,6 @@ namespace Thunder
         tr->SetPosition(pos);
         tr->SetRotation(rot);
 
-        LOG("FPS Camera pos=(%.2f, %.2f, %.2f) rot=(%.2f, %.2f, %.2f)",
-            pos.X, pos.Y, pos.Z, rot.X, rot.Y, rot.Z);
-
         // Clear per-frame delta after game thread has consumed it
         GInputState.MouseDelta = { 0.f, 0.f };
     }
@@ -183,7 +180,6 @@ namespace Thunder
             }, 8, 8);
         }
 
-        // 每帧打印加载情况
         for (int i = 0; i < 1024; i++)
         {
             if (ModelLoaded[i])
@@ -197,7 +193,10 @@ namespace Thunder
     {
         ThunderZoneScopedN("GameMain");
 
+        // Frame count must be increased first.
         const int32 frameNum = static_cast<int32>(GFrameState->FrameNumberGameThread.fetch_add(1, std::memory_order_acq_rel) + 1);
+        WaitForLastRenderFrameEnd();
+
         if (frameNum >= EXIT_FRAME_THRESHOLD)
         {
             EngineMain::IsRequestingExit.store(true, std::memory_order_acq_rel);
@@ -253,8 +252,6 @@ namespace Thunder
         {
             viewports[i]->SetNext(viewports[i + 1]);
         }
-        // push render command
-        WaitForLastRenderFrameEnd();
 
         const uint32 frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
         GRenderScheduler->PushTask([frameNum]()

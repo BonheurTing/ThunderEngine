@@ -15,8 +15,7 @@ namespace Thunder
             : Owner(frameGraph)
         {
         }
-        void Setup(PassOperations& operations);
-        void Execute();
+        void Render(const class FGRenderTarget* inputRT);
     private:
         float Parameter0 = 0.f;
         TVector4f Parameter1;

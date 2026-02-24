@@ -29,12 +29,6 @@ namespace Thunder
 
     void RHITask::RHIMain()
     {
-        /**
-         * 1. sync command
-         * 2. leit naxt render thread go
-         * 3. async command
-         * 4. draw command
-         **/
         ThunderZoneScopedN("RHIMain");
         uint32 frameNum = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire);
         uint32 currentFrameIndex = frameNum % MAX_FRAME_LAG;
@@ -87,15 +81,15 @@ namespace Thunder
         uint32 numThread = static_cast<uint32>(rhiCommandContexts.size());
 
         uint32 frontFrameGraphIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
-        auto consolidatedCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(static_cast<int>(frontFrameGraphIndex));
+        auto allCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(static_cast<int>(frontFrameGraphIndex));
         auto passStates = renderer->GetFrameGraph()->GetCurrentPassStates(static_cast<int>(frontFrameGraphIndex));
-        int commandNum = static_cast<int>(consolidatedCommands.size());
+        int commandNum = static_cast<int>(allCommands.size());
         if (commandNum > 0)
         {
             const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
             auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
             dispatcher->Promise(commandNum);
-            GSyncWorkers->ParallelFor([rhiCommandContexts, consolidatedCommands, passStates, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 threadId) mutable
+            GSyncWorkers->ParallelFor([rhiCommandContexts, allCommands, passStates, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 threadId) mutable
             {
                 RHICommandContext* commandList = rhiCommandContexts[threadId];
 
@@ -108,7 +102,7 @@ namespace Thunder
                 {
                     if (index < static_cast<uint32>(commandNum))
                     {
-                        consolidatedCommands[index]->ExecuteAndDestruct(commandList);
+                        allCommands[index]->ExecuteAndDestruct(commandList);
                         dispatcher->Notify();
                     }
                 }

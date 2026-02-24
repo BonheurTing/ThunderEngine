@@ -80,28 +80,36 @@ namespace Thunder
         RenderPassKey key;
         auto const& renderTargetIndices = CurrentPass->GetOperations().GetWriteTargets();
         TAssertf(renderTargetIndices.size() <= 8, "Rendering into more than 8 render targets is not supported.");
-        key.RenderTargetCount = static_cast<uint8>(renderTargetIndices.size());
-        uint32 outTargetIndex = 0;
-        for (auto const& targetIndex : renderTargetIndices | std::views::keys)
+        if (CurrentPass->bIsPresentPass)
         {
-            RHIFormat format = RHIFormat::UNKNOWN;
-            bool isDepthStencil = false;
-            bool succeeded = FrameGraph->GetRenderTargetFormat(targetIndex, format, isDepthStencil);
-            if (!succeeded) [[unlikely]]
+            key.RenderTargetCount = 1;
+            key.RenderTargetFormats[0] = static_cast<uint8>(RHIFormat::R8G8B8A8_UNORM);
+        }
+        else
+        {
+            key.RenderTargetCount = static_cast<uint8>(renderTargetIndices.size());
+            uint32 outTargetIndex = 0;
+            for (auto const& targetIndex : renderTargetIndices | std::views::keys)
             {
-                TAssertf(false, "Failed to get render target format, target index : %u.", targetIndex);
-                return nullptr;
-            }
+                RHIFormat format = RHIFormat::UNKNOWN;
+                bool isDepthStencil = false;
+                bool succeeded = FrameGraph->GetRenderTargetFormat(targetIndex, format, isDepthStencil);
+                if (!succeeded) [[unlikely]]
+                {
+                    TAssertf(false, "Failed to get render target format, target index : %u.", targetIndex);
+                    return nullptr;
+                }
 
-            if (isDepthStencil)
-            {
-                key.DepthStencilFormat = static_cast<uint8>(format);
-                key.RenderTargetCount -= 1; // Last render target is the depth target.
-            }
-            else
-            {
-                key.RenderTargetFormats[outTargetIndex] = static_cast<uint8>(format);
-                ++outTargetIndex;
+                if (isDepthStencil)
+                {
+                    key.DepthStencilFormat = static_cast<uint8>(format);
+                    key.RenderTargetCount -= 1; // Last render target is the depth target.
+                }
+                else
+                {
+                    key.RenderTargetFormats[outTargetIndex] = static_cast<uint8>(format);
+                    ++outTargetIndex;
+                }
             }
         }
 

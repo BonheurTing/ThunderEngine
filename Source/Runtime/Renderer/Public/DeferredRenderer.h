@@ -8,13 +8,15 @@ namespace Thunder
     {
     public:
         DeferredRenderer();
-        ~DeferredRenderer() override = default;
+        ~DeferredRenderer() override;
         void Tick_RenderThread() override;
         void Setup() override;
 
     private:
         void UpdateAllPrimitiveSceneInfos();
-    private:
         void InitViews();
+
+    private:
+        class PostProcessManager* PostProcessManager = nullptr;
     };
 }

@@ -19,47 +19,30 @@ namespace Thunder
         }
     }
 
-    void PostProcessManager::Setup(PassOperations& operations)
+    void PostProcessManager::Render(const FGRenderTarget* inputRT)
     {
-        // set param case1
+        // Post-process (present pass): reads LightingRT and renders directly to the swapchain backbuffer.
+        // No write target is declared; the framegraph binds the backbuffer automatically.
+        PassOperations operations;
+        operations.Read(inputRT, "SceneTexture");
+
+        // set param
         Parameter0 = 5.0f;
 
         Owner->AddPass(EVENT_NAME("ToneMapping"), std::move(operations), [this]()
         {
-            this->Execute();
+            auto pass = Owner->GetMainContext()->GetCurrentPass();
+            pass->SetShader("PostProcess");
+
+            // set param
+            Parameter1 = GConfigManager->GetConfig("BaseEngine")->GetBool("EnableRenderFeature0");
+            pass->PassParameters->SetFloatParameter("PassParameters0", Parameter0);
+            pass->PassParameters->SetVectorParameter("PassParameters1", TVector4f(0.f, 0.f, 0.f, 1.f));
+            pass->PassParameters->SetVectorParameter("PassParameters2", TVector4f(0.f, 0.f, 0.f, 1.f));
+            pass->PassParameters->SetIntParameter("PassParameters3", Parameter3);
+
+            auto subMesh = GProceduralGeometryManager->GetGeometry(EProceduralGeometry::Triangle);
+            RenderModule::BuildDrawCommand(Owner, pass, subMesh);
         });
-    }
-
-    void PostProcessManager::Execute()
-    {
-        auto context = Owner->GetMainContext();
-        if (context == nullptr) [[unlikely]]
-        {
-            TAssertf(false, "Context is null");
-            return;
-        }
-        auto pass = context->GetCurrentPass(); // "Blur"
-        if (pass == nullptr) [[unlikely]]
-        {
-            TAssertf(false, "CurrentPass is null");
-            return;
-        }
-
-        bool success = pass->SetShader("PostProcess");
-        if (!success) [[unlikely]]
-        {
-            TAssertf(false, "Failed to set shader.");
-            return;
-        }
-
-        // set param case2
-        Parameter1 = GConfigManager->GetConfig("BaseEngine")->GetBool("EnableRenderFeature0");
-        pass->PassParameters->SetFloatParameter("PassParameters0", Parameter0);
-        pass->PassParameters->SetVectorParameter("PassParameters1", TVector4f(0.f, 0.f, 0.f, 1.f));
-        pass->PassParameters->SetVectorParameter("PassParameters2", TVector4f(0.f, 0.f, 0.f, 1.f));
-        pass->PassParameters->SetIntParameter("PassParameters3", Parameter3);
-
-        auto subMesh = GProceduralGeometryManager->GetGeometry(EProceduralGeometry::Triangle);
-        RenderModule::BuildDrawCommand(Owner, pass, subMesh);
     }
 }

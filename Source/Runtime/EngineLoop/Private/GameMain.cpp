@@ -35,9 +35,9 @@ namespace Thunder
             return;
         }
 
-        auto* tr = GFPSCameraEntity->GetTransformComponent();
-        TVector3f pos = tr->GetPosition();
-        TVector3f rot = tr->GetRotation();  // X=Pitch, Y=Yaw, Z=Roll in degrees
+        auto* transform = GFPSCameraEntity->GetTransformComponent();
+        TVector3f pos = transform->GetPosition();
+        TVector3f rot = transform->GetRotation();  // X=Pitch, Y=Yaw, Z=Roll in degrees
 
         // Mouse rotation (only when right button is held)
         if (GInputState.RightButtonDown)
@@ -98,8 +98,8 @@ namespace Thunder
             pos.Z -= moveDistance;
         }
 
-        tr->SetPosition(pos);
-        tr->SetRotation(rot);
+        transform->SetPosition(pos);
+        transform->SetRotation(rot);
 
         // Clear per-frame delta after game thread has consumed it
         GInputState.MouseDelta = { 0.f, 0.f };
@@ -112,7 +112,7 @@ namespace Thunder
         {
             return new (TMemory::Malloc<DeferredRenderer>()) DeferredRenderer; 
         };
-        Scene* newScene = new Scene(defaultRendererFactory);
+        Scene* newScene = new Scene(defaultRendererFactory, nullptr);
         newScene->SetSceneName("ExampleLevel");
 
         // Create a root entity (like a game object)
@@ -204,7 +204,8 @@ namespace Thunder
         // game thread
         LOG("Execute game thread in frame: %d with thread: %lu", frameNum, __threadid());
 
-        // Tick camera every frame (fixed dt=1/60)
+        // Tick viewport and camera first.
+        GDynamicRHI->SetMainViewportResolution_GameThread(GameModule::GetMainViewport()->GetViewportResolution());
         TickFPSCamera(1.f / 60.f);
 
         // Tick.

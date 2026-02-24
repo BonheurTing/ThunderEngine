@@ -17,7 +17,7 @@ namespace Thunder
 	class Scene : public GameObject, public ITickable
 	{
 	public:
-		ENGINE_API Scene(const TFunction<class IRenderer*()>& renderFactory, GameObject* inOuter = nullptr);
+		ENGINE_API Scene(const TFunction<class IRenderer*()>& renderFactory, class BaseViewport* owner, GameObject* inOuter = nullptr);
 		ENGINE_API virtual ~Scene();
 
 		// Entity management
@@ -44,6 +44,9 @@ namespace Thunder
 		ENGINE_API void SetSceneName(const NameHandle& inName) { SceneName = inName; }
 		ENGINE_API const NameHandle& GetSceneName() const { return SceneName; }
 
+		ENGINE_API BaseViewport* GetViewport() const { return Viewport; }
+		ENGINE_API void SetViewport(BaseViewport* inViewport) { Viewport = inViewport; }
+
 	private:
 		/*// Asynchronous resource streaming
 		void StreamScene();
@@ -52,7 +55,8 @@ namespace Thunder
 
 		NameHandle SceneName;
 		TArray<Entity*> RootEntities;
-		IRenderer* Renderer { nullptr };
+		IRenderer* Renderer{ nullptr };
+		BaseViewport* Viewport{ nullptr };
 	};
 
 	class BaseViewport
@@ -66,9 +70,12 @@ namespace Thunder
 		void GetRenderers(TArray<IRenderer*>& renderers) const;
 		void SetNext(BaseViewport* viewport) { NextViewport = viewport; }
 		BaseViewport* GetNext() const { return NextViewport; }
+		void SetViewportResolution(const TVector2u& viewportResolution) { ViewportResolution = viewportResolution; }
+		TVector2u GetViewportResolution() const { return ViewportResolution; }
 
 	private:
 		TArray<Scene*> Scenes;
 		BaseViewport* NextViewport { nullptr };
+		TVector2u ViewportResolution{ 1920, 1080 };
 	};
 }

@@ -393,8 +393,8 @@ namespace Thunder
 
                 AddBeginPassCommand(pass, frameIndex);
                 AddPassState(frameIndex);
-                AddEndPassCommand(pass, frameIndex);
                 AggregateContextCommands(frameIndex);
+                AddEndPassCommand(pass, frameIndex);
             }
 
             // After pass execution, release render targets that are no longer needed.
@@ -723,9 +723,13 @@ namespace Thunder
         }
     }
 
-    void FrameGraph::RegisterRenderTarget(FGRenderTarget* renderTarget)
+    void FrameGraph::RegisterRenderTarget(FGRenderTarget* renderTarget, TVector2u resolution)
     {
         uint32 id = static_cast<uint32>(RenderTargets.size());
+        if (resolution.X > 0 && resolution.Y > 0)
+        {
+            renderTarget->SetResolution(resolution);
+        }
         RenderTargets[id] = renderTarget;
         RenderTargets[id]->SetId(id);
     }

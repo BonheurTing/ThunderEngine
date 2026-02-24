@@ -12,7 +12,8 @@ namespace Thunder
 		~EngineMain();
 
         void InitializeEngine();
-        void InitWindow(void* hwnd);  // Must be called after FastInit() and before Run()
+        void InitWindow(void* hwnd);  // Must be called after InitializeEngine() and before Run()
+        void OnWindowResize(uint32 width, uint32 height);
     	bool RHIInit(EGfxApiType type);
 		int32 Run();
         void Exit();

@@ -1,7 +1,10 @@
 #include "CoreMinimal.h"
 #include "EngineMain.h"
+#include "GameModule.h"
 #include "HAL/Event.h"
 #include "GameWindow.h"
+#include "IDynamicRHI.h"
+#include "Scene.h"
 
 #if THUNDER_WINDOWS
 #include <Windows.h>
@@ -29,7 +32,7 @@ int main(int argc, char* argv[])
 #endif
 
 
-    // 1. Create the window
+    // Create the window
     GameWindow window;
     GameWindowDesc desc;
     desc.Width  = 1920;
@@ -40,17 +43,31 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    // 2. Engine initialization
+    // Get actual client area size after window creation
+    // (may differ from requested size due to DPI scaling or monitor constraints)
+    uint32 actualWidth = window.GetWidth();
+    uint32 actualHeight = window.GetHeight();
+
+    // Engine initialization
     EngineMain* GEngine = new EngineMain();
     GEngine->InitializeEngine();
 
-    // 3. Pass HWND to RHI layer to create the swapchain
+    // Set viewport resolution to match actual window size
+    GameModule::GetMainViewport()->SetViewportResolution(TVector2u(actualWidth, actualHeight));
+
+    // Pass HWND to RHI layer to create the swapchain
     GEngine->InitWindow(window.GetHWND());
 
-    // 4. Start engine (Game / Render / RHI threads)
+    // Setup window resize callback
+    window.SetResizeCallback([GEngine](uint32 width, uint32 height)
+    {
+        GEngine->OnWindowResize(width, height);
+    });
+
+    // Start engine (Game / Render / RHI threads)
     GEngine->Run();
 
-    // 5. Main thread runs message pump until window close or engine exit request
+    // Main thread runs message pump until window close or engine exit request
     while (!EngineMain::IsEngineExitRequested())
     {
         if (!window.PumpMessages())
@@ -60,7 +77,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    // 6. Wait for engine exit signal
+    // Wait for engine exit signal
     EngineMain::EngineExitSignal->Wait();
 
     GEngine->Exit();

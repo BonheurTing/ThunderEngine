@@ -45,8 +45,10 @@ namespace Thunder
 
     void DeferredRenderer::Setup()
     {
-        uint32 const resolutionWidth = GDynamicRHI->GetViewportWidth();
-        uint32 const resolutionHeight = GDynamicRHI->GetViewportHeight();
+        TVector2u viewportResolution = GDynamicRHI->GetMainViewportResolution_RenderThread();
+        uint32 const resolutionWidth = viewportResolution.X;
+        uint32 const resolutionHeight = viewportResolution.Y;
+        mFrameGraph->SetViewportResolution(viewportResolution);
 
         // GBuffer pass.
         static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{"GBufferA", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(0, 0, 0, 1) };
@@ -56,15 +58,15 @@ namespace Thunder
         static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{"SceneDepth",  resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT, 0.f, 0 };
 
         // Register render targets
-        mFrameGraph->RegisterRenderTarget(GBufferRT0);
-        mFrameGraph->RegisterRenderTarget(GBufferRT1);
-        mFrameGraph->RegisterRenderTarget(GBufferRT2);
-        mFrameGraph->RegisterRenderTarget(GBufferRT3);
-        mFrameGraph->RegisterRenderTarget(GBufferSceneDepth);
+        mFrameGraph->RegisterRenderTarget(GBufferRT0, viewportResolution);
+        mFrameGraph->RegisterRenderTarget(GBufferRT1, viewportResolution);
+        mFrameGraph->RegisterRenderTarget(GBufferRT2, viewportResolution);
+        mFrameGraph->RegisterRenderTarget(GBufferRT3, viewportResolution);
+        mFrameGraph->RegisterRenderTarget(GBufferSceneDepth, viewportResolution);
 
         {
             static FGRenderTargetRef DummyRT = new FGRenderTarget{"SceneDepth1", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-            mFrameGraph->RegisterRenderTarget(DummyRT);
+            mFrameGraph->RegisterRenderTarget(DummyRT, viewportResolution);
 
             PassOperations operations;
             operations.Write(DummyRT);
@@ -99,9 +101,9 @@ namespace Thunder
 
         {
             static FGRenderTargetRef DummyRT = new FGRenderTarget{"Dummy", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-            mFrameGraph->RegisterRenderTarget(DummyRT);
+            mFrameGraph->RegisterRenderTarget(DummyRT, viewportResolution);
             static FGRenderTargetRef ShadowDepth = new FGRenderTarget{"ShadowDepth", resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
-            mFrameGraph->RegisterRenderTarget(ShadowDepth);
+            mFrameGraph->RegisterRenderTarget(ShadowDepth, viewportResolution);
 
             PassOperations operations;
             operations.Write(DummyRT);
@@ -190,7 +192,7 @@ namespace Thunder
 
         // Lighting pass.
         static FGRenderTargetRef LightingRT = new FGRenderTarget{"SceneTexture", resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT, TVector4f(0, 0, 0, 1) };
-        mFrameGraph->RegisterRenderTarget(LightingRT);
+        mFrameGraph->RegisterRenderTarget(LightingRT, viewportResolution);
 
         {
             PassOperations operations;
@@ -215,8 +217,8 @@ namespace Thunder
         }
 
         // PostProcess1 pass.
-        static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{"PostProcessRT1", 1280, 720, RHIFormat::R16G16B16A16_FLOAT };
-        mFrameGraph->RegisterRenderTarget(PostProcessRT1);
+        static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{"PostProcessRT1", resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
+        mFrameGraph->RegisterRenderTarget(PostProcessRT1, viewportResolution);
 
         {
             PassOperations operations;

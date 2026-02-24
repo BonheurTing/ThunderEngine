@@ -15,8 +15,8 @@ namespace Thunder
 
 	
 	// Scene implementation
-	Scene::Scene(const TFunction<IRenderer*()>& renderFactory, GameObject* inOuter)
-		: GameObject(inOuter)
+	Scene::Scene(const TFunction<IRenderer*()>& renderFactory, BaseViewport* owner, GameObject* inOuter)
+		: GameObject(inOuter), Viewport(owner)
 	{
 		Renderer = renderFactory();
 	}

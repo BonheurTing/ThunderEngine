@@ -1,5 +1,6 @@
 #include "GameWindow.h"
 #include "InputState.h"
+#include "Concurrent/TaskScheduler.h"
 
 namespace Thunder
 {
@@ -79,6 +80,17 @@ namespace Thunder
         return true;
     }
 
+    void GameWindow::CallResizeCallback(uint32 width, uint32 height) const
+    {
+        if (OnResizeCallback && width > 0 && height > 0)
+        {
+            GGameScheduler->PushTask([this, width, height]()
+            {
+                OnResizeCallback(width, height);
+            });
+        }
+    }
+
     LRESULT CALLBACK GameWindow::WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     {
         GameWindow* self = reinterpret_cast<GameWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
@@ -126,6 +138,20 @@ namespace Thunder
 
         case WM_LBUTTONUP:
             GInputState.LeftButtonDown = false;
+            return 0;
+
+        case WM_SIZE:
+            if (self && wp != SIZE_MINIMIZED)
+            {
+                uint32 newWidth = LOWORD(lp);
+                uint32 newHeight = HIWORD(lp);
+                if (newWidth > 0 && newHeight > 0 && (newWidth != self->Width || newHeight != self->Height))
+                {
+                    self->Width = newWidth;
+                    self->Height = newHeight;
+                    self->CallResizeCallback(newWidth, newHeight);
+                }
+            }
             return 0;
 
         default:

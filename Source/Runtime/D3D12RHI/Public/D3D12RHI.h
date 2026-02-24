@@ -92,6 +92,7 @@ namespace Thunder
         D3D12RHI_API void InitializeOnlineDescriptorManager();
         D3D12RHI_API void InitializeOfflineDescriptorManagers();
         D3D12RHI_API void InitializeNullDescriptors();
+        D3D12RHI_API void ResizeBackBuffer_RHIThread();
 
     private:
         ComPtr<ID3D12Device> Device;
@@ -111,7 +112,6 @@ namespace Thunder
         // Online descriptor manager for global heap (GPU-visible, for runtime binding)
         class D3D12OnlineDescriptorManager* OnlineDescriptorManager = nullptr;
 
-        
         // Uniform buffer allocator
         class D3D12PersistentUploadHeapAllocator* UploadHeapAllocator;
 
@@ -127,6 +127,8 @@ namespace Thunder
         ComPtr<ID3D12Resource>   SwapChainBuffers[2];
         uint32                   CurrentBackBufferIndex = 0;
         D3D12OfflineDescriptor   BackBufferRTVs[2];
+        TVector2u CachedSwapChainResolution = { 0, 0 };
+        HWND NativeHwnd = nullptr;
 
         // Release queue
         static constexpr uint32 ReleaseQueueLength = MAX_FRAME_LAG + 1; // +1 allows render thread to release rhi at any time.

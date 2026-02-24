@@ -102,8 +102,8 @@ namespace Thunder
         // Internal methods used by FrameGraphBuilder
         RENDERCORE_API void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction);
         FORCEINLINE void SetPresentPass(NameHandle passName) { PresentPassName = passName; }
-        RENDERCORE_API void RegisterRenderTarget(FGRenderTarget* renderTarget);
-        FORCEINLINE void RegisterRenderTarget(FGRenderTargetRef const& renderTarget) { RegisterRenderTarget(renderTarget.Get()); }
+        RENDERCORE_API void RegisterRenderTarget(FGRenderTarget* renderTarget, TVector2u resolution = TVector2u(0, 0));
+        FORCEINLINE void RegisterRenderTarget(FGRenderTargetRef const& renderTarget, TVector2u resolution = TVector2u(0, 0)) { RegisterRenderTarget(renderTarget.Get(), resolution); }
         RENDERCORE_API void ClearRenderTargetPool();
 
         // Command execution support
@@ -137,6 +137,9 @@ namespace Thunder
         RENDERCORE_API void UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName);
         FORCEINLINE const RHIUniformBuffer* GetGlobalUniformBuffer() const { return GlobalUniformBuffer.IsValid() ? GlobalUniformBuffer.Get() : nullptr; }
         RENDERCORE_API const RHIUniformBuffer* GetPassUniformBuffer(EMeshPass pass) const;
+
+        FORCEINLINE void SetViewportResolution(TVector2u resolution) { ViewportResolution = resolution; }
+        FORCEINLINE TVector2u GetViewportResolution() const { return ViewportResolution; }
          
     private:
         // Initialize render contexts for multi-threading
@@ -177,7 +180,7 @@ namespace Thunder
         TSet<PrimitiveSceneInfo*> SceneInfoRegistrationSet[2];
         TSet<PrimitiveSceneInfo*> SceneInfoUnregistrationSet[2];
         TSet<PrimitiveSceneInfo*> SceneInfoCurrentUpdateSet; // Update CacheMeshDrawCommand
-
+        TVector2u ViewportResolution = { 1920, 1080 };
         TSet<PrimitiveSceneInfo*> PrimitivesNeedingUniformBufferUpdate; // Update Primitive UniformBuffer
 
         // Command execution contexts.

@@ -39,6 +39,8 @@ namespace Thunder
             return Width == other.Width && Height == other.Height &&
                    Format == other.Format && bIsDepthStencil == other.bIsDepthStencil;
         }
+
+        FORCEINLINE void SetResolution(TVector2u newResolution) { Width = newResolution.X; Height = newResolution.Y; }
     };
 
     class FGRenderTarget : public RefCountedObject
@@ -59,6 +61,7 @@ namespace Thunder
         FORCEINLINE void SetId(uint32 inID) { CurrentFrameTargetId = inID; }
         FORCEINLINE bool IsSame(const FGRenderTarget& other) const { return Desc == other.Desc; }
         FORCEINLINE bool IsSame(const FGRenderTarget* other) const { return Desc == other->Desc; }
+        FORCEINLINE void SetResolution(TVector2u newResolution) { Desc.SetResolution(newResolution); }
 
     private:
         NameHandle Name;

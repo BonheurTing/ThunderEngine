@@ -64,10 +64,10 @@ namespace Thunder
         RHI_API virtual void RHISignalFence(uint32 frameIndex) = 0;
         RHI_API virtual void RHIWaitForFrame(uint32 frameIndex) = 0;
 
-        RHI_API void SetViewportResolution(uint32 width, uint32 height) { ViewportResolution.X = width; ViewportResolution.Y = height; }
-        RHI_API TVector2u GetViewportResolution() const { return ViewportResolution; }
-        RHI_API uint32 GetViewportWidth() const { return ViewportResolution.X; }
-        RHI_API uint32 GetViewportHeight() const { return ViewportResolution.Y; }
+        RHI_API void SetMainViewportResolution_GameThread(TVector2u resolution);
+        RHI_API TVector2u GetMainViewportResolution_GameThread() const;
+        RHI_API TVector2u GetMainViewportResolution_RenderThread() const;
+        RHI_API TVector2u GetMainViewportResolution_RHIThread() const;
 
         // Window presentation
         RHI_API virtual void RHICreateSwapChain(void* hwnd, uint32 width, uint32 height) {}
@@ -75,7 +75,7 @@ namespace Thunder
 
     protected:
         TArray<TRefCountPtr<RHIResource>> DeferredDeleteQueue[MAX_FRAME_LAG] {};
-        TVector2u ViewportResolution{ 1920, 1080 };
+        TVector2u MainViewportResolution[3] = { { 1920, 1080 }, { 1920, 1080 }, { 1920, 1080 } };
     };
     
     extern RHI_API IDynamicRHI* GDynamicRHI;

@@ -33,9 +33,8 @@ namespace Thunder
         GFrameState = new (TMemory::Malloc<FrameState>()) FrameState();
 
         BaseViewport* viewport = new BaseViewport();
-        // test scene 1
-        auto scene = new Scene(renderFactory);
-        String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
+        auto scene = new Scene(renderFactory, viewport);
+        String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap"; // Test scene
         scene->LoadAsync(fullPath);
         InitCameraEntity(scene);
 

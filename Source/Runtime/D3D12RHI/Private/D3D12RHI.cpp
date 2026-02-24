@@ -834,6 +834,9 @@ namespace Thunder
         {
             OnlineDescriptorManager->ProcessDeferredDeletions();
         }
+
+        // Check for pending resize request and execute it on RHI thread
+        // ResizeBackBuffer_RHIThread();
     }
 
     void D3D12DynamicRHI::RHIWaitForFrame(uint32 frameIndex)
@@ -945,7 +948,7 @@ namespace Thunder
     {
         TAssertf(CommandQueue != nullptr, "CommandQueue must be created before SwapChain.");
 
-        HWND nativeHwnd = static_cast<HWND>(hwnd);
+        NativeHwnd = static_cast<HWND>(hwnd);
 
         ComPtr<IDXGIFactory4> factory;
         ThrowIfFailed(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)));
@@ -961,10 +964,10 @@ namespace Thunder
 
         ComPtr<IDXGISwapChain1> swapChain1;
         ThrowIfFailed(factory->CreateSwapChainForHwnd(
-            CommandQueue.Get(), nativeHwnd, &desc, nullptr, nullptr, &swapChain1));
+            CommandQueue.Get(), NativeHwnd, &desc, nullptr, nullptr, &swapChain1));
 
         // Disable Alt+Enter fullscreen toggle
-        factory->MakeWindowAssociation(nativeHwnd, DXGI_MWA_NO_ALT_ENTER);
+        factory->MakeWindowAssociation(NativeHwnd, DXGI_MWA_NO_ALT_ENTER);
 
         ThrowIfFailed(swapChain1.As(&SwapChain));
         CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
@@ -979,6 +982,64 @@ namespace Thunder
         }
     }
 
+    void D3D12DynamicRHI::ResizeBackBuffer_RHIThread()
+    {
+        TVector2u desiredResolution = GetMainViewportResolution_RHIThread();
+        if (desiredResolution.X == 0 || desiredResolution.Y == 0)
+        {
+            return;
+        }
+
+        if (CachedSwapChainResolution.X == desiredResolution.X
+            && CachedSwapChainResolution.Y == desiredResolution.Y)
+        {
+            return;
+        }
+
+        // Wait for GPU to finish ALL work before resizing
+        // This ensures no commands are using the backbuffers
+        ++CurrentFenceValue;
+        CommandQueue->Signal(Fence.Get(), CurrentFenceValue);
+        if (Fence->GetCompletedValue() < CurrentFenceValue)
+        {
+            Fence->SetEventOnCompletion(CurrentFenceValue, static_cast<HANDLE>(FenceEvent->GetNativeHandle()));
+            FenceEvent->Wait();
+        }
+
+        // Release back buffer resources and RTVs
+        auto* rtvManager = GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+        for (uint32 i = 0; i < 2; ++i)
+        {
+            SwapChainBuffers[i].Reset();
+            if (BackBufferRTVs[i].Handle.ptr != 0)
+            {
+                rtvManager->FreeHeapSlot(BackBufferRTVs[i]);
+                BackBufferRTVs[i] = {};
+            }
+        }
+
+        // Resize swap chain buffers
+        DXGI_SWAP_CHAIN_DESC1 desc = {};
+        SwapChain->GetDesc1(&desc);
+        ThrowIfFailed(SwapChain->ResizeBuffers(
+            2,
+            desiredResolution.X,
+            desiredResolution.Y,
+            desc.Format,
+            desc.Flags));
+
+        // Recreate back buffer RTVs
+        CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
+        for (uint32 i = 0; i < 2; ++i)
+        {
+            ThrowIfFailed(SwapChain->GetBuffer(i, IID_PPV_ARGS(&SwapChainBuffers[i])));
+            BackBufferRTVs[i] = rtvManager->AllocateHeapSlot();
+            Device->CreateRenderTargetView(SwapChainBuffers[i].Get(), nullptr, BackBufferRTVs[i].Handle);
+        }
+
+        CachedSwapChainResolution = desiredResolution;
+    }
+
     void D3D12DynamicRHI::RHIPresent()
     {
         if (!SwapChain)
@@ -987,5 +1048,8 @@ namespace Thunder
         }
         ThrowIfFailed(SwapChain->Present(1, 0));  // vsync=1
         CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
+
+        // Check for pending resize request and execute it on RHI thread
+        ResizeBackBuffer_RHIThread();
     }
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "ApplicationWindow.export.h"
+#include "Container.h"
 #include "Platform.h"
 
 #if THUNDER_WINDOWS
@@ -16,6 +17,8 @@ namespace Thunder
         const wchar_t* Title = L"ThunderGame";
     };
 
+    using ResizeCallbackFunc = TFunction<void(uint32, uint32)>;
+
     class APPLICATIONWINDOW_API GameWindow
     {
     public:
@@ -29,6 +32,9 @@ namespace Thunder
         uint32 GetWidth()  const { return Width;  }
         uint32 GetHeight() const { return Height; }
 
+        void SetResizeCallback(ResizeCallbackFunc callback) { OnResizeCallback = callback; }
+        void CallResizeCallback(uint32 width, uint32 height) const;
+
     private:
         static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);
         void OnMouseMove(int x, int y);
@@ -41,5 +47,6 @@ namespace Thunder
         int    LastMouseX = 0;
         int    LastMouseY = 0;
         bool   FirstMouse = true;
+        ResizeCallbackFunc OnResizeCallback;
     };
 }

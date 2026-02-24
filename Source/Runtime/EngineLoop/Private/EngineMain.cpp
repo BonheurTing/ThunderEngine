@@ -12,6 +12,7 @@
 #include "ShaderCompiler.h"
 #include "ShaderModule.h"
 #include "DeferredRenderer.h"
+#include "Scene.h"
 #include "Concurrent/TaskScheduler.h"
 #include "Concurrent/TheadPool.h"
 #include "Memory/MallocMinmalloc.h"
@@ -70,8 +71,6 @@ namespace Thunder
         RHICreateDevice();
         IRHIModule::GetModule()->InitCommandContext();
 
-        GDynamicRHI->SetViewportResolution(1920, 1080); // Todo : Get resolution.
-
         // setup task scheduler: parallel render thread, worker thread
         TaskSchedulerManager::StartUp();
 
@@ -94,9 +93,18 @@ namespace Thunder
 
     void EngineMain::InitWindow(void* hwnd)
     {
-        uint32 w = GDynamicRHI->GetViewportWidth();
-        uint32 h = GDynamicRHI->GetViewportHeight();
-        RHICreateSwapChain(hwnd, w, h);
+        TVector2u viewportResolution = GameModule::GetMainViewport()->GetViewportResolution();
+        RHICreateSwapChain(hwnd, viewportResolution.X, viewportResolution.Y);
+    }
+
+    void EngineMain::OnWindowResize(uint32 width, uint32 height)
+    {
+        if (width == 0 || height == 0)
+        {
+            return;
+        }
+
+        GameModule::GetMainViewport()->SetViewportResolution(TVector2u(width, height));
     }
 
     bool EngineMain::RHIInit(EGfxApiType type)

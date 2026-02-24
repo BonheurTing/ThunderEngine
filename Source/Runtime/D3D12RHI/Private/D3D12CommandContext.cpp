@@ -426,8 +426,9 @@ namespace Thunder
 		TAssertf(SUCCEEDED(hr), "Failed to reset command list");
 
 		// Set viewport and topology.
-		uint32 viewportWidth = GDynamicRHI->GetViewportWidth();
-		uint32 viewportHeight = GDynamicRHI->GetViewportHeight();
+		TVector2u viewportResolution = GDynamicRHI->GetMainViewportResolution_RHIThread();
+		uint32 viewportWidth = viewportResolution.X;
+		uint32 viewportHeight = viewportResolution.Y;
 		CD3DX12_VIEWPORT Viewport(0.0f, 0.0f, static_cast<float>(viewportWidth), static_cast<float>(viewportHeight));
 		CD3DX12_RECT ScissorRect(0, 0, static_cast<LONG>(viewportWidth), static_cast<LONG>(viewportHeight));
 		CommandList->RSSetViewports(1, &Viewport);
@@ -443,8 +444,9 @@ namespace Thunder
 	void D3D12CommandContext::BeginFrame()
 	{
 		// Set viewport and topology.
-		uint32 viewportWidth = GDynamicRHI->GetViewportWidth();
-		uint32 viewportHeight = GDynamicRHI->GetViewportHeight();
+		TVector2u viewportResolution = GDynamicRHI->GetMainViewportResolution_RHIThread();
+		uint32 viewportWidth = viewportResolution.X;
+		uint32 viewportHeight = viewportResolution.Y;
 		CD3DX12_VIEWPORT Viewport(0.0f, 0.0f, static_cast<float>(viewportWidth), static_cast<float>(viewportHeight));
 		CD3DX12_RECT ScissorRect(0, 0, static_cast<LONG>(viewportWidth), static_cast<LONG>(viewportHeight));
 		CommandList->RSSetViewports(1, &Viewport);

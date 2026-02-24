@@ -14,6 +14,7 @@ namespace Thunder
         ENGINE_API void InitGameThread(TFunction<class IRenderer*()>& renderFactory);
         ENGINE_API static void GetProceduralScene(const class Scene* inScene);
         ENGINE_API static TArray<class BaseViewport*>& GetViewports() { return GetModule()->Viewports; }
+        ENGINE_API static BaseViewport* GetMainViewport() { return GetModule()->Viewports.empty() ? nullptr : GetModule()->Viewports[0]; }
 
         ENGINE_API static void RegisterTickable(class ITickable* tickable);
         ENGINE_API static void UnregisterTickable(ITickable* tickable);

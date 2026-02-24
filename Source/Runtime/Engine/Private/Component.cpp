@@ -420,6 +420,15 @@ namespace Thunder
 
 	void CameraComponent::Tick()
 	{
+		if (GDynamicRHI)
+		{
+			TVector2u viewportResolution = GDynamicRHI->GetMainViewportResolution_GameThread();
+			uint32 width = viewportResolution.X;
+			uint32 height = viewportResolution.Y;
+			float aspect = static_cast<float>(width) / static_cast<float>(height);
+			SetAspect(aspect);
+		}
+
 		TMatrix44f viewMatrix = Owner->GetTransform().Inverse();
 		TMatrix44f projectionMatrix = GetProjectionMatrix();
 		TMatrix44f vpMatrix = viewMatrix * projectionMatrix;

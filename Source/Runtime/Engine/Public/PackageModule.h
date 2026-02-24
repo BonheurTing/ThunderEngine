@@ -85,11 +85,11 @@ namespace Thunder
 		ENGINE_API static void InitResourcePathMap(); // must after StartUp
 
 		/**
-		 * soft path命名规则：
-		 * 磁盘路径是绝对路径，D:\ThunderEngine\Content\Meshes\FurnitureSet.tasset
-		 * 软路径是相对路径，/Game/Meshes/FurnitureSet 是Package的虚拟路径
-		 * 这个文件中有几个GameResource, /Game/Meshes/FurnitureSet.Table /Game/Meshes/FurnitureSet.Chair 后缀名是resource name
-		 * 入包时检查是否重名，如重名则加_1_2
+		 * soft path:
+		 * Absolute path : D:\ThunderEngine\Content\Meshes\FurnitureSet.tasset
+		 * Soft path is relative : /Game/Meshes/FurnitureSet
+		 * This package contains several GameResource, /Game/Meshes/FurnitureSet.Table /Game/Meshes/FurnitureSet.Chair, suffix is resource name
+		 * Check if the name is unique when creating a package, if not, add postfix like "_1", "_2"
 		 **/
 		ENGINE_API static String CovertFullPathToSoftPath(const String& fullPath, const String& resourceName = "");
 		ENGINE_API static String ConvertSoftPathToFullPath(const String& softPath, const String& extension = ".tasset");

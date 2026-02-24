@@ -78,6 +78,8 @@ macro(ResetConfigureValue)
     # 第三方库的导出
 
     set(TargetCompileDefinitions)
+    set(TargetCompileOptions) # 编译器选项
+    set(TargetLinkerFlags) # 链接器选项
 endmacro()
 
 # 预处理模块
@@ -212,6 +214,16 @@ macro(BuildModule)
             foreach(ImportName IN LISTS PublicThirdPartyNameList)
                 target_link_libraries(${ModuleName} PUBLIC ${ImportName})
             endforeach()
+        endif()
+
+        # 编译器选项
+        if(TargetCompileOptions)
+            target_compile_options(${ModuleName} PRIVATE ${TargetCompileOptions})
+        endif()
+
+        # 链接器选项
+        if(TargetLinkerFlags)
+            target_link_options(${ModuleName} PRIVATE ${TargetLinkerFlags})
         endif()
     endforeach()
 endmacro()

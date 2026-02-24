@@ -186,7 +186,7 @@ namespace Thunder
 	void ShaderArchive::QuantizeRegisterCounts(TShaderRegisterCounts& outCount)
     {
     	// Root signatures are fixed for now, maybe deal with this later.
-    	TAssert(outCount.ConstantBufferCount <= MAX_CBS, "Too many constant buffers are used, max allowed count is 16.");
+    	TAssertf(outCount.ConstantBufferCount <= MAX_CBS, "Too many constant buffers are used, max allowed count is 16.");
 		outCount.SamplerCount = 0;
 		outCount.ShaderResourceCount = MAX_SRVS; // outCount.ShaderResourceCount > 0 ? MAX_SRVS : 0;
 		outCount.UnorderedAccessCount = MAX_UAVS; // (outCount.UnorderedAccessCount > 0) ? MAX_UAVS : 0;

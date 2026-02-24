@@ -3,24 +3,24 @@
 
 namespace Thunder
 {
-	class RENDERCORE_API RenderResource : public RefCountedObject
+	class RenderResource : public RefCountedObject
 	{
 	public:
-		RenderResource() = default;
-		virtual ~RenderResource() = default;
+		RENDERCORE_API RenderResource() = default;
+		RENDERCORE_API virtual ~RenderResource() = default;
 
 		// render thread
-		virtual void InitResource();
-		virtual void ReleaseResource();
+		RENDERCORE_API virtual void InitResource();
+		RENDERCORE_API virtual void ReleaseResource();
 
-		virtual void InitRHI() {}
-		virtual void ReleaseRHI() {}
-		void UpdateRHI();
+		RENDERCORE_API virtual void InitRHI() {}
+		RENDERCORE_API virtual void ReleaseRHI() {}
+		RENDERCORE_API void UpdateRHI();
 
 		/*virtual bool IsValid() const = 0;
 		virtual size_t GetMemorySize() const = 0;*/
-		virtual bool isDynamic() const { return false; }
-		virtual bool isDoubleBuffered() const { return false; }
+		RENDERCORE_API virtual bool isDynamic() const { return false; }
+		RENDERCORE_API virtual bool isDoubleBuffered() const { return false; }
 	};
 
 	extern RENDERCORE_API TArray<RHIResource*> GRHIUpdateSyncQueue;

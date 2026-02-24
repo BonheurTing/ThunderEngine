@@ -4,14 +4,14 @@
 
 namespace Thunder
 {
-	class CORE_API ITask
+	class ITask
 	{
 	public:
-		virtual void DoWork() = 0;
-		virtual void Abandon() {}
-		NameHandle GetName() const { return DebugName; }
+		CORE_API virtual void DoWork() = 0;
+		CORE_API virtual void Abandon() {}
+		CORE_API NameHandle GetName() const { return DebugName; }
 
-		virtual ~ITask() = default;
+		CORE_API virtual ~ITask() = default;
 	private:
 		NameHandle DebugName = "UnKnown";
 	};

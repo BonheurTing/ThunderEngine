@@ -15,11 +15,11 @@ namespace Thunder
 	 * Entity represents a game object in the scene hierarchy
 	 * Similar to Actor in Unreal Engine
 	 */
-	class ENGINE_API Entity : public GameObject, public ITickable
+	class Entity : public GameObject, public ITickable
 	{
 	public:
-		Entity(class Scene* inScene, GameObject* inOuter = nullptr);
-		virtual ~Entity();
+		ENGINE_API Entity(class Scene* inScene, GameObject* inOuter = nullptr);
+		ENGINE_API virtual ~Entity();
 
 		// Component management
 		template<typename T>
@@ -31,36 +31,36 @@ namespace Thunder
 		template<typename T>
 		TArray<IComponent*> GetComponentByClass() const;
 
-		IComponent* GetComponentByName(const NameHandle& componentName) const;
+		ENGINE_API IComponent* GetComponentByName(const NameHandle& componentName) const;
 
 		template<typename T>
 		void RemoveComponent();
 		
-		void GetAllHierarchyComponents(TList<IComponent*>& outComponents) const;
+		ENGINE_API void GetAllHierarchyComponents(TList<IComponent*>& outComponents) const;
 
 		// Hierarchy management
-		void AddChild(Entity* child);
-		void RemoveChild(Entity* child);
-		Entity* GetOwner() const { return Owner; }
-		Scene* GetScene() const { return OwnerScene; }
-		const TArray<Entity*>& GetChildren() const { return Children; }
+		ENGINE_API void AddChild(Entity* child);
+		ENGINE_API void RemoveChild(Entity* child);
+		ENGINE_API Entity* GetOwner() const { return Owner; }
+		ENGINE_API Scene* GetScene() const { return OwnerScene; }
+		ENGINE_API const TArray<Entity*>& GetChildren() const { return Children; }
 
 		// Dependency collection for resource streaming
-		void GetDependencies(TList<TGuid>& outDependencies) const;
+		ENGINE_API void GetDependencies(TList<TGuid>& outDependencies) const;
 
 		// JSON serialization for scene persistence
-		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const;
-		void DeserializeJson(const rapidjson::Value& jsonValue);
+		ENGINE_API void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const;
+		ENGINE_API void DeserializeJson(const rapidjson::Value& jsonValue);
 
 		// Entity identification
-		void SetEntityName(const NameHandle& inName) { EntityName = inName; }
-		const NameHandle& GetEntityName() const { return EntityName; }
-		TransformComponent* GetTransformComponent() const;
-		TMatrix44f GetTransform() const;
+		ENGINE_API void SetEntityName(const NameHandle& inName) { EntityName = inName; }
+		ENGINE_API const NameHandle& GetEntityName() const { return EntityName; }
+		ENGINE_API TransformComponent* GetTransformComponent() const;
+		ENGINE_API TMatrix44f GetTransform() const;
 
-		void Load();
-		void OnLoaded();
-		void Tick() override;
+		ENGINE_API void Load();
+		ENGINE_API void OnLoaded();
+		ENGINE_API void Tick() override;
 	private:
 		NameHandle EntityName;
 		TransformComponent* Transform { nullptr };

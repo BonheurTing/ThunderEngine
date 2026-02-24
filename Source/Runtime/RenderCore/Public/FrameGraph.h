@@ -75,42 +75,42 @@ namespace Thunder
         void SetShader(NameHandle archiveName);
     };
 
-    class RENDERCORE_API FrameGraph : public RefCountedObject
+    class FrameGraph : public RefCountedObject
     {
     public:
-        FrameGraph(class IRenderer* owner, int contextNum);
-        ~FrameGraph();
+        RENDERCORE_API FrameGraph(class IRenderer* owner, int contextNum);
+        RENDERCORE_API ~FrameGraph();
 
-        void Reset();
-        void Compile();
-        void Execute();
+        RENDERCORE_API void Reset();
+        RENDERCORE_API void Compile();
+        RENDERCORE_API void Execute();
 
         // game
-        void SetViewParameters(EViewType type, TVector4f cameraPos, const TMatrix44f& vpMatrix) const;
+        RENDERCORE_API void SetViewParameters(EViewType type, TVector4f cameraPos, const TMatrix44f& vpMatrix) const;
 
         // render
-        const IRenderer* GetRenderer() const { return OwnerRenderer; }
-        SceneView* GetSceneView(EViewType type) const { return Views[static_cast<int>(type)]; }
-        TSet<PrimitiveSceneInfo*>& GetSceneInfos() { return SceneInfos; }
-        void RegisterSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
-        void UnregisterSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
-        void UpdateSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
-        void UpdateSceneInfo_RenderThread();
-        void UpdatePassSceneInfo(EMeshPass passType);
-        void ResolveVisibility(EViewType viewType, EMeshPass passType);
+        FORCEINLINE const IRenderer* GetRenderer() const { return OwnerRenderer; }
+        FORCEINLINE SceneView* GetSceneView(EViewType type) const { return Views[static_cast<int>(type)]; }
+        FORCEINLINE TSet<PrimitiveSceneInfo*>& GetSceneInfos() { return SceneInfos; }
+        RENDERCORE_API void RegisterSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
+        RENDERCORE_API void UnregisterSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
+        RENDERCORE_API void UpdateSceneInfo_GameThread(PrimitiveSceneInfo* sceneInfo);
+        RENDERCORE_API void UpdateSceneInfo_RenderThread();
+        RENDERCORE_API void UpdatePassSceneInfo(EMeshPass passType);
+        RENDERCORE_API void ResolveVisibility(EViewType viewType, EMeshPass passType);
 
         // Internal methods used by FrameGraphBuilder
-        void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction);
+        RENDERCORE_API void AddPass(const String& name, PassOperations&& operations, PassExecutionFunction&& executeFunction);
         FORCEINLINE void SetPresentPass(NameHandle passName) { PresentPassName = passName; }
-        void RegisterRenderTarget(FGRenderTarget* renderTarget);
+        RENDERCORE_API void RegisterRenderTarget(FGRenderTarget* renderTarget);
         FORCEINLINE void RegisterRenderTarget(FGRenderTargetRef const& renderTarget) { RegisterRenderTarget(renderTarget.Get()); }
-        void ClearRenderTargetPool();
+        RENDERCORE_API void ClearRenderTargetPool();
 
         // Command execution support
-        RenderContext* GetMainContext() const { return MainContext; }
-        const TArray<RenderContext*>& GetRenderContexts() const { return RenderContexts; }
-        TArray<IRHICommand*>& GetCurrentAllCommands(int frontIndex) { return AllCommands[frontIndex]; }
-        TArray<RHIPassState*>& GetCurrentPassStates(int frontIndex) { return AllPassStates[frontIndex]; }
+        FORCEINLINE RenderContext* GetMainContext() const { return MainContext; }
+        FORCEINLINE const TArray<RenderContext*>& GetRenderContexts() const { return RenderContexts; }
+        FORCEINLINE TArray<IRHICommand*>& GetCurrentAllCommands(int frontIndex) { return AllCommands[frontIndex]; }
+        FORCEINLINE TArray<RHIPassState*>& GetCurrentPassStates(int frontIndex) { return AllPassStates[frontIndex]; }
 
         FORCEINLINE void SetCurrentPass(FrameGraphPass* pass) const
         {
@@ -126,17 +126,17 @@ namespace Thunder
             TAssertf(passIt != Passes.end(), "Pass not found, pass name : \"%s\".", name.c_str());
             return (passIt != Passes.end()) ? passIt->second.Get() : nullptr;
         }
-        bool GetRenderTargetFormat(uint32 renderTargetIndex, RHIFormat& outFormat, bool& outIsDepthStencil) const;
-        TRefCountPtr<RenderTexture> GetAllocatedRenderTarget(uint32 textureID);
+        RENDERCORE_API bool GetRenderTargetFormat(uint32 renderTargetIndex, RHIFormat& outFormat, bool& outIsDepthStencil) const;
+        RENDERCORE_API TRefCountPtr<RenderTexture> GetAllocatedRenderTarget(uint32 textureID);
 
-        TArray<RHICachedDrawCommand*> const& GetVisibleCachedDrawList(EMeshPass passType) { return VisibleCachedDrawLists[passType]; }
+        RENDERCORE_API TArray<RHICachedDrawCommand*> const& GetVisibleCachedDrawList(EMeshPass passType) { return VisibleCachedDrawLists[passType]; }
 
-        ShaderParameterMap* GetGlobalParameters() const { return CachedGlobalParameters; }
-        void InitGlobalUniformBuffer();
-        ShaderParameterMap* GetPassParameters(EMeshPass pass);
-        void UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName);
-        const RHIUniformBuffer* GetGlobalUniformBuffer() const { return GlobalUniformBuffer.IsValid() ? GlobalUniformBuffer.Get() : nullptr; }
-        const RHIUniformBuffer* GetPassUniformBuffer(EMeshPass pass) const;
+        FORCEINLINE ShaderParameterMap* GetGlobalParameters() const { return CachedGlobalParameters; }
+        RENDERCORE_API void InitGlobalUniformBuffer();
+        RENDERCORE_API ShaderParameterMap* GetPassParameters(EMeshPass pass);
+        RENDERCORE_API void UpdatePassParameters(EMeshPass pass, const ShaderParameterMap* parameters, const String& ubName);
+        FORCEINLINE const RHIUniformBuffer* GetGlobalUniformBuffer() const { return GlobalUniformBuffer.IsValid() ? GlobalUniformBuffer.Get() : nullptr; }
+        RENDERCORE_API const RHIUniformBuffer* GetPassUniformBuffer(EMeshPass pass) const;
          
     private:
         // Initialize render contexts for multi-threading

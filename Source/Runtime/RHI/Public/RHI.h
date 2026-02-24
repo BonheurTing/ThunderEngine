@@ -262,22 +262,22 @@ namespace Thunder
 	/**
  * \brief Descriptor View
  */
-	class RHI_API RHIDescriptorView : public RefCountedObject
+	class RHIDescriptorView : public RefCountedObject
 	{
 	public:
-		RHIDescriptorView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF, uint32 offlineHeapIndex = 0xFFFFFFFF)
+		RHI_API RHIDescriptorView(RHIViewDescriptor const& desc, uint64 handle = 0xFFFFFFFFFFFFFFFF, uint32 offlineHeapIndex = 0xFFFFFFFF)
 			: Desc(desc), CPUHandle(D3D12_CPU_DESCRIPTOR_HANDLE{ handle }), OfflineHeapIndex(offlineHeapIndex) {}
-		virtual ~RHIDescriptorView() = default;
+		RHI_API virtual ~RHIDescriptorView() = default;
 
-		void SetOfflineHandle(uint64 handle) { CPUHandle = D3D12_CPU_DESCRIPTOR_HANDLE{ handle }; }
-		uint64 GetOfflineHandle() const { return static_cast<uint64>(CPUHandle.ptr); }
-		void SetOnlineHandle(uint64 handle) { GPUHandle = D3D12_GPU_DESCRIPTOR_HANDLE{ handle }; }
-		uint64 GetOnlineHandle() const { return static_cast<uint64>(GPUHandle.ptr); }
+		RHI_API void SetOfflineHandle(uint64 handle) { CPUHandle = D3D12_CPU_DESCRIPTOR_HANDLE{ handle }; }
+		RHI_API uint64 GetOfflineHandle() const { return static_cast<uint64>(CPUHandle.ptr); }
+		RHI_API void SetOnlineHandle(uint64 handle) { GPUHandle = D3D12_GPU_DESCRIPTOR_HANDLE{ handle }; }
+		RHI_API uint64 GetOnlineHandle() const { return static_cast<uint64>(GPUHandle.ptr); }
 
-		void SetCPUHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle) { CPUHandle = handle; }
-		D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle() const { return CPUHandle; }
-		void SetGPUHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle) { GPUHandle = handle; }
-		D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle() const { return GPUHandle; }
+		RHI_API void SetCPUHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle) { CPUHandle = handle; }
+		RHI_API D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle() const { return CPUHandle; }
+		RHI_API void SetGPUHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle) { GPUHandle = handle; }
+		RHI_API D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle() const { return GPUHandle; }
 
 	protected:
 		RHIViewDescriptor Desc = {};
@@ -317,19 +317,19 @@ namespace Thunder
 			: RHIDescriptorView(desc, handle, offlineHeapIndex) {}
 	};
 
-	class RHI_API RHISampler : public RefCountedObject
+	class RHISampler : public RefCountedObject
 	{
 	public:
-		RHISampler(RHISamplerDescriptor const& desc) : Desc(desc) {}
+		RHI_API RHISampler(RHISamplerDescriptor const& desc) : Desc(desc) {}
 
 	protected:
 		RHISamplerDescriptor Desc = {};
 	};
 
-	class RHI_API RHIFence : public RefCountedObject
+	class RHIFence : public RefCountedObject
 	{
 	public:
-		RHIFence(uint64 initValue) : Value(initValue) {}
+		RHI_API RHIFence(uint64 initValue) : Value(initValue) {}
 	private:
 		uint64 Value;
 	};

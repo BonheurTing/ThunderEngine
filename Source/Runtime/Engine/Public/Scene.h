@@ -14,35 +14,35 @@ namespace Thunder
 	 * Scene represents a game level/map
 	 * Contains a hierarchy of entities and manages scene serialization
 	 */
-	class ENGINE_API Scene : public GameObject, public ITickable
+	class Scene : public GameObject, public ITickable
 	{
 	public:
-		Scene(const TFunction<class IRenderer*()>& renderFactory, GameObject* inOuter = nullptr);
-		virtual ~Scene();
+		ENGINE_API Scene(const TFunction<class IRenderer*()>& renderFactory, GameObject* inOuter = nullptr);
+		ENGINE_API virtual ~Scene();
 
 		// Entity management
-		Entity* CreateEntity(const NameHandle& entityName = NameHandle::Empty);
-		void AddRootEntity(Entity* rootEntity);
-		void RemoveRootEntity(Entity* rootEntity);
-		const TArray<Entity*>& GetRootEntities() const { return RootEntities; }
+		ENGINE_API Entity* CreateEntity(const NameHandle& entityName = NameHandle::Empty);
+		ENGINE_API void AddRootEntity(Entity* rootEntity);
+		ENGINE_API void RemoveRootEntity(Entity* rootEntity);
+		ENGINE_API const TArray<Entity*>& GetRootEntities() const { return RootEntities; }
 
 		// JSON serialization for scene files (.tmap)
-		void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const;
-		void DeserializeJson(const rapidjson::Value& jsonValue);
+		ENGINE_API void SerializeJson(rapidjson::PrettyWriter<rapidjson::StringBuffer>& writer) const;
+		ENGINE_API void DeserializeJson(const rapidjson::Value& jsonValue);
 
-		bool Save(const String& fileFullPath);
-		bool LoadSync(const String& fileFullPath);
-		void LoadAsync(const String& fileFullPath);
-		void OnLoaded();
-		void Tick() override;
+		ENGINE_API bool Save(const String& fileFullPath);
+		ENGINE_API bool LoadSync(const String& fileFullPath);
+		ENGINE_API void LoadAsync(const String& fileFullPath);
+		ENGINE_API void OnLoaded();
+		ENGINE_API void Tick() override;
 
 		// Renderer association
-		void SetRenderer(IRenderer* inRenderer) { Renderer = inRenderer; }
-		IRenderer* GetRenderer() const { return Renderer; }
+		ENGINE_API void SetRenderer(IRenderer* inRenderer) { Renderer = inRenderer; }
+		ENGINE_API IRenderer* GetRenderer() const { return Renderer; }
 
 		// Scene identification
-		void SetSceneName(const NameHandle& inName) { SceneName = inName; }
-		const NameHandle& GetSceneName() const { return SceneName; }
+		ENGINE_API void SetSceneName(const NameHandle& inName) { SceneName = inName; }
+		ENGINE_API const NameHandle& GetSceneName() const { return SceneName; }
 
 	private:
 		/*// Asynchronous resource streaming

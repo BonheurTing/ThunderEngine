@@ -12,23 +12,23 @@
 	public: \
 		ModuleType() : SuperType(#ModuleName) {}
 
-#define DECLARE_MODULE_COMMON(ModuleName, ModuleType) \
+#define DECLARE_MODULE_COMMON(ModuleName, ModuleType, ModuleAPI) \
 		friend ModuleManager; \
 	public: \
-		static NameHandle GetStaticName() { return StaticName; } \
-		static ModuleType* GetModule() { return static_cast<ModuleType*>(ModuleInstance); } \
+		FORCEINLINE static NameHandle GetStaticName() { return StaticName; } \
+		FORCEINLINE static ModuleType* GetModule() { return static_cast<ModuleType*>(ModuleInstance); } \
 	private: \
-		static ModuleType* ModuleInstance; \
-		static NameHandle StaticName; \
+		ModuleAPI static ModuleType* ModuleInstance; \
+		ModuleAPI static NameHandle StaticName; \
 		static ModuleRegistry<ModuleType> ModuleName##Registry;
 
-#define DECLARE_MODULE(ModuleName, ModuleType) \
+#define DECLARE_MODULE(ModuleName, ModuleType, ModuleAPI) \
 	DECLARE_MODULE_CTOR(ModuleName, ModuleType) \
-	DECLARE_MODULE_COMMON(ModuleName, ModuleType)
+	DECLARE_MODULE_COMMON(ModuleName, ModuleType, ModuleAPI)
 
-#define DECLARE_MODULE_WITH_SUPER(ModuleName, ModuleType, SuperType) \
+#define DECLARE_MODULE_WITH_SUPER(ModuleName, ModuleType, SuperType, ModuleAPI) \
 	DECLARE_MODULE_CTOR_SUPER(ModuleName, ModuleType, SuperType) \
-	DECLARE_MODULE_COMMON(ModuleName, ModuleType)
+	DECLARE_MODULE_COMMON(ModuleName, ModuleType, ModuleAPI)
 
 #define IMPLEMENT_MODULE(ModuleName, ModuleType) \
 	NameHandle ModuleType::StaticName = #ModuleName; \
@@ -39,17 +39,17 @@
 
 namespace Thunder
 {
-	class CORE_API IModule : public RefCountedObject
+	class IModule : public RefCountedObject
 	{
 		friend class ModuleManager;
 
 	public:
-		IModule(NameHandle name) : Name(name) {}
-		virtual ~IModule() = default;
-		virtual void StartUp() = 0;
-		virtual void ShutDown() = 0;
+		CORE_API IModule(NameHandle name) : Name(name) {}
+		CORE_API virtual ~IModule() = default;
+		CORE_API virtual void StartUp() = 0;
+		CORE_API virtual void ShutDown() = 0;
 		//virtual IModule* GetModule() = 0;
-		_NODISCARD_ NameHandle GetName() const { return Name; }
+		CORE_API _NODISCARD_ NameHandle GetName() const { return Name; }
 
 	protected:
 		NameHandle Name;

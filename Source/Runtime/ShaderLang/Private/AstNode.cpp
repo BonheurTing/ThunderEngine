@@ -15,12 +15,6 @@ namespace Thunder
 
     void ast_node::generate_dxil()
     {
-        // ASTNodeAdd
-        /*mLeft.generate_dxil();
-        mRight.generate_dxil();
-        std::string outResult += "LD EAX " + mLeft.Result();
-        outResult += "LD EBX " + mRight.Result();
-        outResult += "ADD EAX EBX";*/
     }
 
     scope* ast_node_archive::begin_archive()
@@ -190,7 +184,6 @@ namespace Thunder
 
     void ast_node_type_format::generate_hlsl(String& outResult, shader_codegen_state& state)
     {
-        // 生成类型限定符
         if (is_in)
         {
             outResult += "in ";
@@ -250,7 +243,7 @@ namespace Thunder
     {
         if (state.sub_shader_name.IsEmpty())
         {
-            TAssert(false, "Empty subshader.");
+            TAssertf(false, "Empty subshader.");
             return;
         }
         TArray<ast_node_variable*> objects;
@@ -261,7 +254,7 @@ namespace Thunder
             auto uniform_buffer_definition_it = GUniformBufferDefinitions.find(buffer_name);
             if (uniform_buffer_definition_it == GUniformBufferDefinitions.end())
             {
-                TAssert(false, "Unknown uniform buffer : \"%s\".", buffer_name.c_str());
+                TAssertf(false, "Unknown uniform buffer : \"%s\".", buffer_name.c_str());
                 continue;
             }
             uint16 const buffer_index = uniform_buffer_definition_it->second.index;
@@ -318,7 +311,7 @@ namespace Thunder
                 outResult += "\n";
             }
         }
-        TAssert(find_valid_pass, "Unknown subshader name : \"%s\".", state.sub_shader_name);
+        TAssertf(find_valid_pass, "Unknown subshader name : \"%s\".", state.sub_shader_name);
     }
 
     void ast_node_pass::generate_hlsl(String& outResult, shader_codegen_state& state)
@@ -1157,7 +1150,6 @@ namespace Thunder
             printf("Pass:\n");
         }
 
-        // 打印 Attributes
         if (!attributes.mesh_draw_type.empty() ||
             attributes.depth_test != enum_depth_test::undefined ||
             attributes.blend_mode != enum_blend_mode::undefined)
@@ -1654,7 +1646,6 @@ namespace Thunder
         }
     }
 
-    // 基类evaluate函数默认实现
     evaluate_expr_result ast_node_expression::evaluate(shader_codegen_state& state)
     {
         evaluate_expr_result result;
@@ -1662,7 +1653,6 @@ namespace Thunder
         return result;
     }
 
-    // 二元运算表达式evaluate实现
     evaluate_expr_result binary_expression::evaluate(shader_codegen_state& state)
     {
         if (!left || !right)
@@ -1673,7 +1663,6 @@ namespace Thunder
         const evaluate_expr_result left_result = left->evaluate(state);
         const evaluate_expr_result right_result = right->evaluate(state);
 
-        // 如果任一操作数无法确定，返回未确定结果
         if (left_result.result_type == enum_eval_result_type::undetermined ||
             right_result.result_type == enum_eval_result_type::undetermined)
         {
@@ -1722,7 +1711,6 @@ namespace Thunder
             }
         }
 
-        // 常量折叠 - 整数运算
         if (left_result.result_type == enum_eval_result_type::constant_int &&
             right_result.result_type == enum_eval_result_type::constant_int)
         {
@@ -1744,7 +1732,7 @@ namespace Thunder
                 if (right_result.int_value != 0)
                     result_value = left_result.int_value / right_result.int_value;
                 else
-                    return {}; // 除零错误
+                    return {}; // Devide by zero
                 break;
             case enum_binary_op::equal:
                 result_value = (left_result.int_value == right_result.int_value) ? 1 : 0;
@@ -1787,7 +1775,6 @@ namespace Thunder
                 return {result_value};
         }
 
-        // 常量折叠 - 浮点数运算
         if (left_result.result_type == enum_eval_result_type::constant_float &&
             right_result.result_type == enum_eval_result_type::constant_float)
         {
@@ -1829,7 +1816,6 @@ namespace Thunder
             return {result_value};
         }
 
-        // 混合类型运算（整数和浮点数）
         if ((left_result.result_type == enum_eval_result_type::constant_int && 
              right_result.result_type == enum_eval_result_type::constant_float) ||
             (left_result.result_type == enum_eval_result_type::constant_float && 
@@ -1870,7 +1856,6 @@ namespace Thunder
             }
         }
 
-        // 无法进行常量折叠，返回未确定结果
         return {};
     }
 
@@ -1924,7 +1909,6 @@ namespace Thunder
 
     evaluate_expr_result function_call_expression::evaluate(shader_codegen_state& state)
     {
-        // 函数调用一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;
@@ -1939,7 +1923,6 @@ namespace Thunder
 
     evaluate_expr_result constructor_expression::evaluate(shader_codegen_state& state)
     {
-        // 构造函数调用一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;
@@ -1947,7 +1930,6 @@ namespace Thunder
 
     evaluate_expr_result assignment_expression::evaluate(shader_codegen_state& state)
     {
-        // 赋值表达式一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;
@@ -1961,8 +1943,7 @@ namespace Thunder
         }
 
         const evaluate_expr_result cond_result = condition->evaluate(state);
-        
-        // 如果条件是常量，可以直接选择分支
+
         if (cond_result.result_type == enum_eval_result_type::constant_bool)
         {
             if (cond_result.bool_value)
@@ -1985,8 +1966,7 @@ namespace Thunder
                 return false_expression ? false_expression->evaluate(state) : evaluate_expr_result{};
             }
         }
-        
-        // 条件无法确定，返回未确定结果
+
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;
@@ -2000,8 +1980,7 @@ namespace Thunder
         }
 
         const evaluate_expr_result operand_result = operand->evaluate(state);
-        
-        // 对于 ++ 和 -- 运算符，一般无法在编译时求值
+
         if (op == enum_unary_op::pre_inc || op == enum_unary_op::pre_dec ||
             op == enum_unary_op::post_inc || op == enum_unary_op::post_dec)
         {
@@ -2010,7 +1989,6 @@ namespace Thunder
             return result;
         }
 
-        // 常量折叠 - 整数运算
         if (operand_result.result_type == enum_eval_result_type::constant_int)
         {
             switch (op)
@@ -2028,7 +2006,6 @@ namespace Thunder
             }
         }
 
-        // 常量折叠 - 浮点数运算
         if (operand_result.result_type == enum_eval_result_type::constant_float)
         {
             switch (op)
@@ -2044,7 +2021,6 @@ namespace Thunder
             }
         }
 
-        // 常量折叠 - 布尔运算
         if (operand_result.result_type == enum_eval_result_type::constant_bool)
         {
             switch (op)
@@ -2056,7 +2032,6 @@ namespace Thunder
             }
         }
 
-        // 无法进行常量折叠，返回未确定结果
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;
@@ -2064,7 +2039,6 @@ namespace Thunder
 
     evaluate_expr_result compound_assignment_expression::evaluate(shader_codegen_state& state)
     {
-        // 复合赋值表达式一般无法在编译时求值，返回未确定结果
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;
@@ -2072,7 +2046,6 @@ namespace Thunder
 
     evaluate_expr_result chain_expression::evaluate(shader_codegen_state& state)
     {
-        // 链式表达式返回最后一个表达式的值
         if (!expressions.empty() && expressions.back())
         {
             return expressions.back()->evaluate(state);
@@ -2088,8 +2061,7 @@ namespace Thunder
         }
 
         evaluate_expr_result operand_result = operand->evaluate(state);
-        
-        // 对于常量表达式，尝试进行类型转换
+
         if (cast_type)
         {
             switch (cast_type->basic_type)
@@ -2131,8 +2103,7 @@ namespace Thunder
                 break;
             }
         }
-        
-        // 无法进行常量折叠，返回未确定结果
+
         evaluate_expr_result result;
         result.result_type = enum_eval_result_type::undetermined;
         return result;

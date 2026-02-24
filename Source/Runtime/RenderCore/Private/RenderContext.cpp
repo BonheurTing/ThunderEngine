@@ -20,7 +20,8 @@ namespace Thunder
     RenderContext::~RenderContext()
     {
         ClearCommands();
-        delete TransientAllocatorPtr;
+        delete TransientAllocatorPtr[0];
+        delete TransientAllocatorPtr[1];
     }
 
     void RenderContext::FreeAllocator() const

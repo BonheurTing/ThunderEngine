@@ -591,7 +591,6 @@ namespace Thunder
             {
                 // Uniform buffers that live for multiple frames must use the more expensive and persistent allocation path
                 MappedData = UploadHeapAllocator->Allocate(alignedSize, newUniformBuffer->ResourceLocation);
-                // Allocator mamager可能先createcommittedresource分配过一大块uploadbuffer，这时候申请alignedSize的内存，cpu可以拿到地址，mapped data，然后向里面填数据
             }
             else
             {

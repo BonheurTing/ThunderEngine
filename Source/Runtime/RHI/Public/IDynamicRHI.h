@@ -6,72 +6,72 @@
 
 namespace Thunder
 {
-    class RHI_API IDynamicRHI
+    class IDynamicRHI
     {
     public:
-        virtual ~IDynamicRHI() = default;
+        RHI_API virtual ~IDynamicRHI() = default;
 
         // Deferred resource deletion. Keeps the resource alive for MAX_FRAME_LAG frames.
-        void DeferredDeleteResource(TRefCountPtr<RHIResource> resource);
-        void FlushDeferredDeleteQueue();
+        RHI_API void DeferredDeleteResource(TRefCountPtr<RHIResource> resource);
+        RHI_API void FlushDeferredDeleteQueue();
 
         /////// RHI Methods
-        virtual RHIDeviceRef RHICreateDevice() = 0;
+        RHI_API virtual RHIDeviceRef RHICreateDevice() = 0;
 
-        virtual void RHICreateCommandQueue() {}
+        RHI_API virtual void RHICreateCommandQueue() {}
 
-        virtual RHICommandContextRef RHICreateCommandContext() = 0;
+        RHI_API virtual RHICommandContextRef RHICreateCommandContext() = 0;
         
-        virtual TRHIGraphicsPipelineState* RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer) = 0;
+        RHI_API virtual TRHIGraphicsPipelineState* RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer) = 0;
         
-        virtual void RHICreateComputePipelineState() = 0;
+        RHI_API virtual void RHICreateComputePipelineState() = 0;
         
-        virtual void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) = 0;
+        RHI_API virtual void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) = 0;
         
-        virtual void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) = 0;
+        RHI_API virtual void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) = 0;
         
-        virtual void RHICreateUnorderedAccessView(RHIResource& resource, const RHIViewDescriptor& desc) = 0;
+        RHI_API virtual void RHICreateUnorderedAccessView(RHIResource& resource, const RHIViewDescriptor& desc) = 0;
         
-        virtual void RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc) = 0;
+        RHI_API virtual void RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc) = 0;
         
-        virtual void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) = 0;
+        RHI_API virtual void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) = 0;
 
-        virtual RHISamplerRef RHICreateSampler(const RHISamplerDescriptor& desc) = 0;
+        RHI_API virtual RHISamplerRef RHICreateSampler(const RHISamplerDescriptor& desc) = 0;
 
-        virtual RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) = 0;
+        RHI_API virtual RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) = 0;
     
-        virtual RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
+        RHI_API virtual RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
     
-        virtual RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
+        RHI_API virtual RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
     
-        virtual RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
+        RHI_API virtual RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
         
-        virtual RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
+        RHI_API virtual RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EBufferCreateFlags usage, void* resourceData = nullptr) = 0;
 
-        virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 size, EUniformBufferFlags usage, const void* Contents) = 0;
+        RHI_API virtual RHIUniformBufferRef RHICreateUniformBuffer(uint32 size, EUniformBufferFlags usage, const void* Contents) = 0;
 
-        virtual void RHIUpdateUniformBuffer(struct IRHICommandRecorder* recorder, RHIUniformBuffer* unformBuffer, const void* Contents) = 0;
+        RHI_API virtual void RHIUpdateUniformBuffer(struct IRHICommandRecorder* recorder, RHIUniformBuffer* unformBuffer, const void* Contents) = 0;
     
-        virtual RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void* resourceData = nullptr) = 0;
+        RHI_API virtual RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void* resourceData = nullptr) = 0;
 
-        virtual bool RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId) = 0;
+        RHI_API virtual bool RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId) = 0;
 
-        virtual void RHIReleaseResource_RenderThread() = 0;
-        virtual void RHIReleaseResource_RHIThread() = 0;
+        RHI_API virtual void RHIReleaseResource_RenderThread() = 0;
+        RHI_API virtual void RHIReleaseResource_RHIThread() = 0;
 
         // CPU-GPU synchronization and frame lifecycle
-        virtual void RHIBeginFrame(uint32 frameIndex) = 0;
-        virtual void RHISignalFence(uint32 frameIndex) = 0;
-        virtual void RHIWaitForFrame(uint32 frameIndex) = 0;
+        RHI_API virtual void RHIBeginFrame(uint32 frameIndex) = 0;
+        RHI_API virtual void RHISignalFence(uint32 frameIndex) = 0;
+        RHI_API virtual void RHIWaitForFrame(uint32 frameIndex) = 0;
 
-        void SetViewportResolution(uint32 width, uint32 height) { ViewportResolution.X = width; ViewportResolution.Y = height; }
-        TVector2u GetViewportResolution() const { return ViewportResolution; }
-        uint32 GetViewportWidth() const { return ViewportResolution.X; }
-        uint32 GetViewportHeight() const { return ViewportResolution.Y; }
+        RHI_API void SetViewportResolution(uint32 width, uint32 height) { ViewportResolution.X = width; ViewportResolution.Y = height; }
+        RHI_API TVector2u GetViewportResolution() const { return ViewportResolution; }
+        RHI_API uint32 GetViewportWidth() const { return ViewportResolution.X; }
+        RHI_API uint32 GetViewportHeight() const { return ViewportResolution.Y; }
 
         // Window presentation
-        virtual void RHICreateSwapChain(void* hwnd, uint32 width, uint32 height) {}
-        virtual void RHIPresent() {}
+        RHI_API virtual void RHICreateSwapChain(void* hwnd, uint32 width, uint32 height) {}
+        RHI_API virtual void RHIPresent() {}
 
     protected:
         TArray<TRefCountPtr<RHIResource>> DeferredDeleteQueue[MAX_FRAME_LAG] {};

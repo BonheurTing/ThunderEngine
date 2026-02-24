@@ -17,15 +17,15 @@ namespace Thunder
      * accept a command recorder without depending on higher-level modules
      * like RenderCore where the concrete RenderContext is defined.
      */
-    struct RHI_API IRHICommandRecorder
+    struct IRHICommandRecorder
     {
-        virtual ~IRHICommandRecorder() = default;
+        RHI_API virtual ~IRHICommandRecorder() = default;
 
         /** Allocate raw memory from the transient allocator. */
-        virtual TransientAllocator* GetTransientAllocator_RenderThread() const = 0;
+        RHI_API virtual TransientAllocator* GetTransientAllocator_RenderThread() const = 0;
 
         /** Enqueue a command into this recorder. */
-        virtual void AddCommand(IRHICommand* command) = 0;
+        RHI_API virtual void AddCommand(IRHICommand* command) = 0;
 
         /** Typed allocation helper. */
         template<typename T>

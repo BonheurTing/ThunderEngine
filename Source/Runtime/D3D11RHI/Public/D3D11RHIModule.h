@@ -4,11 +4,11 @@
 
 namespace Thunder
 {
-	class D3D11RHI_API TD3D11RHIModule : public IRHIModule
+	class TD3D11RHIModule : public IRHIModule
 	{
-		DECLARE_MODULE_WITH_SUPER(D3D11RHI, TD3D11RHIModule, IRHIModule)
+		DECLARE_MODULE_WITH_SUPER(D3D11RHI, TD3D11RHIModule, IRHIModule, D3D11RHI_API)
 	public:
-		void StartUp() override;
-		void ShutDown() override;
+		D3D11RHI_API void StartUp() override;
+		D3D11RHI_API void ShutDown() override;
 	};
 }

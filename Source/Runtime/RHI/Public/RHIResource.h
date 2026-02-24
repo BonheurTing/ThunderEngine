@@ -16,32 +16,32 @@ namespace Thunder
     typedef TRefCountPtr<RHIDepthStencilView> RHIDepthStencilViewRef;
 
     
-    class RHI_API RHIResource : public RefCountedObject
+    class RHIResource : public RefCountedObject
     {
     public:
-        RHIResource(RHIResourceDescriptor const& desc) : Desc(desc) {}
-        virtual ~RHIResource() = default;
+        RHI_API RHIResource(RHIResourceDescriptor const& desc) : Desc(desc) {}
+        RHI_API virtual ~RHIResource() = default;
 
-        _NODISCARD_ virtual void* GetResource() const = 0;
-        _NODISCARD_ const RHIResourceDescriptor* GetResourceDescriptor() const { return &Desc; }
-        void SetSRV(RHIShaderResourceView* view)
+        RHI_API _NODISCARD_ virtual void* GetResource() const = 0;
+        RHI_API _NODISCARD_ const RHIResourceDescriptor* GetResourceDescriptor() const { return &Desc; }
+        RHI_API void SetSRV(RHIShaderResourceView* view)
         {
             SRV = view;
         }
-        void SetUAV(RHIUnorderedAccessView* view)
+        RHI_API void SetUAV(RHIUnorderedAccessView* view)
         {
             UAV = view;
         }
-        void SetState_RenderThread(ERHIResourceState state)
+        RHI_API void SetState_RenderThread(ERHIResourceState state)
         {
             State = state;
         }
 
-        virtual void Update(/*RHICommandList* commandList*/) {}
+        RHI_API virtual void Update(/*RHICommandList* commandList*/) {}
 
-        _NODISCARD_ RHIShaderResourceViewRef GetSRV() const { return SRV; }
-        _NODISCARD_ RHIUnorderedAccessViewRef GetUAV() const { return UAV; }
-        _NODISCARD_ ERHIResourceState GetState_RenderThread() const { return State; }
+        RHI_API _NODISCARD_ RHIShaderResourceViewRef GetSRV() const { return SRV; }
+        RHI_API _NODISCARD_ RHIUnorderedAccessViewRef GetUAV() const { return UAV; }
+        RHI_API _NODISCARD_ ERHIResourceState GetState_RenderThread() const { return State; }
 
     protected:
         RHIResourceDescriptor Desc = {};

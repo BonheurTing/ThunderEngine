@@ -23,29 +23,29 @@ namespace Thunder
 	};
 	using IFileSystemRef = TRefCountPtr<IFileSystem>;
 
-	class CORE_API NativeFileSystem : public IFileSystem
+	class NativeFileSystem : public IFileSystem
 	{
 	public:
-		NativeFileSystem();
-		virtual ~NativeFileSystem();
+		CORE_API NativeFileSystem();
+		CORE_API virtual ~NativeFileSystem();
 
-		virtual IFile* CreateFile(const String& path) override;
-		virtual IFile* Open(const String& path, bool bNeedJoin = false) override;
-		virtual bool FileExists(const String& path) override;
-		virtual bool DirectoryExists(const String& path) override;
-		virtual bool Delete(const String& path) override;
-		virtual void Mount(const String& path) override;
-		virtual void Unmount(const String& mountPoint) override;
+		CORE_API virtual IFile* CreateFile(const String& path) override;
+		CORE_API virtual IFile* Open(const String& path, bool bNeedJoin = false) override;
+		CORE_API virtual bool FileExists(const String& path) override;
+		CORE_API virtual bool DirectoryExists(const String& path) override;
+		CORE_API virtual bool Delete(const String& path) override;
+		CORE_API virtual void Mount(const String& path) override;
+		CORE_API virtual void Unmount(const String& mountPoint) override;
 
 	private:
 		String BasePath;
 	};
 
-	class CORE_API PackageFileSystem : public IFileSystem
+	class PackageFileSystem : public IFileSystem
 	{
 	public:
-		PackageFileSystem();
-		virtual ~PackageFileSystem();
+		CORE_API PackageFileSystem();
+		CORE_API virtual ~PackageFileSystem();
 	private:
 		
 	};

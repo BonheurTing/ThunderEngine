@@ -56,15 +56,15 @@ namespace Thunder
 		}
 	};
 
-	class CORE_API ConfigManager : public RefCountedObject
+	class ConfigManager : public RefCountedObject
 	{
 	public:
-		bool LoadConfig(NameHandle configName);
-		bool ReLoadConfig(NameHandle configName);
-		bool SaveConfig(NameHandle configName);
+		CORE_API bool LoadConfig(NameHandle configName);
+		CORE_API bool ReLoadConfig(NameHandle configName);
+		CORE_API bool SaveConfig(NameHandle configName);
 
-		ConfigDataContainer* GetConfig(NameHandle name, bool force = true);
-		ConfigMember* GetConfigMember(NameHandle containerName, EConfigType configType, NameHandle configName);
+		CORE_API ConfigDataContainer* GetConfig(NameHandle name, bool force = true);
+		CORE_API ConfigMember* GetConfigMember(NameHandle containerName, EConfigType configType, NameHandle configName);
 
 	private:
 		TMap<NameHandle, ConfigDataContainer*> ConfigContainerList;

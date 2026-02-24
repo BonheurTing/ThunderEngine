@@ -233,7 +233,7 @@ namespace Thunder
 
     size_t SingleShaderBindings::CalculateOffset(const ShaderBindingsLayout* layout, uint32 index, EShaderParameterType type)
     {
-        // Layout order: UniformBuffer(16 bytes each) → SRV(8 bytes) → UAV(8 bytes) → Sampler(8 bytes).
+        // Layout order: UniformBuffer(16 bytes each) -> SRV(8 bytes) -> UAV(8 bytes) -> Sampler(8 bytes).
         size_t viewIndex = 0;
         if (type == EShaderParameterType::UniformBuffer)
         {

@@ -5,17 +5,17 @@
 
 namespace Thunder
 {
-    class RENDERCORE_API IRenderer
+    class IRenderer
     {
     public:
-        IRenderer();
-        virtual ~IRenderer();
+        RENDERCORE_API IRenderer();
+        RENDERCORE_API virtual ~IRenderer();
 
-        virtual void Tick_RenderThread() = 0;
-        virtual void Reset() { mFrameGraph->Reset(); }
-        virtual void Setup() = 0;
+        RENDERCORE_API virtual void Tick_RenderThread() = 0;
+        RENDERCORE_API virtual void Reset() { mFrameGraph->Reset(); }
+        RENDERCORE_API virtual void Setup() = 0;
 
-        virtual void Compile()
+        RENDERCORE_API virtual void Compile()
         {
             if (mFrameGraph)
             {
@@ -23,9 +23,9 @@ namespace Thunder
             }
         }
 
-        virtual void Cull() {}
+        RENDERCORE_API virtual void Cull() {}
 
-        void Execute()
+        RENDERCORE_API void Execute()
         {
             if (mFrameGraph)
             {
@@ -33,7 +33,7 @@ namespace Thunder
             }
         }
 
-        void EndRenderFrame()
+        RENDERCORE_API void EndRenderFrame()
         {
             if (mFrameGraph)
             {
@@ -41,13 +41,13 @@ namespace Thunder
             }
         }
 
-        void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->RegisterSceneInfo_GameThread(sceneInfo); }
-        void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->UnregisterSceneInfo_GameThread(sceneInfo); }
+        FORCEINLINE void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->RegisterSceneInfo_GameThread(sceneInfo); }
+        FORCEINLINE void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->UnregisterSceneInfo_GameThread(sceneInfo); }
 
-        void UpdatePrimitiveUniformBuffer_GameThread(PrimitiveSceneInfo* sceneInfo);
-        void UpdatePrimitiveUniformBuffer_RenderThread();
+        RENDERCORE_API void UpdatePrimitiveUniformBuffer_GameThread(PrimitiveSceneInfo* sceneInfo);
+        RENDERCORE_API void UpdatePrimitiveUniformBuffer_RenderThread();
 
-        FrameGraph* GetFrameGraph() const { return mFrameGraph; }
+        FORCEINLINE FrameGraph* GetFrameGraph() const { return mFrameGraph; }
 
     protected:
         TRefCountPtr<FrameGraph> mFrameGraph;

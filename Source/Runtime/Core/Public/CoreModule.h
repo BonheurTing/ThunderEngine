@@ -6,14 +6,14 @@
 namespace Thunder
 {
 	
-	class CORE_API CoreModule : public IModule
+	class CoreModule : public IModule
 	{
-		DECLARE_MODULE(Core, CoreModule)
+		DECLARE_MODULE(Core, CoreModule, CORE_API)
 		
 	public:
-		~CoreModule() override = default;
-		void StartUp() override;
-		void ShutDown() override;
+		CORE_API ~CoreModule() override = default;
+		CORE_API void StartUp() override;
+		CORE_API void ShutDown() override;
 
 	private:
 		class IMalloc* MemoryAllocator;

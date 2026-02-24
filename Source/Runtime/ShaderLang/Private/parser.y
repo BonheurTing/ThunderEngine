@@ -59,8 +59,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %lex-param			{ void* sl_state->scanner }
 %parse-param		{ struct shader_lang_state *state }
 
-/* %token 用于声明 终结符（terminal/token），即词法分析器（lexer/flex）返回的词法单元。
-它可以指定该 token 的语义值类型（通过 <...> 指定 %union 的成员） */
+
 %token <token> TOKEN_SV
 %token <token> TYPE_VECTOR TYPE_MATRIX TYPE_TEXTURE TYPE_SAMPLER TYPE_OBJECT
 %token <token> TYPE_BOOL TYPE_INT TYPE_UINT TYPE_HALF TYPE_FLOAT TYPE_DOUBLE TYPE_VOID
@@ -77,36 +76,36 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %token <token> TOKEN_IF TOKEN_ELSE TOKEN_TRUE TOKEN_FALSE TOKEN_FOR TOKEN_CONSTEXPR
 
 
-/* 左结合，右结合，无结合 防止冲突 */
 %nonassoc LOWER_THAN_ELSE
 %nonassoc TOKEN_ELSE
 %left STRING_CONSTANT
 %left<%> COMMA
 %right<token> QUESTION COLON
                 ASSIGN ADDEQ SUBEQ MULEQ DIVEQ MODEQ LSHIFTEQ RSHIFTEQ ANDEQ OREQ XOREQ
-/* 逻辑运算符优先级 */
+
+// Logical operation priorities
 %left<token> OR
 %left<token> AND
-/* 位运算符优先级 */
+// Bitwise operation priorities
 %left<token> BITOR
 %left<token> BITXOR
 %left<token> BITAND
-/* 比较运算符优先级 */
+// Comparison operation priorities
 %left<token> EQ NE
 %left<token> LT LE GT GE
-/* 移位运算符优先级 */
+// Shift operation priorities
 %left<token> LSHIFT RSHIFT
-/* 算术运算符优先级 */
+// Algorithm operation priorities
 %left<token> ADD SUB
 %left<token> MUL DIV MOD
-/* 一元运算符优先级 */
+// Unary operation priorities
 %right<token> NOT BITNOT
 %left<token> INC DEC
 %left<token> LPAREN LBRACKET LBRACE
 %left<token> '.'
 %nonassoc SEMICOLON
 
-/* %type<...> 用于指定某个非终结符语义值应该使用 %union 中的哪个字段*/
+
 %type <token> identifier key_identifier type_identifier new_identifier primary_identifier any_identifier
 %type <token> primitive_types scalar_types
 %type <token> stage_token
@@ -462,7 +461,7 @@ local_variable_initializer:
 		}
 |	ASSIGN LBRACE expression RBRACE
 		{
-			$$ = $3; // 初始化列表，简化处理
+			$$ = $3;
 		}
 ;
 
@@ -632,7 +631,6 @@ conditional_expr:
     }
     ;
 
-/* 逻辑或表达式 */
 logical_or_expr:
     logical_and_expr
     {
@@ -644,7 +642,6 @@ logical_or_expr:
     }
     ;
 
-/* 逻辑与表达式 */
 logical_and_expr:
     inclusive_or_expr
     {
@@ -656,7 +653,6 @@ logical_and_expr:
     }
     ;
 
-/* 位或表达式 */
 inclusive_or_expr:
     exclusive_or_expr
     {
@@ -668,7 +664,6 @@ inclusive_or_expr:
     }
     ;
 
-/* 位异或表达式 */
 exclusive_or_expr:
     and_expr
     {
@@ -680,7 +675,6 @@ exclusive_or_expr:
     }
     ;
 
-/* 位与表达式 */
 and_expr:
     equality_expr
     {
@@ -692,7 +686,6 @@ and_expr:
     }
     ;
 
-/* 相等性表达式 */
 equality_expr:
     relational_expr
     {
@@ -708,7 +701,6 @@ equality_expr:
     }
     ;
 
-/* 关系表达式 */
 relational_expr:
     shift_expr
     {
@@ -732,7 +724,6 @@ relational_expr:
     }
     ;
 
-/* 移位表达式 */
 shift_expr:
     additive_expr
     {
@@ -748,7 +739,6 @@ shift_expr:
     }
     ;
 
-/* 加法表达式 */
 additive_expr:
     multiplicative_expr
     {
@@ -764,7 +754,6 @@ additive_expr:
     }
     ;
 
-/* 乘法表达式 */
 multiplicative_expr:
     unary_expr
     {
@@ -800,7 +789,7 @@ primary_expr:
     }
     ;
 
-/* 常量表达式 */
+// Constant expression
 constant_expr:
     TOKEN_INTEGER
     {
@@ -894,7 +883,6 @@ unary_operator:
     }
     ;
 
-/* 一元表达式 */
 unary_expr:
     postfix_expr
     {

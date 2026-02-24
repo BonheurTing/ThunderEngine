@@ -18,3 +18,7 @@ set(PrivateThirdPartyPathList
 set(PrivateThirdPartyNameList
     mimalloc-static.lib
 )
+
+set(TargetLinkerFlags
+    /ignore:4099
+)

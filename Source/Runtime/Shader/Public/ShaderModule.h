@@ -23,49 +23,50 @@ namespace Thunder
 	};
 	extern const THashMap<EFixedVariant, String> GFixedVariantMap;
 	
-    class SHADER_API ShaderModule : public IModule
+    class ShaderModule : public IModule
     {
-    	DECLARE_MODULE(Shader, ShaderModule)
+    	DECLARE_MODULE(Shader, ShaderModule, SHADER_API)
+
     public:
-    	void StartUp() override {}
-    	void ShutDown() override;
-    	void InitShaderCompiler(EGfxApiType type);
-    	static void InitShaderMap();
+    	SHADER_API void StartUp() override {}
+    	SHADER_API void ShutDown() override;
+    	SHADER_API void InitShaderCompiler(EGfxApiType type);
+    	SHADER_API static void InitShaderMap();
 
     	// Shader
-    	static ShaderArchive* GetShaderArchive(NameHandle name);
-    	static uint64 GetVariantMask(ShaderArchive* archive, const TMap<NameHandle, bool>& parameters);
-    	static ShaderCombination* GetShaderCombination(ShaderArchive* archive, EMeshPass meshPassType, uint64 variantMask);
-    	static ShaderCombination* GetShaderCombination(ShaderArchive* archive, NameHandle subShaderName, uint64 variantMask);
-	    static bool GetPassRegisterCounts(ShaderArchive* archive, EMeshPass meshPassType, TShaderRegisterCounts& outRegisterCounts);
-	    static bool GetPassRegisterCounts(ShaderArchive* archive, NameHandle subShaderName, TShaderRegisterCounts& outRegisterCounts);
-		static TRHIPipelineState* GetPSO(uint64 psoKey);
+    	SHADER_API static ShaderArchive* GetShaderArchive(NameHandle name);
+    	SHADER_API static uint64 GetVariantMask(ShaderArchive* archive, const TMap<NameHandle, bool>& parameters);
+    	SHADER_API static ShaderCombination* GetShaderCombination(ShaderArchive* archive, EMeshPass meshPassType, uint64 variantMask);
+    	SHADER_API static ShaderCombination* GetShaderCombination(ShaderArchive* archive, NameHandle subShaderName, uint64 variantMask);
+	    SHADER_API static bool GetPassRegisterCounts(ShaderArchive* archive, EMeshPass meshPassType, TShaderRegisterCounts& outRegisterCounts);
+	    SHADER_API static bool GetPassRegisterCounts(ShaderArchive* archive, NameHandle subShaderName, TShaderRegisterCounts& outRegisterCounts);
+		SHADER_API static TRHIPipelineState* GetPSO(uint64 psoKey);
 
-    	static void GenerateDefaultParameters(NameHandle archiveName, struct ShaderParameterMap* shaderParameterMap);
-		void Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode);
-    	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, const THashMap<NameHandle, bool>& variantParameters, bool force = false);
-    	bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 variantId, bool force = false);
-	    static ShaderCombination* CompileShaderVariant(NameHandle archiveName, NameHandle passName, uint64 variantId);
-    	static void CompileShaderSource(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug = false);
+    	SHADER_API static void GenerateDefaultParameters(NameHandle archiveName, struct ShaderParameterMap* shaderParameterMap);
+		SHADER_API void Compile(NameHandle archiveName, const String& inSource, const THashMap<NameHandle, bool>& marco, const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode);
+    	SHADER_API bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, const THashMap<NameHandle, bool>& variantParameters, bool force = false);
+    	SHADER_API bool CompileShaderCollection(NameHandle shaderType, NameHandle passName, uint64 variantId, bool force = false);
+	    SHADER_API static ShaderCombination* CompileShaderVariant(NameHandle archiveName, NameHandle passName, uint64 variantId);
+    	SHADER_API static void CompileShaderSource(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug = false);
 
     	// Translators.
-	    static enum_shader_stage GetShaderASTStage(EShaderStageType stage);
-	    static EShaderStageType GetShaderStage(enum_shader_stage stage);
-	    static EMeshPass GetMeshPass(String const& passName);
-	    static String GetMeshPassName(EMeshPass passType);
-    	static enum_blend_mode GetShaderASTBlendMode(EShaderBlendMode blendMode);
-    	static EShaderBlendMode GetBlendMode(enum_blend_mode blendMode);
-    	static enum_depth_test GetShaderASTDepthState(EShaderDepthState depthTest);
-    	static EShaderDepthState GetDepthState(enum_depth_test depthTest);
+	    SHADER_API static enum_shader_stage GetShaderASTStage(EShaderStageType stage);
+	    SHADER_API static EShaderStageType GetShaderStage(enum_shader_stage stage);
+	    SHADER_API static EMeshPass GetMeshPass(String const& passName);
+	    SHADER_API static String GetMeshPassName(EMeshPass passType);
+    	SHADER_API static enum_blend_mode GetShaderASTBlendMode(EShaderBlendMode blendMode);
+    	SHADER_API static EShaderBlendMode GetBlendMode(enum_blend_mode blendMode);
+    	SHADER_API static enum_depth_test GetShaderASTDepthState(EShaderDepthState depthTest);
+    	SHADER_API static EShaderDepthState GetDepthState(enum_depth_test depthTest);
 
     	// Uniform Buffer Layout
-    	void SetGlobalUniformBufferLayout(UniformBufferLayout* layout);
-    	void SetPassUniformBufferLayout(EMeshPass pass, ShaderArchive* archive);
-    	void SetPrimitiveUniformBufferLayout(ShaderArchive* archive);
-    	static const UniformBufferLayout* GetGlobalUniformBufferLayout() { return GetModule()->GlobalUniformBufferLayout.Get(); }
-    	static const UniformBufferLayout* GetPassUniformBufferLayout(EMeshPass pass);
-    	static const UniformBufferLayout* GetPrimitiveUniformBufferLayout() { return GetModule()->PrimitiveUniformBufferLayout.Get(); }
-    	static ShaderParameterMap* GetPassDefaultParameters(EMeshPass pass);
+    	SHADER_API void SetGlobalUniformBufferLayout(UniformBufferLayout* layout);
+    	SHADER_API void SetPassUniformBufferLayout(EMeshPass pass, ShaderArchive* archive);
+    	SHADER_API void SetPrimitiveUniformBufferLayout(ShaderArchive* archive);
+    	SHADER_API static const UniformBufferLayout* GetGlobalUniformBufferLayout() { return GetModule()->GlobalUniformBufferLayout.Get(); }
+    	SHADER_API static const UniformBufferLayout* GetPassUniformBufferLayout(EMeshPass pass);
+    	SHADER_API static const UniformBufferLayout* GetPrimitiveUniformBufferLayout() { return GetModule()->PrimitiveUniformBufferLayout.Get(); }
+    	SHADER_API static ShaderParameterMap* GetPassDefaultParameters(EMeshPass pass);
 
     private:
     	THashMap<NameHandle, ShaderArchive*> ShaderMap;

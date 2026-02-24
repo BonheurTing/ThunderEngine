@@ -41,24 +41,24 @@ namespace Thunder
         }
     };
 
-    class RENDERCORE_API FGRenderTarget : public RefCountedObject
+    class FGRenderTarget : public RefCountedObject
     {
     public:
-        FGRenderTarget() = default;
-        FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format);
-        FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format, const TVector4f& clearValue);
-        FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format, float clearDepth, uint8 clearStencil);
+        RENDERCORE_API FGRenderTarget() = default;
+        RENDERCORE_API FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format);
+        RENDERCORE_API FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format, const TVector4f& clearValue);
+        RENDERCORE_API FGRenderTarget(NameHandle name, uint32 width, uint32 height, RHIFormat format, float clearDepth, uint8 clearStencil);
 
-        NameHandle GetName() const { return Name; }
-        FGRenderTargetDesc& GetDesc() { return Desc; }
-        uint32 GetWidth() const { return Desc.Width; }
-        uint32 GetHeight() const { return Desc.Height; }
-        RHIFormat GetFormat() const { return Desc.Format; }
+        FORCEINLINE NameHandle GetName() const { return Name; }
+        FORCEINLINE FGRenderTargetDesc& GetDesc() { return Desc; }
+        FORCEINLINE uint32 GetWidth() const { return Desc.Width; }
+        FORCEINLINE uint32 GetHeight() const { return Desc.Height; }
+        FORCEINLINE RHIFormat GetFormat() const { return Desc.Format; }
 
-        uint32 GetID() const { return CurrentFrameTargetId; }
-        void SetId(uint32 inID) { CurrentFrameTargetId = inID; }
-        bool IsSame(const FGRenderTarget& other) const { return Desc == other.Desc; }
-        bool IsSame(const FGRenderTarget* other) const { return Desc == other->Desc; }
+        FORCEINLINE uint32 GetID() const { return CurrentFrameTargetId; }
+        FORCEINLINE void SetId(uint32 inID) { CurrentFrameTargetId = inID; }
+        FORCEINLINE bool IsSame(const FGRenderTarget& other) const { return Desc == other.Desc; }
+        FORCEINLINE bool IsSame(const FGRenderTarget* other) const { return Desc == other->Desc; }
 
     private:
         NameHandle Name;

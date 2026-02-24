@@ -13,19 +13,10 @@ namespace Thunder
 
 	void IMaterial::CacheResourceShadersForRendering()
 	{
-		ShaderArchive* archive = GetShaderArchive();
-		if (archive)
-		{
-			// TODO: 触发Shader编译
-			// ShaderModule可能需要编译特定的Pass和Variant
-		}
 	}
 
 	void IMaterial::BuildMaterialShaderMap()
 	{
-		// 生成ShaderMapId，调度异步编译
-		// 根据材质参数和ShaderArchive生成唯一的ShaderMapId
-		// TODO: 实现ShaderMapId生成和异步编译调度
 	}
 
 	void IMaterial::UpdateRenderResource()

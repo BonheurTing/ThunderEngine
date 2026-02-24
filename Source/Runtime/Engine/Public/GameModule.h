@@ -3,26 +3,26 @@
 
 namespace Thunder
 {
-    class ENGINE_API GameModule : public IModule
+    class GameModule : public IModule
     {
-        DECLARE_MODULE(Game, GameModule)
+        DECLARE_MODULE(Game, GameModule, ENGINE_API)
 
     public:
-        void StartUp() override;
-        void ShutDown() override;
+        ENGINE_API void StartUp() override;
+        ENGINE_API void ShutDown() override;
 
-        void InitGameThread(TFunction<class IRenderer*()>& renderFactory);
-        static void GetProceduralScene(const class Scene* inScene);
-        static TArray<class BaseViewport*>& GetViewports() { return GetModule()->Viewports; }
+        ENGINE_API void InitGameThread(TFunction<class IRenderer*()>& renderFactory);
+        ENGINE_API static void GetProceduralScene(const class Scene* inScene);
+        ENGINE_API static TArray<class BaseViewport*>& GetViewports() { return GetModule()->Viewports; }
 
-        static void RegisterTickable(class ITickable* tickable);
-        static void UnregisterTickable(ITickable* tickable);
-        static TArray<ITickable*> const& GetTickables() { return GetModule()->Tickables; }
+        ENGINE_API static void RegisterTickable(class ITickable* tickable);
+        ENGINE_API static void UnregisterTickable(ITickable* tickable);
+        ENGINE_API static TArray<ITickable*> const& GetTickables() { return GetModule()->Tickables; }
 
     private:
-        friend class GameTask;
-        static class TaskGraphProxy* GetGameThreadTaskGraph() { return GetModule()->GameThreadTaskGraph; }
-        static void InitCameraEntity(Scene* scene);
+        ENGINE_API friend class GameTask;
+        ENGINE_API static class TaskGraphProxy* GetGameThreadTaskGraph() { return GetModule()->GameThreadTaskGraph; }
+        ENGINE_API static void InitCameraEntity(Scene* scene);
 
         TArray<ITickable*> Tickables;
         TaskGraphProxy* GameThreadTaskGraph { nullptr };

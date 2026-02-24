@@ -8,3 +8,8 @@ set(PublicDependencyModuleList
 set(PrivateThirdPartyIncludeList
     ThirdParty/FlexBison
 )
+
+# 禁用flex生成代码与Windows头文件的宏重定义警告
+set(TargetCompileOptions
+    /wd4005  # 禁用C4005警告(macro redefinition)
+)

@@ -73,16 +73,16 @@ namespace Thunder
 		}
 	};
 
-	class ENGINE_API PackageModule : public IModule, public ITickable
+	class PackageModule : public IModule, public ITickable
 	{
-		DECLARE_MODULE(Package, PackageModule)
+		DECLARE_MODULE(Package, PackageModule, ENGINE_API)
 
 	public:
-		void StartUp() override {}
-		void ShutDown() override;
-		void Tick() override;
+		ENGINE_API void StartUp() override {}
+		ENGINE_API void ShutDown() override;
+		ENGINE_API void Tick() override;
 		
-		static void InitResourcePathMap(); // must after StartUp
+		ENGINE_API static void InitResourcePathMap(); // must after StartUp
 
 		/**
 		 * soft path命名规则：
@@ -91,34 +91,34 @@ namespace Thunder
 		 * 这个文件中有几个GameResource, /Game/Meshes/FurnitureSet.Table /Game/Meshes/FurnitureSet.Chair 后缀名是resource name
 		 * 入包时检查是否重名，如重名则加_1_2
 		 **/
-		static String CovertFullPathToSoftPath(const String& fullPath, const String& resourceName = "");
-		static String ConvertSoftPathToFullPath(const String& softPath, const String& extension = ".tasset");
-		static bool CheckUniqueSoftPath(String& softPath);
+		ENGINE_API static String CovertFullPathToSoftPath(const String& fullPath, const String& resourceName = "");
+		ENGINE_API static String ConvertSoftPathToFullPath(const String& softPath, const String& extension = ".tasset");
+		ENGINE_API static bool CheckUniqueSoftPath(String& softPath);
 		// editor fbx/png/tga -> uasset
 #if WITH_EDITOR
-		static bool Import(const String& srcPath, const String& destPath);
-		static bool ReImport(const String& srcPath, const String& destPath, const TGuid& existingPakGuid);
-		static bool ImportTmap(const String& srcPath, const String& destPath);
-		void ImportAll(bool bForce = false);
+		ENGINE_API static bool Import(const String& srcPath, const String& destPath);
+		ENGINE_API static bool ReImport(const String& srcPath, const String& destPath, const TGuid& existingPakGuid);
+		ENGINE_API static bool ImportTmap(const String& srcPath, const String& destPath);
+		ENGINE_API void ImportAll(bool bForce = false);
 #endif
 
 		// runtime
 		// load package or game resource
-		static bool LoadSync(const TGuid& inGuid, bool bForce);
-		static void LoadAsync(const TGuid& inGuid, TFunction<void()>&& inFunction);
+		ENGINE_API static bool LoadSync(const TGuid& inGuid, bool bForce);
+		ENGINE_API static void LoadAsync(const TGuid& inGuid, TFunction<void()>&& inFunction);
 
-		bool SavePackage(Package* package);
+		ENGINE_API bool SavePackage(Package* package);
 
-		static PackageEntry* AddPackageEntry(const TGuid& guid, const NameHandle& path);
-		static void AddResourceToPackage(const TGuid& resGuid, const TGuid& pakGuid) { GetModule()->ResourceToPackage.emplace(resGuid, pakGuid); }
-		static void ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function);
+		ENGINE_API static PackageEntry* AddPackageEntry(const TGuid& guid, const NameHandle& path);
+		ENGINE_API static void AddResourceToPackage(const TGuid& resGuid, const TGuid& pakGuid) { GetModule()->ResourceToPackage.emplace(resGuid, pakGuid); }
+		ENGINE_API static void ForAllResources(const TFunction<void(const TGuid&, NameHandle)>& function);
 
 		// get resource
-		static bool IsLoaded(const TGuid& inGuid);
-		static GameResource* TryGetLoadedResource(const TGuid& inGuid);
+		ENGINE_API static bool IsLoaded(const TGuid& inGuid);
+		ENGINE_API static GameResource* TryGetLoadedResource(const TGuid& inGuid);
 #if WITH_EDITOR
-		static GameResource* GetResource(NameHandle softPath);
-		static TGuid GetGuidBySoftPath(NameHandle softPath);
+		ENGINE_API static GameResource* GetResource(NameHandle softPath);
+		ENGINE_API static TGuid GetGuidBySoftPath(NameHandle softPath);
 #endif
 		template<typename T>
 		static TArray<GameObject*> GetResourceByClass()
@@ -145,14 +145,14 @@ namespace Thunder
 		}
 		
 #if WITH_EDITOR
-		static void AddSoftPathToGuid(NameHandle softPath, const TGuid& inGuid) { GetModule()->SoftPathToGuidMap.emplace(softPath, inGuid); }
+		ENGINE_API static void AddSoftPathToGuid(NameHandle softPath, const TGuid& inGuid) { GetModule()->SoftPathToGuidMap.emplace(softPath, inGuid); }
 #endif
 		
 	private:
-		void PackageAcquire(PackageEntry* entry);
-		TSet<TGuid> GetPackageDependencies(const TGuid& pakGuid);
+		ENGINE_API void PackageAcquire(PackageEntry* entry);
+		ENGINE_API TSet<TGuid> GetPackageDependencies(const TGuid& pakGuid);
 #if WITH_EDITOR
-		void RegisterPackageSoftPathToGUID(Package* package);
+		ENGINE_API void RegisterPackageSoftPathToGUID(Package* package);
 #endif
 
 	private:

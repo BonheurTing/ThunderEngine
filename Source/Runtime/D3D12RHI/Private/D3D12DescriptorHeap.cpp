@@ -126,14 +126,14 @@ namespace Thunder
 		{
 			D3D12OfflineHeapFreeRange& range = *it;
 
-			// Case 1: Freed range is immediately before this range → extend range backward
+			// Case 1: Freed range is immediately before this range -> extend range backward
 			if (range.Start == freedEnd)
 			{
 				range.Start = freedStart;
 				bInserted = true;
 				break;
 			}
-			// Case 2: Freed range is immediately after this range → extend range forward
+			// Case 2: Freed range is immediately after this range -> extend range forward
 			else if (range.End == freedStart)
 			{
 				range.End = freedEnd;

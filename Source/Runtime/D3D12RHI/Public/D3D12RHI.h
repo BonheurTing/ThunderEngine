@@ -9,92 +9,89 @@
 
 namespace Thunder
 {
-    class D3D12RHI_API D3D12DynamicRHI : public IDynamicRHI
+    class D3D12DynamicRHI : public IDynamicRHI
     {
     public:
-        D3D12DynamicRHI();
-        ~D3D12DynamicRHI();
-        
-    /////// RHI Methods
-        RHIDeviceRef RHICreateDevice() override;
+        D3D12RHI_API D3D12DynamicRHI();
+        D3D12RHI_API ~D3D12DynamicRHI();
 
-        void RHICreateCommandQueue() override; 
+        D3D12RHI_API RHIDeviceRef RHICreateDevice() override;
 
-        RHICommandContextRef RHICreateCommandContext() override;
-        
-        TRHIGraphicsPipelineState* RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer) override;
-        
-        void RHICreateComputePipelineState() override;
+        D3D12RHI_API void RHICreateCommandQueue() override; 
 
-       void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) override;
-        
-        void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) override;
-        
-        void RHICreateUnorderedAccessView(RHIResource& resource, const RHIViewDescriptor& desc) override;
-        
-        void RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc) override;
-        
-        void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) override;
+        D3D12RHI_API RHICommandContextRef RHICreateCommandContext() override;
 
-        RHISamplerRef RHICreateSampler(const RHISamplerDescriptor& desc) override;
+        D3D12RHI_API TRHIGraphicsPipelineState* RHICreateGraphicsPipelineState(TGraphicsPipelineStateDescriptor& initializer) override;
 
-        RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) override;
-    
-        RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes, EBufferCreateFlags usage, void *resourceData = nullptr) override;
-        
-        RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void *resourceData = nullptr) override;
-    
-        RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EBufferCreateFlags usage, void *resourceData = nullptr) override;
-    
-        RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EBufferCreateFlags usage, void *resourceData = nullptr) override;
+        D3D12RHI_API void RHICreateComputePipelineState() override;
 
-        RHIUniformBufferRef RHICreateUniformBuffer(uint32 size, EUniformBufferFlags usage, const void* Contents) override;
-        
-        void RHIUpdateUniformBuffer(IRHICommandRecorder* recorder, RHIUniformBuffer* unformBuffer, const void* Contents) override;
-    
-        RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void *resourceData = nullptr) override;
+        D3D12RHI_API void RHICreateConstantBufferView(RHIBuffer& resource, uint32 bufferSize) override;
 
-        bool RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId) override;
+        D3D12RHI_API void RHICreateShaderResourceView(RHIResource& resource, const RHIViewDescriptor& desc) override;
 
-        void RHIReleaseResource_RenderThread() override;
-        void RHIReleaseResource_RHIThread() override;
+        D3D12RHI_API void RHICreateUnorderedAccessView(RHIResource& resource, const RHIViewDescriptor& desc) override;
 
-        /// dx12 only
-        
-        ComPtr<ID3D12Device> GetDevice() const { return Device; }
-        ID3D12CommandQueue* RHIGetD3DCommandQueue() const { return CommandQueue.Get(); }
+        D3D12RHI_API void RHICreateRenderTargetView(RHITexture& resource, const RHIViewDescriptor& desc) override;
 
-        void AddReleaseObject(ComPtr<ID3D12Object> object);
+        D3D12RHI_API void RHICreateDepthStencilView(RHITexture& resource, const RHIViewDescriptor& desc) override;
 
-        void RHIBeginFrame(uint32 frameIndex) override;
-        void RHISignalFence(uint32 frameIndex) override;
-        void RHIWaitForFrame(uint32 frameIndex) override;
+        D3D12RHI_API RHISamplerRef RHICreateSampler(const RHISamplerDescriptor& desc) override;
 
-        void RHICreateSwapChain(void* hwnd, uint32 width, uint32 height) override;
-        void RHIPresent() override;
+        D3D12RHI_API RHIFenceRef RHICreateFence(uint64 initValue, uint32 fenceFlags) override;
 
-        ID3D12Resource*             GetCurrentBackBuffer() const { return SwapChainBuffers[CurrentBackBufferIndex].Get(); }
-        D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferRTV() const { return BackBufferRTVs[CurrentBackBufferIndex].Handle; }
+        D3D12RHI_API RHIVertexBufferRef RHICreateVertexBuffer(uint32 sizeInBytes, uint32 strideInBytes, EBufferCreateFlags usage, void *resourceData = nullptr) override;
+
+        D3D12RHI_API RHIIndexBufferRef RHICreateIndexBuffer(uint32 width, ERHIIndexBufferType type, EBufferCreateFlags usage, void *resourceData = nullptr) override;
+
+        D3D12RHI_API RHIStructuredBufferRef RHICreateStructuredBuffer(uint32 size, EBufferCreateFlags usage, void *resourceData = nullptr) override;
+
+        D3D12RHI_API RHIConstantBufferRef RHICreateConstantBuffer(uint32 size, EBufferCreateFlags usage, void *resourceData = nullptr) override;
+
+        D3D12RHI_API RHIUniformBufferRef RHICreateUniformBuffer(uint32 size, EUniformBufferFlags usage, const void* Contents) override;
+
+        D3D12RHI_API void RHIUpdateUniformBuffer(IRHICommandRecorder* recorder, RHIUniformBuffer* unformBuffer, const void* Contents) override;
+
+        D3D12RHI_API RHITextureRef RHICreateTexture(const RHIResourceDescriptor& desc, ETextureCreateFlags usage, void *resourceData = nullptr) override;
+
+        D3D12RHI_API bool RHIUpdateSharedMemoryResource(RHIResource* resource, const void* resourceData, uint32 size, uint8 subresourceId) override;
+
+        D3D12RHI_API void RHIReleaseResource_RenderThread() override;
+        D3D12RHI_API void RHIReleaseResource_RHIThread() override;
+
+        FORCEINLINE ComPtr<ID3D12Device> GetDevice() const { return Device; }
+        FORCEINLINE ID3D12CommandQueue* RHIGetD3DCommandQueue() const { return CommandQueue.Get(); }
+
+        D3D12RHI_API void AddReleaseObject(ComPtr<ID3D12Object> object);
+
+        D3D12RHI_API void RHIBeginFrame(uint32 frameIndex) override;
+        D3D12RHI_API void RHISignalFence(uint32 frameIndex) override;
+        D3D12RHI_API void RHIWaitForFrame(uint32 frameIndex) override;
+
+        D3D12RHI_API void RHICreateSwapChain(void* hwnd, uint32 width, uint32 height) override;
+        D3D12RHI_API void RHIPresent() override;
+
+        FORCEINLINE ID3D12Resource*             GetCurrentBackBuffer() const { return SwapChainBuffers[CurrentBackBufferIndex].Get(); }
+        FORCEINLINE D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferRTV() const { return BackBufferRTVs[CurrentBackBufferIndex].Handle; }
 
         // Online descriptor manager for global heap (GPU-visible, transient)
-        class D3D12OnlineDescriptorManager* GetOnlineDescriptorManager() const { return OnlineDescriptorManager; }
+        FORCEINLINE class D3D12OnlineDescriptorManager* GetOnlineDescriptorManager() const { return OnlineDescriptorManager; }
 
         // Offline descriptor managers (CPU-side, persistent)
-        class D3D12OfflineDescriptorManager* GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
+        D3D12RHI_API class D3D12OfflineDescriptorManager* GetOfflineDescriptorManager(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
         // Fence utilities
-        uint64 GetCurrentFenceValue() const { return CurrentFenceValue; }
-        bool IsFenceComplete(uint64 fenceValue) const;
+        FORCEINLINE uint64 GetCurrentFenceValue() const { return CurrentFenceValue; }
+        D3D12RHI_API bool IsFenceComplete(uint64 fenceValue) const;
 
         // Null descriptors for binding empty slots
-        D3D12_CPU_DESCRIPTOR_HANDLE GetNullSRV() const { return NullSRV; }
-        D3D12_CPU_DESCRIPTOR_HANDLE GetNullUAV() const { return NullUAV; }
-        D3D12_CPU_DESCRIPTOR_HANDLE GetNullCBV() const { return NullCBV; }
+        FORCEINLINE D3D12_CPU_DESCRIPTOR_HANDLE GetNullSRV() const { return NullSRV; }
+        FORCEINLINE D3D12_CPU_DESCRIPTOR_HANDLE GetNullUAV() const { return NullUAV; }
+        FORCEINLINE D3D12_CPU_DESCRIPTOR_HANDLE GetNullCBV() const { return NullCBV; }
 
     private:
-        void InitializeOnlineDescriptorManager();
-        void InitializeOfflineDescriptorManagers();
-        void InitializeNullDescriptors();
+        D3D12RHI_API void InitializeOnlineDescriptorManager();
+        D3D12RHI_API void InitializeOfflineDescriptorManagers();
+        D3D12RHI_API void InitializeNullDescriptors();
 
     private:
         ComPtr<ID3D12Device> Device;

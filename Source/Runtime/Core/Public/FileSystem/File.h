@@ -27,30 +27,30 @@ namespace Thunder
 	};
 	using IFileRef = TRefCountPtr<IFile>;
 	
-	class CORE_API NativeFile : public IFile
+	class NativeFile : public IFile
 	{
 	public:
 #ifdef THUNDER_WINDOWS
-		NativeFile(HANDLE handle);
+		CORE_API NativeFile(HANDLE handle);
 #else
-		NativeFile(FILE* file);
+		CORE_API NativeFile(FILE* file);
 #endif
-		virtual ~NativeFile();
+		CORE_API virtual ~NativeFile();
 
-		virtual void Close() override;
-		virtual size_t Read(void* buffer, size_t size) override;
-		virtual size_t PRead(void* buffer, size_t size, long offset) override;
-		virtual BinaryData* ReadData() override;
-		virtual String ReadString() override;
-		virtual size_t Write(const void* buffer, size_t size) override;
-		virtual size_t PWrite(const void* buffer, size_t size, long offset) override;
-		virtual size_t Append(const void* buffer, size_t size) override;
-		virtual int Seek(long offset, int origin) override;
-		virtual long Tell() override;
-		virtual bool IsEOF() override;
-		virtual bool Flush() override;
-		virtual size_t Size() override;
-		virtual bool Rename(const String& oldPath, const String& newPath) override;
+		CORE_API virtual void Close() override;
+		CORE_API virtual size_t Read(void* buffer, size_t size) override;
+		CORE_API virtual size_t PRead(void* buffer, size_t size, long offset) override;
+		CORE_API virtual BinaryData* ReadData() override;
+		CORE_API virtual String ReadString() override;
+		CORE_API virtual size_t Write(const void* buffer, size_t size) override;
+		CORE_API virtual size_t PWrite(const void* buffer, size_t size, long offset) override;
+		CORE_API virtual size_t Append(const void* buffer, size_t size) override;
+		CORE_API virtual int Seek(long offset, int origin) override;
+		CORE_API virtual long Tell() override;
+		CORE_API virtual bool IsEOF() override;
+		CORE_API virtual bool Flush() override;
+		CORE_API virtual size_t Size() override;
+		CORE_API virtual bool Rename(const String& oldPath, const String& newPath) override;
 		
 	private:
 #ifdef THUNDER_WINDOWS
@@ -60,7 +60,7 @@ namespace Thunder
 #endif
 	};
 
-	class CORE_API PackageFile : public IFile
+	class PackageFile : public IFile
 	{
 	public:
 	private:

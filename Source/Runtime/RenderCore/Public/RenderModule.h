@@ -16,30 +16,30 @@ namespace Thunder
 	struct ShaderParameterMap;
 	class ShaderArchive;
 
-    class RENDERCORE_API RenderModule : public IModule
+    class RenderModule : public IModule
     {
-    	DECLARE_MODULE(Render, RenderModule)
+    	DECLARE_MODULE(Render, RenderModule, RENDERCORE_API)
     public:
-    	void StartUp() override;
-    	void ShutDown() override;
+    	RENDERCORE_API void StartUp() override;
+    	RENDERCORE_API void ShutDown() override;
 
-    	static MeshPassProcessor* GetMeshPassProcessor(EMeshPass passType);
-    	static void SetMeshPassProcessorCreator(EMeshPass passType, TFunction<class MeshPassProcessor*()> creator);
+    	RENDERCORE_API static MeshPassProcessor* GetMeshPassProcessor(EMeshPass passType);
+    	RENDERCORE_API static void SetMeshPassProcessorCreator(EMeshPass passType, TFunction<class MeshPassProcessor*()> creator);
 
-    	static RenderPass* GetRenderPass(RenderPassKey const& key);
+    	RENDERCORE_API static RenderPass* GetRenderPass(RenderPassKey const& key);
 
     	// Texture registry.
-    	static void RegisterTexture_GameThread(const TGuid& guid, RenderTexture* texture);
-    	static void UnregisterTexture_GameThread(const TGuid& guid);
-    	static void UpdateTextureRegistry_RenderThread();
-    	static RenderTexture* GetTextureResource_RenderThread(const TGuid& guid);
+    	RENDERCORE_API static void RegisterTexture_GameThread(const TGuid& guid, RenderTexture* texture);
+    	RENDERCORE_API static void UnregisterTexture_GameThread(const TGuid& guid);
+    	RENDERCORE_API static void UpdateTextureRegistry_RenderThread();
+    	RENDERCORE_API static RenderTexture* GetTextureResource_RenderThread(const TGuid& guid);
 
     	// Draw
-    	static byte* SetupUniformBufferParameters(const RenderContext* context, const UniformBufferLayout* layout
+    	RENDERCORE_API static byte* SetupUniformBufferParameters(const RenderContext* context, const UniformBufferLayout* layout
 			, const ShaderParameterMap* parameterMap, const String& ubName);
-    	static TRHIGraphicsPipelineState* GetPipelineState(const RenderContext* context, NameHandle subShaderName,
+    	RENDERCORE_API static TRHIGraphicsPipelineState* GetPipelineState(const RenderContext* context, NameHandle subShaderName,
     		ShaderArchive* archive, ShaderCombination* shaderCombination, const SubMesh* subMesh);
-    	static void BuildDrawCommand(FrameGraph* graphBuilder, FrameGraphPass* pass, SubMesh* geometry);
+    	RENDERCORE_API static void BuildDrawCommand(FrameGraph* graphBuilder, FrameGraphPass* pass, SubMesh* geometry);
 
     private:
     	std::array<MeshPassProcessorRef, static_cast<size_t>(EMeshPass::Num)> MeshPassProcessors;

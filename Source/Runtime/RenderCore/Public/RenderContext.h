@@ -12,39 +12,39 @@ namespace Thunder
      * Thread-specific render context that holds recorded commands
      * Each thread has its own context to record commands into
      */
-    struct RENDERCORE_API RenderContext : public IRHICommandRecorder
+    struct RenderContext : public IRHICommandRecorder
     {
     public:
-        RenderContext() = delete;
-        RenderContext(class FrameGraph* owner);
-        ~RenderContext() override;
+        RENDERCORE_API RenderContext() = delete;
+        RENDERCORE_API RenderContext(class FrameGraph* owner);
+        RENDERCORE_API ~RenderContext() override;
 
         // Clear all commands and free allocator
-        void FreeAllocator() const;
+        RENDERCORE_API void FreeAllocator() const;
 
         // IRHICommandRecorder interface
-        void AddCommand(IRHICommand* Command) override;
-        TransientAllocator* GetTransientAllocator_RenderThread() const override;
+        RENDERCORE_API void AddCommand(IRHICommand* Command) override;
+        RENDERCORE_API TransientAllocator* GetTransientAllocator_RenderThread() const override;
 
         // Add command list.
-        void AddCommandList(TArray<struct RHICachedDrawCommand*> commandList);
+        RENDERCORE_API void AddCommandList(TArray<struct RHICachedDrawCommand*> commandList);
 
         // Get all commands recorded in this context
-        const TArray<IRHICommand*>& GetCommands() const { return Commands; }
-        TArray<IRHICommand*>&& MoveCommands() { return std::move(Commands); }
+        FORCEINLINE const TArray<IRHICommand*>& GetCommands() const { return Commands; }
+        FORCEINLINE TArray<IRHICommand*>&& MoveCommands() { return std::move(Commands); }
 
         // Clear all commands and free allocator
-        void ClearCommands();
+        RENDERCORE_API void ClearCommands();
 
         // Cache mesh-draw command.
-        void AddCachedCommand(const class MeshBatch* batch, class RHICachedDrawCommand* command);
-        TArray<std::tuple<const MeshBatch*, RHICachedDrawCommand*>> const& GetCachedCommands() const { return CachedDrawCommands; }
-        void ClearCachedCommands();
+        RENDERCORE_API void AddCachedCommand(const class MeshBatch* batch, class RHICachedDrawCommand* command);
+        FORCEINLINE TArray<std::tuple<const MeshBatch*, RHICachedDrawCommand*>> const& GetCachedCommands() const { return CachedDrawCommands; }
+        RENDERCORE_API void ClearCachedCommands();
 
         FORCEINLINE void SetCurrentPass(struct FrameGraphPass* pass) { CurrentPass = pass; }
         FORCEINLINE FrameGraphPass* GetCurrentPass() const { return CurrentPass; }
         FORCEINLINE FrameGraph* GetFrameGraph() const { return FrameGraph; }
-        RenderPass* GetRenderPass() const;
+        RENDERCORE_API RenderPass* GetRenderPass() const;
 
     private:
         // Array of recorded commands

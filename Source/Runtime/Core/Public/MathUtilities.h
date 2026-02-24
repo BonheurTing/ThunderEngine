@@ -128,9 +128,9 @@ namespace Thunder
          *
          * === Projection mapping (column-vector, X-forward, reverse-Z) ===
          *   w_clip  = X_view              (X is the forward / depth axis)
-         *   NDC_x   = Y_view * cotX / w   (Y=Right  → screen horizontal)
-         *   NDC_y   = Z_view * cotY / w   (Z=Up     → screen vertical)
-         *   NDC_z   = (A*X_view + B) / w  (reverse-Z: near→1, far→0)
+         *   NDC_x   = Y_view * cotX / w   (Y=Right  -> screen horizontal)
+         *   NDC_y   = Z_view * cotY / w   (Z=Up     -> screen vertical)
+         *   NDC_z   = (A*X_view + B) / w  (reverse-Z: near->1, far->0)
          *
          * The GPU-side matrix M_gpu that achieves this is:
          *
@@ -181,10 +181,10 @@ namespace Thunder
             // So M_gpu = M_cpu^T, and we must store the transpose of the desired GPU matrix here.
             //
             // Desired GPU matrix (column-vector, X-forward):
-            //   row 0: [ 0,    cotX,  0,    0 ]   → p_clip.x = cotX * Y_view
-            //   row 1: [ 0,    0,    cotY,  0 ]   → p_clip.y = cotY * Z_view
-            //   row 2: [ A,    0,    0,     B ]   → p_clip.z = A*X_view + B
-            //   row 3: [ 1,    0,    0,     0 ]   → p_clip.w = X_view
+            //   row 0: [ 0,    cotX,  0,    0 ]   -> p_clip.x = cotX * Y_view
+            //   row 1: [ 0,    0,    cotY,  0 ]   -> p_clip.y = cotY * Z_view
+            //   row 2: [ A,    0,    0,     B ]   -> p_clip.z = A*X_view + B
+            //   row 3: [ 1,    0,    0,     0 ]   -> p_clip.w = X_view
             //
             // CPU storage M_cpu = M_gpu^T:
             //   M[0][2] = A      M[0][3] = 1

@@ -6,23 +6,23 @@
 namespace Thunder
 {
 
-class CORE_API IEvent
+class IEvent
 {
 public:
-	virtual bool Create( bool bIsManualReset = false ) = 0;
-	virtual bool IsManualReset() = 0;
-	virtual void Trigger() = 0;
-	virtual void Reset() = 0;
-	virtual bool Wait( uint32 WaitTime, const bool bIgnoreThreadIdleStats = false ) = 0;
-	bool Wait() { return Wait((uint32)0xffffffff); }
-	virtual void* GetNativeHandle() = 0;
-public:
-	IEvent() = default;
-	virtual ~IEvent() = default;
-	IEvent(IEvent const&) = default;
-	IEvent& operator =(IEvent const&) = default;
-	IEvent(IEvent&&) = default;
-	IEvent& operator=(IEvent&&) = default;
+	CORE_API virtual bool Create( bool bIsManualReset = false ) = 0;
+	CORE_API virtual bool IsManualReset() = 0;
+	CORE_API virtual void Trigger() = 0;
+	CORE_API virtual void Reset() = 0;
+	CORE_API virtual bool Wait( uint32 WaitTime, const bool bIgnoreThreadIdleStats = false ) = 0;
+	CORE_API bool Wait() { return Wait((uint32)0xffffffff); }
+	CORE_API virtual void* GetNativeHandle() = 0;
+
+	CORE_API IEvent() = default;
+	CORE_API virtual ~IEvent() = default;
+	CORE_API IEvent(IEvent const&) = default;
+	CORE_API IEvent& operator =(IEvent const&) = default;
+	CORE_API IEvent(IEvent&&) = default;
+	CORE_API IEvent& operator=(IEvent&&) = default;
 private:
 	uint32 EventId;
 };

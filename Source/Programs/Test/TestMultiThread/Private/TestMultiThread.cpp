@@ -8,7 +8,6 @@
 #include "Concurrent/Task.h"
 #include "Concurrent/TaskGraph.h"
 #include "Concurrent/TaskScheduler.h"
-#include "Templates/FunctionMy.h"
 #include <random>
 
 using namespace Thunder;

@@ -15,7 +15,7 @@ namespace Thunder
 
         if (!container)
         {
-            TAssert(false, "Failed to get vertex declaration, vertex buffer is empty.");
+            TAssertf(false, "Failed to get vertex declaration, vertex buffer is empty.");
             return false;
         }
 
@@ -25,21 +25,21 @@ namespace Thunder
             const TypeComponent* componentInfo = container->GetComponentInfo(i);
             if (!componentInfo)
             {
-                TAssert(false, "Empty component found in vertex buffer.");
+                TAssertf(false, "Empty component found in vertex buffer.");
                 continue;
             }
 
             ERHIVertexInputSemantic semantic = RenderTranslator::GetVertexSemanticFromName(componentInfo->Name);
             if (semantic == ERHIVertexInputSemantic::Unknown)
             {
-                TAssert(false, "Invalid vertex semantic found in vertex buffer.");
+                TAssertf(false, "Invalid vertex semantic found in vertex buffer.");
                 continue;
             }
 
             RHIFormat format = RenderTranslator::GetRHIFormatFromTypeKind(componentInfo->Kind);
             if (format == RHIFormat::UNKNOWN)
             {
-                TAssert(false, "Invalid vertex format found in vertex buffer.");
+                TAssertf(false, "Invalid vertex format found in vertex buffer.");
                 continue;
             }
 

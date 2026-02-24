@@ -40,39 +40,39 @@ namespace Thunder
 	/**
 	 * Material class that contains shader parameters and shader archive reference (= UE MaterialInstance)
 	 */
-	class ENGINE_API GameMaterial : public IMaterial
+	class GameMaterial : public IMaterial
 	{
 	public:
-		GameMaterial(GameObject* inOuter = nullptr);
-		~GameMaterial() override;
+		ENGINE_API GameMaterial(GameObject* inOuter = nullptr);
+		ENGINE_API ~GameMaterial() override;
 
-		void OnResourceLoaded() override;
+		ENGINE_API void OnResourceLoaded() override;
 
-		void Serialize(MemoryWriter& archive) override;
-		void DeSerialize(MemoryReader& archive) override;
+		ENGINE_API void Serialize(MemoryWriter& archive) override;
+		ENGINE_API void DeSerialize(MemoryReader& archive) override;
 
-		void SetIntParameter(const NameHandle& paramName, int32 value);
-		void SetFloatParameter(const NameHandle& paramName, float value);
-		void SetVectorParameter(const NameHandle& paramName, const TVector4f& value);
-		void SetTextureParameter(const NameHandle& paramName, const TGuid& textureGuid);
-		void SetStaticParameter(const NameHandle& paramName, bool value);
+		ENGINE_API void SetIntParameter(const NameHandle& paramName, int32 value);
+		ENGINE_API void SetFloatParameter(const NameHandle& paramName, float value);
+		ENGINE_API void SetVectorParameter(const NameHandle& paramName, const TVector4f& value);
+		ENGINE_API void SetTextureParameter(const NameHandle& paramName, const TGuid& textureGuid);
+		ENGINE_API void SetStaticParameter(const NameHandle& paramName, bool value);
 
-		bool GetIntParameter(const NameHandle& paramName, int32& outValue) const;
-		bool GetFloatParameter(const NameHandle& paramName, float& outValue) const;
-		bool GetVectorParameter(const NameHandle& paramName, TVector4f& outValue) const;
-		bool GetTextureParameter(const NameHandle& paramName, TGuid& outTextureGuid) const;
-		bool GetStaticParameter(const NameHandle& paramName, bool& outValue) const;
+		ENGINE_API bool GetIntParameter(const NameHandle& paramName, int32& outValue) const;
+		ENGINE_API bool GetFloatParameter(const NameHandle& paramName, float& outValue) const;
+		ENGINE_API bool GetVectorParameter(const NameHandle& paramName, TVector4f& outValue) const;
+		ENGINE_API bool GetTextureParameter(const NameHandle& paramName, TGuid& outTextureGuid) const;
+		ENGINE_API bool GetStaticParameter(const NameHandle& paramName, bool& outValue) const;
 
-		void RemoveIntParameter(const NameHandle& paramName);
-		void RemoveFloatParameter(const NameHandle& paramName);
-		void RemoveVectorParameter(const NameHandle& paramName);
-		void RemoveTextureParameter(const NameHandle& paramName);
+		ENGINE_API void RemoveIntParameter(const NameHandle& paramName);
+		ENGINE_API void RemoveFloatParameter(const NameHandle& paramName);
+		ENGINE_API void RemoveVectorParameter(const NameHandle& paramName);
+		ENGINE_API void RemoveTextureParameter(const NameHandle& paramName);
 
 		// ========== Sync RenderThread ==========
-		void UpdateRenderResource() override;
+		ENGINE_API void UpdateRenderResource() override;
 
 		//const MaterialParameterCache* GetParameterCache() const { return OverrideParameters; }
-		void ResetDefaultParameters() const;
+		ENGINE_API void ResetDefaultParameters() const;
 
 	private:
 		ShaderParameterMap* ShaderParameters;

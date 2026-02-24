@@ -4,17 +4,17 @@
 
 namespace Thunder
 {
-    class RENDERER_API DeferredRenderer :public IRenderer
+    class DeferredRenderer :public IRenderer
     {
     public:
-        DeferredRenderer();
-        ~DeferredRenderer() override;
-        void Tick_RenderThread() override;
-        void Setup() override;
+        RENDERER_API DeferredRenderer();
+        RENDERER_API ~DeferredRenderer() override;
+        RENDERER_API void Tick_RenderThread() override;
+        RENDERER_API void Setup() override;
 
     private:
-        void UpdateAllPrimitiveSceneInfos();
-        void InitViews();
+        RENDERER_API void UpdateAllPrimitiveSceneInfos();
+        RENDERER_API void InitViews();
 
     private:
         class PostProcessManager* PostProcessManager = nullptr;

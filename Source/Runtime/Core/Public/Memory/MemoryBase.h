@@ -4,21 +4,21 @@
 
 namespace Thunder
 {
-	class CORE_API IMalloc
+	class IMalloc
 	{
 	public:
-		virtual ~IMalloc() {}
-		virtual void* Malloc(size_t count, uint32 alignment) = 0;
-		virtual void* Realloc(void* ptr, size_t newSize, uint32 alignment) = 0;
-		virtual bool GetAllocationSize(void* ptr, size_t& sizeOut) = 0;
-		virtual void Free(void* ptr) = 0;
+		CORE_API virtual ~IMalloc() {}
+		CORE_API virtual void* Malloc(size_t count, uint32 alignment) = 0;
+		CORE_API virtual void* Realloc(void* ptr, size_t newSize, uint32 alignment) = 0;
+		CORE_API virtual bool GetAllocationSize(void* ptr, size_t& sizeOut) = 0;
+		CORE_API virtual void Free(void* ptr) = 0;
 	};
 	
 	extern CORE_API IMalloc* GMalloc;
 
-	struct CORE_API TMemory
+	struct TMemory
 	{
-		static void* Malloc(SIZE_T Count, uint32 Alignment = 0)
+		CORE_API static void* Malloc(SIZE_T Count, uint32 Alignment = 0)
 		{
 			return GMalloc->Malloc(Count, Alignment);
 		}

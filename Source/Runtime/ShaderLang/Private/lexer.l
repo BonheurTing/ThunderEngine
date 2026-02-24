@@ -39,16 +39,12 @@ void yyerror(parse_location *loc, shader_lang_state* st, const char* msg);
 
 %}
 
-/* 使生成的词法分析器是可重入的，即可以同时有多个实例 */
 %option reentrant
-/* 自动维护行号计数 */
 %option yylineno
-/* 生成与Bison协同工作的接口，特别是使`yylex`函数的签名包含一个额外的参数 */
 %option bison-bridge
 %option bison-locations noyywrap nounistd
 %option never-interactive
 %option debug
-/*强制使用批处理模式，适用于yyin = fopen(...) %option batch */
 /*%option prefix="thunder_"*/
 %option extra-type="struct shader_lang_state *"
 
@@ -240,7 +236,7 @@ SV_VertexID		{ return TOKENIZE(TOKEN_SV); }
 \]				{ return TOKENIZE(RBRACKET); }
 
 
-[ \t\n]     ; // 忽略空白字符
+[ \t\n]     ; // Ignore blankspaces.
 
 .           { /*yyerror("Invalid character");*/ }
 

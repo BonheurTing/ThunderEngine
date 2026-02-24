@@ -33,6 +33,7 @@
 #  define SHADER_DEPRECATED_NO_EXPORT SHADER_NO_EXPORT SHADER_DEPRECATED
 #endif
 
+/* NOLINTNEXTLINE(readability-avoid-unconditional-preprocessor-if) */
 #if 0 /* DEFINE_NO_DEPRECATED */
 #  ifndef SHADER_NO_DEPRECATED
 #    define SHADER_NO_DEPRECATED

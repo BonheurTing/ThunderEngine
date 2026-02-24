@@ -5,7 +5,7 @@ mkdir ".\Intermediate\Build"
 
 echo -- Call cmake
 cd ./Intermediate/Build
-cmake -A x64 ../..
+cmake -A x64 ../../Tools/Build
 echo Config finished...
 
 

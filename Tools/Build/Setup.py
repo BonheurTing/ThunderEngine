@@ -10,7 +10,7 @@ def process_solution_file(solution_path, output_path):
             content = f.read()
 
         modified_content = re.sub(b"\"([^\"]+).vcxproj\"", b"\"Intermediate/Build/\\1.vcxproj\"", content)
-        
+
         with open(output_path, 'wb') as f:
             f.write(modified_content)
 
@@ -23,21 +23,21 @@ def process_solution_file(solution_path, output_path):
 
 if __name__ == "__main__":
     os.system(".\\Tools\\ShaderLang\\GenerateShaderCompiler.bat")
-    os.system(".\\InitializeInternal.bat")
+    os.system(".\\Tools\\Build\\InitializeInternal.bat")
     time.sleep(5)
 
     solution_files = [
         "./Intermediate/Build/ThunderEditor.sln",
         "./Intermediate/Build/ThunderEditor.slnx"
     ]
-    
+
     found_solution = False
 
     for solution_path in solution_files:
         if os.path.exists(solution_path):
             file_ext = os.path.splitext(solution_path)[1]
             output_path = f"./ThunderEditor{file_ext}"
-            
+
             if process_solution_file(solution_path, output_path):
                 found_solution = True
                 print(f"Succeeded to generate {os.path.basename(output_path)} file.")

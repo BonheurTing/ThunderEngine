@@ -1,24 +1,24 @@
 # move sln file
 macro(MoveMSVCSolutionFile)
-    set(SolutionBinaryPath ${CMAKE_SOURCE_DIR}/Intermediate/Build/${PROJECT_NAME}.sln)
+    set(SolutionBinaryPath ${PROJECT_ROOT}/Intermediate/Build/${PROJECT_NAME}.sln)
     message("=========================================================")
     message("SolutionBinaryPath = \"${SolutionBinaryPath}\"")
     if(EXISTS ${SolutionBinaryPath})
         message("Exists")
-        # Load solution file from bin-dir and change the relative references to 
-        # project files so that the in memory copy is as if it had been built in 
+        # Load solution file from bin-dir and change the relative references to
+        # project files so that the in memory copy is as if it had been built in
         # the source dir.
         set(SolutionPrefix "Intermediate/Build/")
         file(READ ${SolutionBinaryPath} SlnContent)
-        string(REGEX REPLACE 
+        string(REGEX REPLACE
             "\"([^\"]+).vcxproj\""
-            "\"${SolutionPrefix}/\\1.vcxproj\"" 
+            "\"${SolutionPrefix}/\\1.vcxproj\""
             SlnContent
             "${SlnContent}")
 
         # Compare the updated contents with the existing source path sln, if it
         # exists and is the same we dont want to disturb VS by touching it.
-        set(SlnOutPath ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}.sln)
+        set(SlnOutPath ${PROJECT_ROOT}/${PROJECT_NAME}.sln)
         set(OldContent "")
         if(EXISTS ${SlnOutPath})
             message("1")
@@ -30,7 +30,7 @@ macro(MoveMSVCSolutionFile)
         endif()
     else()
         message("Not exists")
-        file(GLOB_RECURSE TestDirList "${CMAKE_SOURCE_DIR}/Intermediate/Build/*")
+        file(GLOB_RECURSE TestDirList "${PROJECT_ROOT}/Intermediate/Build/*")
    #      message("${TestDirList}")
         message("Fail to find ${SolutionBinaryPath}")
     endif()
@@ -43,7 +43,7 @@ macro(LinkModuleFunc TargetName LinkModuleMode LinkModuleList)
         message("${TargetName}  -link- ${LinkModuleName}")
         add_dependencies(${TargetName} ${LinkModuleName})
         target_link_libraries(${TargetName} ${LinkModuleMode} ${LinkModuleName})
-        target_include_directories(${TargetName} ${LinkModuleMode} ${${LinkModuleName}DirPath}/Public) 
+        target_include_directories(${TargetName} ${LinkModuleMode} ${${LinkModuleName}DirPath}/Public)
         # link和include的mode不是一样的吧？
         # 默认直接include全部Public
     endforeach()
@@ -64,7 +64,7 @@ macro(ResetConfigureValue)
     set(PublicDependencyModuleList) # 依赖的库，包含添加依赖、链接、include
     set(PrivateDependencyModuleList)
     set(InterfaceDependencyModuleList) #todo: 接口待测试
-    
+
     set(PrivateIncludePathModuleList) # 只include，不链接不依赖，可能是一些纯头文件的模块，如Config
 
     set(PrivateThirdPartyIncludeList) # 第三方库 dll lib include
@@ -83,16 +83,16 @@ endmacro()
 # 预处理模块
 macro(PreBuildModule)
     # 设置源文件夹位置
-    set(SourceDirectoryPath Source)
+    set(SourceDirectoryPath ${PROJECT_ROOT}/Source)
     set(ModuleNameList)
     set(HeaderFilesList)
-    set(ProjectBinaryOutputPath "${CMAKE_SOURCE_DIR}/Engine/Bin")
-    set(ProjectArchiveOutputPath "${CMAKE_SOURCE_DIR}/Intermediate/Lib")
-    set(ProjectIncludeOutputPath "${CMAKE_SOURCE_DIR}/Intermediate/Include")
+    set(ProjectBinaryOutputPath "${PROJECT_ROOT}/Engine/Bin")
+    set(ProjectArchiveOutputPath "${PROJECT_ROOT}/Intermediate/Lib")
+    set(ProjectIncludeOutputPath "${PROJECT_ROOT}/Intermediate/Include")
 
     # 找到所有模块的位置
     file(GLOB_RECURSE BuildFileList ${SourceDirectoryPath}/*.Build)
-    
+
     foreach(BuildFile IN LISTS BuildFileList)
         get_filename_component(ModuleFile ${BuildFile} NAME)
         string(FIND ${ModuleFile} ".Build" ModuleNameLength)
@@ -111,7 +111,7 @@ macro(BuildModule)
             add_subdirectory("${${ModuleName}DirPath}/Source")
             continue()
         endif()
-        
+
         get_filename_component(BuildFileDir ${BuildFile} DIRECTORY)
         file(GLOB_RECURSE LibrarySourceFiles CMAKE_CONFIGURE_DEPENDS
             ${BuildFileDir}/*.cpp
@@ -145,7 +145,7 @@ macro(BuildModule)
         endif()
         #get_filename_component(BuildFileDir ${BuildFile} DIRECTORY)
         set(BuildFileDir ${${ModuleName}DirPath})
-        
+
         # 本模块的include
         if(${AutoIncludePublicFile})
             target_include_directories(${ModuleName} PUBLIC ${BuildFileDir}/Public) # 先默认public include，这是两码事
@@ -155,12 +155,12 @@ macro(BuildModule)
             target_include_directories(${ModuleName} PRIVATE ${SourceDirectoryPath}/${IncludePath})
             list(APPEND HeaderFilesList ${SourceDirectoryPath}/${IncludePath})
         endforeach()
-        
+
         # 预编译头
         set(PrecompileFileList)
         foreach(PrecompileFilePath IN LISTS PrecompileHeaderImportList)
             list(APPEND PrecompileFileList ${SourceDirectoryPath}/${PrecompileFilePath}) # add prefix
-            #target_precompile_headers(${ModuleName} PUBLIC ${SourceDirectoryPath}/${PrecompileFilePath}) 
+            #target_precompile_headers(${ModuleName} PUBLIC ${SourceDirectoryPath}/${PrecompileFilePath})
         endforeach()
         if(${LinkMode} STREQUAL SHARED)
             string(TOUPPER ${ModuleName} ModuleNameUpper)
@@ -185,7 +185,7 @@ macro(BuildModule)
             list(APPEND HeaderFilesList ${${IncludeModule}DirPath}/Public)
         endforeach()
 
-        
+
         # 第三方库 include dll lib
         foreach(IncludePath IN LISTS PrivateThirdPartyIncludeList)
             target_include_directories(${ModuleName} PRIVATE ${SourceDirectoryPath}/${IncludePath})
@@ -228,10 +228,10 @@ macro(PostBuildModule)
         LIBRARY DESTINATION "${ProjectBinaryOutputPath}/Release"
         RUNTIME DESTINATION "${ProjectBinaryOutputPath}/Release")
 
-    install(DIRECTORY ${HeaderFilesList} 
-        CONFIGURATIONS Debug 
+    install(DIRECTORY ${HeaderFilesList}
+        CONFIGURATIONS Debug
         DESTINATION "${ProjectIncludeOutputPath}/Debug")
-    install(DIRECTORY ${HeaderFilesList} 
-        CONFIGURATIONS Release 
+    install(DIRECTORY ${HeaderFilesList}
+        CONFIGURATIONS Release
         DESTINATION "${ProjectIncludeOutputPath}/Release")
 endmacro()

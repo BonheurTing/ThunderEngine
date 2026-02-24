@@ -26,4 +26,3 @@ echo.
 
 python .\Tools\ShaderLang\GenerateShaderCompiler.py
 
-pause

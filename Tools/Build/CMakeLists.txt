@@ -4,6 +4,10 @@ cmake_minimum_required(VERSION 3.24.0)
 # project name, dll or exe
 project(ThunderEditor VERSION 1.0)
 
+# Define project root directory (two levels up from Tools/Build)
+get_filename_component(PROJECT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+message(STATUS "PROJECT_ROOT = ${PROJECT_ROOT}")
+
 # specify the C++ standard
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
@@ -14,10 +18,10 @@ include(GenerateExportHeader)
 include(CMakeUtilities.cmake)
 
 # project output
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/Intermediate/Build/Output/Bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/Intermediate/Build/Output/Bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/Intermediate/Build/Output/Bin)
-set(CMAKE_PDB_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/Intermediate/Build/Output/Bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_ROOT}/Intermediate/Build/Output/Bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_ROOT}/Intermediate/Build/Output/Bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_ROOT}/Intermediate/Build/Output/Bin)
+set(CMAKE_PDB_OUTPUT_DIRECTORY ${PROJECT_ROOT}/Intermediate/Build/Output/Bin)
 
 # CMAKE settings
 SET(CMAKE_BUILD_TYPE "RELWITHDEBINFO")
@@ -41,9 +45,9 @@ PreBuildModule()
 BuildModule()
 PostBuildModule()
 #MoveMSVCSolutionFile()
-file(COPY ${CMAKE_SOURCE_DIR}/Source/ThirdParty/Windows/dxc2025/bin/x64/dxcompiler.dll DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
-file(COPY ${CMAKE_SOURCE_DIR}/Source/ThirdParty/Windows/DirectX/bin/d3dcompiler_47.dll DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
-file(COPY ${CMAKE_SOURCE_DIR}/Source/ThirdParty/Assimp/bin/assimp-vc143-mt.dll DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
+file(COPY ${PROJECT_ROOT}/Source/ThirdParty/Windows/dxc2025/bin/x64/dxcompiler.dll DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
+file(COPY ${PROJECT_ROOT}/Source/ThirdParty/Windows/DirectX/bin/d3dcompiler_47.dll DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
+file(COPY ${PROJECT_ROOT}/Source/ThirdParty/Assimp/bin/assimp-vc143-mt.dll DESTINATION ${CMAKE_BINARY_DIR}/Output/Bin/RelWithDebInfo)
 
 # find_program(Python_EXECUTABLE python NO_CMAKE_FIND_ROOT_PATH)
 # set(Python_ARGS "../../Setup.py")

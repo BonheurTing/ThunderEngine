@@ -12,14 +12,14 @@ namespace Thunder
         RENDERCORE_API virtual ~IRenderer();
 
         RENDERCORE_API virtual void Tick_RenderThread() = 0;
-        RENDERCORE_API virtual void Reset() { mFrameGraph->Reset(); }
+        RENDERCORE_API virtual void Reset() { FrameGraph->Reset(); }
         RENDERCORE_API virtual void Setup() = 0;
 
         RENDERCORE_API virtual void Compile()
         {
-            if (mFrameGraph)
+            if (FrameGraph)
             {
-                mFrameGraph->Compile();
+                FrameGraph->Compile();
             }
         }
 
@@ -27,30 +27,30 @@ namespace Thunder
 
         RENDERCORE_API void Execute()
         {
-            if (mFrameGraph)
+            if (FrameGraph)
             {
-                mFrameGraph->Execute();
+                FrameGraph->Execute();
             }
         }
 
         RENDERCORE_API void EndRenderFrame()
         {
-            if (mFrameGraph)
+            if (FrameGraph)
             {
-                mFrameGraph->ClearRenderTargetPool();
+                FrameGraph->ClearRenderTargetPool();
             }
         }
 
-        FORCEINLINE void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->RegisterSceneInfo_GameThread(sceneInfo); }
-        FORCEINLINE void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { mFrameGraph->UnregisterSceneInfo_GameThread(sceneInfo); }
+        FORCEINLINE void RegisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { FrameGraph->RegisterSceneInfo_GameThread(sceneInfo); }
+        FORCEINLINE void UnregisterSceneInfo(PrimitiveSceneInfo* sceneInfo) const { FrameGraph->UnregisterSceneInfo_GameThread(sceneInfo); }
 
         RENDERCORE_API void UpdatePrimitiveUniformBuffer_GameThread(PrimitiveSceneInfo* sceneInfo);
         RENDERCORE_API void UpdatePrimitiveUniformBuffer_RenderThread();
 
-        FORCEINLINE FrameGraph* GetFrameGraph() const { return mFrameGraph; }
+        FORCEINLINE FrameGraph* GetFrameGraph() const { return FrameGraph; }
 
     protected:
-        TRefCountPtr<FrameGraph> mFrameGraph;
+        TRefCountPtr<FrameGraph> FrameGraph;
 
         // Primitive uniform buffer update list
         TSet<PrimitiveSceneInfo*> PrimitiveUniformBufferUpdateSet[2]; // Game thread and render thread double buffer.

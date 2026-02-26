@@ -71,7 +71,6 @@ namespace Thunder
             clearValue.Depth     = desc.ClearDepth;
             clearValue.Stencil   = desc.ClearStencil;
             newTarget2D->SetOptimizedClearValue(clearValue);
-            desc.bHasClearValue = false;
         }
         RenderTextureRef newTarget = newTarget2D;
         newTarget->InitRHI();

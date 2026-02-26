@@ -9,13 +9,13 @@ namespace Thunder
 {
     IRenderer::IRenderer()
     {
-        mFrameGraph = new FrameGraph(this, GSyncWorkers->GetNumThreads());
+        FrameGraph = new class FrameGraph(this, GSyncWorkers->GetNumThreads());
     }
 
     IRenderer::~IRenderer()
     {
-        delete mFrameGraph;
-        mFrameGraph = nullptr;
+        delete FrameGraph;
+        FrameGraph = nullptr;
     }
 
     void IRenderer::UpdatePrimitiveUniformBuffer_GameThread(PrimitiveSceneInfo* sceneInfo)
@@ -47,10 +47,10 @@ namespace Thunder
         const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
         auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
         dispatcher->Promise(static_cast<int>(sceneInfoCount));
-        uint32 numThread = static_cast<uint32>(mFrameGraph->GetRenderContexts().size());
+        uint32 numThread = static_cast<uint32>(FrameGraph->GetRenderContexts().size());
         GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
         {
-            auto const& contexts = mFrameGraph->GetRenderContexts();
+            auto const& contexts = FrameGraph->GetRenderContexts();
             auto context = contexts[threadId];
             for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
             {

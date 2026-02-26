@@ -36,10 +36,10 @@ namespace Thunder
     void DeferredRenderer::Tick_RenderThread()
     {
         // Set global parameters and update uniform buffer.
-        auto globalParameters = mFrameGraph->GetGlobalParameters();
+        auto globalParameters = FrameGraph->GetGlobalParameters();
         globalParameters->SetIntParameter("RenderQuality", 2);
 
-        mFrameGraph->InitGlobalUniformBuffer();
+        FrameGraph->InitGlobalUniformBuffer();
         UpdateAllPrimitiveSceneInfos();
     }
 
@@ -48,7 +48,7 @@ namespace Thunder
         TVector2u viewportResolution = GDynamicRHI->GetMainViewportResolution_RenderThread();
         uint32 const resolutionWidth = viewportResolution.X;
         uint32 const resolutionHeight = viewportResolution.Y;
-        mFrameGraph->SetViewportResolution(viewportResolution);
+        FrameGraph->SetViewportResolution(viewportResolution);
 
         // GBuffer pass.
         static FGRenderTargetRef GBufferRT0 = new FGRenderTarget{"GBufferA", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM, TVector4f(0, 0, 0, 1) };
@@ -58,36 +58,36 @@ namespace Thunder
         static FGRenderTargetRef GBufferSceneDepth = new FGRenderTarget{"SceneDepth",  resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT, 0.f, 0 };
 
         // Register render targets
-        mFrameGraph->RegisterRenderTarget(GBufferRT0, viewportResolution);
-        mFrameGraph->RegisterRenderTarget(GBufferRT1, viewportResolution);
-        mFrameGraph->RegisterRenderTarget(GBufferRT2, viewportResolution);
-        mFrameGraph->RegisterRenderTarget(GBufferRT3, viewportResolution);
-        mFrameGraph->RegisterRenderTarget(GBufferSceneDepth, viewportResolution);
+        FrameGraph->RegisterRenderTarget(GBufferRT0, viewportResolution);
+        FrameGraph->RegisterRenderTarget(GBufferRT1, viewportResolution);
+        FrameGraph->RegisterRenderTarget(GBufferRT2, viewportResolution);
+        FrameGraph->RegisterRenderTarget(GBufferRT3, viewportResolution);
+        FrameGraph->RegisterRenderTarget(GBufferSceneDepth, viewportResolution);
 
         {
             static FGRenderTargetRef DummyRT = new FGRenderTarget{"SceneDepth1", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-            mFrameGraph->RegisterRenderTarget(DummyRT, viewportResolution);
+            FrameGraph->RegisterRenderTarget(DummyRT, viewportResolution);
 
             PassOperations operations;
             operations.Write(DummyRT);
             operations.Write(GBufferSceneDepth, 0.f, 0);
-            mFrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this]()
+            FrameGraph->AddPass(EVENT_NAME("PrePass"), std::move(operations), [this]()
             {
                 // Set pass parameters and update uniform buffer.
-                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::PrePass);
+                auto passParameters = FrameGraph->GetPassParameters(EMeshPass::PrePass);
                 passParameters->SetVectorParameter("PassParameters0", TVector4f(1,2,3,1));
-                mFrameGraph->UpdatePassParameters(EMeshPass::PrePass, passParameters, "PrePass");
+                FrameGraph->UpdatePassParameters(EMeshPass::PrePass, passParameters, "PrePass");
 
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::PrePass);
-                auto mainContext = mFrameGraph->GetMainContext();
-                mFrameGraph->ResolveVisibility(EViewType::MainView, EMeshPass::PrePass);
+                auto mainContext = FrameGraph->GetMainContext();
+                FrameGraph->ResolveVisibility(EViewType::MainView, EMeshPass::PrePass);
 
                 // Add cached mesh batches.
-                TArray<RHICachedDrawCommand*> const& cachedDrawList = mFrameGraph->GetVisibleCachedDrawList(EMeshPass::PrePass);
+                TArray<RHICachedDrawCommand*> const& cachedDrawList = FrameGraph->GetVisibleCachedDrawList(EMeshPass::PrePass);
                 mainContext->AddCommandList(cachedDrawList);
 
                 // Add dynamic mesh batches.
-                auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
+                auto mainView = FrameGraph->GetSceneView(EViewType::MainView);
                 for (auto& sceneInfo : mainView->GetVisibleDynamicSceneInfos())
                 {
                     auto staticMeshes = sceneInfo->GetStaticMeshes();
@@ -101,23 +101,23 @@ namespace Thunder
 
         {
             static FGRenderTargetRef DummyRT = new FGRenderTarget{"Dummy", resolutionWidth, resolutionHeight, RHIFormat::R8G8B8A8_UNORM };
-            mFrameGraph->RegisterRenderTarget(DummyRT, viewportResolution);
+            FrameGraph->RegisterRenderTarget(DummyRT, viewportResolution);
             static FGRenderTargetRef ShadowDepth = new FGRenderTarget{"ShadowDepth", resolutionWidth, resolutionHeight, RHIFormat::D32_FLOAT_S8X24_UINT };
-            mFrameGraph->RegisterRenderTarget(ShadowDepth, viewportResolution);
+            FrameGraph->RegisterRenderTarget(ShadowDepth, viewportResolution);
 
             PassOperations operations;
             operations.Write(DummyRT);
             operations.Write(ShadowDepth);
-            mFrameGraph->AddPass(EVENT_NAME("ShadowDepth"), std::move(operations), [this]()
+            FrameGraph->AddPass(EVENT_NAME("ShadowDepth"), std::move(operations), [this]()
             {
                 // Set pass parameters and update uniform buffer.
-                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::ShadowPass);
+                auto passParameters = FrameGraph->GetPassParameters(EMeshPass::ShadowPass);
                 passParameters->SetVectorParameter("PassParameters0", TVector4f(1,2,3,1));
-                mFrameGraph->UpdatePassParameters(EMeshPass::ShadowPass, passParameters, "ShadowDepth");
+                FrameGraph->UpdatePassParameters(EMeshPass::ShadowPass, passParameters, "ShadowDepth");
 
-                auto context = mFrameGraph->GetMainContext();
+                auto context = FrameGraph->GetMainContext();
                 MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::ShadowPass);
-                auto shadowView = mFrameGraph->GetSceneView(EViewType::ShadowView);
+                auto shadowView = FrameGraph->GetSceneView(EViewType::ShadowView);
                 for (auto& sceneInfo : shadowView->GetVisibleDynamicSceneInfos())
                 {
                     auto staticMeshes = sceneInfo->GetStaticMeshes();
@@ -136,22 +136,22 @@ namespace Thunder
             operations.Write(GBufferRT2, TVector4f(0, 0, 0, 1));
             operations.Write(GBufferRT3, TVector4f(0, 0, 0, 1));
             operations.Write(GBufferSceneDepth, 0, 0);
-            mFrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
+            FrameGraph->AddPass(EVENT_NAME("GBufferPass"), std::move(operations), [this]()
             {
                 // Set pass parameters and update uniform buffer.
-                auto passParameters = mFrameGraph->GetPassParameters(EMeshPass::BasePass);
+                auto passParameters = FrameGraph->GetPassParameters(EMeshPass::BasePass);
                 passParameters->SetVectorParameter("PassParameters0", TVector4f(1,2,3,1));
-                mFrameGraph->UpdatePassParameters(EMeshPass::BasePass, passParameters, "BasePass");
+                FrameGraph->UpdatePassParameters(EMeshPass::BasePass, passParameters, "BasePass");
 
-                auto mainContext = mFrameGraph->GetMainContext();
-                mFrameGraph->ResolveVisibility(EViewType::MainView, EMeshPass::BasePass);
+                auto mainContext = FrameGraph->GetMainContext();
+                FrameGraph->ResolveVisibility(EViewType::MainView, EMeshPass::BasePass);
 
                 // Add cached mesh batches.
-                TArray<RHICachedDrawCommand*> const& cachedDrawList = mFrameGraph->GetVisibleCachedDrawList(EMeshPass::BasePass);
+                TArray<RHICachedDrawCommand*> const& cachedDrawList = FrameGraph->GetVisibleCachedDrawList(EMeshPass::BasePass);
                 mainContext->AddCommandList(cachedDrawList);
 
                 // Add dynamic mesh batches.
-                auto mainView = mFrameGraph->GetSceneView(EViewType::MainView);
+                auto mainView = FrameGraph->GetSceneView(EViewType::MainView);
                 auto const& sceneInfos = mainView->GetVisibleDynamicSceneInfos();
                 uint32 const sceneInfoCount = static_cast<uint32>(sceneInfos.size());
                 if (sceneInfoCount > 0)
@@ -159,10 +159,10 @@ namespace Thunder
                     const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
                     auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
                     dispatcher->Promise(static_cast<int>(sceneInfoCount));
-                    uint32 numThread = static_cast<uint32>(mFrameGraph->GetRenderContexts().size());
+                    uint32 numThread = static_cast<uint32>(FrameGraph->GetRenderContexts().size());
                     GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
                     {
-                        auto const& contexts = mFrameGraph->GetRenderContexts();
+                        auto const& contexts = FrameGraph->GetRenderContexts();
                         auto context = contexts[threadId];
                         MeshPassProcessor* processor = RenderModule::GetMeshPassProcessor(EMeshPass::BasePass);
                         for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
@@ -192,7 +192,7 @@ namespace Thunder
 
         // Lighting pass.
         static FGRenderTargetRef LightingRT = new FGRenderTarget{"SceneTexture", resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT, TVector4f(0, 0, 0, 1) };
-        mFrameGraph->RegisterRenderTarget(LightingRT, viewportResolution);
+        FrameGraph->RegisterRenderTarget(LightingRT, viewportResolution);
 
         {
             PassOperations operations;
@@ -201,9 +201,9 @@ namespace Thunder
             operations.Read(GBufferRT2);
             operations.Read(GBufferRT3);
             operations.Write(LightingRT);
-            mFrameGraph->AddPass(EVENT_NAME("Lighting"), std::move(operations), [this]()
+            FrameGraph->AddPass(EVENT_NAME("Lighting"), std::move(operations), [this]()
             {
-                auto pass = mFrameGraph->GetMainContext()->GetCurrentPass();
+                auto pass = FrameGraph->GetMainContext()->GetCurrentPass();
                 pass->SetShader("Lighting");
 
                 pass->PassParameters->SetFloatParameter("PassParameters0", 0);
@@ -212,21 +212,21 @@ namespace Thunder
                 pass->PassParameters->SetIntParameter("PassParameters3", 1);
 
                 auto subMesh = GProceduralGeometryManager->GetGeometry(EProceduralGeometry::Triangle);
-                RenderModule::BuildDrawCommand(mFrameGraph, pass, subMesh);
+                RenderModule::BuildDrawCommand(FrameGraph, pass, subMesh);
             });
         }
 
         // PostProcess1 pass.
         static FGRenderTargetRef PostProcessRT1 = new FGRenderTarget{"PostProcessRT1", resolutionWidth, resolutionHeight, RHIFormat::R16G16B16A16_FLOAT };
-        mFrameGraph->RegisterRenderTarget(PostProcessRT1, viewportResolution);
+        FrameGraph->RegisterRenderTarget(PostProcessRT1, viewportResolution);
 
         {
             PassOperations operations;
             operations.Read(LightingRT);
             operations.Write(PostProcessRT1);
-            mFrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this]()
+            FrameGraph->AddPass(EVENT_NAME("PostProcess1"), std::move(operations), [this]()
             {
-                auto context = mFrameGraph->GetMainContext();
+                auto context = FrameGraph->GetMainContext();
                 FrameGraphPass* currentPass = context->GetCurrentPass();
                 
                 RHIDummyCommand* newCommand = new (context->Allocate<RHIDummyCommand>()) RHIDummyCommand;
@@ -237,18 +237,18 @@ namespace Thunder
         {
             if (PostProcessManager == nullptr)
             {
-                PostProcessManager = new class PostProcessManager(mFrameGraph);
+                PostProcessManager = new class PostProcessManager(FrameGraph);
             }
             PostProcessManager->Render(LightingRT.Get());
         }
 
-        mFrameGraph->SetPresentPass("ToneMapping");
+        FrameGraph->SetPresentPass("ToneMapping");
     }
 
     void DeferredRenderer::UpdateAllPrimitiveSceneInfos()
     {
         // Update scene info.
-        mFrameGraph->UpdateSceneInfo_RenderThread();
+        FrameGraph->UpdateSceneInfo_RenderThread();
 
         UpdatePrimitiveUniformBuffer_RenderThread();
     }

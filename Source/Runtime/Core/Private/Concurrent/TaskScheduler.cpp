@@ -48,7 +48,6 @@ namespace Thunder
 		{
 			return;
 		}
-		//todo 保证线程安全
 		if (Thread != nullptr && Thread != InThreadProxy)
 		{
 			DetachFromThread(Thread);
@@ -90,11 +89,14 @@ namespace Thunder
 	void PooledTaskScheduler::AttachToThread(ThreadProxy* InThreadProxy)
 	{
 		TAssert(InThreadProxy != nullptr);
-		if (ThreadList.contains(InThreadProxy))
+		for (auto* thread : ThreadList)
 		{
-			return;
+			if (thread == InThreadProxy)
+			{
+				return;
+			}
 		}
-		ThreadList.emplace(InThreadProxy);
+		ThreadList.push_back(InThreadProxy);
 		InThreadProxy->AttachToScheduler(this);
 	}
 
@@ -128,10 +130,11 @@ namespace Thunder
 	void PooledTaskScheduler::DetachFromThread(ThreadProxy* InThreadProxy)
 	{
 		TAssert(InThreadProxy != nullptr);
-		if (ThreadList.contains(InThreadProxy))
+		auto it = std::ranges::find(ThreadList, InThreadProxy);
+		if (it != ThreadList.end())
 		{
 			InThreadProxy->DetachFromScheduler(this);
-			ThreadList.erase(InThreadProxy);
+			ThreadList.erase(it);
 		}
 	}
 
@@ -143,66 +146,65 @@ namespace Thunder
 		}
 	}
 
-	void PooledTaskScheduler::ParallelFor(TFunction<void(uint32, uint32, uint32)>& Body, uint32 NumTask, uint32 NumThread)
+	uint32 PooledTaskScheduler::GetThreadId(uint32 threadIndex) const
+	{
+		return ThreadList[threadIndex]->GetThreadId();
+	}
+
+	void PooledTaskScheduler::ParallelFor(TFunction<void(uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize)
 	{
 		class TaskBundle : public ITask
 		{
 		public:
-			TaskBundle(TFunction<void(uint32, uint32, uint32)>* InFunction, uint32 InStart, uint32 InSize, uint32 InThreadId) //接受指针并存下来
+			TaskBundle(TFunction<void(uint32, uint32)>* InFunction, uint32 InStart, uint32 InSize)
 			: Function(InFunction)
 			, Head(InStart)
 			, Size(InSize)
-			, ThreadId(InThreadId)
 			{}
 
 			void DoWork() override
 			{
-				(*Function)(Head, Size, ThreadId);
+				(*Function)(Head, Size);
 			}
-		private:
 
-			TFunction<void(uint32, uint32, uint32)>* Function;
+		private:
+			TFunction<void(uint32, uint32)>* Function;
 			uint32 Head;
 			uint32 Size;
-			uint32 ThreadId;
 		};
 
-		uint32 bundleSize = (NumTask + NumThread - 1) / NumThread;
-		for (uint32 i = 0; i < NumTask; i += bundleSize)
+		for (uint32 taskId = 0; taskId < NumTask; taskId += BundleSize)
 		{
-			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(&Body, i, bundleSize, i/bundleSize);
+			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(&Body, taskId, BundleSize);
 			PushTask(bundleTask);
 		}
 	}
 
-	void PooledTaskScheduler::ParallelFor(TFunction<void(uint32, uint32, uint32)>&& Body, uint32 NumTask, uint32 NumThread)
+	void PooledTaskScheduler::ParallelFor(TFunction<void(uint32, uint32)>&& Body, uint32 NumTask, uint32 BundleSize)
 	{
 		class TaskBundle : public ITask
 		{
 		public:
-			TaskBundle(const TFunction<void(uint32, uint32, uint32)>& InFunction, uint32 InStart, uint32 InSize, uint32 InThreadId)
+			TaskBundle(const TFunction<void(uint32, uint32)>& InFunction, uint32 InStart, uint32 InSize)
 			: Function(InFunction)
 			, Head(InStart)
 			, Size(InSize)
-			, ThreadId(InThreadId)
 			{}
 
 			void DoWork() override
 			{
-				Function(Head, Size, ThreadId);
+				Function(Head, Size);
 			}
 		private:
 
-			TFunction<void(uint32, uint32, uint32)> Function;
+			TFunction<void(uint32, uint32)> Function;
 			uint32 Head;
 			uint32 Size;
-			uint32 ThreadId;
 		};
 
-		uint32 bundleSize = (NumTask + NumThread - 1) / NumThread;
-		for (uint32 i = 0; i < NumTask; i += bundleSize)
+		for (uint32 taskId = 0; taskId < NumTask; taskId += BundleSize)
 		{
-			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(Body, i, bundleSize, i/bundleSize);
+			const auto bundleTask = new (TMemory::Malloc<TaskBundle>()) TaskBundle(Body, taskId, BundleSize);
 			PushTask(bundleTask);
 		}
 	}

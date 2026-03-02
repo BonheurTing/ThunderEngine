@@ -98,11 +98,6 @@ namespace Thunder
     	}
     }
 
-    void FXCCompiler::Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode)
-    {
-    	
-    }
-
     DXCCompiler::DXCCompiler()
     {
     	GShaderModuleTarget = {

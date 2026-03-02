@@ -89,8 +89,9 @@ namespace Thunder
             const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
             auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
             dispatcher->Promise(commandNum);
-            GSyncWorkers->ParallelFor([rhiCommandContexts, allCommands, passStates, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize, uint32 threadId) mutable
+            GSyncWorkers->ParallelFor([rhiCommandContexts, allCommands, passStates, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize) mutable
             {
+                uint32 threadId = GetContextId();
                 RHICommandContext* commandList = rhiCommandContexts[threadId];
 
                 if (threadId > 0)

@@ -11,13 +11,28 @@
 
 namespace Thunder
 {
+	thread_local ThreadProxy* GCurrentThread = nullptr;
+
+	void SetCurrentThread(ThreadProxy* InThread)
+	{
+		GCurrentThread = InThread;
+	}
+
+	ThreadProxy* GetThread()
+	{
+		return GCurrentThread;
+	}
+
+	uint32 GetContextId()
+	{
+		return GetThread()->GetContextId();
+	}
 
 	ThreadProxy::~ThreadProxy()
 	{
 		if (Thread)
 		{
 			WaitForCompletion();
-			// 回收线程同步Event
 			FPlatformProcess::ReturnSyncEventToPool(DoWorkEvent);
 			DoWorkEvent = nullptr;
 			delete Thread;
@@ -71,7 +86,8 @@ namespace Thunder
 
 	uint32 ThreadProxy::Run()
 	{
-		ThunderTracyCSetThreadName(GetThreadName().c_str());
+		ThunderTracyCSetThreadName(GetThreadName().c_str())
+		SetCurrentThread(this);
 
 		while (!(TimeToDie.load(std::memory_order_acquire) && NoWorkToRun()))
 		{
@@ -136,21 +152,19 @@ namespace Thunder
 
 	void ThreadProxy::WaitForCompletion()
 	{
-		// 线程标记
 		TimeToDie.store(true, std::memory_order_release);
-		// 触发Event
 		DoWorkEvent->Trigger();
-		// 等待完成
 		Thread->WaitForCompletion();
 	}
 
 	ThreadPoolBase::ThreadPoolBase(uint32 ThreadsNum, uint32 StackSize, const String& ThreadNamePrefix)
 	{
-		for (uint32 Count = 0; Count < ThreadsNum; Count++)
+		for (uint32 threadIndex = 0; threadIndex < ThreadsNum; threadIndex++)
 		{
-			if (auto thread = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(StackSize, ThreadNamePrefix + "_" + std::to_string(Count)))
+			if (auto thread = new (TMemory::Malloc<ThreadProxy>()) ThreadProxy(StackSize, ThreadNamePrefix + "_" + std::to_string(threadIndex)))
 			{
 				thread->SetThreadPoolOwner(this);
+				thread->SetContextId(threadIndex);
 				Threads.push_back(thread);
 			}
 			else

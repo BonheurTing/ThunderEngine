@@ -1,0 +1,57 @@
+{
+    "SceneName": "ExampleLevel",
+    "RootEntities": [
+        {
+            "EntityName": "TestMesh",
+            "Components": {
+                "TransformComponent": {
+                    "Position": [
+                        300.0,
+                        0.0,
+                        0.0
+                    ],
+                    "Rotation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "Scale": [
+                        100.0,
+                        100.0,
+                        100.0
+                    ]
+                },
+                "StaticMeshComponent": {
+                    "Mesh": "3FA3441A-4836A89B-6695A591-472EEFE0",
+                    "OverrideMaterials": {
+                        "ParentMaterial": "A6B4E593-45407A3C-AD2E4B9F-C05358C2"
+                    }
+                }
+            },
+            "Children": [
+                {
+                    "EntityName": "Weapon",
+                    "Components": {
+                        "TransformComponent": {
+                            "Position": [
+                                1.0,
+                                0.0,
+                                0.5
+                            ],
+                            "Rotation": [
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "Scale": [
+                                1.0,
+                                1.0,
+                                1.0
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -1,5 +1,0 @@
-set(ModuleName TestMemory)
-set(LinkMode EXECUTABLE)
-set(PublicDependencyModuleList
-    Core
-)

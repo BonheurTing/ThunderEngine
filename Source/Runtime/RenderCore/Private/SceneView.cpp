@@ -4,6 +4,7 @@
 #include "PrimitiveSceneInfo.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
+#include "Concurrent/TheadPool.h"
 #include "HAL/Event.h"
 #include "Misc/CoreGlabal.h"
 
@@ -27,8 +28,9 @@ namespace Thunder
             const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
             auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
             dispatcher->Promise(static_cast<int>(proxyNum));
-            GSyncWorkers->ParallelFor([&allSceneInfos, &LocalVisibleStaticSceneInfos, &LocalVisibleDynamicSceneInfos, dispatcher, proxyNum, this](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
+            GSyncWorkers->ParallelFor([&allSceneInfos, &LocalVisibleStaticSceneInfos, &LocalVisibleDynamicSceneInfos, dispatcher, proxyNum, this](uint32 bundleBegin, uint32 bundleSize)
             {
+                uint32 threadId = GetContextId();
                 for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
                 {
                     if (index >= proxyNum)

@@ -187,7 +187,7 @@ namespace Thunder
 		TVector3f cameraLocation { TVector3f(0.f, 0.f, 0.f) };
 		for (Entity* rootEntity : RootEntities)
 		{
-			if (Math::Distance(cameraLocation, rootEntity->GetTransformComponent()->GetPosition()) > 0.5f)
+			if (Math::Distance(cameraLocation, rootEntity->GetTransformComponent()->GetPosition()) < 1000000.f)
 			{
 				rootEntity->Load();
 			}
@@ -201,9 +201,6 @@ namespace Thunder
 			delete scene;
 		}
 		Scenes.clear();
-		/*String fullPath = FileModule::GetResourceContentRoot() + "Map/TestScene.tmap";
-		bool ret = TestScene->Save(fullPath);
-		TAssertf(ret, "Fail to save scene");*/
 	}
 
 	void BaseViewport::GetRenderers(TArray<IRenderer*>& renderers) const
@@ -213,49 +210,4 @@ namespace Thunder
 			renderers.push_back(scene->GetRenderer());
 		}
 	}
-
-	/*void Scene::SimulateStreamingWithDistance(TList<IComponent*>& outDependencies) const
-	{
-		TVector3f cameraLocation { TVector3f(0.f, 0.f, 0.f) };
-		for (Entity* rootEntity : RootEntities)
-		{
-			if (Math::Distance(cameraLocation, rootEntity->GetTransform()->GetPosition()) > 0.5f)
-			{
-				 rootEntity->GetAllHierarchyComponents(outDependencies);
-			}
-		}
-	}
-
-	void Scene::StreamScene()
-	{
-		// Collect all resource dependencies
-		TList<IComponent*> compList;
-		SimulateStreamingWithDistance(compList);
-		if (compList.empty())
-		{
-			OnLoaded();
-			return;
-		}
-
-		if (StreamingEvent == nullptr)
-		{
-			StreamingEvent = new (TMemory::Malloc<TLoadEvent<Scene>>()) TLoadEvent(this);
-		}
-		
-		uint32 compNum = static_cast<uint32>(compList.size());
-		TArray<IComponent*> compTable(compList.begin(), compList.end());
-
-		StreamingEvent->Promise(static_cast<int>(compNum));
-		GAsyncWorkers->ParallelFor([compTable, compNum, event = StreamingEvent](uint32 bundleBegin, uint32 bundleSize, uint32 bundleId) mutable
-		{
-			for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
-			{
-				if (index < compNum)
-				{
-					compTable[index]->SyncLoad();
-					event->Notify();
-				}
-			}
-		}, compNum);
-	}*/
 }

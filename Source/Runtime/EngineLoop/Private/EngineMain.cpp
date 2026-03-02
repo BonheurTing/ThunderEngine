@@ -78,7 +78,7 @@ namespace Thunder
         ShaderModule::InitShaderMap();
 
 #if WITH_EDITOR
-        PackageModule::GetModule()->ImportAll();
+        // PackageModule::GetModule()->ImportAll();
 #endif
 
         // setup base geometries
@@ -88,7 +88,7 @@ namespace Thunder
         {
             return new (TMemory::Malloc<DeferredRenderer>()) DeferredRenderer; 
         };
-        GameModule::GetModule()->InitGameThread(defaultRendererFactory); //bonheur test
+        GameModule::GetModule()->InitGameThread(defaultRendererFactory);
     }
 
     void EngineMain::InitWindow(void* hwnd)

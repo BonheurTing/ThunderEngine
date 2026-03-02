@@ -248,9 +248,13 @@ set(PublicDependencyModuleList
 
 ![Parallel](Images/Readme/image.png)
 
+## Todo
+
+- [ ] 支持C++反射。
+
 # 安装
 
 - 需要cmake、python。
 - 运行Setup.bat。
-- 编译 `RelWithDebugInfo|x64` 即可运行。
+- 打开sln项目，选择 `RelWithDebugInfo|x64`，编译 `Game` 项目即可运行。
 

@@ -157,28 +157,6 @@ namespace Thunder
     {
     }
 
-    void RenderMaterial::BindParametersToRHI(class RHICommandList* cmdList) const
-    {
-        // TODO: 绑定Constant Buffer和Texture到渲染管线
-
-        // 示例代码框架：
-        // if (ConstantBuffer)
-        // {
-        //     cmdList->SetConstantBuffer(0, ConstantBuffer.Get());
-        // }
-        //
-        // 遍历TextureParameters，绑定纹理资源
-        // for (const auto& pair : ParameterCache.TextureParameters)
-        // {
-        //     // 根据GUID查找对应的RHITexture
-        //     // RHITexture* texture = GetTextureResource(pair.first);
-        //     // if (texture)
-        //     // {
-        //     //     cmdList->SetShaderResourceView(slot, texture->GetSRV());
-        //     // }
-        // }
-    }
-
     bool RenderMaterial::GetRenderState(EMeshPass meshPassType, RHIBlendState& outBlendState, RHIRasterizerState& outRasterizerState, RHIDepthStencilState& outDepthStencilState)
     {
         // Get sub-shader.

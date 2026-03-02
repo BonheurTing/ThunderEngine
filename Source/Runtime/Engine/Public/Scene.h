@@ -48,11 +48,6 @@ namespace Thunder
 		ENGINE_API void SetViewport(BaseViewport* inViewport) { Viewport = inViewport; }
 
 	private:
-		/*// Asynchronous resource streaming
-		void StreamScene();
-		// Collect all resource dependencies in the scene
-		void SimulateStreamingWithDistance(TList<IComponent*>& outDependencies) const;*/
-
 		NameHandle SceneName;
 		TArray<Entity*> RootEntities;
 		IRenderer* Renderer{ nullptr };

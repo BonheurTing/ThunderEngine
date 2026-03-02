@@ -22,13 +22,14 @@ namespace Thunder
 		void SetThreadPoolOwner(class ThreadPoolBase* InPool) { ThreadPoolOwner = InPool; }
 		_NODISCARD_ uint32 GetThreadId() const;
 		_NODISCARD_ NameHandle GetThreadName() const;
+		FORCEINLINE void SetContextId(uint32 InContextId) { ContextId = InContextId; }
+		FORCEINLINE uint32 GetContextId() const { return ContextId; }
 
 		//Thread-safe
 		//friend class PooledTaskScheduler;
 		void AttachToScheduler(class IScheduler* InScheduler);
 		void DetachFromScheduler(IScheduler* InScheduler);
 
-		//线程控制
 		void Suspend() const { DoWorkEvent->Reset(); }
 		void Resume() const { DoWorkEvent->Trigger(); }
 		uint32 Run();
@@ -45,8 +46,13 @@ namespace Thunder
 		ThreadPoolBase* ThreadPoolOwner {};
 		TSet<IScheduler*> AttachedSchedulers {};
 		SharedLock SchedulersSharedLock;
+		uint32 ContextId = 0;
 	};
-	
+
+	CORE_API void SetCurrentThread(ThreadProxy* InThread);
+	CORE_API ThreadProxy* GetThread();
+	CORE_API uint32 GetContextId();
+
 	/************************ thread pool ************************************/
 
 	class ThreadPoolBase

@@ -18,8 +18,6 @@ namespace Thunder
     	SHADER_API virtual void Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const THashMap<NameHandle, bool>& marco,
     		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) = 0; // Deprecated.
 
-		SHADER_API virtual void Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode) = 0; // Deprecated.
-
 		SHADER_API virtual void Compile(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug = false) = 0;
     };
     
@@ -30,8 +28,6 @@ namespace Thunder
     	SHADER_API void Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const THashMap<NameHandle, bool>& marco,
     		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) override; // Deprecated.
 
-    	SHADER_API void Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode) override; // Deprecated.
-
     	SHADER_API void Compile(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug = false) override {}
     };
     
@@ -41,7 +37,7 @@ namespace Thunder
     	SHADER_API DXCCompiler();
     	SHADER_API void Compile(NameHandle archiveName, const String& inSource, SIZE_T srcDataSize, const THashMap<NameHandle, bool>& marco,
     		const String& includeStr, const String& pEntryPoint, const String& pTarget, BinaryData& outByteCode) override; // Deprecated.
-    	SHADER_API void Compile(const String& inSource, SIZE_T srcDataSize, BinaryData& outByteCode) override {} // Deprecated.
+
     	SHADER_API void Compile(const String& inSource, const String& entryPoint, EShaderStageType stage, BinaryData& outByteCode, bool debug = false) override;
     private:
         ComPtr<IDxcUtils> ShaderUtils;

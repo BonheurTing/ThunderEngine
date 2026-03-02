@@ -171,13 +171,13 @@ namespace Thunder
         if (LoadingSignal == 0)
         {
             uint32 LoadingIndex = frameNum / 400;
-            GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 modelIndex, uint32 dummy, uint32 threadId)
+            GAsyncWorkers->ParallelFor([this, LoadingIndex](uint32 modelIndex, uint32 dummy)
             {
                 ThunderZoneScopedN("AsyncLoading");
                 FPlatformProcess::BusyWaiting(100000);
                 ModelLoaded[LoadingIndex * 8 + modelIndex] = true;
                 ModelData[LoadingIndex * 8 + modelIndex] = static_cast<int>(modelIndex) * 100;
-            }, 8, 8);
+            }, 8, 1);
         }
 
         for (int i = 0; i < 1024; i++)

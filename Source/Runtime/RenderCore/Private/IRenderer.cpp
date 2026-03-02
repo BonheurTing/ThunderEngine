@@ -3,13 +3,14 @@
 #include "PrimitiveSceneInfo.h"
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskScheduler.h"
+#include "Concurrent/TheadPool.h"
 #include "HAL/Event.h"
 
 namespace Thunder
 {
     IRenderer::IRenderer()
     {
-        FrameGraph = new class FrameGraph(this, GSyncWorkers->GetNumThreads());
+        FrameGraph = new class FrameGraph(this);
     }
 
     IRenderer::~IRenderer()
@@ -47,11 +48,10 @@ namespace Thunder
         const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
         auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
         dispatcher->Promise(static_cast<int>(sceneInfoCount));
-        uint32 numThread = static_cast<uint32>(FrameGraph->GetRenderContexts().size());
-        GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
+        GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount](uint32 bundleBegin, uint32 bundleSize)
         {
             auto const& contexts = FrameGraph->GetRenderContexts();
-            auto context = contexts[threadId];
+            auto context = contexts[GetContextId()];
             for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
             {
                 if (index >= sceneInfoCount)
@@ -63,7 +63,7 @@ namespace Thunder
 
                 dispatcher->Notify();
             }
-        }, sceneInfoCount, numThread);
+        }, sceneInfoCount);
 
         // Wait for task to finish.
         doWorkEvent->Wait();

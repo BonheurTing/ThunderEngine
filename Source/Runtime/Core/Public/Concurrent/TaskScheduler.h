@@ -50,14 +50,15 @@ namespace Thunder
 		void PushTask(const TFunction<void()>& InFunction) override;
 		void DetachFromThread(ThreadProxy* InThreadProxy) override;
 		void WaitForCompletionAndThreadExit() override;
+		uint32 GetThreadId(uint32 threadIndex) const;
 
-		void ParallelFor(TFunction<void(uint32, uint32, uint32)>& Body, uint32 NumTask, uint32 NumThread = 8);
-		void ParallelFor(TFunction<void(uint32, uint32, uint32)> &&Body, uint32 NumTask, uint32 NumThread = 8);
+		void ParallelFor(TFunction<void(uint32, uint32)>& Body, uint32 NumTask, uint32 BundleSize = 8);
+		void ParallelFor(TFunction<void(uint32, uint32)>&& Body, uint32 NumTask, uint32 BundleSize = 8);
 
 	private:
 		friend class ThreadProxy;
 		TArray<SingleScheduler*> TaskSchedulers {};
-		TSet<ThreadProxy*> ThreadList {};
+		TArray<ThreadProxy*> ThreadList {};
 	};
 
 	class TaskSchedulerManager

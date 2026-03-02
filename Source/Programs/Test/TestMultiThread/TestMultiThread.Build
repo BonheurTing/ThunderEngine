@@ -1,5 +1,0 @@
-set(ModuleName TestMultiThread)
-set(LinkMode EXECUTABLE)
-set(PublicDependencyModuleList
-    Core
-)

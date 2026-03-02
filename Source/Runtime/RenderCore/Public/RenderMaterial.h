@@ -45,7 +45,6 @@ namespace Thunder
             NameHandle passName,
             uint64 variantId = 0) const;
 
-        void BindParametersToRHI(class RHICommandList* cmdList) const;
         const ShaderParameterMap* GetParameterCache() const { return ParameterCache; }
         const TMap<NameHandle, bool>& GetStaticSwitchParameters() const { return ParameterCache->StaticSwitchParameters; }
         const TMap<NameHandle, TVector4f>& GetVectorParameters() const { return ParameterCache->VectorParameters; }

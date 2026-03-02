@@ -14,6 +14,7 @@
 #include "Concurrent/ConcurrentBase.h"
 #include "Concurrent/TaskGraph.h"
 #include "Concurrent/TaskScheduler.h"
+#include "Concurrent/TheadPool.h"
 #include "HAL/Event.h"
 #include "Misc/CoreGlabal.h"
 
@@ -105,9 +106,9 @@ namespace Thunder
         DepthStencil = beginCommand->DepthStencil.Texture;
     }
 
-    FrameGraph::FrameGraph(IRenderer* owner, int contextNum) : OwnerRenderer(owner)
+    FrameGraph::FrameGraph(IRenderer* owner) : OwnerRenderer(owner)
     {
-        InitializeRenderContexts(contextNum);
+        InitializeRenderContexts();
         int viewNum = static_cast<int>(EViewType::Num);
         Views.resize(static_cast<size_t>(viewNum));
         for (int i = 0; i < viewNum; ++i)
@@ -492,11 +493,10 @@ namespace Thunder
         const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
         auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
         dispatcher->Promise(static_cast<int>(sceneInfoCount));
-        uint32 numThread = static_cast<uint32>(GetRenderContexts().size());
-        GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount, passType](uint32 bundleBegin, uint32 bundleSize, uint32 threadId)
+        GSyncWorkers->ParallelFor([this, &sceneInfos, dispatcher, sceneInfoCount, passType](uint32 bundleBegin, uint32 bundleSize)
         {
             auto const& contexts = GetRenderContexts();
-            auto context = contexts[threadId];
+            auto context = contexts[GetContextId()];
             for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
             {
                 if (index >= sceneInfoCount)
@@ -515,7 +515,7 @@ namespace Thunder
 
                 dispatcher->Notify();
             }
-        }, sceneInfoCount, numThread);
+        }, sceneInfoCount);
 
         // Wait for task to finish.
         doWorkEvent->Wait();
@@ -701,7 +701,7 @@ namespace Thunder
         return it->second;
     }
 
-    void FrameGraph::InitializeRenderContexts(uint32 threadCount)
+    void FrameGraph::InitializeRenderContexts()
     {
         if (!MainContext)
         {
@@ -716,6 +716,7 @@ namespace Thunder
         RenderContexts.clear();
 
         // Create new contexts for each thread
+        uint32 threadCount = GSyncWorkers->GetNumThreads();
         RenderContexts.reserve(threadCount);
         for (uint32 i = 0; i < threadCount; ++i)
         {

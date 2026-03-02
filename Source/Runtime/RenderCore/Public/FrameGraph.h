@@ -78,7 +78,7 @@ namespace Thunder
     class FrameGraph : public RefCountedObject
     {
     public:
-        RENDERCORE_API FrameGraph(class IRenderer* owner, int contextNum);
+        RENDERCORE_API FrameGraph(class IRenderer* owner);
         RENDERCORE_API ~FrameGraph();
 
         RENDERCORE_API void Reset();
@@ -143,7 +143,7 @@ namespace Thunder
          
     private:
         // Initialize render contexts for multi-threading
-        void InitializeRenderContexts(uint32 threadCount);
+        void InitializeRenderContexts();
 
         void CullUnusedPasses() const;
         void TopologicalSort();
@@ -163,7 +163,6 @@ namespace Thunder
         TSet<NameHandle> CurrentFramePasses;
         NameHandle PresentPassName;
         TMap<NameHandle, TRefCountPtr<FrameGraphPass>> Passes;
-
         TArray<NameHandle> ExecutionOrder;
 
         // Render targets.

@@ -1,7 +1,0 @@
-set(ModuleName TestShaderLang)
-set(LinkMode EXECUTABLE)
-
-set(PublicDependencyModuleList
-    Core
-    ShaderLang
-)

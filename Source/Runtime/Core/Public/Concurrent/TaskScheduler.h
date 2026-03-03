@@ -48,6 +48,7 @@ namespace Thunder
 		void PushTask(ITask* InQueuedWork)  override;
 		void PushTask(int Index, ITask* InQueuedWork) const;
 		void PushTask(const TFunction<void()>& InFunction) override;
+		void PushTask(int Index, const TFunction<void()>& InFunction) const;
 		void DetachFromThread(ThreadProxy* InThreadProxy) override;
 		void WaitForCompletionAndThreadExit() override;
 		uint32 GetThreadId(uint32 threadIndex) const;

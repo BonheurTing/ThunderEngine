@@ -24,7 +24,8 @@ namespace Thunder
 {
     D3D12DynamicRHI::D3D12DynamicRHI()
     {
-        FenceEvent = nullptr;
+        RenderFenceEvent = nullptr;
+        RHIFenceEvent = nullptr;
         CurrentFenceValue = 0;
         for (unsigned long long& FenceValue : ExpectedFenceValues)
         {
@@ -61,9 +62,14 @@ namespace Thunder
             UploadHeapAllocator = nullptr;
         }
 
-        if (FenceEvent != nullptr)
+        if (RenderFenceEvent != nullptr)
         {
-            FPlatformProcess::ReturnSyncEventToPool(FenceEvent);
+            FPlatformProcess::ReturnSyncEventToPool(RenderFenceEvent);
+        }
+
+        if (RHIFenceEvent != nullptr)
+        {
+            FPlatformProcess::ReturnSyncEventToPool(RHIFenceEvent);
         }
     }
 
@@ -115,9 +121,13 @@ namespace Thunder
         HRESULT fenceHr = Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&Fence));
         TAssertf(SUCCEEDED(fenceHr), "Failed to create fence");
 
-        // Create event for fence waiting
-        FenceEvent = FPlatformProcess::GetSyncEventFromPool(false);
-        TAssertf(FenceEvent != nullptr, "Failed to create fence event");
+        // Create event for fence waiting (render thread only)
+        RenderFenceEvent = FPlatformProcess::GetSyncEventFromPool(false);
+        TAssertf(RenderFenceEvent != nullptr, "Failed to create fence event");
+
+        // Create separate event for resize fence waiting (RHI thread only)
+        RHIFenceEvent = FPlatformProcess::GetSyncEventFromPool(false);
+        TAssertf(RHIFenceEvent != nullptr, "Failed to create resize fence event");
 
         if(SUCCEEDED(hr))
         {
@@ -836,7 +846,7 @@ namespace Thunder
         }
 
         // Check for pending resize request and execute it on RHI thread
-        // ResizeBackBuffer_RHIThread();
+        ResizeBackBuffer_RHIThread();
     }
 
     void D3D12DynamicRHI::RHIWaitForFrame(uint32 frameIndex)
@@ -851,9 +861,9 @@ namespace Thunder
         uint64 completedValue = Fence->GetCompletedValue();
         if (completedValue < fenceValue)
         {
-            HRESULT hr = Fence->SetEventOnCompletion(fenceValue, static_cast<HANDLE>(FenceEvent->GetNativeHandle()));
+            HRESULT hr = Fence->SetEventOnCompletion(fenceValue, static_cast<HANDLE>(RenderFenceEvent->GetNativeHandle()));
             TAssertf(SUCCEEDED(hr), "Failed to set fence event");
-            FenceEvent->Wait();
+            RenderFenceEvent->Wait();
         }
     }
 
@@ -996,14 +1006,14 @@ namespace Thunder
             return;
         }
 
-        // Wait for GPU to finish ALL work before resizing
-        // This ensures no commands are using the backbuffers
+        // Wait for GPU to finish ALL work before resizing.
         ++CurrentFenceValue;
-        CommandQueue->Signal(Fence.Get(), CurrentFenceValue);
+        HRESULT signalHr = CommandQueue->Signal(Fence.Get(), CurrentFenceValue);
+        TAssertf(SUCCEEDED(signalHr), "Failed to signal fence for resize, result is %d.", signalHr);
         if (Fence->GetCompletedValue() < CurrentFenceValue)
         {
-            Fence->SetEventOnCompletion(CurrentFenceValue, static_cast<HANDLE>(FenceEvent->GetNativeHandle()));
-            FenceEvent->Wait();
+            Fence->SetEventOnCompletion(CurrentFenceValue, static_cast<HANDLE>(RHIFenceEvent->GetNativeHandle()));
+            RHIFenceEvent->Wait();
         }
 
         // Release back buffer resources and RTVs
@@ -1050,6 +1060,6 @@ namespace Thunder
         CurrentBackBufferIndex = SwapChain->GetCurrentBackBufferIndex();
 
         // Check for pending resize request and execute it on RHI thread
-        ResizeBackBuffer_RHIThread();
+        // ResizeBackBuffer_RHIThread();
     }
 }

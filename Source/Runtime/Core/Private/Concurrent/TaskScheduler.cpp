@@ -121,6 +121,12 @@ namespace Thunder
 		IScheduler::PushTask(InFunction);
 	}
 	
+	void PooledTaskScheduler::PushTask(int Index, const TFunction<void()>& InFunction) const
+	{
+		TAssert(Index < static_cast<int>(TaskSchedulers.size()));
+		TaskSchedulers[Index]->PushTask(InFunction);
+	}
+	
 	void PooledTaskScheduler::PushTask(int Index, ITask* InQueuedWork) const
 	{
 		TAssert(Index < static_cast<int>(TaskSchedulers.size()));
@@ -240,9 +246,21 @@ namespace Thunder
 
 		GSyncWorkers = new (TMemory::Malloc<PooledTaskScheduler>()) PooledTaskScheduler();
 		syncThreads->AttachToScheduler(GSyncWorkers);
+		for (int threadIndex = 0; threadIndex < syncThreads->GetNumThreads(); ++threadIndex)
+		{
+			SingleScheduler* singleScheduler = new (TMemory::Malloc<SingleScheduler>()) SingleScheduler();
+			singleScheduler->AttachToThread(syncThreads->GetThread(threadIndex));
+			GSyncWorkers->AddSingleScheduler(singleScheduler);
+		}
 
 		GAsyncWorkers = new (TMemory::Malloc<PooledTaskScheduler>()) PooledTaskScheduler();
 		asyncThreads->AttachToScheduler(GAsyncWorkers);
+		for (int threadIndex = 0; threadIndex < asyncThreads->GetNumThreads(); ++threadIndex)
+		{
+			SingleScheduler* singleScheduler = new (TMemory::Malloc<SingleScheduler>()) SingleScheduler();
+			singleScheduler->AttachToThread(asyncThreads->GetThread(threadIndex));
+			GAsyncWorkers->AddSingleScheduler(singleScheduler);
+		}
 	}
 
 	void TaskSchedulerManager::ShutDown()

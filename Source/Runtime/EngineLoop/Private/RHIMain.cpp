@@ -83,31 +83,41 @@ namespace Thunder
         uint32 frontFrameGraphIndex = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire) % 2;
         auto allCommands = renderer->GetFrameGraph()->GetCurrentAllCommands(static_cast<int>(frontFrameGraphIndex));
         auto passStates = renderer->GetFrameGraph()->GetCurrentPassStates(static_cast<int>(frontFrameGraphIndex));
-        int commandNum = static_cast<int>(allCommands.size());
+        uint32 commandNum = static_cast<uint32>(allCommands.size());
         if (commandNum > 0)
         {
             const auto doWorkEvent = FPlatformProcess::GetSyncEventFromPool();
             auto* dispatcher = new (TMemory::Malloc<TaskDispatcher>()) TaskDispatcher(doWorkEvent);
-            dispatcher->Promise(commandNum);
-            GSyncWorkers->ParallelFor([rhiCommandContexts, allCommands, passStates, dispatcher, commandNum](uint32 bundleBegin, uint32 bundleSize) mutable
+            dispatcher->Promise(static_cast<int>(commandNum));
+
+            // Split and push tasks.
+            const uint32 chunkSize   = (commandNum + numThread - 1) / numThread;
+            for (uint32 threadIndex = 0; threadIndex < numThread; ++threadIndex)
             {
-                uint32 threadId = GetContextId();
-                RHICommandContext* commandList = rhiCommandContexts[threadId];
-
-                if (threadId > 0)
+                const uint32 chunkBegin = threadIndex * chunkSize;
+                if (chunkBegin >= commandNum)
                 {
-                    ExecuteBeginCommandListCommand(passStates, commandList, bundleBegin);
+                    break;
                 }
+                const uint32 chunkEnd = std::min(chunkBegin + chunkSize, commandNum);
 
-                for (uint32 index = bundleBegin; index < bundleBegin + bundleSize; ++index)
+                GSyncWorkers->PushTask(static_cast<int>(threadIndex), [rhiCommandContexts, allCommands, passStates, dispatcher, chunkBegin, chunkEnd, threadIndex]()
                 {
-                    if (index < static_cast<uint32>(commandNum))
+                    RHICommandContext* commandList = rhiCommandContexts[threadIndex];
+
+                    if (threadIndex > 0)
+                    {
+                        RHITask::ExecuteBeginCommandListCommand(passStates, commandList, chunkBegin);
+                    }
+
+                    for (uint32 index = chunkBegin; index < chunkEnd; ++index)
                     {
                         allCommands[index]->ExecuteAndDestruct(commandList);
                         dispatcher->Notify();
                     }
-                }
-            }, commandNum, numThread);
+                });
+            }
+
             doWorkEvent->Wait();
             FPlatformProcess::ReturnSyncEventToPool(doWorkEvent);
             TMemory::Destroy(dispatcher);

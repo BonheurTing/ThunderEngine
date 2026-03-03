@@ -102,7 +102,8 @@ namespace Thunder
 
         // fence synchronization
         ComPtr<ID3D12Fence> Fence;
-        IEvent* FenceEvent;
+        IEvent* RenderFenceEvent;
+        IEvent* RHIFenceEvent; 
         uint64 ExpectedFenceValues[MAX_FRAME_LAG] = {0};
         uint64 CurrentFenceValue = 0;
 

@@ -70,8 +70,8 @@ namespace Thunder
     };
     using FGRenderTargetRef = TRefCountPtr<FGRenderTarget>;
 
-    #define RENDERTARGET_UNUSED_FRAME_THRESHOLD 60
-    #define RENDERTARGET_MAX_RELEASE_PER_FRAME 5
+    #define RENDERTARGET_UNUSED_FRAME_THRESHOLD 10
+    #define RENDERTARGET_MAX_RELEASE_PER_FRAME 64
 
     struct PooledRenderTarget
     {

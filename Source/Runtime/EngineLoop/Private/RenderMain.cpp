@@ -85,6 +85,7 @@ namespace Thunder
         // rhi thread
         GRHIScheduler->PushTask([frameNum]()
         {
+            std::lock_guard<std::mutex> lock(GFrameState->RenderRHIMutex);
             GFrameState->FrameNumberRHIThread.store(static_cast<int>(frameNum), std::memory_order_release);
             GFrameState->RenderRHICV.notify_all();
         });

@@ -1,0 +1,11 @@
+set(ModuleName Mimalloc)
+set(LinkMode STATIC)
+set(AutoIncludePublicFile False)
+
+set(CustomSourceFiles
+    ThirdParty/Mimalloc/src/static.c
+)
+
+set(PublicThirdPartyIncludeList
+    ThirdParty/Mimalloc/include
+)

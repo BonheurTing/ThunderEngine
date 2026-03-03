@@ -33,7 +33,6 @@ namespace Thunder
 		{
 			DefaultRenderResource = new RenderMaterial();
 
-			// 设置ShaderArchive
 			ShaderArchive* archive = GetShaderArchive();
 			if (archive)
 			{

@@ -84,13 +84,21 @@ namespace Thunder
 			TAssert(Index && Index < (uint32)NextIndex.load(std::memory_order_acquire) && Index < MaxTotalItems && blockIndex < MaxBlocks);
 			if (!Pages[blockIndex])
 			{
-				T* newBlock = new (TMemory::Malloc(ItemsPerPage)) T{};
+				T* newBlock = static_cast<T*>(TMemory::Malloc<T>(ItemsPerPage));
 				TAssert(IsAligned(newBlock, alignof(T)));
+				for (uint32 index = 0; index < ItemsPerPage; ++index)
+				{
+					new (newBlock + index) T;
+				}
 				if (FPlatformAtomics::InterlockedCompareExchangePointer((void**)&Pages[blockIndex], newBlock, nullptr) != nullptr)
 				{
 					// we lost discard block
 					TAssert(Pages[blockIndex] && Pages[blockIndex] != newBlock);
-					TMemory::Destroy(newBlock);
+					for (uint32 index = 0; index < ItemsPerPage; ++index)
+					{
+						newBlock[index].~T();
+					}
+					TMemory::Free(newBlock);
 				}
 				else
 				{
@@ -399,7 +407,7 @@ namespace Thunder
 
 		bool IsEmpty() const
 		{
-			return !RootList.GetPtr();
+			return RootList.IsEmpty();
 		}
 
 		uint64 GetState() const

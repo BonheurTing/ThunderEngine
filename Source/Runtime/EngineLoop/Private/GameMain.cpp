@@ -257,6 +257,7 @@ namespace Thunder
         const uint32 frameNum = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
         GRenderScheduler->PushTask([frameNum]()
         {
+            std::lock_guard<std::mutex> lock(GFrameState->GameRenderMutex);
             GFrameState->FrameNumberRenderThread.store(frameNum, std::memory_order_release);
             GFrameState->GameRenderCV.notify_all();
         });

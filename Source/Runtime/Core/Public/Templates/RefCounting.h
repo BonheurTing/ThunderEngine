@@ -211,7 +211,7 @@ namespace Thunder
 	}
 
 	template <typename T, bool isManaged = false, typename... TArgs>
-	FORCEINLINE CORE_API TRefCountPtr<T, isManaged> MakeRefCount(TArgs&&... Args)
+	FORCEINLINE TRefCountPtr<T, isManaged> MakeRefCount(TArgs&&... Args)
 	{
 		if constexpr (isManaged)
 		{

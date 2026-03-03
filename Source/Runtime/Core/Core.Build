@@ -1,22 +1,22 @@
 set(ModuleName Core)
 set(LinkMode SHARED)
 
+set(PublicDependencyModuleList
+    Mimalloc
+)
+
 set(PublicThirdPartyIncludeList
-    ThirdParty/Mimalloc/include
     ThirdParty/rapidjson/include
     ThirdParty/TracyClient
 )
 
 set(PrivateThirdPartyIncludeList
-    #ThirdParty/Mimalloc/src
 )
 
 set(PrivateThirdPartyPathList
-    ThirdParty/Mimalloc/lib
 )
 
 set(PrivateThirdPartyNameList
-    mimalloc-static.lib
 )
 
 set(TargetLinkerFlags

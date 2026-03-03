@@ -43,7 +43,9 @@ macro(LinkModuleFunc TargetName LinkModuleMode LinkModuleList)
         message("${TargetName}  -link- ${LinkModuleName}")
         add_dependencies(${TargetName} ${LinkModuleName})
         target_link_libraries(${TargetName} ${LinkModuleMode} ${LinkModuleName})
-        target_include_directories(${TargetName} ${LinkModuleMode} ${${LinkModuleName}DirPath}/Public)
+        if (EXISTS ${${LinkModuleName}DirPath}/Public)
+            target_include_directories(${TargetName} ${LinkModuleMode} ${${LinkModuleName}DirPath}/Public)
+        endif()
         # link和include的mode不是一样的吧？
         # 默认直接include全部Public
     endforeach()
@@ -115,15 +117,21 @@ macro(BuildModule)
         endif()
 
         get_filename_component(BuildFileDir ${BuildFile} DIRECTORY)
-        file(GLOB_RECURSE LibrarySourceFiles CMAKE_CONFIGURE_DEPENDS
-            ${BuildFileDir}/*.cpp
-            ${BuildFileDir}/*.c
-            ${BuildFileDir}/*.cc
-            ${BuildFileDir}/*.cxx
-            ${BuildFileDir}/*.h
-            ${BuildFileDir}/*.hpp
-            ${SourceDirectoryPath}/${CustomSourceFiles}
-        )
+        if (CustomSourceFiles)
+            set(LibrarySourceFiles)
+            foreach (SourceFile IN LISTS CustomSourceFiles)
+                list(APPEND LibrarySourceFiles ${SourceDirectoryPath}/${SourceFile})
+            endforeach()
+        else()
+            file(GLOB_RECURSE LibrarySourceFiles CMAKE_CONFIGURE_DEPENDS
+                ${BuildFileDir}/*.cpp
+                ${BuildFileDir}/*.c
+                ${BuildFileDir}/*.cc
+                ${BuildFileDir}/*.cxx
+                ${BuildFileDir}/*.h
+                ${BuildFileDir}/*.hpp
+            )
+        endif()
 
         if(${LinkMode} STREQUAL EXECUTABLE)
             add_executable(${ModuleName} ${LibrarySourceFiles})

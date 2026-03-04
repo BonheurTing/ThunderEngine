@@ -378,9 +378,9 @@ namespace Thunder
 		if (!FileHandle) return false;
 #if THUNDER_WINDOWS
 		Close();
-		if (GetFileAttributesA(newPath.c_str()) != INVALID_FILE_ATTRIBUTES) // 如果存在
+		if (GetFileAttributesA(newPath.c_str()) != INVALID_FILE_ATTRIBUTES)
 		{
-			if (!::MoveFileExA(oldPath.c_str(), newPath.c_str(), MOVEFILE_REPLACE_EXISTING)) // 替换现有文件
+			if (!::MoveFileExA(oldPath.c_str(), newPath.c_str(), MOVEFILE_REPLACE_EXISTING))
 			{
 				TAssertf(false, "Fail to rename existing file from '%s' to '%s', error code: %lu\n", oldPath, newPath.c_str(), GetLastError());
 				return false;

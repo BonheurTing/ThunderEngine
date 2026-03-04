@@ -16,7 +16,7 @@ IThread* IThread::Create(class ThreadProxy* InProxy, uint32 InStackSize, const S
     if (bCreateRealThread)
     {
         TAssert(InProxy);
-        NewThread = FPlatformProcess::CreateRunnableThread(); //直接创建threadWindows
+        NewThread = FPlatformProcess::CreateRunnableThread();
     }
 
     if (NewThread)
@@ -34,7 +34,6 @@ IThread* IThread::Create(class ThreadProxy* InProxy, uint32 InStackSize, const S
 
     return NewThread;
 }
-
 
 ThreadManager::~ThreadManager()
 {

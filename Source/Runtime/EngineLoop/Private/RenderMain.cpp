@@ -112,10 +112,15 @@ namespace Thunder
     void RenderingTask::WaitForLastRHIFrameEnd()
     {
         std::unique_lock<std::mutex> lock(GFrameState->RenderRHIMutex);
-        if (GFrameState->FrameNumberRenderThread - GFrameState->FrameNumberRHIThread > 1)
+        uint32 renderFrame = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
+        uint32 rhiFrame = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire);
+        if (renderFrame - rhiFrame > 1)
         {
-            GFrameState->RenderRHICV.wait(lock, [] {
-                return GFrameState->FrameNumberRenderThread - GFrameState->FrameNumberRHIThread <= 1;
+            GFrameState->RenderRHICV.wait(lock, []
+            {
+                uint32 renderFrame = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
+                uint32 rhiFrame = GFrameState->FrameNumberRHIThread.load(std::memory_order_acquire);
+                return renderFrame - rhiFrame <= 1;
             });
         }
     }

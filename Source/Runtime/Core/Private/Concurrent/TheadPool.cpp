@@ -54,7 +54,7 @@ namespace Thunder
 	{
 		TAssert(InScheduler != nullptr);
 		{
-			SchedulersSharedLock.Read();
+			auto lock = SchedulersSharedLock.Read();
 			if (AttachedSchedulers.contains(InScheduler))
 			{
 				return;
@@ -62,7 +62,7 @@ namespace Thunder
 		}
 		InScheduler->AttachToThread(this);
 		{
-			SchedulersSharedLock.Write();
+			auto lock = SchedulersSharedLock.Write();
 			AttachedSchedulers.emplace(InScheduler);
 		}
 	}
@@ -71,7 +71,7 @@ namespace Thunder
 	{
 		TAssert(InScheduler != nullptr);
 		{
-			SchedulersSharedLock.Read();
+			auto lock = SchedulersSharedLock.Read();
 			if (!AttachedSchedulers.contains(InScheduler))
 			{
 				return;
@@ -79,7 +79,7 @@ namespace Thunder
 		}
 		InScheduler->DetachFromThread(this);
 		{
-			SchedulersSharedLock.Write();
+			auto lock = SchedulersSharedLock.Write();
 			AttachedSchedulers.erase(InScheduler);
 		}
 	}
@@ -98,7 +98,7 @@ namespace Thunder
 			{
 				bool bHasWork = false;
 				{
-					SchedulersSharedLock.Read();
+					auto lock = SchedulersSharedLock.Read();
 					for (const auto scheduler: AttachedSchedulers)
 					{
 						if (ITask* currentWork = scheduler->GetNextQueuedWork())
@@ -137,7 +137,7 @@ namespace Thunder
 	bool ThreadProxy::NoWorkToRun()
 	{
 		{
-			SchedulersSharedLock.Read();
+			auto lock = SchedulersSharedLock.Read();
 			for (const auto Scheduler : AttachedSchedulers)
 			{
 				if (!Scheduler->IsEmptyWork())

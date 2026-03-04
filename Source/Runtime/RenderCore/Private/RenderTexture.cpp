@@ -16,14 +16,6 @@ namespace Thunder
 
     void RenderTexture2D::CreateTexture_RenderThread()
     {
-        /**
-         * 1.fill in the desc (tips：flag：dynamic or not)
-         * 2.TextureRHI = RHICreateTexture(Desc);
-         * 3.RHILockTexture2D
-         * 4.memcpy
-         * 5.RHILockTexture2D
-         * 6.CopyTetxureRegion
-         **/
 
         const bool bNeedRTV = IsRenderTargetable();
         const bool bNeedDSV = IsDepthStencilTargetable();

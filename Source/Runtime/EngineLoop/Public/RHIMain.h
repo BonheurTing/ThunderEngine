@@ -15,7 +15,7 @@ namespace Thunder
         TaskDispatcher* Dispatcher{};
     };
 
-    class RHITask //临时放在这, 也许应该叫 RHIRunner
+    class RHITask
     {
     public:
         friend class TTask<RHITask>;

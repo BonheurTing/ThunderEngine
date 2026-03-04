@@ -117,13 +117,10 @@ namespace Thunder
 		}
 		const size_t slashPos = std::max(slashPosWin, slashPosUnix);
     
-		// 如果找到了点号，并且点号在最后一个路径分隔符之后（即确实是文件扩展名）
 		if (dotPos != std::string::npos && dotPos > slashPos) {
-			// 返回点号之后的所有字符（即文件扩展名）
 			return filePath.substr(dotPos + 1);
 		}
     
-		// 如果没有找到有效的扩展名，返回空字符串
 		return "";
 	}
 
@@ -131,15 +128,12 @@ namespace Thunder
 	{
 		const size_t dotPos = filePath.find_last_of('.');
     
-		// 查找最后一个路径分隔符的位置（支持Windows和Unix风格）
 		const size_t slashPos = std::max(
-			filePath.find_last_of('/'),  // Unix风格分隔符
-			filePath.find_last_of('\\')  // Windows风格分隔符
+			filePath.find_last_of('/'),
+			filePath.find_last_of('\\')
 		);
     
-		// 如果找到了点号，并且点号在最后一个路径分隔符之后（即确实是文件扩展名）
 		if (dotPos != std::string::npos && (slashPos == std::string::npos || dotPos > slashPos)) {
-			// 替换扩展名：取点号之前的部分 + 新扩展名
 			const String baseName = filePath.substr(0, dotPos);
 			if (newExtension.empty() || newExtension[0] == '.') {
 				return baseName + newExtension;
@@ -148,7 +142,6 @@ namespace Thunder
 			}
 		}
     
-		// 如果没有找到有效的扩展名，直接添加新扩展名
 		if (newExtension.empty() || newExtension[0] == '.') {
 			return filePath + newExtension;
 		} else {

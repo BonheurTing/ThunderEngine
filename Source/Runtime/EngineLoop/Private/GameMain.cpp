@@ -281,10 +281,15 @@ namespace Thunder
     void GameTask::WaitForLastRenderFrameEnd()
     {
         std::unique_lock<std::mutex> lock(GFrameState->GameRenderMutex);
-        if (GFrameState->FrameNumberGameThread - GFrameState->FrameNumberRenderThread > 1)
+        uint32 gameFrame = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
+        uint32 renderFrame = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
+        if (gameFrame - renderFrame > 1)
         {
-            GFrameState->GameRenderCV.wait(lock, [] {
-                return GFrameState->FrameNumberGameThread - GFrameState->FrameNumberRenderThread <= 1;
+            GFrameState->GameRenderCV.wait(lock, []
+            {
+                uint32 gameFrame = GFrameState->FrameNumberGameThread.load(std::memory_order_acquire);
+                uint32 renderFrame = GFrameState->FrameNumberRenderThread.load(std::memory_order_acquire);
+                return gameFrame - renderFrame <= 1;
             });
         }
     }

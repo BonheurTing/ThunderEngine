@@ -114,7 +114,7 @@ namespace Thunder
 			res->Serialize(curArchive);
 			offsetList[i] = offset;
 			sizeList[i] = static_cast<uint32>(curArchive.Size()) - offset;
-			typeList[i] = static_cast<uint32>(res->GetResourceType()); // 如果需要类型信息
+			typeList[i] = static_cast<uint32>(res->GetResourceType());
 			offset += sizeList[i];
 		}
 		// Copy objects header data
@@ -140,7 +140,7 @@ namespace Thunder
 		const String tempPath = fullPath + ".tmp";
 		const TRefCountPtr<NativeFile> file = static_cast<NativeFile*>(fileSystem->Open(tempPath, false));
 		const size_t ret = file->Write(fileData, fileSize);
-		return ret == fileSize && file->Rename(tempPath, fullPath); // 包含close
+		return ret == fileSize && file->Rename(tempPath, fullPath);
 	}
 
 	bool Package::Load()

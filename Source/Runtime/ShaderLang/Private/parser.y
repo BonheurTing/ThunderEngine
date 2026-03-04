@@ -106,7 +106,7 @@ int yylex(YYSTYPE *, parse_location*, void*);
 %nonassoc SEMICOLON
 
 
-%type <token> identifier key_identifier type_identifier new_identifier primary_identifier any_identifier
+%type <token> identifier type_identifier new_identifier primary_identifier any_identifier
 %type <token> primitive_types scalar_types
 %type <token> stage_token
 %type <node> definitions properties_definition variants_definition parameters_definition
@@ -139,10 +139,6 @@ program:
 
 identifier:
     TOKEN_IDENTIFIER
-    ;
-
-key_identifier:
-    KEY_ID
     ;
 
 type_identifier:

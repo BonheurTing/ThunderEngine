@@ -1,8 +1,5 @@
 #pragma once
 #include <intrin0.inl.h>
-#ifndef _TRELEASE
-#define _TRELEASE 0
-#endif
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(_WIN64)
 	#define THUNDER_WINDOWS 1

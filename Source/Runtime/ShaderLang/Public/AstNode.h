@@ -395,7 +395,7 @@ namespace Thunder
                 bool is_static : 1;		// Static variable.
                 bool is_const : 1;		// Constant variable.
                 bool is_sample : 1;		// Interpolate at sample location.
-                bool is_semantic : 1;	// 是否是shader语义
+                bool is_semantic : 1;
 			    uint16 padding1 : 9;
             };
             struct

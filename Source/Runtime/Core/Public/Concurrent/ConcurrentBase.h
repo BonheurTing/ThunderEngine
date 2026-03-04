@@ -11,17 +11,19 @@ namespace Thunder
 
 		void Promise(int Num)
 		{
-			if (Num == 0)
+			TAssertf(Num > 0, "Promise called with invalid num: %d", Num);
+			if (Num <= 0)
 			{
-				TAssertf(false, "Promise called with zero num.");
 				OnCompleted();
 				return;
 			}
-#if _TRELEASE
-			Counter.store(Num, std::memory_order_release);
-#else
-			TAssert(Counter.exchange(Num) == 0);
-#endif
+
+			const int prev = Counter.fetch_add(Num, std::memory_order_acq_rel);
+			TAssertf(prev <= 0, "Promise called twice or Counter corrupted: prev=%d", prev);
+			if (prev + Num == 0)
+			{
+				OnCompleted();
+			}
 		}
 
 		void Notify()

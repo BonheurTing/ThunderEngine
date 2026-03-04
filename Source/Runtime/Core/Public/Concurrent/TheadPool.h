@@ -3,7 +3,7 @@
 #include "Lock.h"
 #include "Platform.h"
 #include "HAL/Event.h"
-#include "HAL/Thread.h"	
+#include "HAL/Thread.h"
 
 namespace Thunder
 {

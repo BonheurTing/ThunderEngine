@@ -65,7 +65,7 @@ namespace Thunder
 
 		void Submit();
 
-		void WaitAndReset(); // 等待前序任务完成,重置TG
+		void WaitAndReset();
 
 		void TriggerNextWork(ITask* Task) const;
 

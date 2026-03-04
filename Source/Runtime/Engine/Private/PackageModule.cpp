@@ -1,10 +1,10 @@
 ﻿#pragma optimize("", off)
 #include "PackageModule.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "External/stb_image.h"		// 定义 stb_image 实现
-#include <assimp/Importer.hpp>      // 导入接口
-#include <assimp/scene.h>           // 场景数据（模型、材质、动画）
-#include <assimp/postprocess.h>     // 后处理选项（如三角化、优化）
+#include "External/stb_image.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 #include "GameModule.h"
 #include "rapidjson/document.h"
@@ -135,9 +135,8 @@ namespace Thunder
 	{
 		TReflectiveContainerRef indicesBuffer = MakeRefCount<ReflectiveContainer>();
 		indicesBuffer->AddComponent<int>("Index");
-		indicesBuffer->SetDataNum(static_cast<size_t>(mesh->mNumFaces) * 3); // 每个三角形有3个索引
+		indicesBuffer->SetDataNum(static_cast<size_t>(mesh->mNumFaces) * 3);
 		indicesBuffer->Initialize();
-		// 提取索引数据（三角形）
 		for (size_t i = 0, offset = 0; i < mesh->mNumFaces; i++)
 		{
 			constexpr size_t size = sizeof(int);
@@ -415,20 +414,10 @@ namespace Thunder
 		entry->SetAcquiring(true);
 	}
 
-	/**
-	 * 1. 方案一
-	 * if (PackageModule::DependencyCache.contais(guid))
-	 * {
-	 *	   return DependencyCache[guid];
-	 * }
-	 * 2. 方案二
-	 * 读硬盘上文件头获取依赖
-	 **/
 	TSet<TGuid> PackageModule::GetPackageDependencies(const TGuid& pakGuid)
 	{
 		return PackageMap[pakGuid]->GetResourceDependencies();
 	}
-
 
 	void PackageModule::InitResourcePathMap()
 	{
@@ -459,17 +448,14 @@ namespace Thunder
 
 	String PackageModule::CovertFullPathToSoftPath(const String& fullPath, const String& resourceName)
 	{
-		// 查找"Content"字符串的位置
 		size_t contentPos = fullPath.find("Content");
 		if (contentPos == std::string::npos)
 		{
-			return "";  // 如果没有找到"Content"，返回空字符串
+			return "";
 		}
 		
-		// 提取"Content"后的部分路径
-		String relativePath = fullPath.substr(contentPos + 7); // "Content" = 7个字符
+		String relativePath = fullPath.substr(contentPos + 7);
 		
-		// 将反斜杠替换为正斜杠（统一路径分隔符）
 		for (auto& ch : relativePath)
 		{
 			if (ch == '\\')
@@ -478,13 +464,11 @@ namespace Thunder
 			}
 		}
 		
-		// 确保路径以'/'开始，如果不是则添加
 		if (!relativePath.empty() && relativePath[0] != '/')
 		{
 			relativePath = "/" + relativePath;
 		}
 		
-		// 移除文件扩展名
 		size_t dotPos = relativePath.find_last_of('.');
 		size_t slashPos = relativePath.find_last_of('/');
 		if (dotPos != std::string::npos && (slashPos == std::string::npos || dotPos > slashPos))
@@ -492,10 +476,8 @@ namespace Thunder
 			relativePath = relativePath.substr(0, dotPos);
 		}
 		
-		// 构建软路径
 		String softPath = "/Game" + relativePath;
 
-		// 如果resourceName不为空，添加资源名称后缀
 		if (!resourceName.empty())
 		{
 			softPath += "." + resourceName;
@@ -508,7 +490,6 @@ namespace Thunder
 	{
 		String workingPath = softPath;
 		
-		// 移除资源名称后缀（如果存在点号）
 		size_t lastDotPos = workingPath.find_last_of('.');
 		size_t lastSlashPos = workingPath.find_last_of('/');
 		if (lastDotPos != std::string::npos && (lastSlashPos == std::string::npos || lastDotPos > lastSlashPos))
@@ -516,16 +497,13 @@ namespace Thunder
 			workingPath = workingPath.substr(0, lastDotPos);
 		}
 		
-		// 检查是否以"/Game"开头
 		if (workingPath.substr(0, 5) != "/Game")
 		{
-			return "";  // 不是有效的软路径格式
+			return "";
 		}
 		
-		// 移除"/Game"前缀，获取相对路径
-		String relativePath = workingPath.substr(5); // "/Game" = 5个字符
+		String relativePath = workingPath.substr(5);
 		
-		// 将正斜杠替换为系统路径分隔符（Windows使用反斜杠）
 		for (auto& ch : relativePath)
 		{
 			if (ch == '/')
@@ -534,13 +512,10 @@ namespace Thunder
 			}
 		}
 		
-		// 获取项目根路径
 		String projectRoot = FileModule::GetProjectRoot();
 		
-		// 构建完整路径
 		String fullPath = projectRoot + "\\Content" + relativePath;
 		
-		// 添加文件扩展名
 		if (!extension.empty())
 		{
 			if (extension[0] == '.')

@@ -17,7 +17,6 @@ namespace Thunder
 			Viewport.MaxDepth = maxDepth;
 		}
 		// swapchain
-		// viewport 放在 adapter/device 里
 		_NODISCARD_ const void* GetViewPort() const override { return &Viewport; }
 	private:
 		D3D12_VIEWPORT Viewport{};
